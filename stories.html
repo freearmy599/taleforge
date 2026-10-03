@@ -1,26 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>Explore Stories — TaleForge</title>
 
   <meta
     name="description"
-    content="Discover short stories across mystery, fantasy, romance, science fiction, horror, comedy and more on TaleForge."
+    content="Explore short stories across mystery, fantasy, romance, science fiction, horror, comedy and more."
   >
 
   <style>
+
     :root {
-      --bg: #0b0d10;
-      --surface: #12161c;
-      --surface-2: #171c23;
-      --border: #252c35;
+      --bg: #090b0f;
+      --surface: #11151c;
+      --border: #252c36;
       --text: #f4f7fa;
-      --muted: #9ba6b2;
-      --accent: #5ee7ff;
-      --accent-dark: #18343b;
+      --muted: #9ca6b4;
+      --accent: #05c9ee;
+      --accent-dark: rgba(5, 201, 238, 0.12);
     }
 
     * {
@@ -42,7 +47,7 @@
       background:
         radial-gradient(
           circle at top right,
-          rgba(94, 231, 255, 0.08),
+          rgba(5, 201, 238, 0.08),
           transparent 30%
         ),
         var(--bg);
@@ -60,9 +65,9 @@
     header {
       position: sticky;
       top: 0;
-      z-index: 20;
+      z-index: 30;
 
-      background: rgba(11, 13, 16, 0.88);
+      background: rgba(9, 11, 15, 0.9);
       backdrop-filter: blur(18px);
 
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -77,13 +82,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 20px;
     }
 
     .logo {
-      font-size: 1.25rem;
+      font-size: 1.6rem;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.05em;
     }
 
     .logo span {
@@ -93,7 +97,6 @@
     .home-link {
       color: var(--muted);
       font-size: 0.92rem;
-      transition: 0.2s ease;
     }
 
     .home-link:hover {
@@ -103,42 +106,53 @@
     main {
       max-width: 1180px;
       margin: auto;
-      padding: 70px 20px 100px;
+
+      padding: 80px 20px 100px;
     }
 
     .hero {
       max-width: 760px;
-      margin-bottom: 42px;
+      margin-bottom: 45px;
     }
 
     .eyebrow {
       color: var(--accent);
+
       font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
+      font-weight: 800;
+
+      letter-spacing: 0.16em;
       text-transform: uppercase;
-      margin-bottom: 14px;
+
+      margin-bottom: 15px;
     }
 
     h1 {
-      font-size: clamp(2.4rem, 7vw, 4.8rem);
-      line-height: 1;
-      letter-spacing: -0.055em;
-      margin-bottom: 20px;
+      font-size: clamp(3rem, 8vw, 5.8rem);
+
+      line-height: 0.95;
+
+      letter-spacing: -0.065em;
+
+      margin-bottom: 22px;
     }
 
     .hero p {
       color: var(--muted);
+
       font-size: 1.05rem;
-      max-width: 650px;
+
+      max-width: 680px;
     }
 
     .controls {
       display: grid;
+
       grid-template-columns: 1fr 220px;
+
       gap: 14px;
 
-      margin-bottom: 24px;
+      margin-bottom: 22px;
     }
 
     .search-box,
@@ -146,143 +160,143 @@
       width: 100%;
 
       background: var(--surface);
+
       border: 1px solid var(--border);
+
       border-radius: 14px;
 
       color: var(--text);
+
       padding: 15px 17px;
 
       outline: none;
-      font-size: 0.95rem;
 
-      transition: border-color 0.2s ease;
+      font-size: 0.95rem;
     }
 
     .search-box:focus,
     .genre-filter:focus {
-      border-color: rgba(94, 231, 255, 0.6);
+      border-color: rgba(5, 201, 238, 0.6);
     }
 
     .genre-filter option {
-      background: #12161c;
+      background: #11151c;
       color: white;
     }
 
     .library-info {
       display: flex;
+
       justify-content: space-between;
-      align-items: center;
 
       color: var(--muted);
-      font-size: 0.9rem;
+
+      font-size: 0.88rem;
 
       margin-bottom: 20px;
     }
 
     .story-grid {
       display: grid;
+
       grid-template-columns: repeat(3, 1fr);
+
       gap: 18px;
     }
 
     .story-card {
-      display: flex;
-      flex-direction: column;
-
       min-height: 300px;
 
-      background:
-        linear-gradient(
-          145deg,
-          rgba(255, 255, 255, 0.035),
-          rgba(255, 255, 255, 0.01)
-        ),
-        var(--surface);
+      display: flex;
+
+      flex-direction: column;
+
+      background: var(--surface);
 
       border: 1px solid var(--border);
+
       border-radius: 18px;
 
       padding: 24px;
 
       transition:
         transform 0.25s ease,
-        border-color 0.25s ease,
-        background 0.25s ease;
+        border-color 0.25s ease;
     }
 
     .story-card:hover {
       transform: translateY(-5px);
-      border-color: rgba(94, 231, 255, 0.3);
 
-      background:
-        linear-gradient(
-          145deg,
-          rgba(94, 231, 255, 0.055),
-          rgba(255, 255, 255, 0.01)
-        ),
-        var(--surface);
+      border-color: rgba(5, 201, 238, 0.35);
     }
 
     .story-meta {
       display: flex;
-      justify-content: space-between;
+
       align-items: center;
+
+      justify-content: space-between;
+
       gap: 10px;
 
-      margin-bottom: 26px;
+      margin-bottom: 28px;
     }
 
     .genre {
       display: inline-flex;
-      align-items: center;
 
       padding: 6px 10px;
 
       border-radius: 999px;
 
       background: var(--accent-dark);
+
       color: var(--accent);
 
       font-size: 0.72rem;
-      font-weight: 700;
+
+      font-weight: 750;
     }
 
     .reading-time {
       color: var(--muted);
+
       font-size: 0.78rem;
     }
 
     .story-card h2 {
       font-size: 1.35rem;
+
       line-height: 1.25;
-      letter-spacing: -0.025em;
+
       margin-bottom: 12px;
     }
 
     .story-card p {
       color: var(--muted);
+
       font-size: 0.9rem;
+
       line-height: 1.65;
     }
 
     .story-footer {
       margin-top: auto;
+
       padding-top: 28px;
     }
 
     .read-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-
       color: var(--accent);
 
       font-size: 0.88rem;
-      font-weight: 700;
+
+      font-weight: 750;
     }
 
     .coming-soon {
-      color: #7f8a95;
+      color: #77818e;
+
       font-size: 0.82rem;
     }
 
@@ -294,7 +308,9 @@
       padding: 70px 20px;
 
       background: var(--surface);
+
       border: 1px solid var(--border);
+
       border-radius: 18px;
     }
 
@@ -319,18 +335,17 @@
     }
 
     @media (max-width: 850px) {
+
       .story-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+
     }
 
     @media (max-width: 650px) {
-      .nav {
-        padding: 15px 16px;
-      }
 
       main {
-        padding: 50px 16px 80px;
+        padding: 55px 16px 80px;
       }
 
       .controls {
@@ -345,18 +360,18 @@
         min-height: 270px;
       }
 
-      .library-info {
-        align-items: flex-start;
-        gap: 10px;
-      }
     }
+
   </style>
+
 </head>
 
 <body>
 
   <header>
+
     <nav class="nav">
+
       <a href="index.html" class="logo">
         Tale<span>Forge</span>
       </a>
@@ -364,30 +379,38 @@
       <a href="index.html" class="home-link">
         ← Back to Home
       </a>
+
     </nav>
+
   </header>
 
 
   <main>
 
     <section class="hero">
-      <div class="eyebrow">TaleForge Library</div>
 
-      <h1>Explore stories.</h1>
+      <div class="eyebrow">
+        TaleForge Library
+      </div>
+
+      <h1>
+        Explore stories.
+      </h1>
 
       <p>
         Discover short stories across different worlds, genres and moods.
         Find something familiar, or let curiosity take you somewhere new.
       </p>
+
     </section>
 
 
     <section class="controls">
 
       <input
-        type="search"
         id="searchInput"
         class="search-box"
+        type="search"
         placeholder="Search stories..."
         aria-label="Search stories"
       >
@@ -397,15 +420,26 @@
         class="genre-filter"
         aria-label="Filter by genre"
       >
-        <option value="all">All genres</option>
+
+        <option value="all">
+          All genres
+        </option>
+
       </select>
 
     </section>
 
 
     <div class="library-info">
-      <span id="storyCount">0 stories</span>
-      <span>TaleForge Library</span>
+
+      <span id="storyCount">
+        0 stories
+      </span>
+
+      <span>
+        TaleForge Library
+      </span>
+
     </div>
 
 
@@ -416,12 +450,19 @@
     ></section>
 
 
-    <section id="emptyState" class="empty-state">
-      <h2>No stories found</h2>
+    <section
+      id="emptyState"
+      class="empty-state"
+    >
+
+      <h2>
+        No stories found
+      </h2>
 
       <p>
         Try another search or choose a different genre.
       </p>
+
     </section>
 
   </main>
@@ -432,41 +473,57 @@
   </footer>
 
 
-  <!-- Central TaleForge story dataset -->
   <script src="stories-data.js"></script>
 
 
   <script>
-    const storyGrid = document.getElementById("storyGrid");
-    const searchInput = document.getElementById("searchInput");
-    const genreFilter = document.getElementById("genreFilter");
-    const storyCount = document.getElementById("storyCount");
-    const emptyState = document.getElementById("emptyState");
+
+    const storyGrid =
+      document.getElementById("storyGrid");
+
+    const searchInput =
+      document.getElementById("searchInput");
+
+    const genreFilter =
+      document.getElementById("genreFilter");
+
+    const storyCount =
+      document.getElementById("storyCount");
+
+    const emptyState =
+      document.getElementById("emptyState");
 
 
-    // Build genre filter automatically
     function buildGenreFilter() {
 
-      const genres = [
-        ...new Set(
-          TALEFORGE_STORIES.map(story => story.genre)
-        )
-      ].sort();
+      const genres = [];
 
-      genres.forEach(genre => {
+      TALEFORGE_STORIES.forEach(function(story) {
 
-        const option = document.createElement("option");
+        if (!genres.includes(story.genre)) {
+          genres.push(story.genre);
+        }
+
+      });
+
+      genres.sort();
+
+      genres.forEach(function(genre) {
+
+        const option =
+          document.createElement("option");
 
         option.value = genre;
+
         option.textContent = genre;
 
         genreFilter.appendChild(option);
 
       });
+
     }
 
 
-    // Render stories
     function renderStories() {
 
       const searchTerm =
@@ -479,16 +536,18 @@
 
 
       const filteredStories =
-        TALEFORGE_STORIES.filter(story => {
+        TALEFORGE_STORIES.filter(function(story) {
 
           const matchesSearch =
             story.title.toLowerCase().includes(searchTerm) ||
             story.genre.toLowerCase().includes(searchTerm) ||
             story.summary.toLowerCase().includes(searchTerm);
 
+
           const matchesGenre =
             selectedGenre === "all" ||
             story.genre === selectedGenre;
+
 
           return matchesSearch && matchesGenre;
 
@@ -498,68 +557,100 @@
       storyGrid.innerHTML = "";
 
 
-      filteredStories.forEach(story => {
+      filteredStories.forEach(function(story) {
 
-        const card = document.createElement("article");
+        const card =
+          document.createElement("article");
 
         card.className = "story-card";
 
 
-        let footerHTML = "";
+        const meta =
+          document.createElement("div");
+
+        meta.className = "story-meta";
+
+
+        const genre =
+          document.createElement("span");
+
+        genre.className = "genre";
+
+        genre.textContent = story.genre;
+
+
+        const readingTime =
+          document.createElement("span");
+
+        readingTime.className = "reading-time";
+
+        readingTime.textContent =
+          story.readingTime + " min read";
+
+
+        meta.appendChild(genre);
+
+        meta.appendChild(readingTime);
+
+
+        const title =
+          document.createElement("h2");
+
+        title.textContent = story.title;
+
+
+        const summary =
+          document.createElement("p");
+
+        summary.textContent = story.summary;
+
+
+        const footer =
+          document.createElement("div");
+
+        footer.className = "story-footer";
+
 
         if (
           story.status === "published" &&
           story.storyPage
         ) {
 
-          footerHTML = `
-            <a
-              href="${story.storyPage}"
-              class="read-link"
-            >
-              Read story →
-            </a>
-          `;
+          const link =
+            document.createElement("a");
+
+          link.className = "read-link";
+
+          link.href = story.storyPage;
+
+          link.textContent =
+            "Read story →";
+
+          footer.appendChild(link);
 
         } else {
 
-          footerHTML = `
-            <span class="coming-soon">
-              Coming soon
-            </span>
-          `;
+          const comingSoon =
+            document.createElement("span");
+
+          comingSoon.className =
+            "coming-soon";
+
+          comingSoon.textContent =
+            "Coming soon";
+
+          footer.appendChild(comingSoon);
 
         }
 
 
-        card.innerHTML = `
-          <div class="story-meta">
+        card.appendChild(meta);
 
-            <span class="genre">
-              ${story.genre}
-            </span>
+        card.appendChild(title);
 
-            <span class="reading-time">
-              ${story.readingTime} min read
-            </span>
+        card.appendChild(summary);
 
-          </div>
-
-
-          <h2>
-            ${story.title}
-          </h2>
-
-
-          <p>
-            ${story.summary}
-          </p>
-
-
-          <div class="story-footer">
-            ${footerHTML}
-          </div>
-        `;
+        card.appendChild(footer);
 
 
         storyGrid.appendChild(card);
@@ -568,11 +659,12 @@
 
 
       storyCount.textContent =
-        `${filteredStories.length} ${
+        filteredStories.length +
+        (
           filteredStories.length === 1
-            ? "story"
-            : "stories"
-        }`;
+            ? " story"
+            : " stories"
+        );
 
 
       if (filteredStories.length === 0) {
@@ -601,8 +693,10 @@
 
 
     buildGenreFilter();
+
     renderStories();
+
   </script>
 
 </body>
-</html> 
+</html>
