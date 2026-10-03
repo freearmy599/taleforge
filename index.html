@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>TaleForge — Short Stories. Infinite Worlds.</title>
+
+  <meta
+    name="description"
+    content="Discover short stories across romance, mystery, fantasy, horror, science fiction and more."
+  >
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #090b10;
+      color: #f5f7fb;
+      line-height: 1.6;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 6%;
+      border-bottom: 1px solid #20242e;
+      background: #0c0f15;
+    }
+
+    .logo {
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .logo span {
+      color: #7c5cff;
+    }
+
+    nav {
+      display: flex;
+      gap: 24px;
+    }
+
+    nav a {
+      color: #aeb5c3;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      color: white;
+    }
+
+    .hero {
+      max-width: 1100px;
+      margin: auto;
+      padding: 90px 6% 70px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 7px 14px;
+      border: 1px solid #303746;
+      border-radius: 999px;
+      color: #aeb5c3;
+      margin-bottom: 22px;
+      font-size: 14px;
+    }
+
+    .hero h1 {
+      font-size: clamp(42px, 8vw, 76px);
+      line-height: 1;
+      letter-spacing: -3px;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 span {
+      color: #8b6cff;
+    }
+
+    .hero p {
+      max-width: 650px;
+      margin: auto;
+      color: #9da5b4;
+      font-size: 18px;
+    }
+
+    .buttons {
+      margin-top: 32px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 20px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #7c5cff;
+      color: white;
+    }
+
+    .secondary {
+      background: #171b24;
+      color: white;
+      border: 1px solid #303746;
+    }
+
+    .section {
+      max-width: 1150px;
+      margin: auto;
+      padding: 45px 6%;
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .section-heading h2 {
+      font-size: 27px;
+    }
+
+    .section-heading a {
+      color: #9b87ff;
+      text-decoration: none;
+    }
+
+    .genres {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .genre {
+      padding: 24px;
+      background: #11151d;
+      border: 1px solid #242a36;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .genre:hover {
+      transform: translateY(-3px);
+      border-color: #7c5cff;
+    }
+
+    .genre-icon {
+      font-size: 27px;
+      margin-bottom: 8px;
+    }
+
+    .genre h3 {
+      margin-bottom: 4px;
+    }
+
+    .genre p {
+      color: #8f97a6;
+      font-size: 14px;
+    }
+
+    .stories {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .story {
+      background: #11151d;
+      border: 1px solid #242a36;
+      border-radius: 17px;
+      overflow: hidden;
+    }
+
+    .cover {
+      height: 180px;
+      display: flex;
+      align-items: end;
+      padding: 18px;
+      background: linear-gradient(135deg, #241c4b, #10131b);
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .story-content {
+      padding: 17px;
+    }
+
+    .story-content h3 {
+      margin-bottom: 7px;
+    }
+
+    .story-content p {
+      color: #8f97a6;
+      font-size: 14px;
+    }
+
+    .story-meta {
+      margin-top: 13px;
+      color: #7c8492;
+      font-size: 12px;
+    }
+
+    .cta {
+      max-width: 1100px;
+      margin: 55px auto;
+      padding: 55px 6%;
+      text-align: center;
+      background: #11151d;
+      border: 1px solid #272d3a;
+      border-radius: 22px;
+    }
+
+    .cta h2 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .cta p {
+      color: #929aaa;
+      margin-bottom: 25px;
+    }
+
+    footer {
+      padding: 35px 6%;
+      border-top: 1px solid #20242e;
+      color: #747d8d;
+      text-align: center;
+      margin-top: 60px;
+    }
+
+    @media (max-width: 800px) {
+      nav {
+        display: none;
+      }
+
+      .genres {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stories {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 500px) {
+      .hero {
+        padding-top: 65px;
+      }
+
+      .genres,
+      .stories {
+        grid-template-columns: 1fr;
+      }
+
+      .cover {
+        height: 210px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">Tale<span>Forge</span></div>
+
+  <nav>
+    <a href="#">Discover</a>
+    <a href="#">Genres</a>
+    <a href="#">Collections</a>
+    <a href="#">Write</a>
+  </nav>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="hero-badge">A new world of short fiction</div>
+
+    <h1>
+      Find your next<br>
+      <span>great story.</span>
+    </h1>
+
+    <p>
+      Discover short stories for every mood, moment and imagination.
+      Read something unexpected today.
+    </p>
+
+    <div class="buttons">
+      <button class="primary" onclick="surpriseMe()">
+        ✨ Surprise Me
+      </button>
+
+      <button class="secondary" onclick="scrollToGenres()">
+        Explore Genres
+      </button>
+    </div>
+  </section>
+
+  <section class="section" id="genres">
+
+    <div class="section-heading">
+      <h2>Explore by genre</h2>
+      <a href="#">View all →</a>
+    </div>
+
+    <div class="genres">
+
+      <div class="genre">
+        <div class="genre-icon">❤️</div>
+        <h3>Romance</h3>
+        <p>Love, relationships and unforgettable moments.</p>
+      </div>
+
+      <div class="genre">
+        <div class="genre-icon">🕵️</div>
+        <h3>Mystery</h3>
+        <p>Secrets, clues and stories that make you think.</p>
+      </div>
+
+      <div class="genre">
+        <div class="genre-icon">👻</div>
+        <h3>Horror</h3>
+        <p>Dark stories that stay with you.</p>
+      </div>
+
+      <div class="genre">
+        <div class="genre-icon">🧙</div>
+        <h3>Fantasy</h3>
+        <p>Magic, worlds and impossible adventures.</p>
+      </div>
+
+      <div class="genre">
+        <div class="genre-icon">🚀</div>
+        <h3>Science Fiction</h3>
+        <p>Future worlds, technology and strange possibilities.</p>
+      </div>
+
+      <div class="genre">
+        <div class="genre-icon">😂</div>
+        <h3>Comedy</h3>
+        <p>Lighthearted stories made to make you smile.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section">
+
+    <div class="section-heading">
+      <h2>Trending stories</h2>
+      <a href="#">See all →</a>
+    </div>
+
+    <div class="stories">
+
+      <article class="story">
+        <div class="cover">The Last Train Home</div>
+        <div class="story-content">
+          <h3>The Last Train Home</h3>
+          <p>A mysterious journey with one impossible destination.</p>
+          <div class="story-meta">Mystery · 7 min read</div>
+        </div>
+      </article>
+
+      <article class="story">
+        <div class="cover">Letters Never Sent</div>
+        <div class="story-content">
+          <h3>Letters Never Sent</h3>
+          <p>Some words arrive years after they were written.</p>
+          <div class="story-meta">Drama · 6 min read</div>
+        </div>
+      </article>
+
+      <article class="story">
+        <div class="cover">The Moonkeeper</div>
+        <div class="story-content">
+          <h3>The Moonkeeper</h3>
+          <p>A forgotten guardian discovers a secret in the sky.</p>
+          <div class="story-meta">Fantasy · 9 min read</div>
+        </div>
+      </article>
+
+      <article class="story">
+        <div class="cover">Tomorrow's Memory</div>
+        <div class="story-content">
+          <h3>Tomorrow's Memory</h3>
+          <p>A scientist remembers something that has not happened yet.</p>
+          <div class="story-meta">Sci-Fi · 8 min read</div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="cta">
+    <h2>There is always another story.</h2>
+    <p>Stay for five minutes. Leave with another world.</p>
+    <button class="primary" onclick="surpriseMe()">
+      ✨ Find a Story
+    </button>
+  </section>
+
+</main>
+
+<footer>
+  © 2026 TaleForge · Short stories. Infinite worlds.
+</footer>
+
+<script>
+  function surpriseMe() {
+    const stories = [
+      "The Last Train Home",
+      "Letters Never Sent",
+      "The Moonkeeper",
+      "Tomorrow's Memory"
+    ];
+
+    const story =
+      stories[Math.floor(Math.random() * stories.length)];
+
+    alert("Your surprise story: " + story);
+  }
+
+  function scrollToGenres() {
+    document
+      .getElementById("genres")
+      .scrollIntoView({ behavior: "smooth" });
+  }
+</script>
+
+</body>
+  </html>
