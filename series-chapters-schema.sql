@@ -4,6 +4,22 @@
 -- Non-destructive migration
 -- ============================================
 
+
+-- ============================================
+-- 0. TIMESTAMP UPDATE FUNCTION
+-- ============================================
+
+create or replace function public.taleforge_update_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+
 -- ============================================
 -- 1. SERIES
 -- ============================================
@@ -27,13 +43,15 @@ create table if not exists public.series (
   banner_image text,
 
   status text not null default 'draft'
-    check (status in (
-      'draft',
-      'ongoing',
-      'completed',
-      'hiatus',
-      'cancelled'
-    )),
+    check (
+      status in (
+        'draft',
+        'ongoing',
+        'completed',
+        'hiatus',
+        'cancelled'
+      )
+    ),
 
   age_rating text not null default 'general',
 
@@ -50,19 +68,23 @@ create table if not exists public.series (
   ai_disclosure text,
 
   origin_type text not null default 'ai_original'
-    check (origin_type in (
-      'ai_original',
-      'human_original',
-      'human_ai_assisted'
-    )),
+    check (
+      origin_type in (
+        'ai_original',
+        'human_original',
+        'human_ai_assisted'
+      )
+    ),
 
   originality_status text not null default 'pending'
-    check (originality_status in (
-      'pending',
-      'checked',
-      'flagged',
-      'approved'
-    )),
+    check (
+      originality_status in (
+        'pending',
+        'checked',
+        'flagged',
+        'approved'
+      )
+    ),
 
   seo_title text,
   seo_description text,
@@ -100,13 +122,15 @@ create table if not exists public.chapters (
   reading_time integer not null default 1,
 
   status text not null default 'draft'
-    check (status in (
-      'draft',
-      'review',
-      'approved',
-      'published',
-      'scheduled'
-    )),
+    check (
+      status in (
+        'draft',
+        'review',
+        'approved',
+        'published',
+        'scheduled'
+      )
+    ),
 
   cover_image text,
 
@@ -114,19 +138,23 @@ create table if not exists public.chapters (
   ai_disclosure text,
 
   origin_type text not null default 'ai_original'
-    check (origin_type in (
-      'ai_original',
-      'human_original',
-      'human_ai_assisted'
-    )),
+    check (
+      origin_type in (
+        'ai_original',
+        'human_original',
+        'human_ai_assisted'
+      )
+    ),
 
   originality_status text not null default 'pending'
-    check (originality_status in (
-      'pending',
-      'checked',
-      'flagged',
-      'approved'
-    )),
+    check (
+      originality_status in (
+        'pending',
+        'checked',
+        'flagged',
+        'approved'
+      )
+    ),
 
   published_at timestamptz,
 
@@ -169,18 +197,18 @@ on public.chapters(published_at desc);
 
 
 -- ============================================
--- 4. UPDATED_AT TRIGGER
+-- 4. UPDATED_AT TRIGGERS
 -- ============================================
 
 create trigger set_series_updated_at
 before update on public.series
 for each row
-execute function public.update_updated_at_column();
+execute function public.taleforge_update_updated_at();
 
 create trigger set_chapters_updated_at
 before update on public.chapters
 for each row
-execute function public.update_updated_at_column();
+execute function public.taleforge_update_updated_at();
 
 
 -- ============================================
@@ -188,6 +216,7 @@ execute function public.update_updated_at_column();
 -- ============================================
 
 alter table public.series enable row level security;
+
 alter table public.chapters enable row level security;
 
 
