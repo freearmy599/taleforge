@@ -1,503 +1,533 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>The Last Train Home — TaleForge</title>
 
-<meta
-name="description"
-content="Read The Last Train Home, a short mystery story on TaleForge."
-
->
+  <meta
+    name="description"
+    content="Read The Last Train Home, an original TaleForge mystery short story."
+  >
 
   <style>
+
+    :root {
+      --bg: #090b0f;
+      --surface: #11151c;
+      --border: #252c36;
+      --text: #f0f2f5;
+      --muted: #9ca6b4;
+      --accent: #05c9ee;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
-
     body {
-      font-family: Georgia, "Times New Roman", serif;
-      background: #0b0d12;
-      color: #e8ebf0;
+      font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+      background: var(--bg);
+
+      color: var(--text);
+
       line-height: 1.9;
+
+      min-height: 100vh;
     }
 
     a {
+      color: inherit;
       text-decoration: none;
     }
-
-    /* HEADER */
 
     header {
       position: sticky;
       top: 0;
-      z-index: 100;
-      background: rgba(11, 13, 18, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid #252a34;
+      z-index: 30;
+
+      background: rgba(9, 11, 15, 0.9);
+
+      backdrop-filter: blur(18px);
+
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .nav {
-      max-width: 1050px;
+      max-width: 1180px;
+
       margin: auto;
-      padding: 17px 6%;
+
+      padding: 20px;
+
       display: flex;
+
       align-items: center;
+
       justify-content: space-between;
-      gap: 20px;
+
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        sans-serif;
     }
 
     .logo {
-      font-family: Arial, sans-serif;
-      color: white;
-      font-size: 24px;
+      font-size: 1.6rem;
+
       font-weight: 800;
+
+      letter-spacing: -0.05em;
     }
 
     .logo span {
-      color: #00d9ff;
+      color: var(--accent);
     }
 
-    .back {
-      font-family: Arial, sans-serif;
-      color: #aab1bd;
-      font-size: 14px;
+    .back-link {
+      color: var(--muted);
+
+      font-size: 0.92rem;
     }
 
-    .back:hover {
-      color: #00d9ff;
+    .back-link:hover {
+      color: var(--text);
     }
-
-    /* STORY HEADER */
 
     .story-header {
-      max-width: 820px;
+      max-width: 950px;
+
       margin: auto;
-      padding: 80px 6% 50px;
+
+      padding: 120px 20px 90px;
+
       text-align: center;
     }
 
     .genre {
       display: inline-block;
-      color: #00d9ff;
-      background: rgba(0, 217, 255, 0.08);
-      border: 1px solid rgba(0, 217, 255, 0.2);
-      padding: 5px 11px;
-      border-radius: 20px;
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-      font-weight: bold;
-      letter-spacing: 1px;
+
+      padding: 8px 18px;
+
+      border: 1px solid rgba(5, 201, 238, 0.3);
+
+      border-radius: 999px;
+
+      background: rgba(5, 201, 238, 0.08);
+
+      color: var(--accent);
+
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        sans-serif;
+
+      font-size: 0.78rem;
+
+      font-weight: 750;
+
+      letter-spacing: 0.12em;
+
       text-transform: uppercase;
+
+      margin-bottom: 35px;
     }
 
     h1 {
-      font-size: clamp(40px, 7vw, 68px);
-      line-height: 1.05;
-      letter-spacing: -1.5px;
-      margin: 22px 0 18px;
+      font-size: clamp(3.2rem, 8vw, 7rem);
+
+      line-height: 0.95;
+
+      letter-spacing: -0.06em;
+
+      margin-bottom: 30px;
     }
 
     .subtitle {
-      color: #939baa;
-      font-size: 18px;
-      margin-bottom: 25px;
-    }
+      max-width: 720px;
 
-    .meta {
-      font-family: Arial, sans-serif;
-      color: #707886;
-      font-size: 13px;
-    }
-
-    /* STORY */
-
-    .story-container {
-      max-width: 760px;
       margin: auto;
-      padding: 10px 6% 80px;
+
+      color: var(--muted);
+
+      font-size: clamp(1.15rem, 2.5vw, 1.55rem);
+
+      font-style: italic;
+
+      line-height: 1.6;
     }
 
-    .story-container p {
-      font-size: 19px;
-      margin-bottom: 25px;
-      color: #d7dbe2;
-    }
+    .story-meta {
+      margin-top: 45px;
 
-    .story-container p:first-child::first-letter {
-      float: left;
-      font-size: 64px;
-      line-height: 52px;
-      padding-right: 9px;
-      color: #00d9ff;
+      color: var(--muted);
+
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        sans-serif;
+
+      font-size: 0.92rem;
     }
 
     .divider {
       width: 70px;
+
       height: 1px;
-      background: #00d9ff;
-      margin: 45px auto;
-      opacity: 0.6;
+
+      background: var(--border);
+
+      margin: 55px auto 0;
     }
 
-    /* END */
+    .story-content {
+      max-width: 760px;
+
+      margin: auto;
+
+      padding: 30px 20px 120px;
+
+      font-size: 1.25rem;
+    }
+
+    .story-content p {
+      margin-bottom: 30px;
+    }
+
+    .story-content p:first-child::first-letter {
+      float: left;
+
+      font-size: 5.5rem;
+
+      line-height: 0.75;
+
+      padding-right: 12px;
+
+      color: var(--accent);
+    }
 
     .story-end {
-      max-width: 760px;
-      margin: auto;
-      padding: 0 6% 80px;
       text-align: center;
+
+      margin-top: 80px;
+
+      padding-top: 50px;
+
+      border-top: 1px solid var(--border);
+
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        sans-serif;
     }
 
-    .story-end h2 {
-      font-family: Arial, sans-serif;
-      font-size: 25px;
-      margin-bottom: 10px;
+    .story-end-title {
+      font-size: 1.2rem;
+
+      font-weight: 700;
+
+      margin-bottom: 22px;
     }
 
-    .story-end p {
-      color: #7f8794;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      margin-bottom: 25px;
-    }
+    .discover-link {
+      display: inline-flex;
 
-    .button {
-      display: inline-block;
-      font-family: Arial, sans-serif;
-      background: #00d9ff;
-      color: #071017;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-    }
+      padding: 14px 20px;
 
-    .button:hover {
-      transform: translateY(-2px);
+      border-radius: 12px;
+
+      background: var(--accent);
+
+      color: #061014;
+
+      font-weight: 750;
     }
 
     footer {
-      border-top: 1px solid #252a34;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+      padding: 30px 20px;
+
       text-align: center;
-      padding: 30px 6%;
-      color: #656d79;
-      font-family: Arial, sans-serif;
-      font-size: 12px;
+
+      color: var(--muted);
+
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        sans-serif;
+
+      font-size: 0.82rem;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 650px) {
+
+      .nav {
+        padding: 16px;
+      }
 
       .story-header {
-        padding-top: 55px;
+        padding: 90px 20px 65px;
+      }
+
+      .story-content {
+        font-size: 1.12rem;
+
+        line-height: 1.85;
       }
 
       h1 {
-        font-size: 43px;
-      }
-
-      .subtitle {
-        font-size: 16px;
-      }
-
-      .story-container p {
-        font-size: 18px;
+        font-size: 3.5rem;
       }
 
     }
+
   </style>
 
 </head>
 
 <body>
 
-  <!-- HEADER -->
-
   <header>
-    <div class="nav">
 
-```
-  <a class="logo" href="index.html">
-    Tale<span>Forge</span>
-  </a>
+    <nav class="nav">
 
-  <a class="back" href="stories.html">
-    ← Back to Stories
-  </a>
+      <a href="index.html" class="logo">
+        Tale<span>Forge</span>
+      </a>
 
-</div>
-```
+      <a href="stories.html" class="back-link">
+        ← Back to Stories
+      </a>
+
+    </nav>
 
   </header>
 
-  <!-- STORY TITLE -->
 
-  <section class="story-header">
+  <main>
 
-```
-<div class="genre">
-  Mystery
-</div>
+    <section class="story-header">
 
-<h1>
-  The Last Train Home
-</h1>
+      <div class="genre">
+        Mystery
+      </div>
 
-<p class="subtitle">
-  Some journeys take you somewhere. Others take you back.
-</p>
+      <h1>
+        The Last Train Home
+      </h1>
 
-<div class="meta">
-  TaleForge Original · 8 min read
-</div>
-```
+      <p class="subtitle">
+        Some journeys take you somewhere.
+        Others take you back.
+      </p>
 
-  </section>
+      <div class="story-meta">
+        TaleForge Original · 8 min read
+      </div>
 
-  <!-- STORY -->
+      <div class="divider"></div>
 
-  <main class="story-container">
+    </section>
 
-```
-<p>
-  The station was almost empty when Daniel arrived.
-</p>
 
-<p>
-  It was well past midnight, and the old clock above Platform 4
-  had stopped at 12:17. Daniel checked his phone. No signal.
-</p>
+    <article class="story-content">
 
-<p>
-  He looked down the tracks.
-</p>
+      <p>
+        The station was almost empty when Daniel arrived.
+      </p>
 
-<p>
-  Nothing.
-</p>
+      <p>
+        It was well past midnight, and the old clock above
+        Platform 4 had stopped at 12:17. Daniel checked his
+        phone. No signal.
+      </p>
 
-<p>
-  Then he heard it.
-</p>
+      <p>
+        He looked down the platform.
+      </p>
 
-<p>
-  A distant rumble growing louder in the darkness.
-</p>
+      <p>
+        The lights flickered once.
+      </p>
 
-<p>
-  A train slowly appeared through the mist.
-</p>
+      <p>
+        Then a train appeared.
+      </p>
 
-<p>
-  Daniel frowned.
-</p>
+      <p>
+        Daniel frowned. He had lived beside this station for
+        years, but he had never seen a train arrive this late.
+      </p>
 
-<p>
-  He had never seen this train before.
-</p>
+      <p>
+        The doors opened without a sound.
+      </p>
 
-<p>
-  There were no advertisements on its sides. No destination
-  was displayed above the doors. Every window was dark.
-</p>
+      <p>
+        There was only one passenger carriage with its lights
+        still on.
+      </p>
 
-<p>
-  The train stopped directly in front of him.
-</p>
+      <p>
+        Daniel hesitated before stepping inside.
+      </p>
 
-<p>
-  The doors opened.
-</p>
+      <p>
+        The carriage was completely empty.
+      </p>
 
-<p>
-  Inside, the carriage was completely silent.
-</p>
+      <p>
+        He walked toward the nearest seat and noticed something
+        written on the window.
+      </p>
 
-<p>
-  Daniel hesitated.
-</p>
+      <p>
+        His own name.
+      </p>
 
-<p>
-  Then he noticed someone sitting near the back.
-</p>
+      <p>
+        Daniel stepped back.
+      </p>
 
-<p>
-  An old man was looking directly at him.
-</p>
+      <p>
+        The doors closed.
+      </p>
 
-<p>
-  "You're late," the man said.
-</p>
+      <p>
+        The train began moving.
+      </p>
 
-<p>
-  Daniel stepped inside.
-</p>
+      <p>
+        Outside the window, the city disappeared almost
+        immediately. Buildings gave way to fields, then forests,
+        and finally darkness.
+      </p>
 
-<p>
-  "Where does this train go?"
-</p>
+      <p>
+        Daniel tried the emergency button.
+      </p>
 
-<p>
-  The old man smiled.
-</p>
+      <p>
+        Nothing happened.
+      </p>
 
-<p>
-  "Home."
-</p>
+      <p>
+        Then someone sat down across from him.
+      </p>
 
-<div class="divider"></div>
+      <p>
+        Daniel looked up.
+      </p>
 
-<p>
-  The train began moving.
-</p>
+      <p>
+        It was an older version of himself.
+      </p>
 
-<p>
-  Outside the window, the city disappeared.
-</p>
+      <p>
+        The stranger smiled quietly.
+      </p>
 
-<p>
-  Buildings became fields. Fields became forests. Then even
-  the moon vanished behind a wall of clouds.
-</p>
+      <p>
+        "You finally came back."
+      </p>
 
-<p>
-  Daniel tried his phone again.
-</p>
+      <p>
+        Daniel stared at him.
+      </p>
 
-<p>
-  This time, the screen showed a date he didn't recognize.
-</p>
+      <p>
+        "Back from where?"
+      </p>
 
-<p>
-  He looked at the old man.
-</p>
+      <p>
+        The older man looked through the window.
+      </p>
 
-<p>
-  "What year is it?"
-</p>
+      <p>
+        "From the place you have spent your whole life trying
+        to forget."
+      </p>
 
-<p>
-  The man didn't answer.
-</p>
+      <p>
+        The train slowed.
+      </p>
 
-<p>
-  Instead, he pointed toward the window.
-</p>
+      <p>
+        Ahead, Daniel could see a small station surrounded by
+        warm yellow lights.
+      </p>
 
-<p>
-  Daniel looked outside.
-</p>
+      <p>
+        He recognized it immediately.
+      </p>
 
-<p>
-  A small house stood beside the tracks.
-</p>
+      <p>
+        It was the station from his childhood.
+      </p>
 
-<p>
-  He knew that house.
-</p>
+      <p>
+        The place where his family had once lived.
+      </p>
 
-<p>
-  It was his childhood home.
-</p>
+      <p>
+        The train stopped.
+      </p>
 
-<p>
-  But there was something impossible about it.
-</p>
+      <p>
+        The doors opened.
+      </p>
 
-<p>
-  The lights were on.
-</p>
+      <p>
+        Daniel stepped onto the platform.
+      </p>
 
-<p>
-  And someone was waiting outside.
-</p>
+      <p>
+        For the first time in years, he felt as though he had
+        finally arrived somewhere.
+      </p>
 
-<p>
-  Daniel stood up.
-</p>
 
-<p>
-  "Stop the train."
-</p>
+      <div class="story-end">
 
-<p>
-  The old man finally looked at him.
-</p>
+        <div class="story-end-title">
+          End of Story
+        </div>
 
-<p>
-  "You can't get off until you remember why you left."
-</p>
+        <a
+          href="stories.html"
+          class="discover-link"
+        >
+          Discover Another Story →
+        </a>
 
-<div class="divider"></div>
+      </div>
 
-<p>
-  Daniel stared at the house.
-</p>
-
-<p>
-  For the first time in years, he remembered the sound of his
-  mother's voice calling him home.
-</p>
-
-<p>
-  The train began to slow.
-</p>
-
-<p>
-  The doors opened.
-</p>
-
-<p>
-  Daniel stepped onto the platform.
-</p>
-
-<p>
-  Behind him, the train disappeared into the darkness.
-</p>
-
-<p>
-  He walked toward the house.
-</p>
-
-<p>
-  And for the first time in a very long time, he wasn't afraid
-  of going home.
-</p>
-```
+    </article>
 
   </main>
 
-  <!-- END -->
-
-  <section class="story-end">
-
-```
-<h2>End of Story</h2>
-
-<p>
-  Thanks for reading The Last Train Home.
-</p>
-
-<a class="button" href="stories.html">
-  Discover Another Story →
-</a>
-```
-
-  </section>
 
   <footer>
-    © 2026 TaleForge — Short stories. Infinite worlds.
+    © 2026 TaleForge · Short stories. Infinite worlds.
   </footer>
 
 </body>
 </html>
-
