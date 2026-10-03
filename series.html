@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>TaleForge — Series</title>
+
+  <meta
+    name="description"
+    content="Read serialized fiction on TaleForge."
+  >
+
+  <style>
+    :root {
+      --bg: #080a0f;
+      --panel: #10131a;
+      --panel-soft: #151922;
+      --border: rgba(255,255,255,0.08);
+      --text: #f4f6f8;
+      --muted: #9aa3b2;
+      --accent: #62e6d5;
+      --accent-soft: rgba(98,230,213,0.12);
+      --danger: #ff6b7a;
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top right, rgba(98,230,213,0.08), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,10,15,0.88);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav {
+      max-width: 1180px;
+      margin: auto;
+      min-height: 68px;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    .back {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .back:hover {
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1180px;
+      margin: auto;
+      padding: 48px 22px 80px;
+    }
+
+    .loading,
+    .error,
+    .empty {
+      min-height: 400px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .series-hero {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 42px;
+      align-items: stretch;
+      margin-bottom: 48px;
+    }
+
+    .cover {
+      min-height: 390px;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(145deg, #18242a, #10131a 55%, #0b0d12);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .cover-placeholder {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .cover-placeholder strong {
+      display: block;
+      color: var(--accent);
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .cover-placeholder span {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      color: var(--text);
+      line-height: 1.15;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(42px, 7vw, 76px);
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+      max-width: 850px;
+    }
+
+    .subtitle {
+      margin: 20px 0 0;
+      max-width: 720px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      color: #c8ced8;
+    }
+
+    .description {
+      margin: 24px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 24px;
+    }
+
+    .meta span {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.025);
+      padding: 7px 11px;
+      border-radius: 999px;
+      color: #c8ced8;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .button.primary {
+      background: var(--accent);
+      color: #07100f;
+      border-color: var(--accent);
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .section {
+      margin-top: 52px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 32px;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .chapters {
+      border-top: 1px solid var(--border);
+    }
+
+    .chapter {
+      display: grid;
+      grid-template-columns: 74px 1fr auto;
+      gap: 20px;
+      align-items: center;
+      padding: 20px 4px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+
+    .chapter:hover {
+      background: rgba(255,255,255,0.025);
+    }
+
+    .chapter-number {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .chapter-title {
+      font-size: 18px;
+      font-weight: 750;
+    }
+
+    .chapter-summary {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 700px;
+    }
+
+    .chapter-meta {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .notice {
+      margin-top: 20px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.025);
+      font-size: 14px;
+    }
+
+    footer {
+      max-width: 1180px;
+      margin: auto;
+      padding: 0 22px 40px;
+      color: #697281;
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding-top: 28px;
+      }
+
+      .series-hero {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+
+      .cover {
+        min-height: 360px;
+        max-width: 300px;
+      }
+
+      h1 {
+        font-size: 48px;
+      }
+
+      .subtitle {
+        font-size: 19px;
+      }
+
+      .chapter {
+        grid-template-columns: 52px 1fr;
+        gap: 12px;
+      }
+
+      .chapter-meta {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <nav class="nav">
+      <a class="brand" href="index.html">
+        Tale<span>Forge</span>
+      </a>
+
+      <a class="back" href="stories.html">
+        ← Library
+      </a>
+    </nav>
+  </header>
+
+  <main id="app">
+    <div class="loading">
+      Loading series...
+    </div>
+  </main>
+
+  <footer>
+    TaleForge — Short stories. Infinite worlds.
+  </footer>
+
+  <script type="module">
+    import "./supabase-client.js";
+
+    const app = document.getElementById("app");
+    const supabase = window.taleForgeSupabase;
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatStatus(status) {
+      if (!status) return "";
+      return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    function formatDate(date) {
+      if (!date) return "";
+
+      return new Date(date).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    async function loadSeries() {
+      const params = new URLSearchParams(window.location.search);
+      const seriesId = params.get("id");
+      const seriesSlug = params.get("slug");
+
+      if (!seriesId && !seriesSlug) {
+        showError("No series was specified.");
+        return;
+      }
+
+      let query = supabase
+        .from("series")
+        .select(`
+          id,
+          title,
+          slug,
+          subtitle,
+          description,
+          cover_image,
+          banner_image,
+          status,
+          age_rating,
+          mood,
+          intensity,
+          chapter_count,
+          views,
+          followers_count,
+          published_at,
+          genres (
+            name
+          )
+        `);
+
+      if (seriesId) {
+        query = query.eq("id", seriesId);
+      } else {
+        query = query.eq("slug", seriesSlug);
+      }
+
+      const { data: series, error } = await query.single();
+
+      if (error || !series) {
+        console.error(error);
+        showError(
+          "This series is not available yet. It may still be in development."
+        );
+        return;
+      }
+
+      const { data: chapters, error: chaptersError } = await supabase
+        .from("chapters")
+        .select(`
+          id,
+          chapter_number,
+          title,
+          subtitle,
+          summary,
+          word_count,
+          reading_time,
+          published_at,
+          status
+        `)
+        .eq("series_id", series.id)
+        .eq("status", "published")
+        .order("chapter_number", { ascending: true });
+
+      if (chaptersError) {
+        console.error(chaptersError);
+        showError("The series loaded, but its chapters could not be loaded.");
+        return;
+      }
+
+      renderSeries(series, chapters || []);
+    }
+
+    function renderSeries(series, chapters) {
+      document.title = `${series.title} — TaleForge`;
+
+      const genre =
+        series.genres && series.genres.name
+          ? series.genres.name
+          : "Fiction";
+
+      const cover = series.cover_image
+        ? `
+          <img
+            src="${escapeHTML(series.cover_image)}"
+            alt="${escapeHTML(series.title)} cover"
+          >
+        `
+        : `
+          <div class="cover-placeholder">
+            <strong>${escapeHTML(genre)}</strong>
+            <span>${escapeHTML(series.title)}</span>
+          </div>
+        `;
+
+      const chapterList = chapters.length
+        ? chapters.map(chapter => `
+            <a
+              class="chapter"
+              href="chapter.html?id=${encodeURIComponent(chapter.id)}"
+            >
+              <div class="chapter-number">
+                CH. ${escapeHTML(chapter.chapter_number)}
+              </div>
+
+              <div>
+                <div class="chapter-title">
+                  ${escapeHTML(chapter.title)}
+                </div>
+
+                ${
+                  chapter.summary
+                    ? `<div class="chapter-summary">
+                        ${escapeHTML(chapter.summary)}
+                       </div>`
+                    : ""
+                }
+              </div>
+
+              <div class="chapter-meta">
+                ${escapeHTML(chapter.reading_time)} min
+              </div>
+            </a>
+          `).join("")
+        : `
+          <div class="notice">
+            No published chapters yet. This series is still being developed.
+          </div>
+        `;
+
+      const firstChapter = chapters.length ? chapters[0] : null;
+
+      app.innerHTML = `
+        <section class="series-hero">
+
+          <div class="cover">
+            ${cover}
+          </div>
+
+          <div>
+
+            <div class="eyebrow">
+              ${escapeHTML(genre)} · ${escapeHTML(formatStatus(series.status))}
+            </div>
+
+            <h1>
+              ${escapeHTML(series.title)}
+            </h1>
+
+            ${
+              series.subtitle
+                ? `<p class="subtitle">
+                    ${escapeHTML(series.subtitle)}
+                   </p>`
+                : ""
+            }
+
+            ${
+              series.description
+                ? `<p class="description">
+                    ${escapeHTML(series.description)}
+                   </p>`
+                : ""
+            }
+
+            <div class="meta">
+              <span>${escapeHTML(formatStatus(series.status))}</span>
+              <span>${escapeHTML(series.chapter_count)} chapters</span>
+              <span>${escapeHTML(series.age_rating)}</span>
+              ${
+                series.mood
+                  ? `<span>${escapeHTML(series.mood)}</span>`
+                  : ""
+              }
+              ${
+                series.intensity
+                  ? `<span>${escapeHTML(series.intensity)} intensity</span>`
+                  : ""
+              }
+            </div>
+
+            <div class="actions">
+              ${
+                firstChapter
+                  ? `
+                    <a
+                      class="button primary"
+                      href="chapter.html?id=${encodeURIComponent(firstChapter.id)}"
+                    >
+                      Start Reading
+                    </a>
+                  `
+                  : `
+                    <button class="button" disabled>
+                      Chapters Coming Soon
+                    </button>
+                  `
+              }
+
+              <a class="button" href="stories.html">
+                Explore Library
+              </a>
+            </div>
+
+          </div>
+
+        </section>
+
+        <section class="section">
+
+          <div class="section-heading">
+            <div>
+              <h2>Chapters</h2>
+              <p>
+                Published chapters from this series
+              </p>
+            </div>
+
+            <p>
+              ${chapters.length} published
+            </p>
+          </div>
+
+          <div class="chapters">
+            ${chapterList}
+          </div>
+
+        </section>
+      `;
+    }
+
+    function showError(message) {
+      app.innerHTML = `
+        <div class="error">
+          <div>
+            <h2>Series unavailable</h2>
+            <p>${escapeHTML(message)}</p>
+            <a class="button" href="stories.html">
+              Back to Library
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    loadSeries();
+  </script>
+
+</body>
+    </html>
