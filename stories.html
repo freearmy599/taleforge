@@ -1,1 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stories — TaleForge</title>
 
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b0d12;
+      color: #f5f5f5;
+      line-height: 1.6;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(11, 13, 18, 0.95);
+      border-bottom: 1px solid #242832;
+      padding: 18px 6%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: #00d9ff;
+    }
+
+    nav a {
+      color: #aaa;
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      color: #00d9ff;
+    }
+
+    .hero {
+      padding: 70px 6% 45px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .hero small {
+      color: #00d9ff;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-size: clamp(38px, 7vw, 68px);
+      line-height: 1.05;
+      margin: 15px 0;
+    }
+
+    .hero p {
+      max-width: 650px;
+      color: #9da4b3;
+      font-size: 18px;
+    }
+
+    .controls {
+      max-width: 1200px;
+      margin: 0 auto 35px;
+      padding: 0 6%;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 230px;
+      background: #151922;
+      border: 1px solid #2b303c;
+      color: white;
+      padding: 14px 16px;
+      border-radius: 10px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    .search:focus {
+      border-color: #00d9ff;
+    }
+
+    .filter {
+      background: #151922;
+      color: #ddd;
+      border: 1px solid #2b303c;
+      padding: 14px 16px;
+      border-radius: 10px;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: auto;
+      padding: 0 6% 70px;
+    }
+
+    .section-title {
+      font-size: 25px;
+      margin-bottom: 22px;
+    }
+
+    .stories {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .story {
+      background: #13161e;
+      border: 1px solid #252a35;
+      border-radius: 14px;
+      overflow: hidden;
+      transition: 0.25s;
+    }
+
+    .story:hover {
+      transform: translateY(-5px);
+      border-color: #00d9ff;
+    }
+
+    .cover {
+      height: 190px;
+      background: linear-gradient(135deg, #17202c, #263446);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .story-content {
+      padding: 18px;
+    }
+
+    .story h3 {
+      font-size: 18px;
+      margin-bottom: 7px;
+    }
+
+    .story p {
+      color: #9299a8;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .tags {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: #202531;
+      color: #b9c1cf;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+    }
+
+    .read {
+      display: inline-block;
+      margin-top: 15px;
+      color: #00d9ff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .empty {
+      display: none;
+      text-align: center;
+      padding: 50px 20px;
+      color: #888;
+    }
+
+    footer {
+      border-top: 1px solid #242832;
+      padding: 30px 6%;
+      text-align: center;
+      color: #707784;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .stories {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 15px 5%;
+      }
+
+      nav a {
+        margin-left: 10px;
+      }
+
+      .hero {
+        padding: 50px 5% 35px;
+      }
+
+      main,
+      .controls {
+        padding-left: 5%;
+        padding-right: 5%;
+      }
+
+      .stories {
+        grid-template-columns: 1fr;
+      }
+
+      .cover {
+        height: 210px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <a class="logo" href="index.html">Tale<span>Forge</span></a>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="stories.html">Stories</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <small>Explore TaleForge</small>
+  <h1>Find a story worth remembering.</h1>
+  <p>
+    Explore short stories across different worlds, genres, moods and ideas.
+    New stories will eventually be added continuously.
+  </p>
+</section>
+
+<div class="controls">
+  <input
+    id="search"
+    class="search"
+    type="text"
+    placeholder="Search stories..."
+    oninput="filterStories()"
+  >
+
+  <select id="genre" class="filter" onchange="filterStories()">
+    <option value="all">All Genres</option>
+    <option value="Fantasy">Fantasy</option>
+    <option value="Mystery">Mystery</option>
+    <option value="Romance">Romance</option>
+    <option value="Horror">Horror</option>
+    <option value="Science Fiction">Science Fiction</option>
+    <option value="Comedy">Comedy</option>
+  </select>
+</div>
+
+<main>
+
+  <h2 class="section-title">Explore Stories</h2>
+
+  <div class="stories" id="stories">
+
+    <article class="story" data-title="The Last Train Home" data-genre="Mystery">
+      <div class="cover">The Last Train Home</div>
+
+      <div class="story-content">
+        <h3>The Last Train Home</h3>
+
+        <p>
+          A mysterious late-night train carries one passenger toward a place
+          he thought he had left behind.
+        </p>
+
+        <div class="tags">
+          <span class="tag">Mystery</span>
+          <span class="tag">8 min read</span>
+        </div>
+
+        <a class="read" href="#">Read story →</a>
+      </div>
+    </article>
+
+
+    <article class="story" data-title="Letters Never Sent" data-genre="Romance">
+      <div class="cover">Letters Never Sent</div>
+
+      <div class="story-content">
+        <h3>Letters Never Sent</h3>
+
+        <p>
+          A forgotten box of letters reveals a story that was never meant
+          to be discovered.
+        </p>
+
+        <div class="tags">
+          <span class="tag">Romance</span>
+          <span class="tag">6 min read</span>
+        </div>
+
+        <a class="read" href="#">Read story →</a>
+      </div>
+    </article>
+
+
+    <article class="story" data-title="The Moonkeeper" data-genre="Fantasy">
+      <div class="cover">The Moonkeeper</div>
+
+      <div class="story-content">
+        <h3>The Moonkeeper</h3>
+
+        <p>
+          Every night, someone must protect the moon from disappearing.
+        </p>
+
+        <div class="tags">
+          <span class="tag">Fantasy</span>
+          <span class="tag">10 min read</span>
+        </div>
+
+        <a class="read" href="#">Read story →</a>
+      </div>
+    </article>
+
+
+    <article class="story" data-title="Tomorrow's Memory" data-genre="Science Fiction">
+      <div class="cover">Tomorrow's Memory</div>
+
+      <div class="story-content">
+        <h3>Tomorrow's Memory</h3>
+
+        <p>
+          A scientist wakes up with memories of a future that hasn't happened.
+        </p>
+
+        <div class="tags">
+          <span class="tag">Science Fiction</span>
+          <span class="tag">9 min read</span>
+        </div>
+
+        <a class="read" href="#">Read story →</a>
+      </div>
+    </article>
+
+
+    <article class="story" data-title="The House With No Door" data-genre="Horror">
+      <div class="cover">The House With No Door</div>
+
+      <div class="story-content">
+        <h3>The House With No Door</h3>
+
+        <p>
+          A strange house appears at the end of a familiar road.
+        </p>
+
+        <div class="tags">
+          <span class="tag">Horror</span>
+          <span class="tag">7 min read</span>
+        </div>
+
+        <a class="read" href="#">Read story →</a>
+      </div>
+    </article>
+
+
+    <article class="story" data-title="The Accidental Hero" data-genre="Comedy">
+      <div class="cover">The Accidental Hero</div>
+
+      <div class="story-content">
+        <h3>The Accidental Hero</h3>
+
+        <p>
+          A completely ordinary person accidentally becomes the hero of the
+          strangest day in town.
+        </p>
+
+        <div class="tags">
+          <span class="tag">Comedy</span>
+          <span class="tag">5 min read</span>
+        </div>
+
+        <a class="read" href="#">Read story →</a>
+      </div>
+    </article>
+
+  </div>
+
+  <div id="empty" class="empty">
+    <h3>No stories found</h3>
+    <p>Try another title or genre.</p>
+  </div>
+
+</main>
+
+<footer>
+  © 2026 TaleForge — Short stories. Infinite worlds.
+</footer>
+
+
+<script>
+  function filterStories() {
+
+    const search =
+      document.getElementById("search").value.toLowerCase();
+
+    const genre =
+      document.getElementById("genre").value;
+
+    const stories =
+      document.querySelectorAll(".story");
+
+    let visible = 0;
+
+    stories.forEach(story => {
+
+      const title =
+        story.dataset.title.toLowerCase();
+
+      const storyGenre =
+        story.dataset.genre;
+
+      const matchesSearch =
+        title.includes(search);
+
+      const matchesGenre =
+        genre === "all" || storyGenre === genre;
+
+      if (matchesSearch && matchesGenre) {
+        story.style.display = "";
+        visible++;
+      } else {
+        story.style.display = "none";
+      }
+    });
+
+    document.getElementById("empty").style.display =
+      visible === 0 ? "block" : "none";
+  }
+</script>
+
+</body>
+  </html>
