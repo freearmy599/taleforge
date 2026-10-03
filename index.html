@@ -17,6 +17,7 @@
 
   <title>TaleForge — Short Stories. Infinite Worlds.</title>
 
+
   <style>
 
     :root {
@@ -29,15 +30,18 @@
       --accent: #05c9ee;
     }
 
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
+
     html {
       scroll-behavior: smooth;
     }
+
 
     body {
       font-family:
@@ -50,27 +54,40 @@
         sans-serif;
 
       background: var(--bg);
+
       color: var(--text);
 
       line-height: 1.6;
     }
+
 
     a {
       color: inherit;
       text-decoration: none;
     }
 
+
+    button {
+      font: inherit;
+    }
+
+
     header {
       position: sticky;
+
       top: 0;
+
       z-index: 50;
 
-      background: rgba(9, 11, 15, 0.88);
+      background:
+        rgba(9, 11, 15, 0.88);
 
       backdrop-filter: blur(18px);
 
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom:
+        1px solid rgba(255, 255, 255, 0.06);
     }
+
 
     .nav {
       max-width: 1180px;
@@ -86,6 +103,7 @@
       justify-content: space-between;
     }
 
+
     .logo {
       font-size: 1.55rem;
 
@@ -94,9 +112,11 @@
       letter-spacing: -0.06em;
     }
 
+
     .logo span {
       color: var(--accent);
     }
+
 
     .nav-links {
       display: flex;
@@ -108,17 +128,27 @@
       font-size: 0.92rem;
     }
 
+
+    .nav-links a {
+      transition:
+        color 0.2s ease;
+    }
+
+
     .nav-links a:hover {
       color: var(--text);
     }
+
 
     .hero {
       max-width: 1180px;
 
       margin: auto;
 
-      padding: 130px 20px 110px;
+      padding:
+        130px 20px 110px;
     }
+
 
     .hero-label {
       color: var(--accent);
@@ -134,6 +164,7 @@
       margin-bottom: 25px;
     }
 
+
     .hero h1 {
       max-width: 900px;
 
@@ -142,7 +173,8 @@
         "Times New Roman",
         serif;
 
-      font-size: clamp(4rem, 10vw, 8rem);
+      font-size:
+        clamp(4rem, 10vw, 8rem);
 
       line-height: 0.9;
 
@@ -151,9 +183,11 @@
       margin-bottom: 30px;
     }
 
+
     .hero h1 span {
       color: var(--accent);
     }
+
 
     .hero p {
       max-width: 650px;
@@ -172,6 +206,7 @@
       margin-bottom: 35px;
     }
 
+
     .hero-actions {
       display: flex;
 
@@ -179,6 +214,7 @@
 
       flex-wrap: wrap;
     }
+
 
     .button {
       display: inline-flex;
@@ -195,8 +231,19 @@
 
       cursor: pointer;
 
-      border: 1px solid var(--border);
+      border:
+        1px solid var(--border);
+
+      transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
     }
+
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
 
     .button-primary {
       background: var(--accent);
@@ -206,15 +253,13 @@
       border-color: var(--accent);
     }
 
+
     .button-secondary {
       background: var(--surface);
 
       color: var(--text);
     }
 
-    .button:hover {
-      transform: translateY(-1px);
-    }
 
     section {
       max-width: 1180px;
@@ -223,6 +268,7 @@
 
       padding: 70px 20px;
     }
+
 
     .section-heading {
       display: flex;
@@ -236,6 +282,7 @@
       margin-bottom: 30px;
     }
 
+
     .section-heading h2 {
       font-family:
         Georgia,
@@ -247,11 +294,13 @@
       letter-spacing: -0.04em;
     }
 
+
     .section-heading p {
       color: var(--muted);
 
       font-size: 0.9rem;
     }
+
 
     .genre-grid {
       display: grid;
@@ -262,10 +311,12 @@
       gap: 12px;
     }
 
+
     .genre-card {
       background: var(--surface);
 
-      border: 1px solid var(--border);
+      border:
+        1px solid var(--border);
 
       border-radius: 16px;
 
@@ -276,11 +327,14 @@
         border-color 0.2s ease;
     }
 
+
     .genre-card:hover {
       transform: translateY(-4px);
 
-      border-color: rgba(5, 201, 238, 0.45);
+      border-color:
+        rgba(5, 201, 238, 0.45);
     }
+
 
     .genre-card strong {
       display: block;
@@ -288,11 +342,13 @@
       margin-bottom: 6px;
     }
 
+
     .genre-card span {
       color: var(--muted);
 
       font-size: 0.78rem;
     }
+
 
     .story-grid {
       display: grid;
@@ -303,10 +359,12 @@
       gap: 18px;
     }
 
+
     .story-card {
       background: var(--surface);
 
-      border: 1px solid var(--border);
+      border:
+        1px solid var(--border);
 
       border-radius: 18px;
 
@@ -323,11 +381,14 @@
         border-color 0.2s ease;
     }
 
+
     .story-card:hover {
       transform: translateY(-5px);
 
-      border-color: rgba(5, 201, 238, 0.45);
+      border-color:
+        rgba(5, 201, 238, 0.45);
     }
+
 
     .story-genre {
       display: inline-block;
@@ -338,9 +399,11 @@
 
       border-radius: 999px;
 
-      background: rgba(5, 201, 238, 0.08);
+      background:
+        rgba(5, 201, 238, 0.08);
 
-      border: 1px solid rgba(5, 201, 238, 0.22);
+      border:
+        1px solid rgba(5, 201, 238, 0.22);
 
       color: var(--accent);
 
@@ -355,6 +418,7 @@
       margin-bottom: 25px;
     }
 
+
     .story-card h3 {
       font-family:
         Georgia,
@@ -367,6 +431,7 @@
 
       margin-bottom: 12px;
     }
+
 
     .story-card p {
       color: var(--muted);
@@ -383,6 +448,7 @@
       flex: 1;
     }
 
+
     .story-bottom {
       display: flex;
 
@@ -396,14 +462,17 @@
 
       padding-top: 18px;
 
-      border-top: 1px solid var(--border);
+      border-top:
+        1px solid var(--border);
     }
+
 
     .reading-time {
       color: var(--muted);
 
       font-size: 0.78rem;
     }
+
 
     .read-link {
       color: var(--accent);
@@ -412,6 +481,7 @@
 
       font-weight: 750;
     }
+
 
     .empty-state {
       grid-column: 1 / -1;
@@ -422,12 +492,14 @@
 
       background: var(--surface);
 
-      border: 1px solid var(--border);
+      border:
+        1px solid var(--border);
 
       border-radius: 18px;
 
       color: var(--muted);
     }
+
 
     .discover {
       margin-top: 30px;
@@ -439,7 +511,8 @@
           rgba(5, 201, 238, 0.02)
         );
 
-      border: 1px solid rgba(5, 201, 238, 0.18);
+      border:
+        1px solid rgba(5, 201, 238, 0.18);
 
       border-radius: 22px;
 
@@ -447,6 +520,7 @@
 
       text-align: center;
     }
+
 
     .discover h2 {
       font-family:
@@ -459,13 +533,16 @@
       margin-bottom: 15px;
     }
 
+
     .discover p {
       max-width: 600px;
 
-      margin: auto auto 25px;
+      margin:
+        auto auto 25px;
 
       color: var(--muted);
     }
+
 
     footer {
       margin-top: 80px;
@@ -474,12 +551,14 @@
 
       text-align: center;
 
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top:
+        1px solid rgba(255, 255, 255, 0.06);
 
       color: var(--muted);
 
       font-size: 0.82rem;
     }
+
 
     @media (max-width: 850px) {
 
@@ -488,10 +567,12 @@
           repeat(3, 1fr);
       }
 
+
       .story-grid {
         grid-template-columns:
           repeat(2, 1fr);
       }
+
 
       .nav-links {
         gap: 14px;
@@ -499,36 +580,45 @@
 
     }
 
+
     @media (max-width: 600px) {
 
       .nav {
         padding: 15px;
       }
 
+
       .nav-links {
         display: none;
       }
 
+
       .hero {
-        padding: 90px 20px 75px;
+        padding:
+          90px 20px 75px;
       }
+
 
       .hero h1 {
         font-size: 4rem;
       }
+
 
       .genre-grid {
         grid-template-columns:
           repeat(2, 1fr);
       }
 
+
       .story-grid {
         grid-template-columns: 1fr;
       }
 
+
       .section-heading {
         display: block;
       }
+
 
       .section-heading p {
         margin-top: 8px;
@@ -562,13 +652,16 @@
           Genres
         </a>
 
+
         <a href="#trending">
           Trending
         </a>
 
+
         <a href="#discover">
           Discover
         </a>
+
 
         <a href="stories.html">
           Explore Stories
@@ -650,94 +743,175 @@
 
       <div class="genre-grid">
 
+
+        <a
+          href="stories.html?genre=Mystery"
+          class="genre-card"
+        >
+
+          <strong>
+            Mystery
+          </strong>
+
+          <span>
+            Secrets &amp; discoveries
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Fantasy"
+          class="genre-card"
+        >
+
+          <strong>
+            Fantasy
+          </strong>
+
+          <span>
+            Magic &amp; impossible worlds
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Science%20Fiction"
+          class="genre-card"
+        >
+
+          <strong>
+            Science Fiction
+          </strong>
+
+          <span>
+            Future &amp; technology
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Romance"
+          class="genre-card"
+        >
+
+          <strong>
+            Romance
+          </strong>
+
+          <span>
+            Connections &amp; emotions
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Horror"
+          class="genre-card"
+        >
+
+          <strong>
+            Horror
+          </strong>
+
+          <span>
+            Darkness &amp; suspense
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Comedy"
+          class="genre-card"
+        >
+
+          <strong>
+            Comedy
+          </strong>
+
+          <span>
+            Unexpected adventures
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Adventure"
+          class="genre-card"
+        >
+
+          <strong>
+            Adventure
+          </strong>
+
+          <span>
+            Journeys &amp; exploration
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Drama"
+          class="genre-card"
+        >
+
+          <strong>
+            Drama
+          </strong>
+
+          <span>
+            Human stories
+          </span>
+
+        </a>
+
+
+
+        <a
+          href="stories.html?genre=Thriller"
+          class="genre-card"
+        >
+
+          <strong>
+            Thriller
+          </strong>
+
+          <span>
+            Tension &amp; suspense
+          </span>
+
+        </a>
+
+
+
         <a
           href="stories.html"
           class="genre-card"
         >
-          <strong>Mystery</strong>
-          <span>Secrets &amp; discoveries</span>
+
+          <strong>
+            More
+          </strong>
+
+          <span>
+            Explore everything
+          </span>
+
         </a>
 
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Fantasy</strong>
-          <span>Magic &amp; impossible worlds</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Science Fiction</strong>
-          <span>Future &amp; technology</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Romance</strong>
-          <span>Connections &amp; emotions</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Horror</strong>
-          <span>Darkness &amp; suspense</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Comedy</strong>
-          <span>Unexpected adventures</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Adventure</strong>
-          <span>Journeys &amp; exploration</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Drama</strong>
-          <span>Human stories</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>Thriller</strong>
-          <span>Tension &amp; danger</span>
-        </a>
-
-
-        <a
-          href="stories.html"
-          class="genre-card"
-        >
-          <strong>More</strong>
-          <span>Explore everything</span>
-        </a>
 
       </div>
 
@@ -789,6 +963,7 @@
           There's always another story.
         </h2>
 
+
         <p>
           Explore the growing TaleForge library
           and find something completely unexpected.
@@ -825,64 +1000,77 @@
 
   <script>
 
+
     function createStoryCard(story) {
 
       const card =
-        document.createElement("article");
+        document.createElement(
+          "article"
+        );
 
-      card.className = "story-card";
+      card.className =
+        "story-card";
 
 
       const genre =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
-      genre.className = "story-genre";
+      genre.className =
+        "story-genre";
 
       genre.textContent =
         story.genre;
 
 
       const title =
-        document.createElement("h3");
+        document.createElement(
+          "h3"
+        );
 
       title.textContent =
         story.title;
 
 
       const summary =
-        document.createElement("p");
+        document.createElement(
+          "p"
+        );
 
       summary.textContent =
         story.summary;
 
 
       const bottom =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
       bottom.className =
         "story-bottom";
 
 
       const time =
-        document.createElement("span");
+        document.createElement(
+          "span"
+        );
 
       time.className =
         "reading-time";
 
       time.textContent =
-        story.readingTime + " min read";
+        story.readingTime +
+        " min read";
 
 
       const link =
-        document.createElement("a");
+        document.createElement(
+          "a"
+        );
 
       link.className =
         "read-link";
-
-      link.textContent =
-        story.status === "published"
-          ? "Read story →"
-          : "Coming soon";
 
 
       if (
@@ -893,26 +1081,44 @@
         link.href =
           story.storyPage;
 
+        link.textContent =
+          "Read story →";
+
       } else {
 
         link.href =
           "stories.html";
 
+        link.textContent =
+          "Coming soon";
+
       }
 
 
-      bottom.appendChild(time);
+      bottom.appendChild(
+        time
+      );
 
-      bottom.appendChild(link);
+      bottom.appendChild(
+        link
+      );
 
 
-      card.appendChild(genre);
+      card.appendChild(
+        genre
+      );
 
-      card.appendChild(title);
+      card.appendChild(
+        title
+      );
 
-      card.appendChild(summary);
+      card.appendChild(
+        summary
+      );
 
-      card.appendChild(bottom);
+      card.appendChild(
+        bottom
+      );
 
 
       return card;
@@ -935,7 +1141,9 @@
       ) {
 
         const message =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
 
         message.className =
           "empty-state";
@@ -943,7 +1151,9 @@
         message.textContent =
           "Story database could not be loaded.";
 
-        container.appendChild(message);
+        container.appendChild(
+          message
+        );
 
         return;
 
@@ -964,7 +1174,10 @@
 
 
       const storiesToShow =
-        publishedStories.slice(0, 3);
+        publishedStories.slice(
+          0,
+          3
+        );
 
 
       if (
@@ -972,7 +1185,9 @@
       ) {
 
         const message =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
 
         message.className =
           "empty-state";
@@ -980,7 +1195,9 @@
         message.textContent =
           "New stories are coming soon.";
 
-        container.appendChild(message);
+        container.appendChild(
+          message
+        );
 
         return;
 
@@ -1046,7 +1263,9 @@
 
 
       const randomStory =
-        publishedStories[randomIndex];
+        publishedStories[
+          randomIndex
+        ];
 
 
       window.location.href =
@@ -1060,15 +1279,18 @@
 
 
     document
-      .getElementById("surpriseButton")
+      .getElementById(
+        "surpriseButton"
+      )
       .addEventListener(
         "click",
         surpriseMe
       );
+
 
   </script>
 
 
 </body>
 
-</html> 
+  </html>
