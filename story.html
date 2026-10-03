@@ -4,194 +4,416 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>TaleForge — Story</title>
+  <title>Story — TaleForge</title>
   <meta
     name="description"
-    content="Read a story on TaleForge."
+    content="Read stories on TaleForge — short stories across infinite worlds."
   >
 
   <style>
+    :root {
+      --bg: #080a0f;
+      --surface: #10131a;
+      --surface-2: #151923;
+      --border: rgba(255,255,255,0.08);
+      --text: #f4f6f8;
+      --muted: #9ca6b5;
+      --accent: #7dd3fc;
+      --accent-strong: #38bdf8;
+      --max: 820px;
+    }
+
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
-      font-family: Georgia, "Times New Roman", serif;
-      background: #0b0d12;
-      color: #eceff4;
-      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(
+          circle at 50% -10%,
+          rgba(56,189,248,0.10),
+          transparent 35%
+        ),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      line-height: 1.7;
     }
 
-    header {
-      font-family: Arial, sans-serif;
-      border-bottom: 1px solid #222733;
-      padding: 20px;
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* TOP BAR */
+
+    .topbar {
       position: sticky;
       top: 0;
-      background: rgba(11, 13, 18, 0.95);
-      backdrop-filter: blur(12px);
-      z-index: 10;
-    }
-
-    .header-inner {
-      max-width: 900px;
-      margin: auto;
+      z-index: 20;
+      height: 64px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 20px;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(8,10,15,0.82);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
     }
 
-    .logo {
-      color: #ffffff;
-      text-decoration: none;
-      font-size: 22px;
-      font-weight: 700;
-    }
-
-    nav {
-      display: flex;
-      gap: 18px;
-    }
-
-    nav a {
-      color: #aab2c0;
-      text-decoration: none;
-      font-size: 14px;
-    }
-
-    nav a:hover {
-      color: #ffffff;
-    }
-
-    .progress {
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 3px;
-      width: 0%;
-      background: #8f9cff;
-      z-index: 100;
-    }
-
-    main {
-      max-width: 800px;
-      margin: auto;
-      padding: 70px 20px 100px;
-    }
-
-    .loading {
-      text-align: center;
-      color: #8993a3;
-      padding: 80px 0;
-      font-family: Arial, sans-serif;
-    }
-
-    .error {
-      text-align: center;
-      color: #ff9a9a;
-      padding: 80px 20px;
-      font-family: Arial, sans-serif;
-    }
-
-    .genre {
-      font-family: Arial, sans-serif;
-      color: #aeb9ff;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-size: 12px;
-      margin-bottom: 18px;
-    }
-
-    h1 {
-      font-size: clamp(38px, 7vw, 64px);
-      line-height: 1.05;
-      margin-bottom: 18px;
-    }
-
-    .subtitle {
-      color: #aeb6c4;
+    .brand {
       font-size: 20px;
-      line-height: 1.6;
-      margin-bottom: 25px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
 
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
+    .brand span {
+      color: var(--accent-strong);
+    }
+
+    .back-link {
+      color: var(--muted);
+      font-size: 14px;
+      transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+    }
+
+    /* PROGRESS */
+
+    .progress-track {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      z-index: 30;
+      background: transparent;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        var(--accent-strong),
+        #a78bfa
+      );
+      transition: width 0.1s linear;
+    }
+
+    /* HERO */
+
+    .story-hero {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 90px 24px 70px;
+      text-align: center;
+    }
+
+    .story-eyebrow {
+      display: inline-flex;
+      align-items: center;
       gap: 8px;
-      font-family: Arial, sans-serif;
-      margin-bottom: 55px;
+      padding: 7px 13px;
+      border: 1px solid rgba(125,211,252,0.18);
+      background: rgba(125,211,252,0.06);
+      border-radius: 999px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
     }
 
-    .meta span {
-      background: #171c25;
-      border: 1px solid #272e3a;
-      color: #9ca6b6;
-      padding: 7px 10px;
-      border-radius: 7px;
+    .story-title {
+      margin: 25px auto 16px;
+      max-width: 900px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(42px, 7vw, 76px);
+      line-height: 1.05;
+      letter-spacing: -2px;
+    }
+
+    .story-subtitle {
+      max-width: 680px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: clamp(17px, 2.5vw, 21px);
+      line-height: 1.6;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 30px;
+    }
+
+    .meta-pill {
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.035);
+      color: var(--muted);
       font-size: 12px;
+    }
+
+    .meta-pill strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* READER */
+
+    .reader-shell {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    .story-summary {
+      margin-bottom: 55px;
+      padding: 24px 26px;
+      border-left: 2px solid var(--accent-strong);
+      background: linear-gradient(
+        90deg,
+        rgba(56,189,248,0.06),
+        transparent
+      );
+      color: #c7ced8;
+      font-size: 17px;
     }
 
     .story-content {
-      font-size: 20px;
-      line-height: 1.9;
-      color: #e1e5eb;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(18px, 2vw, 21px);
+      line-height: 1.95;
+      color: #e8ebef;
     }
 
     .story-content p {
-      margin-bottom: 28px;
+      margin: 0 0 1.7em;
     }
 
-    .story-content p:last-child {
-      margin-bottom: 0;
+    .story-content p:first-child::first-letter {
+      float: left;
+      font-size: 4.1em;
+      line-height: 0.82;
+      padding-right: 9px;
+      padding-top: 8px;
+      color: var(--accent);
     }
 
-    .end {
+    /* END */
+
+    .story-end {
       margin-top: 80px;
-      padding-top: 35px;
-      border-top: 1px solid #252b36;
-      font-family: Arial, sans-serif;
-      color: #858f9f;
+      padding: 38px 26px;
       text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255,255,255,0.045),
+          rgba(255,255,255,0.015)
+        );
     }
 
-    .actions {
-      display: flex;
+    .story-end h2 {
+      margin: 0 0 8px;
+      font-size: 25px;
+    }
+
+    .story-end p {
+      margin: 0 0 24px;
+      color: var(--muted);
+    }
+
+    .primary-button {
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
-      gap: 12px;
-      margin-top: 25px;
-    }
-
-    .button {
-      display: inline-block;
-      padding: 11px 17px;
-      border-radius: 9px;
-      background: #171c25;
-      border: 1px solid #2a3140;
-      color: #ffffff;
-      text-decoration: none;
+      padding: 12px 19px;
+      border-radius: 10px;
+      background: var(--text);
+      color: #080a0f;
+      font-weight: 700;
       font-size: 14px;
     }
 
-    .button:hover {
-      border-color: #5c6780;
+    /* NAVIGATION */
+
+    .story-navigation {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 22px;
     }
 
-    footer {
-      border-top: 1px solid #222733;
-      padding: 30px 20px;
+    .nav-card {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .nav-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(125,211,252,0.25);
+    }
+
+    .nav-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .nav-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 17px;
+    }
+
+    /* RELATED */
+
+    .related {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    .section-heading {
+      margin-bottom: 20px;
+    }
+
+    .section-heading h2 {
+      margin: 0 0 5px;
+      font-size: 25px;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .related-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .related-card {
+      display: block;
+      padding: 20px;
+      min-height: 160px;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: var(--surface);
+      transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .related-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(125,211,252,0.25);
+    }
+
+    .related-genre {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .related-card h3 {
+      margin: 12px 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      line-height: 1.2;
+    }
+
+    .related-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* STATES */
+
+    .state {
+      max-width: 700px;
+      margin: 120px auto;
+      padding: 30px 24px;
       text-align: center;
-      color: #687282;
-      font-family: Arial, sans-serif;
+    }
+
+    .state h1 {
+      margin-bottom: 10px;
+    }
+
+    .state p {
+      color: var(--muted);
+    }
+
+    /* FOOTER */
+
+    footer {
+      padding: 35px 24px;
+      border-top: 1px solid var(--border);
+      color: #697382;
+      text-align: center;
       font-size: 13px;
     }
 
-    @media (max-width: 600px) {
-      main {
-        padding-top: 45px;
+    /* MOBILE */
+
+    @media (max-width: 650px) {
+      .topbar {
+        padding: 0 16px;
+      }
+
+      .story-hero {
+        padding: 70px 18px 50px;
+      }
+
+      .story-title {
+        letter-spacing: -1.3px;
+      }
+
+      .reader-shell {
+        padding: 0 18px 70px;
+      }
+
+      .story-summary {
+        padding: 20px;
+        margin-bottom: 42px;
       }
 
       .story-content {
@@ -199,18 +421,16 @@
         line-height: 1.85;
       }
 
-      .subtitle {
-        font-size: 17px;
+      .story-navigation {
+        grid-template-columns: 1fr;
       }
 
-      .header-inner {
-        flex-direction: column;
-        align-items: flex-start;
+      .related {
+        padding: 0 18px 70px;
       }
 
-      nav {
-        width: 100%;
-        justify-content: space-between;
+      .progress-track {
+        top: 64px;
       }
     }
   </style>
@@ -218,236 +438,462 @@
 
 <body>
 
-<div class="progress" id="progress"></div>
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      Tale<span>Forge</span>
+    </a>
 
-<header>
-  <div class="header-inner">
-    <a class="logo" href="index.html">TaleForge</a>
+    <a href="stories.html" class="back-link">
+      ← Explore Stories
+    </a>
+  </header>
 
-    <nav>
-      <a href="stories.html">Explore</a>
-      <a href="index.html">Home</a>
-    </nav>
+  <div class="progress-track">
+    <div class="progress-bar" id="progressBar"></div>
   </div>
-</header>
 
-<main id="main">
-  <div class="loading">
-    Loading story...
-  </div>
-</main>
+  <main id="app">
 
-<footer>
-  TaleForge — Short stories. Infinite worlds.
-</footer>
+    <section class="state">
+      <h1>Loading story...</h1>
+      <p>Preparing your reading experience.</p>
+    </section>
 
-<script type="module">
-  import "./supabase-client.js";
+  </main>
 
-  const supabase = window.taleForgeSupabase;
-  const main = document.getElementById("main");
-  const progress = document.getElementById("progress");
+  <footer>
+    © 2026 TaleForge — Short stories. Infinite worlds.
+  </footer>
 
-  const params = new URLSearchParams(window.location.search);
-  const storyId = params.get("id");
+  <script type="module">
+    import "./supabase-client.js";
 
-  async function loadStory() {
+    const supabase = window.taleForgeSupabase;
+    const app = document.getElementById("app");
+    const progressBar = document.getElementById("progressBar");
 
-    if (!storyId) {
-      showError("No story was specified.");
-      return;
+    const params = new URLSearchParams(window.location.search);
+    const storyId = params.get("id");
+
+    function escapeHTML(value) {
+      const div = document.createElement("div");
+      div.textContent = value ?? "";
+      return div.innerHTML;
     }
 
-    try {
+    function formatContent(content) {
+      return (content || "")
+        .split(/\n\s*\n/)
+        .map(paragraph => paragraph.trim())
+        .filter(Boolean)
+        .map(paragraph => `<p>${escapeHTML(paragraph)}</p>`)
+        .join("");
+    }
 
-      const { data, error } = await supabase
-        .from("stories")
-        .select(`
-          id,
-          title,
-          slug,
-          subtitle,
-          summary,
-          content,
-          reading_time,
-          word_count,
-          mood,
-          intensity,
-          published_at,
-          genres (
-            name
-          )
-        `)
-        .eq("id", storyId)
-        .eq("status", "published")
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        showError("Story not found.");
+    async function loadStory() {
+      if (!storyId) {
+        showError("Story not found", "No story was specified.");
         return;
       }
 
-      renderStory(data);
+      try {
+        const { data: story, error } = await supabase
+          .from("stories")
+          .select(`
+            id,
+            title,
+            slug,
+            subtitle,
+            summary,
+            content,
+            reading_time,
+            word_count,
+            mood,
+            intensity,
+            published_at,
+            primary_genre_id,
+            genres (
+              name
+            )
+          `)
+          .eq("id", storyId)
+          .eq("status", "published")
+          .single();
 
-    } catch (error) {
+        if (error) throw error;
 
-      console.error(error);
-
-      showError(
-        error.message || "Unable to load this story."
-      );
-    }
-  }
-
-  function renderStory(story) {
-
-    document.title =
-      `${story.title} — TaleForge`;
-
-    const description =
-      story.summary ||
-      story.subtitle ||
-      "Read this story on TaleForge.";
-
-    const metaDescription =
-      document.querySelector('meta[name="description"]');
-
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        "content",
-        description
-      );
-    }
-
-    const paragraphs =
-      String(story.content || "")
-        .split(/\n\s*\n/)
-        .map(paragraph => paragraph.trim())
-        .filter(Boolean);
-
-    const contentHtml = paragraphs
-      .map(paragraph => {
-        return `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`;
-      })
-      .join("");
-
-    main.innerHTML = `
-      <article>
-
-        <div class="genre">
-          ${escapeHtml(
-            story.genres?.name || "Story"
-          )}
-        </div>
-
-        <h1>
-          ${escapeHtml(story.title)}
-        </h1>
-
-        ${
-          story.subtitle
-            ? `
-              <div class="subtitle">
-                ${escapeHtml(story.subtitle)}
-              </div>
-            `
-            : ""
+        if (!story) {
+          showError(
+            "Story not found",
+            "This story may no longer be available."
+          );
+          return;
         }
 
-        <div class="meta">
+        renderStory(story);
 
-          <span>
-            ${escapeHtml(String(story.reading_time || 1))} min read
-          </span>
+      } catch (error) {
+        console.error(error);
 
-          <span>
-            ${escapeHtml(String(story.word_count || 0))} words
-          </span>
+        showError(
+          "Unable to load story",
+          "Something went wrong while loading this story."
+        );
+      }
+    }
+
+    function renderStory(story) {
+      document.title = `${story.title} — TaleForge`;
+
+      const genreName =
+        story.genres?.name || "Story";
+
+      const publishedDate = story.published_at
+        ? new Date(story.published_at).toLocaleDateString(
+            undefined,
+            {
+              year: "numeric",
+              month: "long",
+              day: "numeric"
+            }
+          )
+        : "";
+
+      app.innerHTML = `
+        <section class="story-hero">
+
+          <div class="story-eyebrow">
+            ${escapeHTML(genreName)}
+          </div>
+
+          <h1 class="story-title">
+            ${escapeHTML(story.title)}
+          </h1>
 
           ${
-            story.mood
-              ? `<span>${escapeHtml(story.mood)}</span>`
+            story.subtitle
+              ? `
+                <p class="story-subtitle">
+                  ${escapeHTML(story.subtitle)}
+                </p>
+              `
               : ""
           }
 
+          <div class="meta-row">
+
+            ${
+              story.reading_time
+                ? `
+                  <span class="meta-pill">
+                    <strong>${story.reading_time} min</strong>
+                    read
+                  </span>
+                `
+                : ""
+            }
+
+            ${
+              story.word_count
+                ? `
+                  <span class="meta-pill">
+                    <strong>${story.word_count}</strong>
+                    words
+                  </span>
+                `
+                : ""
+            }
+
+            ${
+              story.mood
+                ? `
+                  <span class="meta-pill">
+                    Mood:
+                    <strong>${escapeHTML(story.mood)}</strong>
+                  </span>
+                `
+                : ""
+            }
+
+            ${
+              story.intensity
+                ? `
+                  <span class="meta-pill">
+                    Intensity:
+                    <strong>${escapeHTML(story.intensity)}</strong>
+                  </span>
+                `
+                : ""
+            }
+
+            ${
+              publishedDate
+                ? `
+                  <span class="meta-pill">
+                    ${escapeHTML(publishedDate)}
+                  </span>
+                `
+                : ""
+            }
+
+          </div>
+
+        </section>
+
+        <article class="reader-shell">
+
           ${
-            story.intensity
-              ? `<span>${escapeHtml(story.intensity)}</span>`
+            story.summary
+              ? `
+                <div class="story-summary">
+                  ${escapeHTML(story.summary)}
+                </div>
+              `
               : ""
           }
 
-        </div>
+          <div class="story-content" id="storyContent">
+            ${formatContent(story.content)}
+          </div>
 
-        <div class="story-content">
-          ${contentHtml}
-        </div>
+          <section class="story-end">
 
-        <div class="end">
-          <p>You've reached the end of this story.</p>
+            <h2>End of story</h2>
 
-          <div class="actions">
-            <a class="button" href="stories.html">
+            <p>
+              Thanks for reading on TaleForge.
+            </p>
+
+            <a
+              href="stories.html"
+              class="primary-button"
+            >
               Explore More Stories
             </a>
 
-            <a class="button" href="index.html">
-              Back Home
-            </a>
+          </section>
+
+          <div
+            class="story-navigation"
+            id="storyNavigation"
+          ></div>
+
+        </article>
+
+        <section class="related">
+
+          <div class="section-heading">
+            <h2>Continue Exploring</h2>
+            <p>More stories from the TaleForge library.</p>
           </div>
-        </div>
 
-      </article>
-    `;
-  }
+          <div
+            class="related-grid"
+            id="relatedGrid"
+          >
+            <p style="color:#9ca6b5;">
+              Loading more stories...
+            </p>
+          </div>
 
-  function showError(message) {
+        </section>
+      `;
 
-    main.innerHTML = `
-      <div class="error">
-        <h2>Story unavailable</h2>
-        <p>${escapeHtml(message)}</p>
-        <br>
-        <a class="button" href="stories.html">
-          Return to Explore
-        </a>
-      </div>
-    `;
-  }
+      setupProgress();
+      loadNavigation(story);
+      loadRelatedStories(story);
+    }
 
-  function escapeHtml(value) {
+    async function loadNavigation(story) {
+      try {
+        const { data, error } = await supabase
+          .from("stories")
+          .select("id, title, published_at")
+          .eq("status", "published")
+          .order("published_at", {
+            ascending: true
+          });
 
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+        if (error) throw error;
 
-  window.addEventListener("scroll", () => {
+        if (!data || data.length < 2) return;
 
-    const scrollTop =
-      window.scrollY;
+        const currentIndex =
+          data.findIndex(item => item.id === story.id);
 
-    const documentHeight =
-      document.documentElement.scrollHeight -
-      window.innerHeight;
+        if (currentIndex === -1) return;
 
-    const percentage =
-      documentHeight > 0
-        ? (scrollTop / documentHeight) * 100
-        : 0;
+        const previous =
+          data[currentIndex - 1] || null;
 
-    progress.style.width =
-      `${Math.min(100, Math.max(0, percentage))}%`;
-  });
+        const next =
+          data[currentIndex + 1] || null;
 
-  loadStory();
-</script>
+        const navigation =
+          document.getElementById("storyNavigation");
+
+        navigation.innerHTML = `
+          ${
+            previous
+              ? `
+                <a
+                  class="nav-card"
+                  href="story.html?id=${previous.id}"
+                >
+                  <span class="nav-label">
+                    ← Previous
+                  </span>
+
+                  <span class="nav-title">
+                    ${escapeHTML(previous.title)}
+                  </span>
+                </a>
+              `
+              : `<div></div>`
+          }
+
+          ${
+            next
+              ? `
+                <a
+                  class="nav-card"
+                  href="story.html?id=${next.id}"
+                >
+                  <span class="nav-label">
+                    Next →
+                  </span>
+
+                  <span class="nav-title">
+                    ${escapeHTML(next.title)}
+                  </span>
+                </a>
+              `
+              : `<div></div>`
+          }
+        `;
+
+      } catch (error) {
+        console.error("Navigation error:", error);
+      }
+    }
+
+    async function loadRelatedStories(story) {
+      const grid =
+        document.getElementById("relatedGrid");
+
+      try {
+        const { data, error } = await supabase
+          .from("stories")
+          .select(`
+            id,
+            title,
+            summary,
+            reading_time,
+            genres (
+              name
+            )
+          `)
+          .eq("status", "published")
+          .neq("id", story.id)
+          .order("published_at", {
+            ascending: false
+          })
+          .limit(4);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          grid.innerHTML =
+            "<p style='color:#9ca6b5;'>No other stories yet.</p>";
+          return;
+        }
+
+        grid.innerHTML = data.map(item => `
+          <a
+            class="related-card"
+            href="story.html?id=${item.id}"
+          >
+
+            <div class="related-genre">
+              ${escapeHTML(item.genres?.name || "Story")}
+            </div>
+
+            <h3>
+              ${escapeHTML(item.title)}
+            </h3>
+
+            <p>
+              ${escapeHTML(
+                item.summary ||
+                "Discover another story on TaleForge."
+              )}
+            </p>
+
+          </a>
+        `).join("");
+
+      } catch (error) {
+        console.error("Related stories error:", error);
+
+        grid.innerHTML =
+          "<p style='color:#9ca6b5;'>Unable to load more stories.</p>";
+      }
+    }
+
+    function setupProgress() {
+      function updateProgress() {
+        const scrollTop =
+          window.scrollY;
+
+        const documentHeight =
+          document.documentElement.scrollHeight -
+          window.innerHeight;
+
+        const progress =
+          documentHeight > 0
+            ? (scrollTop / documentHeight) * 100
+            : 0;
+
+        progressBar.style.width =
+          `${Math.min(100, Math.max(0, progress))}%`;
+      }
+
+      window.addEventListener(
+        "scroll",
+        updateProgress,
+        { passive: true }
+      );
+
+      updateProgress();
+    }
+
+    function showError(title, message) {
+      app.innerHTML = `
+        <section class="state">
+
+          <h1>
+            ${escapeHTML(title)}
+          </h1>
+
+          <p>
+            ${escapeHTML(message)}
+          </p>
+
+          <br>
+
+          <a
+            href="stories.html"
+            class="primary-button"
+          >
+            Back to Stories
+          </a>
+
+        </section>
+      `;
+    }
+
+    loadStory();
+  </script>
 
 </body>
-</html> 
+  </html>
