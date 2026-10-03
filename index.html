@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,10 +7,7 @@
 
   <title>TaleForge — Short Stories. Infinite Worlds.</title>
 
-  <meta
-    name="description"
-    content="Discover short stories across romance, mystery, fantasy, horror, science fiction and more."
-  >
+  <meta name="description" content="Discover memorable short stories across fantasy, mystery, romance, horror, science fiction and more.">
 
   <style>
     * {
@@ -18,237 +16,363 @@
       padding: 0;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background: #090b10;
-      color: #f5f7fb;
+      background: #0b0d12;
+      color: #f5f7fa;
       line-height: 1.6;
     }
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 6%;
-      border-bottom: 1px solid #20242e;
-      background: #0c0f15;
-    }
-
-    .logo {
-      font-size: 25px;
-      font-weight: 800;
-      letter-spacing: -1px;
-    }
-
-    .logo span {
-      color: #7c5cff;
-    }
-
-    nav {
-      display: flex;
-      gap: 24px;
-    }
-
-    nav a {
-      color: #aeb5c3;
+    a {
       text-decoration: none;
     }
 
-    nav a:hover {
-      color: white;
+    /* HEADER */
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11, 13, 18, 0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #252a34;
     }
+
+    .nav {
+      max-width: 1250px;
+      margin: auto;
+      padding: 17px 6%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      color: white;
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span {
+      color: #00d9ff;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .nav-links a {
+      color: #a8afbc;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #00d9ff;
+    }
+
+    .stories-button {
+      background: #00d9ff;
+      color: #071017 !important;
+      padding: 9px 15px;
+      border-radius: 8px;
+      font-weight: 700;
+    }
+
+    /* HERO */
 
     .hero {
-      max-width: 1100px;
-      margin: auto;
-      padding: 90px 6% 70px;
-      text-align: center;
+      min-height: 620px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 75% 35%, rgba(0, 217, 255, 0.12), transparent 28%),
+        radial-gradient(circle at 20% 80%, rgba(78, 91, 255, 0.08), transparent 25%);
     }
 
-    .hero-badge {
-      display: inline-block;
-      padding: 7px 14px;
-      border: 1px solid #303746;
-      border-radius: 999px;
-      color: #aeb5c3;
-      margin-bottom: 22px;
-      font-size: 14px;
+    .hero-inner {
+      max-width: 1250px;
+      width: 100%;
+      margin: auto;
+      padding: 90px 6%;
+    }
+
+    .eyebrow {
+      color: #00d9ff;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 20px;
     }
 
     .hero h1 {
-      font-size: clamp(42px, 8vw, 76px);
-      line-height: 1;
+      max-width: 850px;
+      font-size: clamp(48px, 8vw, 88px);
+      line-height: 0.98;
       letter-spacing: -3px;
-      margin-bottom: 24px;
+      margin-bottom: 25px;
     }
 
     .hero h1 span {
-      color: #8b6cff;
+      color: #00d9ff;
     }
 
     .hero p {
       max-width: 650px;
-      margin: auto;
       color: #9da5b4;
-      font-size: 18px;
+      font-size: 19px;
+      margin-bottom: 35px;
     }
 
-    .buttons {
-      margin-top: 32px;
+    .hero-buttons {
       display: flex;
-      justify-content: center;
-      gap: 12px;
       flex-wrap: wrap;
+      gap: 12px;
     }
 
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 13px 20px;
+    .primary-button,
+    .secondary-button {
+      padding: 14px 21px;
+      border-radius: 9px;
       font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
+      border: none;
     }
 
-    .primary {
-      background: #7c5cff;
-      color: white;
+    .primary-button {
+      background: #00d9ff;
+      color: #071017;
     }
 
-    .secondary {
+    .secondary-button {
       background: #171b24;
-      color: white;
-      border: 1px solid #303746;
+      border: 1px solid #303642;
+      color: #e7eaf0;
     }
 
-    .section {
-      max-width: 1150px;
+    .primary-button:hover,
+    .secondary-button:hover {
+      transform: translateY(-2px);
+    }
+
+    /* SECTION */
+
+    section.content {
+      max-width: 1250px;
       margin: auto;
-      padding: 45px 6%;
+      padding: 75px 6%;
     }
 
     .section-heading {
       display: flex;
+      align-items: end;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 22px;
+      margin-bottom: 28px;
+      gap: 20px;
     }
 
     .section-heading h2 {
-      font-size: 27px;
+      font-size: 30px;
     }
 
-    .section-heading a {
-      color: #9b87ff;
-      text-decoration: none;
+    .section-heading p {
+      color: #7f8795;
+      font-size: 14px;
     }
+
+    .view-all {
+      color: #00d9ff;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    /* GENRES */
 
     .genres {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
     }
 
     .genre {
-      padding: 24px;
-      background: #11151d;
-      border: 1px solid #242a36;
-      border-radius: 16px;
-      cursor: pointer;
-      transition: 0.2s;
+      padding: 25px 15px;
+      text-align: center;
+      background: #13161e;
+      border: 1px solid #252a35;
+      border-radius: 12px;
+      color: #e7eaf0;
+      transition: 0.25s;
     }
 
     .genre:hover {
-      transform: translateY(-3px);
-      border-color: #7c5cff;
+      border-color: #00d9ff;
+      transform: translateY(-4px);
     }
 
     .genre-icon {
-      font-size: 27px;
+      font-size: 28px;
       margin-bottom: 8px;
     }
 
-    .genre h3 {
-      margin-bottom: 4px;
+    .genre-name {
+      font-size: 14px;
+      font-weight: 700;
     }
 
-    .genre p {
-      color: #8f97a6;
-      font-size: 14px;
-    }
+    /* STORIES */
 
     .stories {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
+      gap: 20px;
     }
 
-    .story {
-      background: #11151d;
-      border: 1px solid #242a36;
-      border-radius: 17px;
+    .story-card {
+      background: #13161e;
+      border: 1px solid #252a35;
+      border-radius: 14px;
       overflow: hidden;
+      transition: 0.25s;
+    }
+
+    .story-card:hover {
+      transform: translateY(-5px);
+      border-color: #00d9ff;
     }
 
     .cover {
-      height: 180px;
+      height: 205px;
       display: flex;
-      align-items: end;
-      padding: 18px;
-      background: linear-gradient(135deg, #241c4b, #10131b);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
       font-size: 22px;
-      font-weight: bold;
+      font-weight: 800;
+      background: linear-gradient(135deg, #17202c, #29384a);
     }
 
-    .story-content {
-      padding: 17px;
+    .story-info {
+      padding: 18px;
     }
 
-    .story-content h3 {
-      margin-bottom: 7px;
+    .story-info h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
     }
 
-    .story-content p {
-      color: #8f97a6;
-      font-size: 14px;
+    .story-info p {
+      color: #8e96a5;
+      font-size: 13px;
+      margin-bottom: 14px;
     }
 
     .story-meta {
-      margin-top: 13px;
-      color: #7c8492;
-      font-size: 12px;
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
     }
 
-    .cta {
-      max-width: 1100px;
-      margin: 55px auto;
-      padding: 55px 6%;
-      text-align: center;
-      background: #11151d;
-      border: 1px solid #272d3a;
-      border-radius: 22px;
+    .tag {
+      background: #202530;
+      color: #b9c1ce;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 10px;
     }
 
-    .cta h2 {
+    /* DISCOVERY */
+
+    .discovery {
+      background:
+        linear-gradient(135deg, #121922, #0f141c);
+      border: 1px solid #29313d;
+      border-radius: 18px;
+      padding: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+    }
+
+    .discovery h2 {
       font-size: 32px;
       margin-bottom: 10px;
     }
 
-    .cta p {
-      color: #929aaa;
-      margin-bottom: 25px;
+    .discovery p {
+      color: #929aa8;
+      max-width: 600px;
     }
+
+    /* FOOTER */
 
     footer {
+      border-top: 1px solid #242832;
       padding: 35px 6%;
-      border-top: 1px solid #20242e;
-      color: #747d8d;
       text-align: center;
-      margin-top: 60px;
+      color: #707784;
+      font-size: 13px;
     }
 
-    @media (max-width: 800px) {
-      nav {
+    /* MOBILE */
+
+    @media (max-width: 950px) {
+
+      .genres {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .stories {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 650px) {
+
+      .nav {
+        padding: 15px 5%;
+      }
+
+      .nav-links {
+        gap: 12px;
+      }
+
+      .nav-links a:not(.stories-button) {
         display: none;
+      }
+
+      .hero {
+        min-height: 570px;
+      }
+
+      .hero-inner {
+        padding: 70px 5%;
+      }
+
+      .hero h1 {
+        font-size: 52px;
+        letter-spacing: -2px;
+      }
+
+      .hero p {
+        font-size: 16px;
+      }
+
+      section.content {
+        padding: 55px 5%;
       }
 
       .genres {
@@ -256,197 +380,336 @@
       }
 
       .stories {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 500px) {
-      .hero {
-        padding-top: 65px;
-      }
-
-      .genres,
-      .stories {
         grid-template-columns: 1fr;
       }
 
-      .cover {
-        height: 210px;
+      .section-heading {
+        align-items: start;
+      }
+
+      .discovery {
+        padding: 30px 25px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .discovery h2 {
+        font-size: 27px;
       }
     }
   </style>
+
 </head>
 
 <body>
 
-<header>
-  <div class="logo">Tale<span>Forge</span></div>
+  <!-- HEADER -->
 
-  <nav>
-    <a href="#">Discover</a>
-    <a href="#">Genres</a>
-    <a href="#">Collections</a>
-    <a href="#">Write</a>
+  <header>
+    <div class="nav">
+
+```
+  <a class="logo" href="index.html">
+    Tale<span>Forge</span>
+  </a>
+
+  <nav class="nav-links">
+    <a href="#genres">Genres</a>
+    <a href="#trending">Trending</a>
+    <a href="#discover">Discover</a>
+
+    <!-- STORIES PAGE BUTTON -->
+    <a class="stories-button" href="stories.html">
+      Explore Stories
+    </a>
   </nav>
-</header>
 
-<main>
+</div>
+```
+
+  </header>
+
+  <!-- HERO -->
 
   <section class="hero">
-    <div class="hero-badge">A new world of short fiction</div>
 
-    <h1>
-      Find your next<br>
-      <span>great story.</span>
-    </h1>
+```
+<div class="hero-inner">
+
+  <div class="eyebrow">
+    TaleForge
+  </div>
+
+  <h1>
+    Short stories.<br>
+    <span>Infinite worlds.</span>
+  </h1>
+
+  <p>
+    Discover memorable stories across fantasy, mystery, romance,
+    horror, science fiction and more. Find something worth reading
+    in minutes.
+  </p>
+
+  <div class="hero-buttons">
+
+    <a
+      class="primary-button"
+      href="stories.html"
+    >
+      Start Reading
+    </a>
+
+    <button
+      class="secondary-button"
+      onclick="surpriseMe()"
+    >
+      ✦ Surprise Me
+    </button>
+
+  </div>
+
+</div>
+```
+
+  </section>
+
+  <!-- GENRES -->
+
+  <section class="content" id="genres">
+
+```
+<div class="section-heading">
+
+  <div>
+    <h2>Explore by Genre</h2>
+    <p>Choose a world and start reading.</p>
+  </div>
+
+  <a class="view-all" href="stories.html">
+    View all →
+  </a>
+
+</div>
+
+
+<div class="genres">
+
+  <a class="genre" href="stories.html">
+    <div class="genre-icon">✨</div>
+    <div class="genre-name">Fantasy</div>
+  </a>
+
+  <a class="genre" href="stories.html">
+    <div class="genre-icon">🔎</div>
+    <div class="genre-name">Mystery</div>
+  </a>
+
+  <a class="genre" href="stories.html">
+    <div class="genre-icon">💌</div>
+    <div class="genre-name">Romance</div>
+  </a>
+
+  <a class="genre" href="stories.html">
+    <div class="genre-icon">🌙</div>
+    <div class="genre-name">Horror</div>
+  </a>
+
+  <a class="genre" href="stories.html">
+    <div class="genre-icon">🚀</div>
+    <div class="genre-name">Science Fiction</div>
+  </a>
+
+  <a class="genre" href="stories.html">
+    <div class="genre-icon">😂</div>
+    <div class="genre-name">Comedy</div>
+  </a>
+
+</div>
+```
+
+  </section>
+
+  <!-- TRENDING -->
+
+  <section class="content" id="trending">
+
+```
+<div class="section-heading">
+
+  <div>
+    <h2>Trending Stories</h2>
+    <p>Stories readers are discovering.</p>
+  </div>
+
+  <a class="view-all" href="stories.html">
+    Explore all →
+  </a>
+
+</div>
+
+
+<div class="stories">
+
+  <article class="story-card">
+
+    <div class="cover">
+      The Last Train Home
+    </div>
+
+    <div class="story-info">
+
+      <h3>The Last Train Home</h3>
+
+      <p>
+        A mysterious late-night train carries one passenger toward
+        a place he thought he had left behind.
+      </p>
+
+      <div class="story-meta">
+        <span class="tag">Mystery</span>
+        <span class="tag">8 min read</span>
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <article class="story-card">
+
+    <div class="cover">
+      Letters Never Sent
+    </div>
+
+    <div class="story-info">
+
+      <h3>Letters Never Sent</h3>
+
+      <p>
+        A forgotten box of letters reveals a story that was never
+        meant to be discovered.
+      </p>
+
+      <div class="story-meta">
+        <span class="tag">Romance</span>
+        <span class="tag">6 min read</span>
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <article class="story-card">
+
+    <div class="cover">
+      The Moonkeeper
+    </div>
+
+    <div class="story-info">
+
+      <h3>The Moonkeeper</h3>
+
+      <p>
+        Every night, someone must protect the moon from disappearing.
+      </p>
+
+      <div class="story-meta">
+        <span class="tag">Fantasy</span>
+        <span class="tag">10 min read</span>
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <article class="story-card">
+
+    <div class="cover">
+      Tomorrow's Memory
+    </div>
+
+    <div class="story-info">
+
+      <h3>Tomorrow's Memory</h3>
+
+      <p>
+        A scientist wakes up with memories of a future that hasn't
+        happened.
+      </p>
+
+      <div class="story-meta">
+        <span class="tag">Science Fiction</span>
+        <span class="tag">9 min read</span>
+      </div>
+
+    </div>
+
+  </article>
+
+</div>
+```
+
+  </section>
+
+  <!-- DISCOVERY -->
+
+  <section class="content" id="discover">
+
+```
+<div class="discovery">
+
+  <div>
+
+    <h2>Don't know what to read?</h2>
 
     <p>
-      Discover short stories for every mood, moment and imagination.
-      Read something unexpected today.
+      Let TaleForge choose something unexpected. Discover a story
+      based on a random genre and explore a new world.
     </p>
 
-    <div class="buttons">
-      <button class="primary" onclick="surpriseMe()">
-        ✨ Surprise Me
-      </button>
+  </div>
 
-      <button class="secondary" onclick="scrollToGenres()">
-        Explore Genres
-      </button>
-    </div>
+  <button
+    class="primary-button"
+    onclick="surpriseMe()"
+  >
+    ✦ Surprise Me
+  </button>
+
+</div>
+```
+
   </section>
 
-  <section class="section" id="genres">
+  <!-- FOOTER -->
 
-    <div class="section-heading">
-      <h2>Explore by genre</h2>
-      <a href="#">View all →</a>
-    </div>
+  <footer>
+    © 2026 TaleForge — Short stories. Infinite worlds.
+  </footer>
 
-    <div class="genres">
+  <script>
 
-      <div class="genre">
-        <div class="genre-icon">❤️</div>
-        <h3>Romance</h3>
-        <p>Love, relationships and unforgettable moments.</p>
-      </div>
+    function surpriseMe() {
 
-      <div class="genre">
-        <div class="genre-icon">🕵️</div>
-        <h3>Mystery</h3>
-        <p>Secrets, clues and stories that make you think.</p>
-      </div>
+      const stories = [
+        "The Last Train Home",
+        "Letters Never Sent",
+        "The Moonkeeper",
+        "Tomorrow's Memory",
+        "The House With No Door",
+        "The Accidental Hero"
+      ];
 
-      <div class="genre">
-        <div class="genre-icon">👻</div>
-        <h3>Horror</h3>
-        <p>Dark stories that stay with you.</p>
-      </div>
+      const random =
+        stories[Math.floor(Math.random() * stories.length)];
 
-      <div class="genre">
-        <div class="genre-icon">🧙</div>
-        <h3>Fantasy</h3>
-        <p>Magic, worlds and impossible adventures.</p>
-      </div>
+      alert("Your TaleForge story tonight:\n\n" + random);
+    }
 
-      <div class="genre">
-        <div class="genre-icon">🚀</div>
-        <h3>Science Fiction</h3>
-        <p>Future worlds, technology and strange possibilities.</p>
-      </div>
-
-      <div class="genre">
-        <div class="genre-icon">😂</div>
-        <h3>Comedy</h3>
-        <p>Lighthearted stories made to make you smile.</p>
-      </div>
-
-    </div>
-  </section>
-
-  <section class="section">
-
-    <div class="section-heading">
-      <h2>Trending stories</h2>
-      <a href="#">See all →</a>
-    </div>
-
-    <div class="stories">
-
-      <article class="story">
-        <div class="cover">The Last Train Home</div>
-        <div class="story-content">
-          <h3>The Last Train Home</h3>
-          <p>A mysterious journey with one impossible destination.</p>
-          <div class="story-meta">Mystery · 7 min read</div>
-        </div>
-      </article>
-
-      <article class="story">
-        <div class="cover">Letters Never Sent</div>
-        <div class="story-content">
-          <h3>Letters Never Sent</h3>
-          <p>Some words arrive years after they were written.</p>
-          <div class="story-meta">Drama · 6 min read</div>
-        </div>
-      </article>
-
-      <article class="story">
-        <div class="cover">The Moonkeeper</div>
-        <div class="story-content">
-          <h3>The Moonkeeper</h3>
-          <p>A forgotten guardian discovers a secret in the sky.</p>
-          <div class="story-meta">Fantasy · 9 min read</div>
-        </div>
-      </article>
-
-      <article class="story">
-        <div class="cover">Tomorrow's Memory</div>
-        <div class="story-content">
-          <h3>Tomorrow's Memory</h3>
-          <p>A scientist remembers something that has not happened yet.</p>
-          <div class="story-meta">Sci-Fi · 8 min read</div>
-        </div>
-      </article>
-
-    </div>
-  </section>
-
-  <section class="cta">
-    <h2>There is always another story.</h2>
-    <p>Stay for five minutes. Leave with another world.</p>
-    <button class="primary" onclick="surpriseMe()">
-      ✨ Find a Story
-    </button>
-  </section>
-
-</main>
-
-<footer>
-  © 2026 TaleForge · Short stories. Infinite worlds.
-</footer>
-
-<script>
-  function surpriseMe() {
-    const stories = [
-      "The Last Train Home",
-      "Letters Never Sent",
-      "The Moonkeeper",
-      "Tomorrow's Memory"
-    ];
-
-    const story =
-      stories[Math.floor(Math.random() * stories.length)];
-
-    alert("Your surprise story: " + story);
-  }
-
-  function scrollToGenres() {
-    document
-      .getElementById("genres")
-      .scrollIntoView({ behavior: "smooth" });
-  }
-</script>
+  </script>
 
 </body>
-  </html>
+</html>
