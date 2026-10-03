@@ -2,12 +2,13 @@ const TALEFORGE_STORIES = [
 
   {
     id: "last-train-home",
-
     title: "The Last Train Home",
-
     genre: "Mystery",
-
+    mood: "Mysterious",
+    intensity: "Medium",
     readingTime: 8,
+    featured: true,
+    publishedAt: "2026-10-01",
 
     subtitle:
       "Some journeys take you somewhere. Others take you back.",
@@ -96,12 +97,13 @@ For the first time in years, he felt as though he had finally arrived somewhere.
 
   {
     id: "the-moonkeeper",
-
     title: "The Moonkeeper",
-
     genre: "Fantasy",
-
+    mood: "Wonder",
+    intensity: "Medium",
     readingTime: 7,
+    featured: true,
+    publishedAt: "2026-10-01",
 
     subtitle:
       "Every night, someone must keep the moon in the sky.",
@@ -188,12 +190,13 @@ The world slept peacefully because someone was awake.`
 
   {
     id: "tomorrows-memory",
-
     title: "Tomorrow's Memory",
-
     genre: "Science Fiction",
-
+    mood: "Thoughtful",
+    intensity: "High",
     readingTime: 8,
+    featured: true,
+    publishedAt: "2026-10-01",
 
     subtitle:
       "What happens when you remember tomorrow?",
@@ -296,12 +299,13 @@ Memory saved.`
 
   {
     id: "the-house-with-no-door",
-
     title: "The House With No Door",
-
     genre: "Horror",
-
+    mood: "Eerie",
+    intensity: "High",
     readingTime: 7,
+    featured: false,
+    publishedAt: "2026-10-01",
 
     subtitle:
       "Some houses are not meant to be entered.",
@@ -394,12 +398,13 @@ But somehow, someone inside was waiting for him.`
 
   {
     id: "the-accidental-hero",
-
     title: "The Accidental Hero",
-
     genre: "Comedy",
-
+    mood: "Funny",
+    intensity: "Low",
     readingTime: 5,
+    featured: false,
+    publishedAt: "2026-10-01",
 
     subtitle:
       "The wrong person can still save the day.",
@@ -494,12 +499,13 @@ And that was how the least heroic man in the city became its most famous hero.`
 
   {
     id: "the-library-at-midnight",
-
     title: "The Library at Midnight",
-
     genre: "Fantasy",
-
+    mood: "Magical",
+    intensity: "Low",
     readingTime: 8,
+    featured: false,
+    publishedAt: "2026-10-02",
 
     subtitle:
       "Some books tell stories. Others remember them.",
@@ -592,12 +598,13 @@ Nora's Story.`
 
   {
     id: "seven-minutes-after-sunset",
-
     title: "Seven Minutes After Sunset",
-
     genre: "Thriller",
-
+    mood: "Suspenseful",
+    intensity: "High",
     readingTime: 6,
+    featured: true,
+    publishedAt: "2026-10-02",
 
     subtitle:
       "Every evening, the town loses seven minutes.",
@@ -689,4 +696,4 @@ Written on his desk were three words.
 Try again tomorrow.`
   }
 
-];
+]; 
