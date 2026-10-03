@@ -10,12 +10,13 @@
     content="width=device-width, initial-scale=1.0"
   >
 
+  <title>Explore Stories — TaleForge</title>
+
   <meta
     name="description"
-    content="Explore the TaleForge short story library."
+    content="Explore short stories across mystery, fantasy, science fiction, horror, comedy, thriller and more on TaleForge."
   >
 
-  <title>Explore Stories — TaleForge</title>
 
   <style>
 
@@ -29,11 +30,13 @@
       --accent: #05c9ee;
     }
 
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
+
 
     body {
       font-family:
@@ -41,32 +44,29 @@
         ui-sans-serif,
         system-ui,
         -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
         sans-serif;
 
       background: var(--bg);
 
       color: var(--text);
 
-      line-height: 1.6;
-
       min-height: 100vh;
     }
+
 
     a {
       color: inherit;
       text-decoration: none;
     }
 
+
     header {
       position: sticky;
-
       top: 0;
+      z-index: 30;
 
-      z-index: 50;
-
-      background: rgba(9, 11, 15, 0.9);
+      background:
+        rgba(9, 11, 15, 0.92);
 
       backdrop-filter: blur(18px);
 
@@ -74,63 +74,63 @@
         1px solid rgba(255, 255, 255, 0.06);
     }
 
+
     .nav {
       max-width: 1180px;
-
       margin: auto;
 
       padding: 18px 20px;
 
       display: flex;
-
       align-items: center;
-
       justify-content: space-between;
     }
 
+
     .logo {
       font-size: 1.55rem;
-
       font-weight: 850;
-
       letter-spacing: -0.06em;
     }
+
 
     .logo span {
       color: var(--accent);
     }
 
-    .back-link {
-      color: var(--muted);
 
+    .home-link {
+      color: var(--muted);
       font-size: 0.9rem;
     }
 
-    .back-link:hover {
+
+    .home-link:hover {
       color: var(--text);
     }
 
+
     .hero {
       max-width: 1180px;
-
       margin: auto;
 
-      padding: 100px 20px 60px;
+      padding:
+        90px 20px 55px;
     }
+
 
     .eyebrow {
       color: var(--accent);
 
-      font-size: 0.76rem;
-
+      font-size: 0.75rem;
       font-weight: 800;
 
-      letter-spacing: 0.15em;
-
+      letter-spacing: 0.14em;
       text-transform: uppercase;
 
       margin-bottom: 18px;
     }
+
 
     h1 {
       font-family:
@@ -138,7 +138,8 @@
         "Times New Roman",
         serif;
 
-      font-size: clamp(3.5rem, 8vw, 6rem);
+      font-size:
+        clamp(3rem, 7vw, 5.5rem);
 
       line-height: 0.95;
 
@@ -146,6 +147,7 @@
 
       margin-bottom: 20px;
     }
+
 
     .hero p {
       max-width: 650px;
@@ -162,76 +164,126 @@
       line-height: 1.7;
     }
 
+
     .controls {
       max-width: 1180px;
-
       margin: auto;
 
       padding: 0 20px 45px;
+    }
 
-      display: flex;
+
+    .control-grid {
+      display: grid;
+
+      grid-template-columns:
+        2fr
+        repeat(4, 1fr);
 
       gap: 12px;
-
-      flex-wrap: wrap;
     }
 
-    .search-box {
-      flex: 1;
 
-      min-width: 240px;
-    }
-
-    input,
+    .search-box,
     select {
       width: 100%;
 
-      padding: 14px 16px;
+      padding: 14px 15px;
+
+      border:
+        1px solid var(--border);
 
       border-radius: 12px;
-
-      border: 1px solid var(--border);
 
       background: var(--surface);
 
       color: var(--text);
 
-      outline: none;
-
       font: inherit;
+
+      outline: none;
     }
 
-    input:focus,
+
+    .search-box::placeholder {
+      color: #68717d;
+    }
+
+
+    .search-box:focus,
     select:focus {
       border-color:
         rgba(5, 201, 238, 0.55);
     }
 
-    .select-box {
-      width: 210px;
+
+    select {
+      cursor: pointer;
     }
 
-    .library {
-      max-width: 1180px;
 
+    .library-header {
+      max-width: 1180px;
       margin: auto;
 
-      padding: 0 20px 100px;
-    }
+      padding:
+        0 20px 25px;
 
-    .library-top {
       display: flex;
-
-      align-items: center;
 
       justify-content: space-between;
 
-      margin-bottom: 25px;
+      align-items: center;
+
+      gap: 20px;
+    }
+
+
+    .result-count {
+      color: var(--muted);
+
+      font-size: 0.9rem;
+    }
+
+
+    .featured-toggle {
+      border:
+        1px solid var(--border);
+
+      background: var(--surface);
 
       color: var(--muted);
 
-      font-size: 0.88rem;
+      padding:
+        9px 13px;
+
+      border-radius: 10px;
+
+      cursor: pointer;
+
+      font: inherit;
     }
+
+
+    .featured-toggle.active {
+      color: var(--accent);
+
+      border-color:
+        rgba(5, 201, 238, 0.4);
+
+      background:
+        rgba(5, 201, 238, 0.08);
+    }
+
+
+    .library {
+      max-width: 1180px;
+      margin: auto;
+
+      padding:
+        0 20px 100px;
+    }
+
 
     .story-grid {
       display: grid;
@@ -239,63 +291,82 @@
       grid-template-columns:
         repeat(3, 1fr);
 
-      gap: 18px;
+      gap: 16px;
     }
 
+
     .story-card {
-      background: var(--surface);
-
-      border: 1px solid var(--border);
-
-      border-radius: 18px;
-
-      padding: 25px;
-
-      min-height: 290px;
-
       display: flex;
 
       flex-direction: column;
+
+      min-height: 285px;
+
+      padding: 24px;
+
+      background: var(--surface);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 18px;
 
       transition:
         transform 0.2s ease,
         border-color 0.2s ease;
     }
 
+
     .story-card:hover {
-      transform: translateY(-5px);
+      transform: translateY(-4px);
 
       border-color:
-        rgba(5, 201, 238, 0.45);
+        rgba(5, 201, 238, 0.4);
     }
 
+
+    .card-top {
+      display: flex;
+
+      justify-content: space-between;
+
+      align-items: center;
+
+      gap: 10px;
+
+      margin-bottom: 20px;
+    }
+
+
     .genre {
-      display: inline-block;
-
-      width: fit-content;
-
-      padding: 6px 11px;
-
-      border-radius: 999px;
-
-      background:
-        rgba(5, 201, 238, 0.08);
-
-      border:
-        1px solid rgba(5, 201, 238, 0.22);
-
       color: var(--accent);
 
       font-size: 0.7rem;
 
       font-weight: 800;
 
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
 
       text-transform: uppercase;
-
-      margin-bottom: 24px;
     }
+
+
+    .featured {
+      padding:
+        5px 8px;
+
+      border-radius: 999px;
+
+      background:
+        rgba(255, 255, 255, 0.06);
+
+      color: #d8dde4;
+
+      font-size: 0.68rem;
+
+      font-weight: 700;
+    }
+
 
     .story-card h2 {
       font-family:
@@ -303,15 +374,18 @@
         "Times New Roman",
         serif;
 
-      font-size: 1.7rem;
+      font-size: 1.65rem;
 
-      line-height: 1.08;
+      line-height: 1.1;
 
-      margin-bottom: 12px;
+      letter-spacing: -0.035em;
+
+      margin-bottom: 10px;
     }
 
+
     .subtitle {
-      color: var(--muted);
+      color: #c2c8d0;
 
       font-family:
         Georgia,
@@ -320,94 +394,112 @@
 
       font-style: italic;
 
-      margin-bottom: 12px;
+      line-height: 1.5;
+
+      margin-bottom: 13px;
     }
+
 
     .summary {
       color: var(--muted);
+
+      font-size: 0.88rem;
+
+      line-height: 1.6;
+
+      margin-bottom: 20px;
+    }
+
+
+    .card-meta {
+      margin-top: auto;
+
+      display: flex;
+
+      flex-wrap: wrap;
+
+      gap: 7px;
+    }
+
+
+    .meta-pill {
+      padding:
+        5px 8px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 999px;
+
+      color: var(--muted);
+
+      font-size: 0.68rem;
+    }
+
+
+    .read-link {
+      margin-top: 20px;
+
+      color: var(--accent);
+
+      font-size: 0.86rem;
+
+      font-weight: 750;
+    }
+
+
+    .empty {
+      text-align: center;
+
+      padding:
+        80px 20px;
+
+      color: var(--muted);
+    }
+
+
+    .empty h2 {
+      color: var(--text);
 
       font-family:
         Georgia,
         "Times New Roman",
         serif;
 
-      font-size: 0.94rem;
+      font-size: 2rem;
 
-      line-height: 1.65;
-
-      flex: 1;
+      margin-bottom: 10px;
     }
 
-    .card-bottom {
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      gap: 12px;
-
-      margin-top: 25px;
-
-      padding-top: 17px;
-
-      border-top:
-        1px solid var(--border);
-    }
-
-    .time {
-      color: var(--muted);
-
-      font-size: 0.78rem;
-    }
-
-    .read-link {
-      color: var(--accent);
-
-      font-size: 0.84rem;
-
-      font-weight: 750;
-    }
-
-    .coming-soon {
-      color: var(--muted);
-
-      font-size: 0.82rem;
-
-      font-weight: 700;
-    }
-
-    .empty {
-      grid-column: 1 / -1;
-
-      padding: 70px 25px;
-
-      text-align: center;
-
-      background: var(--surface);
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 18px;
-
-      color: var(--muted);
-    }
 
     footer {
       border-top:
         1px solid rgba(255, 255, 255, 0.06);
 
-      padding: 35px 20px;
+      padding: 30px 20px;
 
       text-align: center;
 
       color: var(--muted);
 
-      font-size: 0.82rem;
+      font-size: 0.8rem;
     }
 
-    @media (max-width: 850px) {
+
+    @media (max-width: 950px) {
+
+      .control-grid {
+        grid-template-columns:
+          repeat(2, 1fr);
+      }
+
+
+      .control-grid
+        .search-wrap {
+        grid-column:
+          1 / -1;
+      }
+
 
       .story-grid {
         grid-template-columns:
@@ -416,31 +508,42 @@
 
     }
 
-    @media (max-width: 600px) {
+
+    @media (max-width: 650px) {
 
       .nav {
         padding: 15px;
       }
 
+
       .hero {
         padding:
-          75px 20px 45px;
+          70px 20px 45px;
       }
+
 
       h1 {
-        font-size: 3.6rem;
+        font-size: 3.4rem;
       }
 
-      .controls {
-        display: block;
+
+      .control-grid {
+        grid-template-columns: 1fr;
       }
 
-      .search-box,
-      .select-box {
-        width: 100%;
 
-        margin-bottom: 10px;
+      .control-grid
+        .search-wrap {
+        grid-column: auto;
       }
+
+
+      .library-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+      }
+
 
       .story-grid {
         grid-template-columns: 1fr;
@@ -470,7 +573,7 @@
 
       <a
         href="index.html"
-        class="back-link"
+        class="home-link"
       >
         ← Home
       </a>
@@ -497,63 +600,131 @@
 
 
       <p>
-        Search the TaleForge collection or
-        choose a genre to discover your next story.
+        Discover short stories across different worlds,
+        genres, moods and reading lengths.
       </p>
 
     </section>
 
 
 
-    <div class="controls">
+    <section class="controls">
 
-      <div class="search-box">
-
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Search stories..."
-          autocomplete="off"
-        >
-
-      </div>
+      <div class="control-grid">
 
 
-      <div class="select-box">
+        <div class="search-wrap">
+
+          <input
+            id="searchInput"
+            class="search-box"
+            type="search"
+            placeholder="Search stories..."
+            autocomplete="off"
+          >
+
+        </div>
+
 
         <select id="genreFilter">
 
-          <option value="all">
-            All Genres
+          <option value="">
+            All genres
           </option>
 
         </select>
 
+
+        <select id="moodFilter">
+
+          <option value="">
+            All moods
+          </option>
+
+        </select>
+
+
+        <select id="intensityFilter">
+
+          <option value="">
+            All intensity
+          </option>
+
+        </select>
+
+
+        <select id="sortFilter">
+
+          <option value="newest">
+            Newest
+          </option>
+
+          <option value="title">
+            Title A–Z
+          </option>
+
+          <option value="shortest">
+            Shortest
+          </option>
+
+          <option value="longest">
+            Longest
+          </option>
+
+        </select>
+
+
       </div>
 
-    </div>
+    </section>
+
+
+
+    <section class="library-header">
+
+      <div
+        id="resultCount"
+        class="result-count"
+      >
+        Loading stories...
+      </div>
+
+
+      <button
+        id="featuredToggle"
+        class="featured-toggle"
+        type="button"
+      >
+        ⭐ Featured only
+      </button>
+
+    </section>
 
 
 
     <section class="library">
 
-      <div class="library-top">
-
-        <span id="storyCount">
-          Loading stories...
-        </span>
-
-        <span>
-          TaleForge
-        </span>
-
-      </div>
-
-
       <div
         id="storyGrid"
         class="story-grid"
       ></div>
+
+
+      <div
+        id="emptyState"
+        class="empty"
+        style="display: none;"
+      >
+
+        <h2>
+          No stories found
+        </h2>
+
+        <p>
+          Try changing your search or filters.
+        </p>
+
+      </div>
 
     </section>
 
@@ -576,6 +747,7 @@
 
   <script>
 
+
     const searchInput =
       document.getElementById(
         "searchInput"
@@ -588,106 +760,185 @@
       );
 
 
+    const moodFilter =
+      document.getElementById(
+        "moodFilter"
+      );
+
+
+    const intensityFilter =
+      document.getElementById(
+        "intensityFilter"
+      );
+
+
+    const sortFilter =
+      document.getElementById(
+        "sortFilter"
+      );
+
+
+    const featuredToggle =
+      document.getElementById(
+        "featuredToggle"
+      );
+
+
     const storyGrid =
       document.getElementById(
         "storyGrid"
       );
 
 
-    const storyCount =
+    const emptyState =
       document.getElementById(
-        "storyCount"
+        "emptyState"
       );
 
 
-
-    function getGenreFromURL() {
-
-      const parameters =
-        new URLSearchParams(
-          window.location.search
-        );
+    const resultCount =
+      document.getElementById(
+        "resultCount"
+      );
 
 
-      return parameters.get("genre");
-
-    }
+    let featuredOnly = false;
 
 
 
-    function buildGenreFilter() {
-
-      const genres = [];
-
-
-      TALEFORGE_STORIES.forEach(
+    const publishedStories =
+      TALEFORGE_STORIES.filter(
         function(story) {
 
-          if (
-            story.genre &&
-            !genres.includes(story.genre)
-          ) {
-
-            genres.push(story.genre);
-
-          }
-
-        }
-      );
-
-
-      genres.sort();
-
-
-      genres.forEach(
-        function(genre) {
-
-          const option =
-            document.createElement(
-              "option"
-            );
-
-          option.value =
-            genre;
-
-          option.textContent =
-            genre;
-
-          genreFilter.appendChild(
-            option
+          return (
+            story.status === "published" &&
+            story.content
           );
 
         }
       );
 
 
-      const urlGenre =
-        getGenreFromURL();
 
+    function addOptions(
+      select,
+      values
+    ) {
 
-      if (
-        urlGenre &&
-        genres.includes(urlGenre)
-      ) {
+      values
+        .sort()
+        .forEach(
+          function(value) {
 
-        genreFilter.value =
-          urlGenre;
+            const option =
+              document.createElement(
+                "option"
+              );
 
-      }
+            option.value =
+              value;
+
+            option.textContent =
+              value;
+
+            select.appendChild(
+              option
+            );
+
+          }
+        );
 
     }
 
 
 
-    function createStoryCard(story) {
+    const genres =
+      Array.from(
+        new Set(
+          publishedStories.map(
+            function(story) {
+
+              return story.genre;
+
+            }
+          )
+        )
+      );
+
+
+    const moods =
+      Array.from(
+        new Set(
+          publishedStories.map(
+            function(story) {
+
+              return story.mood;
+
+            }
+          )
+        )
+      );
+
+
+    const intensities =
+      Array.from(
+        new Set(
+          publishedStories.map(
+            function(story) {
+
+              return story.intensity;
+
+            }
+          )
+        )
+      );
+
+
+
+    addOptions(
+      genreFilter,
+      genres
+    );
+
+
+    addOptions(
+      moodFilter,
+      moods
+    );
+
+
+    addOptions(
+      intensityFilter,
+      intensities
+    );
+
+
+
+    function createStoryCard(
+      story
+    ) {
 
       const card =
         document.createElement(
-          "article"
+          "a"
         );
 
       card.className =
         "story-card";
+
+      card.href =
+        story.storyPage;
+
+
+
+      const top =
+        document.createElement(
+          "div"
+        );
+
+      top.className =
+        "card-top";
+
 
 
       const genre =
@@ -702,6 +953,34 @@
         story.genre;
 
 
+
+      top.appendChild(
+        genre
+      );
+
+
+
+      if (story.featured) {
+
+        const badge =
+          document.createElement(
+            "div"
+          );
+
+        badge.className =
+          "featured";
+
+        badge.textContent =
+          "Featured";
+
+        top.appendChild(
+          badge
+        );
+
+      }
+
+
+
       const title =
         document.createElement(
           "h2"
@@ -709,6 +988,7 @@
 
       title.textContent =
         story.title;
+
 
 
       const subtitle =
@@ -723,6 +1003,7 @@
         story.subtitle;
 
 
+
       const summary =
         document.createElement(
           "p"
@@ -735,81 +1016,107 @@
         story.summary;
 
 
-      const bottom =
+
+      const meta =
         document.createElement(
           "div"
         );
 
-      bottom.className =
-        "card-bottom";
+      meta.className =
+        "card-meta";
 
 
-      const time =
+
+      const readingTime =
         document.createElement(
           "span"
         );
 
-      time.className =
-        "time";
+      readingTime.className =
+        "meta-pill";
 
-      time.textContent =
+      readingTime.textContent =
         story.readingTime +
         " min read";
 
 
-      bottom.appendChild(time);
 
-
-      if (
-        story.status === "published" &&
-        story.storyPage
-      ) {
-
-        const link =
-          document.createElement(
-            "a"
-          );
-
-        link.className =
-          "read-link";
-
-        link.href =
-          story.storyPage;
-
-        link.textContent =
-          "Read story →";
-
-        bottom.appendChild(link);
-
-      } else {
-
-        const comingSoon =
-          document.createElement(
-            "span"
-          );
-
-        comingSoon.className =
-          "coming-soon";
-
-        comingSoon.textContent =
-          "Coming soon";
-
-        bottom.appendChild(
-          comingSoon
+      const mood =
+        document.createElement(
+          "span"
         );
 
-      }
+      mood.className =
+        "meta-pill";
+
+      mood.textContent =
+        story.mood;
 
 
-      card.appendChild(genre);
 
-      card.appendChild(title);
+      const intensity =
+        document.createElement(
+          "span"
+        );
 
-      card.appendChild(subtitle);
+      intensity.className =
+        "meta-pill";
 
-      card.appendChild(summary);
+      intensity.textContent =
+        story.intensity;
 
-      card.appendChild(bottom);
+
+
+      meta.appendChild(
+        readingTime
+      );
+
+      meta.appendChild(
+        mood
+      );
+
+      meta.appendChild(
+        intensity
+      );
+
+
+
+      const read =
+        document.createElement(
+          "div"
+        );
+
+      read.className =
+        "read-link";
+
+      read.textContent =
+        "Read story →";
+
+
+
+      card.appendChild(
+        top
+      );
+
+      card.appendChild(
+        title
+      );
+
+      card.appendChild(
+        subtitle
+      );
+
+      card.appendChild(
+        summary
+      );
+
+      card.appendChild(
+        meta
+      );
+
+      card.appendChild(
+        read
+      );
 
 
       return card;
@@ -820,7 +1127,7 @@
 
     function renderStories() {
 
-      const search =
+      const query =
         searchInput.value
           .trim()
           .toLowerCase();
@@ -830,81 +1137,162 @@
         genreFilter.value;
 
 
-      const filtered =
-        TALEFORGE_STORIES.filter(
+      const selectedMood =
+        moodFilter.value;
+
+
+      const selectedIntensity =
+        intensityFilter.value;
+
+
+      const sort =
+        sortFilter.value;
+
+
+
+      let results =
+        publishedStories.filter(
           function(story) {
 
+            const searchable =
+              (
+                story.title +
+                " " +
+                story.genre +
+                " " +
+                story.mood +
+                " " +
+                story.subtitle +
+                " " +
+                story.summary
+              ).toLowerCase();
+
+
             const matchesSearch =
-              !search ||
-              story.title
-                .toLowerCase()
-                .includes(search) ||
-              story.genre
-                .toLowerCase()
-                .includes(search) ||
-              story.summary
-                .toLowerCase()
-                .includes(search) ||
-              story.subtitle
-                .toLowerCase()
-                .includes(search);
+              !query ||
+              searchable.includes(
+                query
+              );
 
 
             const matchesGenre =
-              selectedGenre === "all" ||
-              story.genre === selectedGenre;
+              !selectedGenre ||
+              story.genre ===
+                selectedGenre;
+
+
+            const matchesMood =
+              !selectedMood ||
+              story.mood ===
+                selectedMood;
+
+
+            const matchesIntensity =
+              !selectedIntensity ||
+              story.intensity ===
+                selectedIntensity;
+
+
+            const matchesFeatured =
+              !featuredOnly ||
+              story.featured === true;
 
 
             return (
               matchesSearch &&
-              matchesGenre
+              matchesGenre &&
+              matchesMood &&
+              matchesIntensity &&
+              matchesFeatured
             );
 
           }
         );
 
 
-      storyGrid.innerHTML = "";
+
+      results.sort(
+        function(a, b) {
+
+          if (sort === "title") {
+
+            return a.title.localeCompare(
+              b.title
+            );
+
+          }
 
 
-      storyCount.textContent =
-        filtered.length +
+          if (sort === "shortest") {
+
+            return (
+              a.readingTime -
+              b.readingTime
+            );
+
+          }
+
+
+          if (sort === "longest") {
+
+            return (
+              b.readingTime -
+              a.readingTime
+            );
+
+          }
+
+
+          return (
+            new Date(b.publishedAt) -
+            new Date(a.publishedAt)
+          );
+
+        }
+      );
+
+
+
+      storyGrid.innerHTML =
+        "";
+
+
+      resultCount.textContent =
+        results.length +
         (
-          filtered.length === 1
+          results.length === 1
             ? " story"
             : " stories"
-        );
+        ) +
+        " found";
+
 
 
       if (
-        filtered.length === 0
+        results.length === 0
       ) {
 
-        const empty =
-          document.createElement(
-            "div"
-          );
-
-        empty.className =
-          "empty";
-
-        empty.textContent =
-          "No stories match your search.";
-
-        storyGrid.appendChild(
-          empty
-        );
+        emptyState.style.display =
+          "block";
 
         return;
 
       }
 
 
-      filtered.forEach(
+
+      emptyState.style.display =
+        "none";
+
+
+
+      results.forEach(
         function(story) {
 
           storyGrid.appendChild(
-            createStoryCard(story)
+            createStoryCard(
+              story
+            )
           );
 
         }
@@ -914,7 +1302,25 @@
 
 
 
-    buildGenreFilter();
+    featuredToggle.addEventListener(
+      "click",
+      function() {
+
+        featuredOnly =
+          !featuredOnly;
+
+
+        featuredToggle.classList.toggle(
+          "active",
+          featuredOnly
+        );
+
+
+        renderStories();
+
+      }
+    );
+
 
 
     searchInput.addEventListener(
@@ -929,11 +1335,57 @@
     );
 
 
+    moodFilter.addEventListener(
+      "change",
+      renderStories
+    );
+
+
+    intensityFilter.addEventListener(
+      "change",
+      renderStories
+    );
+
+
+    sortFilter.addEventListener(
+      "change",
+      renderStories
+    );
+
+
+
+    const parameters =
+      new URLSearchParams(
+        window.location.search
+      );
+
+
+    const initialGenre =
+      parameters.get(
+        "genre"
+      );
+
+
+    if (
+      initialGenre &&
+      genres.includes(
+        initialGenre
+      )
+    ) {
+
+      genreFilter.value =
+        initialGenre;
+
+    }
+
+
+
     renderStories();
+
 
   </script>
 
 
 </body>
 
-  </html>
+            </html> 
