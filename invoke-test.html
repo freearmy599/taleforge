@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaleForge Function Test</title>
+</head>
+
+<body>
+  <h1>TaleForge Generation Test</h1>
+  <button id="run">Run Generation Test</button>
+  <pre id="result">Ready...</pre>
+
+  <script type="module">
+    import "./supabase-client.js";
+
+    const button = document.getElementById("run");
+    const result = document.getElementById("result");
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      result.textContent = "Running...";
+
+      try {
+        const supabase = window.taleForgeSupabase;
+
+        const { data, error } = await supabase.functions.invoke(
+          "generate-chapter",
+          {
+            body: {}
+          }
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        result.textContent =
+          "ERROR:\n" +
+          (error?.message || String(error));
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
