@@ -4,233 +4,474 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>TaleForge — Explore Stories</title>
+  <title>Explore Stories — TaleForge</title>
   <meta
     name="description"
-    content="Discover short stories across fantasy, mystery, science fiction, horror, thriller, comedy, drama and more."
+    content="Explore short stories across fantasy, mystery, science fiction, horror, thriller, comedy and more on TaleForge."
   >
 
   <style>
+    :root {
+      --bg: #080a0f;
+      --surface: #10131a;
+      --surface-2: #151923;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(125,211,252,0.25);
+      --text: #f4f6f8;
+      --muted: #9ca6b5;
+      --accent: #7dd3fc;
+      --accent-strong: #38bdf8;
+      --purple: #a78bfa;
+      --max: 1180px;
+    }
+
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
-      font-family: Arial, sans-serif;
-      background: #0b0d12;
-      color: #f5f7fa;
-      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(
+          circle at 50% -10%,
+          rgba(56,189,248,0.10),
+          transparent 35%
+        ),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
     }
 
-    header {
-      border-bottom: 1px solid #222733;
-      padding: 20px;
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    /* NAV */
+
+    .topbar {
       position: sticky;
       top: 0;
-      background: rgba(11, 13, 18, 0.95);
-      backdrop-filter: blur(12px);
-      z-index: 10;
-    }
-
-    .header-inner {
-      max-width: 1200px;
-      margin: auto;
+      z-index: 50;
+      height: 66px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 20px;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(8,10,15,0.84);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
     }
 
-    .logo {
-      color: #ffffff;
-      text-decoration: none;
-      font-size: 22px;
-      font-weight: 700;
+    .brand {
+      font-size: 21px;
+      font-weight: 850;
+      letter-spacing: -0.6px;
     }
 
-    nav {
-      display: flex;
-      gap: 18px;
+    .brand span {
+      color: var(--accent-strong);
     }
 
-    nav a {
-      color: #aab2c0;
-      text-decoration: none;
+    .nav-link {
+      color: var(--muted);
       font-size: 14px;
+      transition: color 0.2s ease;
     }
 
-    nav a:hover {
-      color: #ffffff;
+    .nav-link:hover {
+      color: var(--text);
     }
 
-    main {
-      max-width: 1200px;
-      margin: auto;
-      padding: 50px 20px 80px;
-    }
+    /* HERO */
 
     .hero {
-      margin-bottom: 35px;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 90px 28px 55px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid rgba(125,211,252,0.18);
+      background: rgba(125,211,252,0.06);
+      border-radius: 999px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
     }
 
     .hero h1 {
-      font-size: clamp(34px, 6vw, 58px);
-      line-height: 1.05;
-      margin-bottom: 12px;
+      max-width: 760px;
+      margin: 22px 0 13px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(44px, 7vw, 76px);
+      line-height: 1.03;
+      letter-spacing: -2.4px;
+    }
+
+    .hero h1 span {
+      background:
+        linear-gradient(
+          90deg,
+          var(--accent),
+          var(--purple)
+        );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
     .hero p {
-      color: #9ca5b5;
       max-width: 650px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
       line-height: 1.7;
     }
 
+    /* CONTROLS */
+
+    .controls-wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 28px 40px;
+    }
+
     .controls {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255,255,255,0.045),
+          rgba(255,255,255,0.018)
+        );
+    }
+
+    .control-grid {
       display: grid;
-      grid-template-columns: 1fr 180px 180px;
-      gap: 12px;
-      margin-bottom: 30px;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 10px;
     }
 
-    input,
-    select {
-      width: 100%;
-      padding: 13px 15px;
-      border: 1px solid #292f3b;
-      border-radius: 10px;
-      background: #12161e;
-      color: #ffffff;
-      outline: none;
+    .field {
+      min-width: 0;
     }
 
-    input:focus,
-    select:focus {
-      border-color: #6d7cff;
-    }
-
-    .status {
-      color: #8f99a8;
-      margin-bottom: 22px;
-      font-size: 14px;
-    }
-
-    .error {
-      color: #ff8e8e;
-      background: #251519;
-      border: 1px solid #52242c;
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 25px;
-    }
-
-    .library {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .card {
-      background: #12161e;
-      border: 1px solid #252b36;
-      border-radius: 16px;
-      padding: 22px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-
-    .card:hover {
-      transform: translateY(-3px);
-      border-color: #46516a;
-    }
-
-    .genre {
-      display: inline-block;
-      color: #aeb9ff;
-      font-size: 12px;
-      margin-bottom: 12px;
+    .field-label {
+      display: block;
+      margin: 0 0 6px 2px;
+      color: #697382;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
     }
 
-    .card h2 {
-      font-size: 22px;
-      margin-bottom: 10px;
+    .input,
+    .select {
+      width: 100%;
+      height: 44px;
+      padding: 0 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      background: var(--surface);
+      color: var(--text);
     }
 
-    .card h2 a {
-      color: #ffffff;
-      text-decoration: none;
+    .input::placeholder {
+      color: #687281;
     }
 
-    .card h2 a:hover {
-      color: #c5ccff;
+    .input:focus,
+    .select:focus {
+      border-color: rgba(125,211,252,0.4);
     }
 
-    .subtitle {
-      color: #aeb6c4;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 14px;
+    .featured-button {
+      height: 44px;
+      align-self: end;
+      padding: 0 15px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      transition:
+        color 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+      white-space: nowrap;
     }
 
-    .meta {
+    .featured-button.active {
+      color: var(--text);
+      border-color: rgba(125,211,252,0.3);
+      background: rgba(125,211,252,0.08);
+    }
+
+    /* STATUS */
+
+    .library-bar {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 28px 22px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      color: #7f8999;
-      font-size: 12px;
-      margin-top: 15px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
     }
 
-    .meta span {
-      background: #191e27;
-      padding: 6px 8px;
-      border-radius: 6px;
-    }
-
-    .empty {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 60px 20px;
-      color: #8f99a8;
-    }
-
-    footer {
-      border-top: 1px solid #222733;
-      padding: 30px 20px;
-      text-align: center;
-      color: #6f7887;
+    .result-count {
+      color: var(--muted);
       font-size: 13px;
     }
 
-    @media (max-width: 850px) {
-      .library {
-        grid-template-columns: repeat(2, 1fr);
+    .result-count strong {
+      color: var(--text);
+    }
+
+    .active-filter {
+      color: var(--accent);
+      font-size: 12px;
+    }
+
+    /* GRID */
+
+    .library {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 28px 100px;
+    }
+
+    .story-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .story-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 285px;
+      padding: 23px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255,255,255,0.045),
+          rgba(255,255,255,0.012)
+        );
+      transition:
+        transform 0.22s ease,
+        border-color 0.22s ease,
+        background 0.22s ease;
+    }
+
+    .story-card::after {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      top: -80px;
+      right: -70px;
+      border-radius: 50%;
+      background: rgba(56,189,248,0.06);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+
+    .story-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-hover);
+      background:
+        linear-gradient(
+          145deg,
+          rgba(125,211,252,0.07),
+          rgba(255,255,255,0.018)
+        );
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .genre {
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .reading-time {
+      color: #697382;
+      font-size: 11px;
+    }
+
+    .story-card h2 {
+      margin: 19px 0 9px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 25px;
+      line-height: 1.17;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      margin: 0 0 13px;
+      color: #c4cbd4;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .summary {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .card-bottom {
+      margin-top: auto;
+      padding-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: #8993a2;
+      font-size: 10px;
+    }
+
+    .featured-mark {
+      color: #f0abfc;
+      border-color: rgba(240,171,252,0.16);
+      background: rgba(240,171,252,0.05);
+    }
+
+    /* STATES */
+
+    .state {
+      padding: 70px 20px;
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+      text-align: center;
+    }
+
+    .state h2 {
+      margin: 0 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+    }
+
+    .state p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .state.error {
+      border-color: rgba(248,113,113,0.18);
+    }
+
+    /* FOOTER */
+
+    footer {
+      padding: 35px 24px;
+      border-top: 1px solid var(--border);
+      color: #697382;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 950px) {
+      .control-grid {
+        grid-template-columns: 1fr 1fr;
       }
 
-      .controls {
-        grid-template-columns: 1fr;
+      .story-grid {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+
+      .featured-button {
+        width: 100%;
       }
     }
 
-    @media (max-width: 600px) {
-      .header-inner {
-        flex-direction: column;
-        align-items: flex-start;
+    @media (max-width: 650px) {
+      .topbar {
+        padding: 0 17px;
       }
 
-      nav {
-        width: 100%;
-        justify-content: space-between;
+      .hero {
+        padding: 70px 18px 42px;
       }
 
+      .hero h1 {
+        letter-spacing: -1.5px;
+      }
+
+      .controls-wrap,
+      .library-bar,
       .library {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .control-grid {
         grid-template-columns: 1fr;
       }
 
-      main {
-        padding-top: 35px;
+      .library-bar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .story-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .story-card {
+        min-height: 260px;
       }
     }
   </style>
@@ -238,260 +479,557 @@
 
 <body>
 
-<header>
-  <div class="header-inner">
-    <a class="logo" href="index.html">TaleForge</a>
+  <header class="topbar">
+    <a href="index.html" class="brand">
+      Tale<span>Forge</span>
+    </a>
 
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="stories.html">Explore</a>
-    </nav>
-  </div>
-</header>
-
-<main>
+    <a href="index.html" class="nav-link">
+      Home
+    </a>
+  </header>
 
   <section class="hero">
-    <h1>Explore Stories</h1>
+    <div class="eyebrow">
+      TaleForge Library
+    </div>
+
+    <h1>
+      Find your next <span>world.</span>
+    </h1>
+
     <p>
-      Discover short stories across different worlds, genres, moods and
-      reading experiences.
+      Explore short stories across different genres,
+      moods and worlds. Every story begins somewhere.
     </p>
   </section>
 
-  <section class="controls">
-    <input
-      id="search"
-      type="search"
-      placeholder="Search stories..."
-      autocomplete="off"
-    >
+  <section class="controls-wrap">
 
-    <select id="genreFilter">
-      <option value="">All genres</option>
-    </select>
+    <div class="controls">
 
-    <select id="sortFilter">
-      <option value="newest">Newest</option>
-      <option value="title">Title</option>
-      <option value="shortest">Shortest</option>
-      <option value="longest">Longest</option>
-    </select>
+      <div class="control-grid">
+
+        <div class="field">
+          <label class="field-label" for="search">
+            Search
+          </label>
+
+          <input
+            id="search"
+            class="input"
+            type="search"
+            placeholder="Search stories..."
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="genre">
+            Genre
+          </label>
+
+          <select id="genre" class="select">
+            <option value="">All genres</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="mood">
+            Mood
+          </label>
+
+          <select id="mood" class="select">
+            <option value="">All moods</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="sort">
+            Sort
+          </label>
+
+          <select id="sort" class="select">
+            <option value="newest">Newest</option>
+            <option value="title">Title A–Z</option>
+            <option value="shortest">Shortest</option>
+            <option value="longest">Longest</option>
+          </select>
+        </div>
+
+        <button
+          id="featuredButton"
+          class="featured-button"
+          type="button"
+        >
+          ★ Featured
+        </button>
+
+      </div>
+
+    </div>
+
   </section>
 
-  <div id="status" class="status">
-    Loading stories...
-  </div>
+  <section class="library-bar">
 
-  <div id="error"></div>
+    <div id="resultCount" class="result-count">
+      Loading library...
+    </div>
 
-  <section id="library" class="library"></section>
+    <div id="activeFilter" class="active-filter"></div>
 
-</main>
+  </section>
 
-<footer>
-  TaleForge — Short stories. Infinite worlds.
-</footer>
+  <main class="library">
 
-<script type="module">
-  import "./supabase-client.js";
+    <div id="storyGrid" class="story-grid">
 
-  const supabase = window.taleForgeSupabase;
+      <div class="state">
+        <h2>Loading stories...</h2>
+        <p>Connecting to the TaleForge library.</p>
+      </div>
 
-  const library = document.getElementById("library");
-  const status = document.getElementById("status");
-  const errorBox = document.getElementById("error");
+    </div>
 
-  const searchInput = document.getElementById("search");
-  const genreFilter = document.getElementById("genreFilter");
-  const sortFilter = document.getElementById("sortFilter");
+  </main>
 
-  let stories = [];
+  <footer>
+    © 2026 TaleForge — Short stories. Infinite worlds.
+  </footer>
 
-  async function loadStories() {
-    try {
-      status.textContent = "Loading stories...";
-      errorBox.innerHTML = "";
+  <script type="module">
+    import "./supabase-client.js";
 
-      const { data, error } = await supabase
-        .from("stories")
-        .select(`
-          id,
-          title,
-          slug,
-          subtitle,
-          summary,
-          reading_time,
-          word_count,
-          mood,
-          intensity,
-          published_at,
-          genres (
-            name,
-            slug
-          )
-        `)
-        .eq("status", "published")
-        .order("published_at", { ascending: false });
+    const supabase = window.taleForgeSupabase;
 
-      if (error) {
-        throw error;
+    const searchInput =
+      document.getElementById("search");
+
+    const genreSelect =
+      document.getElementById("genre");
+
+    const moodSelect =
+      document.getElementById("mood");
+
+    const sortSelect =
+      document.getElementById("sort");
+
+    const featuredButton =
+      document.getElementById("featuredButton");
+
+    const storyGrid =
+      document.getElementById("storyGrid");
+
+    const resultCount =
+      document.getElementById("resultCount");
+
+    const activeFilter =
+      document.getElementById("activeFilter");
+
+    let stories = [];
+    let featuredOnly = false;
+
+    function escapeHTML(value) {
+      const div = document.createElement("div");
+      div.textContent = value ?? "";
+      return div.innerHTML;
+    }
+
+    async function loadStories() {
+      try {
+        const { data, error } =
+          await supabase
+            .from("stories")
+            .select(`
+              id,
+              title,
+              slug,
+              subtitle,
+              summary,
+              reading_time,
+              word_count,
+              mood,
+              intensity,
+              published_at,
+              genres (
+                name,
+                slug
+              )
+            `)
+            .eq("status", "published")
+            .order("published_at", {
+              ascending: false
+            });
+
+        if (error) throw error;
+
+        stories = data || [];
+
+        populateFilters();
+        applyFilters();
+
+      } catch (error) {
+        console.error(error);
+
+        storyGrid.innerHTML = `
+          <div class="state error">
+            <h2>Library unavailable</h2>
+            <p>
+              We couldn't load the TaleForge stories.
+              Please try again later.
+            </p>
+          </div>
+        `;
+
+        resultCount.textContent =
+          "Unable to load library";
+      }
+    }
+
+    function populateFilters() {
+      const genres =
+        [...new Set(
+          stories
+            .map(story => story.genres?.name)
+            .filter(Boolean)
+        )].sort();
+
+      const moods =
+        [...new Set(
+          stories
+            .map(story => story.mood)
+            .filter(Boolean)
+        )].sort();
+
+      genreSelect.innerHTML =
+        `<option value="">All genres</option>` +
+        genres.map(genre => `
+          <option value="${escapeHTML(genre)}">
+            ${escapeHTML(genre)}
+          </option>
+        `).join("");
+
+      moodSelect.innerHTML =
+        `<option value="">All moods</option>` +
+        moods.map(mood => `
+          <option value="${escapeHTML(mood)}">
+            ${escapeHTML(mood)}
+          </option>
+        `).join("");
+
+      const params =
+        new URLSearchParams(window.location.search);
+
+      const genreParam =
+        params.get("genre");
+
+      if (
+        genreParam &&
+        genres.some(
+          genre =>
+            genre.toLowerCase() ===
+            genreParam.toLowerCase()
+        )
+      ) {
+        const matched =
+          genres.find(
+            genre =>
+              genre.toLowerCase() ===
+              genreParam.toLowerCase()
+          );
+
+        genreSelect.value = matched;
+      }
+    }
+
+    function applyFilters() {
+      const search =
+        searchInput.value
+          .trim()
+          .toLowerCase();
+
+      const genre =
+        genreSelect.value;
+
+      const mood =
+        moodSelect.value;
+
+      let filtered =
+        stories.filter(story => {
+
+          const title =
+            (story.title || "").toLowerCase();
+
+          const subtitle =
+            (story.subtitle || "").toLowerCase();
+
+          const summary =
+            (story.summary || "").toLowerCase();
+
+          const matchesSearch =
+            !search ||
+            title.includes(search) ||
+            subtitle.includes(search) ||
+            summary.includes(search);
+
+          const matchesGenre =
+            !genre ||
+            story.genres?.name === genre;
+
+          const matchesMood =
+            !mood ||
+            story.mood === mood;
+
+          return (
+            matchesSearch &&
+            matchesGenre &&
+            matchesMood
+          );
+        });
+
+      if (featuredOnly) {
+        /*
+          The current database schema does not yet
+          have a featured column.
+
+          Until we add one, this keeps the control
+          safe without inventing database data.
+        */
+        filtered = [];
       }
 
-      stories = data || [];
+      filtered = sortStories(filtered);
 
-      buildGenreFilter();
-      renderStories();
+      renderStories(filtered);
 
-    } catch (error) {
-      console.error(error);
-
-      status.textContent = "Unable to load stories.";
-
-      errorBox.innerHTML = `
-        <div class="error">
-          Database error: ${escapeHtml(error.message)}
-        </div>
-      `;
-    }
-  }
-
-  function buildGenreFilter() {
-    const genres = [...new Set(
-      stories
-        .map(story => story.genres?.name)
-        .filter(Boolean)
-    )].sort();
-
-    genreFilter.innerHTML = `<option value="">All genres</option>`;
-
-    genres.forEach(genre => {
-      const option = document.createElement("option");
-      option.value = genre;
-      option.textContent = genre;
-      genreFilter.appendChild(option);
-    });
-  }
-
-  function renderStories() {
-    const search = searchInput.value.trim().toLowerCase();
-    const selectedGenre = genreFilter.value;
-    const sort = sortFilter.value;
-
-    let filtered = stories.filter(story => {
-
-      const searchableText = [
-        story.title,
-        story.subtitle,
-        story.summary,
-        story.genres?.name,
-        story.mood
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      const matchesSearch =
-        !search || searchableText.includes(search);
-
-      const matchesGenre =
-        !selectedGenre ||
-        story.genres?.name === selectedGenre;
-
-      return matchesSearch && matchesGenre;
-    });
-
-    if (sort === "title") {
-      filtered.sort((a, b) =>
-        a.title.localeCompare(b.title)
+      updateStatus(
+        filtered.length,
+        genre,
+        mood,
+        search
       );
     }
 
-    if (sort === "shortest") {
-      filtered.sort((a, b) =>
-        (a.reading_time || 0) - (b.reading_time || 0)
-      );
+    function sortStories(list) {
+      const sorted = [...list];
+
+      switch (sortSelect.value) {
+
+        case "title":
+          return sorted.sort(
+            (a, b) =>
+              (a.title || "")
+                .localeCompare(
+                  b.title || ""
+                )
+          );
+
+        case "shortest":
+          return sorted.sort(
+            (a, b) =>
+              (a.reading_time || 0) -
+              (b.reading_time || 0)
+          );
+
+        case "longest":
+          return sorted.sort(
+            (a, b) =>
+              (b.reading_time || 0) -
+              (a.reading_time || 0)
+          );
+
+        case "newest":
+        default:
+          return sorted.sort(
+            (a, b) =>
+              new Date(
+                b.published_at || 0
+              ) -
+              new Date(
+                a.published_at || 0
+              )
+          );
+      }
     }
 
-    if (sort === "longest") {
-      filtered.sort((a, b) =>
-        (b.reading_time || 0) - (a.reading_time || 0)
-      );
-    }
+    function renderStories(list) {
+      if (!list.length) {
 
-    status.textContent =
-      `${filtered.length} ${filtered.length === 1 ? "story" : "stories"} found`;
+        const message =
+          featuredOnly
+            ? "Featured stories aren't configured yet."
+            : "No stories match your filters.";
 
-    library.innerHTML = "";
+        storyGrid.innerHTML = `
+          <div class="state">
+            <h2>Nothing here yet</h2>
+            <p>${escapeHTML(message)}</p>
+          </div>
+        `;
 
-    if (filtered.length === 0) {
-      library.innerHTML = `
-        <div class="empty">
-          <h2>No stories found</h2>
-          <p>Try another search or genre.</p>
-        </div>
-      `;
-      return;
-    }
+        return;
+      }
 
-    filtered.forEach(story => {
+      storyGrid.innerHTML =
+        list.map(story => `
+          <a
+            class="story-card"
+            href="story.html?id=${story.id}"
+          >
 
-      const card = document.createElement("article");
-      card.className = "card";
+            <div class="card-top">
 
-      const genre = story.genres?.name || "Uncategorized";
+              <span class="genre">
+                ${escapeHTML(
+                  story.genres?.name ||
+                  "Story"
+                )}
+              </span>
 
-      card.innerHTML = `
-        <div class="genre">${escapeHtml(genre)}</div>
+              <span class="reading-time">
+                ${story.reading_time || "—"} min read
+              </span>
 
-        <h2>
-          <a href="story.html?id=${encodeURIComponent(story.id)}">
-            ${escapeHtml(story.title)}
+            </div>
+
+            <h2>
+              ${escapeHTML(story.title)}
+            </h2>
+
+            ${
+              story.subtitle
+                ? `
+                  <p class="subtitle">
+                    ${escapeHTML(story.subtitle)}
+                  </p>
+                `
+                : ""
+            }
+
+            ${
+              story.summary
+                ? `
+                  <p class="summary">
+                    ${escapeHTML(story.summary)}
+                  </p>
+                `
+                : ""
+            }
+
+            <div class="card-bottom">
+
+              ${
+                story.mood
+                  ? `
+                    <span class="pill">
+                      ${escapeHTML(story.mood)}
+                    </span>
+                  `
+                  : ""
+              }
+
+              ${
+                story.intensity
+                  ? `
+                    <span class="pill">
+                      ${escapeHTML(story.intensity)}
+                    </span>
+                  `
+                  : ""
+              }
+
+              ${
+                story.word_count
+                  ? `
+                    <span class="pill">
+                      ${story.word_count} words
+                    </span>
+                  `
+                  : ""
+              }
+
+            </div>
+
           </a>
-        </h2>
+        `).join("");
+    }
 
-        <p class="subtitle">
-          ${escapeHtml(
-            story.subtitle ||
-            story.summary ||
-            "A TaleForge story."
-          )}
-        </p>
-
-        <div class="meta">
-          <span>${escapeHtml(String(story.reading_time || 1))} min</span>
-          ${
-            story.mood
-              ? `<span>${escapeHtml(story.mood)}</span>`
-              : ""
-          }
-          ${
-            story.intensity
-              ? `<span>${escapeHtml(story.intensity)}</span>`
-              : ""
-          }
-        </div>
+    function updateStatus(
+      count,
+      genre,
+      mood,
+      search
+    ) {
+      resultCount.innerHTML = `
+        <strong>${count}</strong>
+        ${count === 1 ? "story" : "stories"} found
       `;
 
-      library.appendChild(card);
-    });
-  }
+      const filters = [];
 
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+      if (genre) {
+        filters.push(
+          `Genre: ${escapeHTML(genre)}`
+        );
+      }
 
-  searchInput.addEventListener("input", renderStories);
-  genreFilter.addEventListener("change", renderStories);
-  sortFilter.addEventListener("change", renderStories);
+      if (mood) {
+        filters.push(
+          `Mood: ${escapeHTML(mood)}`
+        );
+      }
 
-  loadStories();
-</script>
+      if (search) {
+        filters.push(
+          `Search: "${escapeHTML(search)}"`
+        );
+      }
+
+      if (featuredOnly) {
+        filters.push("Featured");
+      }
+
+      activeFilter.innerHTML =
+        filters.join(" · ");
+    }
+
+    searchInput.addEventListener(
+      "input",
+      applyFilters
+    );
+
+    genreSelect.addEventListener(
+      "change",
+      applyFilters
+    );
+
+    moodSelect.addEventListener(
+      "change",
+      applyFilters
+    );
+
+    sortSelect.addEventListener(
+      "change",
+      applyFilters
+    );
+
+    featuredButton.addEventListener(
+      "click",
+      () => {
+        featuredOnly = !featuredOnly;
+
+        featuredButton.classList.toggle(
+          "active",
+          featuredOnly
+        );
+
+        applyFilters();
+      }
+    );
+
+    loadStories();
+  </script>
 
 </body>
-</html> 
+  </html>
