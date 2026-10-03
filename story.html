@@ -1,1378 +1,453 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>TaleForge — Story</title>
   <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>TaleForge Story</title>
-
-  <meta
-    id="metaDescription"
     name="description"
-    content="Read a short story on TaleForge."
+    content="Read a story on TaleForge."
   >
-
 
   <style>
-
-    :root {
-      --bg: #090b0f;
-      --surface: #11151c;
-      --surface-2: #151a22;
-      --border: #252c36;
-      --text: #f0f2f5;
-      --muted: #9ca6b4;
-      --accent: #05c9ee;
-    }
-
-
     * {
       box-sizing: border-box;
-
       margin: 0;
-
       padding: 0;
     }
 
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-
     body {
-      font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-      background: var(--bg);
-
-      color: var(--text);
-
-      line-height: 1.9;
-
+      font-family: Georgia, "Times New Roman", serif;
+      background: #0b0d12;
+      color: #eceff4;
       min-height: 100vh;
     }
 
-
-    a {
-      color: inherit;
-
-      text-decoration: none;
-    }
-
-
     header {
+      font-family: Arial, sans-serif;
+      border-bottom: 1px solid #222733;
+      padding: 20px;
       position: sticky;
-
       top: 0;
-
-      z-index: 50;
-
-      background:
-        rgba(9, 11, 15, 0.92);
-
-      backdrop-filter: blur(18px);
-
-      border-bottom:
-        1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(11, 13, 18, 0.95);
+      backdrop-filter: blur(12px);
+      z-index: 10;
     }
 
-
-    .nav {
-      max-width: 1180px;
-
+    .header-inner {
+      max-width: 900px;
       margin: auto;
-
-      padding: 18px 20px;
-
       display: flex;
-
-      align-items: center;
-
       justify-content: space-between;
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
+      align-items: center;
+      gap: 20px;
     }
-
 
     .logo {
-      font-size: 1.55rem;
-
-      font-weight: 850;
-
-      letter-spacing: -0.06em;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 22px;
+      font-weight: 700;
     }
 
-
-    .logo span {
-      color: var(--accent);
+    nav {
+      display: flex;
+      gap: 18px;
     }
 
-
-    .back-link {
-      color: var(--muted);
-
-      font-size: 0.9rem;
+    nav a {
+      color: #aab2c0;
+      text-decoration: none;
+      font-size: 14px;
     }
 
-
-    .back-link:hover {
-      color: var(--text);
+    nav a:hover {
+      color: #ffffff;
     }
 
-
-    .progress-container {
+    .progress {
       position: fixed;
-
       top: 0;
-
       left: 0;
-
-      width: 100%;
-
       height: 3px;
-
-      z-index: 100;
-
-      pointer-events: none;
-    }
-
-
-    .progress-bar {
       width: 0%;
-
-      height: 100%;
-
-      background: var(--accent);
-
-      transition: width 0.08s linear;
+      background: #8f9cff;
+      z-index: 100;
     }
 
-
-    .story-header {
-      max-width: 950px;
-
+    main {
+      max-width: 800px;
       margin: auto;
-
-      padding:
-        120px 20px 90px;
-
-      text-align: center;
+      padding: 70px 20px 100px;
     }
 
+    .loading {
+      text-align: center;
+      color: #8993a3;
+      padding: 80px 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .error {
+      text-align: center;
+      color: #ff9a9a;
+      padding: 80px 20px;
+      font-family: Arial, sans-serif;
+    }
 
     .genre {
-      display: inline-block;
-
-      padding: 8px 18px;
-
-      border:
-        1px solid rgba(5, 201, 238, 0.3);
-
-      border-radius: 999px;
-
-      background:
-        rgba(5, 201, 238, 0.08);
-
-      color: var(--accent);
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-
-      font-size: 0.76rem;
-
-      font-weight: 800;
-
-      letter-spacing: 0.12em;
-
+      font-family: Arial, sans-serif;
+      color: #aeb9ff;
       text-transform: uppercase;
-
-      margin-bottom: 35px;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      margin-bottom: 18px;
     }
-
 
     h1 {
-      font-size:
-        clamp(3.2rem, 8vw, 7rem);
-
-      line-height: 0.95;
-
-      letter-spacing: -0.06em;
-
-      margin-bottom: 30px;
+      font-size: clamp(38px, 7vw, 64px);
+      line-height: 1.05;
+      margin-bottom: 18px;
     }
-
 
     .subtitle {
-      max-width: 720px;
-
-      margin: auto;
-
-      color: var(--muted);
-
-      font-size:
-        clamp(1.15rem, 2.5vw, 1.55rem);
-
-      font-style: italic;
-
+      color: #aeb6c4;
+      font-size: 20px;
       line-height: 1.6;
+      margin-bottom: 25px;
     }
 
-
-    .story-meta {
-      margin-top: 45px;
-
-      color: var(--muted);
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-
-      font-size: 0.9rem;
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-family: Arial, sans-serif;
+      margin-bottom: 55px;
     }
 
-
-    .divider {
-      width: 70px;
-
-      height: 1px;
-
-      background: var(--border);
-
-      margin:
-        55px auto 0;
+    .meta span {
+      background: #171c25;
+      border: 1px solid #272e3a;
+      color: #9ca6b6;
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 12px;
     }
-
 
     .story-content {
-      max-width: 760px;
-
-      margin: auto;
-
-      padding:
-        30px 20px 90px;
-
-      font-size: 1.25rem;
+      font-size: 20px;
+      line-height: 1.9;
+      color: #e1e5eb;
     }
-
 
     .story-content p {
-      margin-bottom: 30px;
+      margin-bottom: 28px;
     }
 
-
-    .story-content p:first-child::first-letter {
-      float: left;
-
-      font-size: 5.5rem;
-
-      line-height: 0.75;
-
-      padding-right: 12px;
-
-      color: var(--accent);
+    .story-content p:last-child {
+      margin-bottom: 0;
     }
 
-
-    .story-end {
-      text-align: center;
-
+    .end {
       margin-top: 80px;
-
-      padding-top: 50px;
-
-      border-top:
-        1px solid var(--border);
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-    }
-
-
-    .story-end-title {
-      font-size: 1.2rem;
-
-      font-weight: 750;
-
-      margin-bottom: 22px;
-    }
-
-
-    .discover-link {
-      display: inline-flex;
-
-      padding: 14px 20px;
-
-      border-radius: 12px;
-
-      background: var(--accent);
-
-      color: #061014;
-
-      font-weight: 750;
-    }
-
-
-    .story-navigation {
-      max-width: 760px;
-
-      margin: 0 auto;
-
-      padding:
-        0 20px 80px;
-
-      display: grid;
-
-      grid-template-columns:
-        1fr 1fr;
-
-      gap: 15px;
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-    }
-
-
-    .nav-story {
-      padding: 20px;
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 14px;
-
-      background: var(--surface);
-
-      transition:
-        border-color 0.2s ease,
-        transform 0.2s ease;
-    }
-
-
-    .nav-story:hover {
-      transform: translateY(-2px);
-
-      border-color:
-        rgba(5, 201, 238, 0.4);
-    }
-
-
-    .nav-story-label {
-      display: block;
-
-      color: var(--muted);
-
-      font-size: 0.72rem;
-
-      text-transform: uppercase;
-
-      letter-spacing: 0.1em;
-
-      margin-bottom: 7px;
-    }
-
-
-    .nav-story-title {
-      font-weight: 750;
-
-      line-height: 1.3;
-    }
-
-
-    .related-section {
-      max-width: 1180px;
-
-      margin: auto;
-
-      padding:
-        50px 20px 110px;
-    }
-
-
-    .related-heading {
-      margin-bottom: 25px;
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-    }
-
-
-    .related-heading h2 {
-      font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-      font-size: 2rem;
-
-      letter-spacing: -0.04em;
-    }
-
-
-    .related-heading p {
-      color: var(--muted);
-
-      font-size: 0.88rem;
-
-      margin-top: 5px;
-    }
-
-
-    .related-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(3, 1fr);
-
-      gap: 15px;
-    }
-
-
-    .related-card {
-      padding: 23px;
-
-      background: var(--surface);
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 16px;
-
-      transition:
-        transform 0.2s ease,
-        border-color 0.2s ease;
-    }
-
-
-    .related-card:hover {
-      transform: translateY(-4px);
-
-      border-color:
-        rgba(5, 201, 238, 0.4);
-    }
-
-
-    .related-genre {
-      color: var(--accent);
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-
-      font-size: 0.7rem;
-
-      font-weight: 800;
-
-      letter-spacing: 0.1em;
-
-      text-transform: uppercase;
-
-      margin-bottom: 12px;
-    }
-
-
-    .related-card h3 {
-      font-size: 1.35rem;
-
-      line-height: 1.15;
-
-      margin-bottom: 8px;
-    }
-
-
-    .related-card p {
-      color: var(--muted);
-
-      font-size: 0.88rem;
-
-      line-height: 1.5;
-    }
-
-
-    .not-found {
-      max-width: 700px;
-
-      margin:
-        120px auto;
-
-      padding:
-        50px 25px;
-
+      padding-top: 35px;
+      border-top: 1px solid #252b36;
+      font-family: Arial, sans-serif;
+      color: #858f9f;
       text-align: center;
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
     }
 
-
-    .not-found h1 {
-      font-size: 3rem;
-
-      margin-bottom: 20px;
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 25px;
     }
 
-
-    .not-found p {
-      color: var(--muted);
-
-      margin-bottom: 30px;
+    .button {
+      display: inline-block;
+      padding: 11px 17px;
+      border-radius: 9px;
+      background: #171c25;
+      border: 1px solid #2a3140;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 14px;
     }
 
+    .button:hover {
+      border-color: #5c6780;
+    }
 
     footer {
-      border-top:
-        1px solid rgba(255, 255, 255, 0.06);
-
+      border-top: 1px solid #222733;
       padding: 30px 20px;
-
       text-align: center;
-
-      color: var(--muted);
-
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        sans-serif;
-
-      font-size: 0.82rem;
+      color: #687282;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
     }
 
-
-    @media (max-width: 700px) {
-
-      .nav {
-        padding: 15px;
+    @media (max-width: 600px) {
+      main {
+        padding-top: 45px;
       }
-
-
-      .story-header {
-        padding:
-          90px 20px 65px;
-      }
-
-
-      h1 {
-        font-size: 3.5rem;
-      }
-
 
       .story-content {
-        font-size: 1.12rem;
-
+        font-size: 18px;
         line-height: 1.85;
       }
 
-
-      .story-navigation {
-        grid-template-columns: 1fr;
+      .subtitle {
+        font-size: 17px;
       }
 
-
-      .related-grid {
-        grid-template-columns: 1fr;
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
       }
 
+      nav {
+        width: 100%;
+        justify-content: space-between;
+      }
     }
-
   </style>
-
 </head>
-
 
 <body>
 
+<div class="progress" id="progress"></div>
 
-  <div class="progress-container">
+<header>
+  <div class="header-inner">
+    <a class="logo" href="index.html">TaleForge</a>
 
-    <div
-      id="progressBar"
-      class="progress-bar"
-    ></div>
-
-  </div>
-
-
-
-  <header>
-
-    <nav class="nav">
-
-      <a
-        href="index.html"
-        class="logo"
-      >
-        Tale<span>Forge</span>
-      </a>
-
-
-      <a
-        href="stories.html"
-        class="back-link"
-      >
-        ← Stories
-      </a>
-
+    <nav>
+      <a href="stories.html">Explore</a>
+      <a href="index.html">Home</a>
     </nav>
+  </div>
+</header>
 
-  </header>
+<main id="main">
+  <div class="loading">
+    Loading story...
+  </div>
+</main>
 
+<footer>
+  TaleForge — Short stories. Infinite worlds.
+</footer>
 
+<script type="module">
+  import "./supabase-client.js";
 
-  <main id="app"></main>
+  const supabase = window.taleForgeSupabase;
+  const main = document.getElementById("main");
+  const progress = document.getElementById("progress");
 
+  const params = new URLSearchParams(window.location.search);
+  const storyId = params.get("id");
 
+  async function loadStory() {
 
-  <footer>
-
-    © 2026 TaleForge ·
-    Short stories. Infinite worlds.
-
-  </footer>
-
-
-
-  <script src="stories-data.js"></script>
-
-
-  <script>
-
-
-    function getStoryId() {
-
-      const parameters =
-        new URLSearchParams(
-          window.location.search
-        );
-
-      return parameters.get("id");
-
+    if (!storyId) {
+      showError("No story was specified.");
+      return;
     }
 
+    try {
 
-
-    function showNotFound() {
-
-      document.getElementById(
-        "app"
-      ).innerHTML =
-        '<section class="not-found">' +
-        '<h1>Story not found</h1>' +
-        '<p>We could not find the story you are looking for.</p>' +
-        '<a href="stories.html" class="discover-link">' +
-        '← Explore Stories' +
-        '</a>' +
-        '</section>';
-
-      document.title =
-        "Story Not Found — TaleForge";
-
-    }
-
-
-
-    function createRelatedCard(story) {
-
-      const card =
-        document.createElement(
-          "a"
-        );
-
-      card.className =
-        "related-card";
-
-      card.href =
-        story.storyPage;
-
-
-      const genre =
-        document.createElement(
-          "div"
-        );
-
-      genre.className =
-        "related-genre";
-
-      genre.textContent =
-        story.genre;
-
-
-      const title =
-        document.createElement(
-          "h3"
-        );
-
-      title.textContent =
-        story.title;
-
-
-      const summary =
-        document.createElement(
-          "p"
-        );
-
-      summary.textContent =
-        story.summary;
-
-
-      card.appendChild(
-        genre
-      );
-
-      card.appendChild(
-        title
-      );
-
-      card.appendChild(
-        summary
-      );
-
-
-      return card;
-
-    }
-
-
-
-    function renderNavigation(
-      currentIndex
-    ) {
-
-      const navigation =
-        document.createElement(
-          "div"
-        );
-
-      navigation.className =
-        "story-navigation";
-
-
-      const previous =
-        document.createElement(
-          "a"
-        );
-
-      previous.className =
-        "nav-story";
-
-
-      const next =
-        document.createElement(
-          "a"
-        );
-
-      next.className =
-        "nav-story";
-
-
-      if (
-        currentIndex > 0
-      ) {
-
-        const previousStory =
-          TALEFORGE_STORIES[
-            currentIndex - 1
-          ];
-
-
-        previous.href =
-          previousStory.storyPage;
-
-
-        previous.innerHTML =
-          '<span class="nav-story-label">' +
-          '← Previous story' +
-          '</span>' +
-          '<span class="nav-story-title">' +
-          previousStory.title +
-          '</span>';
-
-      } else {
-
-        previous.style.visibility =
-          "hidden";
-
-      }
-
-
-      if (
-        currentIndex <
-        TALEFORGE_STORIES.length - 1
-      ) {
-
-        let nextIndex =
-          currentIndex + 1;
-
-
-        while (
-          nextIndex <
-          TALEFORGE_STORIES.length &&
-          (
-            TALEFORGE_STORIES[nextIndex].status !==
-              "published" ||
-            !TALEFORGE_STORIES[nextIndex].content
+      const { data, error } = await supabase
+        .from("stories")
+        .select(`
+          id,
+          title,
+          slug,
+          subtitle,
+          summary,
+          content,
+          reading_time,
+          word_count,
+          mood,
+          intensity,
+          published_at,
+          genres (
+            name
           )
-        ) {
+        `)
+        .eq("id", storyId)
+        .eq("status", "published")
+        .single();
 
-          nextIndex++;
-
-        }
-
-
-        if (
-          nextIndex <
-          TALEFORGE_STORIES.length
-        ) {
-
-          const nextStory =
-            TALEFORGE_STORIES[
-              nextIndex
-            ];
-
-
-          next.href =
-            nextStory.storyPage;
-
-
-          next.innerHTML =
-            '<span class="nav-story-label">' +
-            'Next story →' +
-            '</span>' +
-            '<span class="nav-story-title">' +
-            nextStory.title +
-            '</span>';
-
-        } else {
-
-          next.style.visibility =
-            "hidden";
-
-        }
-
-      } else {
-
-        next.style.visibility =
-          "hidden";
-
+      if (error) {
+        throw error;
       }
 
-
-      navigation.appendChild(
-        previous
-      );
-
-      navigation.appendChild(
-        next
-      );
-
-
-      return navigation;
-
-    }
-
-
-
-    function renderStory(
-      story,
-      currentIndex
-    ) {
-
-      document.title =
-        story.title +
-        " — TaleForge";
-
-
-      document
-        .getElementById(
-          "metaDescription"
-        )
-        .setAttribute(
-          "content",
-          story.summary
-        );
-
-
-      const paragraphs =
-        story.content
-          .split("\n\n")
-          .filter(
-            function(paragraph) {
-
-              return (
-                paragraph.trim() !== ""
-              );
-
-            }
-          );
-
-
-      const content =
-        document.createElement(
-          "article"
-        );
-
-      content.className =
-        "story-content";
-
-
-      paragraphs.forEach(
-        function(paragraph) {
-
-          const paragraphElement =
-            document.createElement(
-              "p"
-            );
-
-          paragraphElement.textContent =
-            paragraph.trim();
-
-          content.appendChild(
-            paragraphElement
-          );
-
-        }
-      );
-
-
-      const end =
-        document.createElement(
-          "div"
-        );
-
-      end.className =
-        "story-end";
-
-
-      const endTitle =
-        document.createElement(
-          "div"
-        );
-
-      endTitle.className =
-        "story-end-title";
-
-      endTitle.textContent =
-        "End of Story";
-
-
-      const discover =
-        document.createElement(
-          "a"
-        );
-
-      discover.className =
-        "discover-link";
-
-      discover.href =
-        "stories.html";
-
-      discover.textContent =
-        "Discover Another Story →";
-
-
-      end.appendChild(
-        endTitle
-      );
-
-      end.appendChild(
-        discover
-      );
-
-
-      content.appendChild(
-        end
-      );
-
-
-      const header =
-        document.createElement(
-          "section"
-        );
-
-      header.className =
-        "story-header";
-
-
-      const genre =
-        document.createElement(
-          "div"
-        );
-
-      genre.className =
-        "genre";
-
-      genre.textContent =
-        story.genre;
-
-
-      const title =
-        document.createElement(
-          "h1"
-        );
-
-      title.textContent =
-        story.title;
-
-
-      const subtitle =
-        document.createElement(
-          "p"
-        );
-
-      subtitle.className =
-        "subtitle";
-
-      subtitle.textContent =
-        story.subtitle;
-
-
-      const meta =
-        document.createElement(
-          "div"
-        );
-
-      meta.className =
-        "story-meta";
-
-      meta.textContent =
-        "TaleForge Original · " +
-        story.readingTime +
-        " min read";
-
-
-      const divider =
-        document.createElement(
-          "div"
-        );
-
-      divider.className =
-        "divider";
-
-
-      header.appendChild(
-        genre
-      );
-
-      header.appendChild(
-        title
-      );
-
-      header.appendChild(
-        subtitle
-      );
-
-      header.appendChild(
-        meta
-      );
-
-      header.appendChild(
-        divider
-      );
-
-
-      const app =
-        document.getElementById(
-          "app"
-        );
-
-
-      app.innerHTML = "";
-
-
-      app.appendChild(
-        header
-      );
-
-      app.appendChild(
-        content
-      );
-
-
-      app.appendChild(
-        renderNavigation(
-          currentIndex
-        )
-      );
-
-
-      const related =
-        document.createElement(
-          "section"
-        );
-
-      related.className =
-        "related-section";
-
-
-      const relatedHeading =
-        document.createElement(
-          "div"
-        );
-
-      relatedHeading.className =
-        "related-heading";
-
-
-      const relatedTitle =
-        document.createElement(
-          "h2"
-        );
-
-      relatedTitle.textContent =
-        "More Stories";
-
-
-      const relatedDescription =
-        document.createElement(
-          "p"
-        );
-
-      relatedDescription.textContent =
-        "You might also enjoy these stories.";
-
-
-      relatedHeading.appendChild(
-        relatedTitle
-      );
-
-      relatedHeading.appendChild(
-        relatedDescription
-      );
-
-
-      const relatedGrid =
-        document.createElement(
-          "div"
-        );
-
-      relatedGrid.className =
-        "related-grid";
-
-
-      const sameGenre =
-        TALEFORGE_STORIES.filter(
-          function(item) {
-
-            return (
-              item.id !== story.id &&
-              item.status === "published" &&
-              item.content &&
-              item.genre === story.genre
-            );
-
-          }
-        );
-
-
-      const otherStories =
-        TALEFORGE_STORIES.filter(
-          function(item) {
-
-            return (
-              item.id !== story.id &&
-              item.status === "published" &&
-              item.content &&
-              item.genre !== story.genre
-            );
-
-          }
-        );
-
-
-      const recommendations =
-        sameGenre
-          .concat(otherStories)
-          .slice(0, 3);
-
-
-      recommendations.forEach(
-        function(item) {
-
-          relatedGrid.appendChild(
-            createRelatedCard(item)
-          );
-
-        }
-      );
-
-
-      if (
-        recommendations.length === 0
-      ) {
-
-        const empty =
-          document.createElement(
-            "p"
-          );
-
-        empty.textContent =
-          "More stories are coming soon.";
-
-        empty.style.color =
-          "var(--muted)";
-
-        relatedGrid.appendChild(
-          empty
-        );
-
-      }
-
-
-      related.appendChild(
-        relatedHeading
-      );
-
-      related.appendChild(
-        relatedGrid
-      );
-
-
-      app.appendChild(
-        related
-      );
-
-    }
-
-
-
-    function updateProgress() {
-
-      const progressBar =
-        document.getElementById(
-          "progressBar"
-        );
-
-
-      const scrollTop =
-        window.scrollY;
-
-
-      const documentHeight =
-        document.documentElement
-          .scrollHeight -
-        window.innerHeight;
-
-
-      if (
-        documentHeight <= 0
-      ) {
-
-        progressBar.style.width =
-          "100%";
-
+      if (!data) {
+        showError("Story not found.");
         return;
-
       }
 
+      renderStory(data);
 
-      const progress =
-        (
-          scrollTop /
-          documentHeight
-        ) * 100;
+    } catch (error) {
 
+      console.error(error);
 
-      progressBar.style.width =
-        Math.min(
-          100,
-          Math.max(
-            0,
-            progress
-          )
-        ) + "%";
+      showError(
+        error.message || "Unable to load this story."
+      );
+    }
+  }
 
+  function renderStory(story) {
+
+    document.title =
+      `${story.title} — TaleForge`;
+
+    const description =
+      story.summary ||
+      story.subtitle ||
+      "Read this story on TaleForge.";
+
+    const metaDescription =
+      document.querySelector('meta[name="description"]');
+
+    if (metaDescription) {
+      metaDescription.setAttribute(
+        "content",
+        description
+      );
     }
 
+    const paragraphs =
+      String(story.content || "")
+        .split(/\n\s*\n/)
+        .map(paragraph => paragraph.trim())
+        .filter(Boolean);
 
+    const contentHtml = paragraphs
+      .map(paragraph => {
+        return `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`;
+      })
+      .join("");
 
-    const storyId =
-      getStoryId();
+    main.innerHTML = `
+      <article>
 
+        <div class="genre">
+          ${escapeHtml(
+            story.genres?.name || "Story"
+          )}
+        </div>
 
-    const storyIndex =
-      TALEFORGE_STORIES.findIndex(
-        function(item) {
+        <h1>
+          ${escapeHtml(story.title)}
+        </h1>
 
-          return (
-            item.id === storyId
-          );
-
+        ${
+          story.subtitle
+            ? `
+              <div class="subtitle">
+                ${escapeHtml(story.subtitle)}
+              </div>
+            `
+            : ""
         }
-      );
 
+        <div class="meta">
 
-    const story =
-      storyIndex >= 0
-        ? TALEFORGE_STORIES[
-            storyIndex
-          ]
-        : null;
+          <span>
+            ${escapeHtml(String(story.reading_time || 1))} min read
+          </span>
 
+          <span>
+            ${escapeHtml(String(story.word_count || 0))} words
+          </span>
 
-    if (
-      !story ||
-      story.status !== "published" ||
-      !story.content
-    ) {
+          ${
+            story.mood
+              ? `<span>${escapeHtml(story.mood)}</span>`
+              : ""
+          }
 
-      showNotFound();
+          ${
+            story.intensity
+              ? `<span>${escapeHtml(story.intensity)}</span>`
+              : ""
+          }
 
-    } else {
+        </div>
 
-      renderStory(
-        story,
-        storyIndex
-      );
+        <div class="story-content">
+          ${contentHtml}
+        </div>
 
-    }
+        <div class="end">
+          <p>You've reached the end of this story.</p>
 
+          <div class="actions">
+            <a class="button" href="stories.html">
+              Explore More Stories
+            </a>
 
-    window.addEventListener(
-      "scroll",
-      updateProgress,
-      {
-        passive: true
-      }
-    );
+            <a class="button" href="index.html">
+              Back Home
+            </a>
+          </div>
+        </div>
 
+      </article>
+    `;
+  }
 
-    updateProgress();
+  function showError(message) {
 
+    main.innerHTML = `
+      <div class="error">
+        <h2>Story unavailable</h2>
+        <p>${escapeHtml(message)}</p>
+        <br>
+        <a class="button" href="stories.html">
+          Return to Explore
+        </a>
+      </div>
+    `;
+  }
 
-  </script>
+  function escapeHtml(value) {
 
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  window.addEventListener("scroll", () => {
+
+    const scrollTop =
+      window.scrollY;
+
+    const documentHeight =
+      document.documentElement.scrollHeight -
+      window.innerHeight;
+
+    const percentage =
+      documentHeight > 0
+        ? (scrollTop / documentHeight) * 100
+        : 0;
+
+    progress.style.width =
+      `${Math.min(100, Math.max(0, percentage))}%`;
+  });
+
+  loadStory();
+</script>
 
 </body>
-
-</html>
+</html> 
