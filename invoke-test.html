@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaleForge — Continuity Review Test</title>
+  <title>TaleForge Continuity Review Test</title>
 
   <style>
     body {
@@ -19,17 +19,9 @@
       margin: auto;
     }
 
-    h1 {
-      margin-bottom: 8px;
-    }
-
-    p {
-      color: #9aa7b5;
-    }
-
     button {
       width: 100%;
-      padding: 15px;
+      padding: 16px;
       margin: 20px 0;
       border: 0;
       border-radius: 10px;
@@ -37,11 +29,6 @@
       color: #001018;
       font-size: 16px;
       font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.6;
     }
 
     pre {
@@ -51,88 +38,171 @@
       border: 1px solid #263340;
       border-radius: 10px;
       padding: 16px;
-      overflow-x: auto;
       line-height: 1.5;
     }
 
-    .status {
-      margin: 10px 0;
-      font-weight: bold;
+    .ok {
+      color: #55ff99;
+    }
+
+    .error {
+      color: #ff6b6b;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>TaleForge Continuity Review</h1>
 
-    <p>
-      Tests the reusable continuity-review Edge Function against
-      The Clockwork Sky — Chapter 2.
-    </p>
+<div class="container">
 
-    <button id="runButton">
-      Run Continuity Review
-    </button>
+  <h1>TaleForge Continuity Review</h1>
 
-    <div class="status" id="status"></div>
+  <p id="pageStatus">
+    Loading test page...
+  </p>
 
-    <pre id="result">No review has been run yet.</pre>
-  </div>
+  <button id="runButton">
+    Run Continuity Review
+  </button>
 
-  <script type="module">
-    import { supabase } from "./supabase-client.js";
+  <pre id="result">Waiting...</pre>
+
+</div>
+
+<script type="module">
+
+  const result = document.getElementById("result");
+  const pageStatus = document.getElementById("pageStatus");
+  const runButton = document.getElementById("runButton");
+
+  result.textContent = "JavaScript loaded successfully.";
+
+  let supabaseClient = null;
+
+  try {
+
+    const module = await import("./supabase-client.js");
+
+    if (!module.supabase) {
+      throw new Error(
+        "supabase-client.js loaded, but it does not export 'supabase'."
+      );
+    }
+
+    supabaseClient = module.supabase;
+
+    pageStatus.textContent =
+      "Supabase client loaded. The test is ready.";
+
+    pageStatus.className = "ok";
+
+    result.textContent =
+      "Ready.\n\nTap 'Run Continuity Review'.";
+
+  } catch (error) {
+
+    pageStatus.textContent =
+      "Supabase client failed to load.";
+
+    pageStatus.className = "error";
+
+    result.textContent =
+      "ERROR LOADING SUPABASE CLIENT\n\n" +
+      (error?.message || String(error));
+
+    runButton.disabled = true;
+  }
+
+
+  runButton.addEventListener("click", async () => {
+
+    if (!supabaseClient) {
+      result.textContent =
+        "Supabase client is not available.";
+
+      return;
+    }
+
+    runButton.disabled = true;
+
+    pageStatus.textContent =
+      "Continuity review is running...";
+
+    result.textContent =
+      "Calling continuity-review Edge Function...\n\n" +
+      "Please wait.";
 
     const OUTPUT_ID =
       "a980c498-1c9d-46c6-95fe-3490ec48432f";
 
-    const runButton = document.getElementById("runButton");
-    const status = document.getElementById("status");
-    const result = document.getElementById("result");
+    try {
 
-    runButton.addEventListener("click", async () => {
-      runButton.disabled = true;
-      status.textContent = "Running continuity review...";
-      result.textContent = "Please wait...";
-
-      try {
-        const { data, error } =
-          await supabase.functions.invoke(
-            "continuity-review",
-            {
-              body: {
-                output_id: OUTPUT_ID
-              }
+      const { data, error } =
+        await supabaseClient.functions.invoke(
+          "continuity-review",
+          {
+            body: {
+              output_id: OUTPUT_ID
             }
-          );
+          }
+        );
 
-        if (error) {
-          throw error;
-        }
+      if (error) {
 
-        status.textContent =
-          data?.decision
-            ? `Decision: ${data.decision} | Score: ${data.score ?? "N/A"}`
-            : "Review completed.";
+        pageStatus.textContent =
+          "Edge Function returned an error.";
 
-        result.textContent =
-          JSON.stringify(data, null, 2);
-
-      } catch (error) {
-        status.textContent = "Review failed.";
+        pageStatus.className = "error";
 
         result.textContent =
           JSON.stringify(
             {
-              error: error?.message || String(error)
+              type: "supabase_function_error",
+              message: error.message,
+              details: error
             },
             null,
             2
           );
-      } finally {
-        runButton.disabled = false;
+
+        return;
       }
-    });
-  </script>
+
+      pageStatus.textContent =
+        "Continuity review completed.";
+
+      pageStatus.className = "ok";
+
+      result.textContent =
+        JSON.stringify(data, null, 2);
+
+    } catch (error) {
+
+      pageStatus.textContent =
+        "Unexpected error.";
+
+      pageStatus.className = "error";
+
+      result.textContent =
+        JSON.stringify(
+          {
+            type: "unexpected_error",
+            message: error?.message || String(error),
+            stack: error?.stack || null
+          },
+          null,
+          2
+        );
+
+    } finally {
+
+      runButton.disabled = false;
+
+    }
+
+  });
+
+</script>
+
 </body>
 </html>
