@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>TaleForge Release Publisher Test</title>
+</head>
+
+<body>
+  <h1>TaleForge Release Publisher</h1>
+
+  <button id="runTest">
+    Publish Chapter 2
+  </button>
+
+  <pre id="result">Ready.</pre>
+
+  <script type="module">
+    import { taleForgeSupabase } from "./supabase-client.js";
+
+    const OUTPUT_ID =
+      "a980c498-1c9d-46c6-95fe-3490ec48432f";
+
+    const resultElement =
+      document.getElementById("result");
+
+    const button =
+      document.getElementById("runTest");
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+
+      resultElement.textContent =
+        "Publishing Chapter 2...";
+
+      try {
+        const { data, error } =
+          await taleForgeSupabase.functions.invoke(
+            "release-publisher",
+            {
+              body: {
+                output_id: OUTPUT_ID
+              }
+            }
+          );
+
+        if (error) {
+          resultElement.textContent =
+            JSON.stringify(
+              {
+                success: false,
+                error: error.message,
+                details: error
+              },
+              null,
+              2
+            );
+
+          return;
+        }
+
+        resultElement.textContent =
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+      } catch (error) {
+        resultElement.textContent =
+          JSON.stringify(
+            {
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : String(error)
+            },
+            null,
+            2
+          );
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
