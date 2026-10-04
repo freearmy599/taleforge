@@ -6,14 +6,14 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   />
-  <title>TaleForge Release Publisher Test</title>
+  <title>TaleForge Release Publisher Debug</title>
 </head>
 
 <body>
-  <h1>TaleForge Release Publisher</h1>
+  <h1>TaleForge Release Publisher Debug</h1>
 
   <button id="runTest">
-    Publish Chapter 2
+    Test Publisher
   </button>
 
   <pre id="result">Ready.</pre>
@@ -34,7 +34,7 @@
       button.disabled = true;
 
       resultElement.textContent =
-        "Publishing Chapter 2...";
+        "Calling release-publisher...";
 
       try {
         const { data, error } =
@@ -48,11 +48,28 @@
           );
 
         if (error) {
+          let responseBody = null;
+
+          try {
+            if (
+              error.context &&
+              error.context.response
+            ) {
+              responseBody =
+                await error.context.response.text();
+            }
+          } catch (readError) {
+            responseBody =
+              "Could not read error response: " +
+              String(readError);
+          }
+
           resultElement.textContent =
             JSON.stringify(
               {
                 success: false,
                 error: error.message,
+                response_body: responseBody,
                 details: error
               },
               null,
