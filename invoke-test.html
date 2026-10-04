@@ -7,7 +7,7 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>TaleForge Revision Test</title>
+  <title>TaleForge Quality Validation</title>
 
   <style>
     body {
@@ -67,15 +67,15 @@
 
 <main>
 
-  <h1>TaleForge Chapter Revision Test</h1>
+  <h1>TaleForge Chapter Quality Validation</h1>
 
   <p>
-    This test sends the real Chapter 2 generation output
-    to the TaleForge revision engine.
+    This test validates the revised Chapter 2 output
+    before any publication decision is made.
   </p>
 
   <button id="run">
-    Run Chapter Revision
+    Run Quality Validation
   </button>
 
   <pre id="result">Ready...</pre>
@@ -93,7 +93,7 @@
     document.getElementById("result");
 
   const OUTPUT_ID =
-    "bf9495ec-804b-48cb-bbea-ad0bff732734";
+    "8348f2ef-5ffc-4e18-b499-3cf2662c0884";
 
   button.addEventListener(
     "click",
@@ -102,7 +102,7 @@
       button.disabled = true;
 
       result.textContent =
-        "Running TaleForge chapter revision...\n\n";
+        "Running TaleForge quality validation...\n\n";
 
       try {
 
@@ -120,7 +120,7 @@
           error
         } =
           await supabase.functions.invoke(
-            "revise-chapter",
+            "generate-chapter",
             {
               body: {
                 output_id: OUTPUT_ID
@@ -160,4 +160,4 @@
 </script>
 
 </body>
-</html> 
+</html>
