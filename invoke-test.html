@@ -8,7 +8,7 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>TaleForge Chapter Revision Test</title>
+  <title>TaleForge Chapter Quality Review</title>
 
   <style>
     * {
@@ -20,10 +20,7 @@
       padding: 24px;
       background: #0b0d12;
       color: #e8edf5;
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
     main {
@@ -44,10 +41,11 @@
 
     .info {
       margin-top: 20px;
-      padding: 16px;
+      padding: 18px;
       background: #121722;
       border: 1px solid #263142;
       border-radius: 12px;
+      line-height: 1.8;
     }
 
     .info strong {
@@ -91,11 +89,12 @@
 
 <main>
 
-  <h1>TaleForge Chapter Revision Test</h1>
+  <h1>TaleForge Chapter Quality Review</h1>
 
   <p>
-    This test sends the latest rejected Chapter 2 output
-    to the TaleForge revision engine.
+    This test sends the newly revised Chapter 2 output
+    through TaleForge's quality, continuity, originality,
+    and safety review system.
   </p>
 
   <div class="info">
@@ -111,24 +110,29 @@
     </div>
 
     <div>
+      <strong>Output:</strong>
+      a980c498-1c9d-46c6-95fe-3490ec48432f
+    </div>
+
+    <div>
+      <strong>Word Count:</strong>
+      3,675
+    </div>
+
+    <div>
+      <strong>Production Minimum:</strong>
+      3,400
+    </div>
+
+    <div>
       <strong>Target:</strong>
-      4,000 words
-    </div>
-
-    <div>
-      <strong>Minimum:</strong>
-      3,400 words
-    </div>
-
-    <div>
-      <strong>Maximum:</strong>
-      4,600 words
+      4,000
     </div>
 
   </div>
 
   <button id="run">
-    Run Chapter Revision
+    Run Chapter Quality Review
   </button>
 
   <pre id="result">Ready...</pre>
@@ -146,11 +150,12 @@
     document.getElementById("result");
 
   /*
-   * This is the latest output that failed
-   * the 3,400-word production minimum.
+   * IMPORTANT:
+   *
+   * This is the NEW revised Chapter 2 output.
    */
   const OUTPUT_ID =
-    "8348f2ef-5ffc-4e18-b499-3cf2662c0884";
+    "a980c498-1c9d-46c6-95fe-3490ec48432f";
 
   button.addEventListener(
     "click",
@@ -159,9 +164,19 @@
       button.disabled = true;
 
       result.textContent =
-        "Running TaleForge chapter revision...\n\n" +
-        "Please wait. The revision engine may make multiple\n" +
-        "internal attempts to reach the production minimum.\n";
+        "Running TaleForge quality review...\n\n" +
+        "The chapter will be checked for:\n" +
+        "• Length\n" +
+        "• Prose quality\n" +
+        "• Plot coherence\n" +
+        "• Character consistency\n" +
+        "• Continuity\n" +
+        "• Blueprint alignment\n" +
+        "• Repetition\n" +
+        "• Generation artifacts\n" +
+        "• Originality signals\n" +
+        "• Safety issues\n\n" +
+        "Please wait...";
 
       try {
 
@@ -179,7 +194,7 @@
           error
         } =
           await supabase.functions.invoke(
-            "revise-chapter",
+            "generate-chapter",
             {
               body: {
                 output_id:
@@ -220,4 +235,5 @@
 </script>
 
 </body>
-</html> 
+</html>
+
