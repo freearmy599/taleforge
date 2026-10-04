@@ -25,12 +25,13 @@
         const supabase = window.taleForgeSupabase;
 
         const { data, error } = await supabase.functions.invoke(
-          "generate-chapter",
-          {
-            body: {}
-          }
-        );
-
+  "generate-chapter",
+  {
+    body: {
+      output_id: "bf9495ec-804b-48cb-bbea-ad0bff732734"
+    }
+  }
+);
         if (error) {
           throw error;
         }
