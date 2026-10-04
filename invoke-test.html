@@ -2,203 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>TaleForge Chapter Quality Review</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaleForge — Continuity Review Test</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
-      padding: 24px;
-      background: #0b0d12;
-      color: #e8edf5;
-      font-family: Arial, Helvetica, sans-serif;
+      padding: 20px;
+      background: #0b0f14;
+      color: #e8eef5;
+      font-family: Arial, sans-serif;
     }
 
-    main {
-      width: 100%;
+    .container {
       max-width: 900px;
-      margin: 0 auto;
+      margin: auto;
     }
 
     h1 {
-      margin: 0 0 10px;
-      font-size: 28px;
+      margin-bottom: 8px;
     }
 
     p {
-      color: #9aa6b6;
-      line-height: 1.6;
-    }
-
-    .info {
-      margin-top: 20px;
-      padding: 18px;
-      background: #121722;
-      border: 1px solid #263142;
-      border-radius: 12px;
-      line-height: 1.8;
-    }
-
-    .info strong {
-      color: #e8edf5;
+      color: #9aa7b5;
     }
 
     button {
       width: 100%;
-      margin-top: 20px;
-      padding: 15px 20px;
+      padding: 15px;
+      margin: 20px 0;
       border: 0;
       border-radius: 10px;
-      background: #19c8ff;
+      background: #00c2ff;
       color: #001018;
       font-size: 16px;
-      font-weight: 700;
+      font-weight: bold;
       cursor: pointer;
     }
 
     button:disabled {
       opacity: 0.6;
-      cursor: not-allowed;
     }
 
     pre {
-      margin-top: 24px;
-      padding: 18px;
-      background: #121722;
-      border: 1px solid #263142;
-      border-radius: 12px;
-      overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-word;
+      background: #111820;
+      border: 1px solid #263340;
+      border-radius: 10px;
+      padding: 16px;
+      overflow-x: auto;
       line-height: 1.5;
-      color: #dce5f2;
+    }
+
+    .status {
+      margin: 10px 0;
+      font-weight: bold;
     }
   </style>
 </head>
 
 <body>
+  <div class="container">
+    <h1>TaleForge Continuity Review</h1>
 
-<main>
+    <p>
+      Tests the reusable continuity-review Edge Function against
+      The Clockwork Sky — Chapter 2.
+    </p>
 
-  <h1>TaleForge Chapter Quality Review</h1>
+    <button id="runButton">
+      Run Continuity Review
+    </button>
 
-  <p>
-    This test sends the newly revised Chapter 2 output
-    through TaleForge's quality, continuity, originality,
-    and safety review system.
-  </p>
+    <div class="status" id="status"></div>
 
-  <div class="info">
-
-    <div>
-      <strong>Series:</strong>
-      The Clockwork Sky
-    </div>
-
-    <div>
-      <strong>Chapter:</strong>
-      2 — The Sound Beneath the City
-    </div>
-
-    <div>
-      <strong>Output:</strong>
-      a980c498-1c9d-46c6-95fe-3490ec48432f
-    </div>
-
-    <div>
-      <strong>Word Count:</strong>
-      3,675
-    </div>
-
-    <div>
-      <strong>Production Minimum:</strong>
-      3,400
-    </div>
-
-    <div>
-      <strong>Target:</strong>
-      4,000
-    </div>
-
+    <pre id="result">No review has been run yet.</pre>
   </div>
 
-  <button id="run">
-    Run Chapter Quality Review
-  </button>
+  <script type="module">
+    import { supabase } from "./supabase-client.js";
 
-  <pre id="result">Ready...</pre>
+    const OUTPUT_ID =
+      "a980c498-1c9d-46c6-95fe-3490ec48432f";
 
-</main>
+    const runButton = document.getElementById("runButton");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
 
-<script type="module">
-
-  import "./supabase-client.js";
-
-  const button =
-    document.getElementById("run");
-
-  const result =
-    document.getElementById("result");
-
-  /*
-   * IMPORTANT:
-   *
-   * This is the NEW revised Chapter 2 output.
-   */
-  const OUTPUT_ID =
-    "a980c498-1c9d-46c6-95fe-3490ec48432f";
-
-  button.addEventListener(
-    "click",
-    async () => {
-
-      button.disabled = true;
-
-      result.textContent =
-        "Running TaleForge quality review...\n\n" +
-        "The chapter will be checked for:\n" +
-        "• Length\n" +
-        "• Prose quality\n" +
-        "• Plot coherence\n" +
-        "• Character consistency\n" +
-        "• Continuity\n" +
-        "• Blueprint alignment\n" +
-        "• Repetition\n" +
-        "• Generation artifacts\n" +
-        "• Originality signals\n" +
-        "• Safety issues\n\n" +
-        "Please wait...";
+    runButton.addEventListener("click", async () => {
+      runButton.disabled = true;
+      status.textContent = "Running continuity review...";
+      result.textContent = "Please wait...";
 
       try {
-
-        const supabase =
-          window.taleForgeSupabase;
-
-        if (!supabase) {
-          throw new Error(
-            "Supabase client was not initialized."
-          );
-        }
-
-        const {
-          data,
-          error
-        } =
+        const { data, error } =
           await supabase.functions.invoke(
-            "generate-chapter",
+            "continuity-review",
             {
               body: {
-                output_id:
-                  OUTPUT_ID
+                output_id: OUTPUT_ID
               }
             }
           );
@@ -207,33 +110,29 @@
           throw error;
         }
 
+        status.textContent =
+          data?.decision
+            ? `Decision: ${data.decision} | Score: ${data.score ?? "N/A"}`
+            : "Review completed.";
+
+        result.textContent =
+          JSON.stringify(data, null, 2);
+
+      } catch (error) {
+        status.textContent = "Review failed.";
+
         result.textContent =
           JSON.stringify(
-            data,
+            {
+              error: error?.message || String(error)
+            },
             null,
             2
           );
-
-      } catch (error) {
-
-        result.textContent =
-          "ERROR:\n\n" +
-          (
-            error?.message ||
-            String(error)
-          );
-
       } finally {
-
-        button.disabled = false;
-
+        runButton.disabled = false;
       }
-
-    }
-  );
-
-</script>
-
+    });
+  </script>
 </body>
 </html>
-
