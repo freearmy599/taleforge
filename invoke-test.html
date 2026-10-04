@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaleForge Continuity Review Test</title>
+  <title>TaleForge — Continuity Review Test</title>
 
   <style>
     body {
@@ -19,6 +19,14 @@
       margin: auto;
     }
 
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: #9aa7b5;
+    }
+
     button {
       width: 100%;
       padding: 16px;
@@ -29,6 +37,11 @@
       color: #001018;
       font-size: 16px;
       font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
     }
 
     pre {
@@ -38,15 +51,13 @@
       border: 1px solid #263340;
       border-radius: 10px;
       padding: 16px;
+      overflow-x: auto;
       line-height: 1.5;
     }
 
-    .ok {
-      color: #55ff99;
-    }
-
-    .error {
-      color: #ff6b6b;
+    .status {
+      margin: 10px 0;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -57,88 +68,57 @@
 
   <h1>TaleForge Continuity Review</h1>
 
-  <p id="pageStatus">
-    Loading test page...
+  <p>
+    Testing the reusable continuity-review engine against
+    The Clockwork Sky — Chapter 2.
   </p>
 
   <button id="runButton">
     Run Continuity Review
   </button>
 
-  <pre id="result">Waiting...</pre>
+  <div class="status" id="status">
+    Ready.
+  </div>
+
+  <pre id="result">
+Tap the button to start the review.
+  </pre>
 
 </div>
 
 <script type="module">
 
-  const result = document.getElementById("result");
-  const pageStatus = document.getElementById("pageStatus");
-  const runButton = document.getElementById("runButton");
+  import { taleForgeSupabase } from "./supabase-client.js";
 
-  result.textContent = "JavaScript loaded successfully.";
+  const OUTPUT_ID =
+    "a980c498-1c9d-46c6-95fe-3490ec48432f";
 
-  let supabaseClient = null;
+  const runButton =
+    document.getElementById("runButton");
 
-  try {
+  const status =
+    document.getElementById("status");
 
-    const module = await import("./supabase-client.js");
-
-    if (!module.supabase) {
-      throw new Error(
-        "supabase-client.js loaded, but it does not export 'supabase'."
-      );
-    }
-
-    supabaseClient = module.supabase;
-
-    pageStatus.textContent =
-      "Supabase client loaded. The test is ready.";
-
-    pageStatus.className = "ok";
-
-    result.textContent =
-      "Ready.\n\nTap 'Run Continuity Review'.";
-
-  } catch (error) {
-
-    pageStatus.textContent =
-      "Supabase client failed to load.";
-
-    pageStatus.className = "error";
-
-    result.textContent =
-      "ERROR LOADING SUPABASE CLIENT\n\n" +
-      (error?.message || String(error));
-
-    runButton.disabled = true;
-  }
+  const result =
+    document.getElementById("result");
 
 
   runButton.addEventListener("click", async () => {
 
-    if (!supabaseClient) {
-      result.textContent =
-        "Supabase client is not available.";
-
-      return;
-    }
-
     runButton.disabled = true;
 
-    pageStatus.textContent =
+    status.textContent =
       "Continuity review is running...";
 
     result.textContent =
-      "Calling continuity-review Edge Function...\n\n" +
+      "Calling TaleForge continuity-review...\n\n" +
       "Please wait.";
-
-    const OUTPUT_ID =
-      "a980c498-1c9d-46c6-95fe-3490ec48432f";
 
     try {
 
       const { data, error } =
-        await supabaseClient.functions.invoke(
+        await taleForgeSupabase.functions.invoke(
           "continuity-review",
           {
             body: {
@@ -147,18 +127,16 @@
           }
         );
 
+
       if (error) {
 
-        pageStatus.textContent =
-          "Edge Function returned an error.";
-
-        pageStatus.className = "error";
+        status.textContent =
+          "Continuity review returned an error.";
 
         result.textContent =
           JSON.stringify(
             {
-              type: "supabase_function_error",
-              message: error.message,
+              error: error.message,
               details: error
             },
             null,
@@ -168,27 +146,33 @@
         return;
       }
 
-      pageStatus.textContent =
+
+      status.textContent =
         "Continuity review completed.";
 
-      pageStatus.className = "ok";
-
       result.textContent =
-        JSON.stringify(data, null, 2);
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+
 
     } catch (error) {
 
-      pageStatus.textContent =
+      status.textContent =
         "Unexpected error.";
-
-      pageStatus.className = "error";
 
       result.textContent =
         JSON.stringify(
           {
-            type: "unexpected_error",
-            message: error?.message || String(error),
-            stack: error?.stack || null
+            error:
+              error?.message ||
+              String(error),
+
+            stack:
+              error?.stack ||
+              null
           },
           null,
           2
