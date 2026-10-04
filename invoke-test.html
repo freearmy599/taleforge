@@ -2,29 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>TaleForge Quality Validation</title>
+  <title>TaleForge Chapter Revision Test</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 24px;
       background: #0b0d12;
       color: #e8edf5;
-      font-family: Arial, sans-serif;
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
     }
 
     main {
+      width: 100%;
       max-width: 900px;
       margin: 0 auto;
     }
 
     h1 {
-      margin-bottom: 8px;
+      margin: 0 0 10px;
+      font-size: 28px;
     }
 
     p {
@@ -32,9 +42,22 @@
       line-height: 1.6;
     }
 
+    .info {
+      margin-top: 20px;
+      padding: 16px;
+      background: #121722;
+      border: 1px solid #263142;
+      border-radius: 12px;
+    }
+
+    .info strong {
+      color: #e8edf5;
+    }
+
     button {
-      margin-top: 16px;
-      padding: 14px 20px;
+      width: 100%;
+      margin-top: 20px;
+      padding: 15px 20px;
       border: 0;
       border-radius: 10px;
       background: #19c8ff;
@@ -59,6 +82,7 @@
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.5;
+      color: #dce5f2;
     }
   </style>
 </head>
@@ -67,15 +91,44 @@
 
 <main>
 
-  <h1>TaleForge Chapter Quality Validation</h1>
+  <h1>TaleForge Chapter Revision Test</h1>
 
   <p>
-    This test validates the revised Chapter 2 output
-    before any publication decision is made.
+    This test sends the latest rejected Chapter 2 output
+    to the TaleForge revision engine.
   </p>
 
+  <div class="info">
+
+    <div>
+      <strong>Series:</strong>
+      The Clockwork Sky
+    </div>
+
+    <div>
+      <strong>Chapter:</strong>
+      2 — The Sound Beneath the City
+    </div>
+
+    <div>
+      <strong>Target:</strong>
+      4,000 words
+    </div>
+
+    <div>
+      <strong>Minimum:</strong>
+      3,400 words
+    </div>
+
+    <div>
+      <strong>Maximum:</strong>
+      4,600 words
+    </div>
+
+  </div>
+
   <button id="run">
-    Run Quality Validation
+    Run Chapter Revision
   </button>
 
   <pre id="result">Ready...</pre>
@@ -92,6 +145,10 @@
   const result =
     document.getElementById("result");
 
+  /*
+   * This is the latest output that failed
+   * the 3,400-word production minimum.
+   */
   const OUTPUT_ID =
     "8348f2ef-5ffc-4e18-b499-3cf2662c0884";
 
@@ -102,7 +159,9 @@
       button.disabled = true;
 
       result.textContent =
-        "Running TaleForge quality validation...\n\n";
+        "Running TaleForge chapter revision...\n\n" +
+        "Please wait. The revision engine may make multiple\n" +
+        "internal attempts to reach the production minimum.\n";
 
       try {
 
@@ -120,10 +179,11 @@
           error
         } =
           await supabase.functions.invoke(
-            "generate-chapter",
+            "revise-chapter",
             {
               body: {
-                output_id: OUTPUT_ID
+                output_id:
+                  OUTPUT_ID
               }
             }
           );
@@ -160,4 +220,4 @@
 </script>
 
 </body>
-</html>
+</html> 
