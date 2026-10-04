@@ -1,192 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaleForge — Continuity Review Test</title>
-
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      background: #0b0f14;
-      color: #e8eef5;
-      font-family: Arial, sans-serif;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: auto;
-    }
-
-    h1 {
-      margin-bottom: 8px;
-    }
-
-    p {
-      color: #9aa7b5;
-    }
-
-    button {
-      width: 100%;
-      padding: 16px;
-      margin: 20px 0;
-      border: 0;
-      border-radius: 10px;
-      background: #00c2ff;
-      color: #001018;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-    }
-
-    pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #111820;
-      border: 1px solid #263340;
-      border-radius: 10px;
-      padding: 16px;
-      overflow-x: auto;
-      line-height: 1.5;
-    }
-
-    .status {
-      margin: 10px 0;
-      font-weight: bold;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaleForge Originality Review Test</title>
 </head>
 
 <body>
+  <h1>TaleForge Originality Review</h1>
 
-<div class="container">
+  <button id="runTest">Run Originality Review</button>
 
-  <h1>TaleForge Continuity Review</h1>
+  <pre id="result">Ready.</pre>
 
-  <p>
-    Testing the reusable continuity-review engine against
-    The Clockwork Sky — Chapter 2.
-  </p>
+  <script type="module">
+    import { taleForgeSupabase } from "./supabase-client.js";
 
-  <button id="runButton">
-    Run Continuity Review
-  </button>
+    const OUTPUT_ID =
+      "a980c498-1c9d-46c6-95fe-3490ec48432f";
 
-  <div class="status" id="status">
-    Ready.
-  </div>
+    const resultElement =
+      document.getElementById("result");
 
-  <pre id="result">
-Tap the button to start the review.
-  </pre>
+    const button =
+      document.getElementById("runTest");
 
-</div>
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      resultElement.textContent =
+        "Running originality review...";
 
-<script type="module">
-
-  import { taleForgeSupabase } from "./supabase-client.js";
-
-  const OUTPUT_ID =
-    "a980c498-1c9d-46c6-95fe-3490ec48432f";
-
-  const runButton =
-    document.getElementById("runButton");
-
-  const status =
-    document.getElementById("status");
-
-  const result =
-    document.getElementById("result");
-
-
-  runButton.addEventListener("click", async () => {
-
-    runButton.disabled = true;
-
-    status.textContent =
-      "Continuity review is running...";
-
-    result.textContent =
-      "Calling TaleForge continuity-review...\n\n" +
-      "Please wait.";
-
-    try {
-
-      const { data, error } =
-        await taleForgeSupabase.functions.invoke(
-          "continuity-review",
-          {
-            body: {
-              output_id: OUTPUT_ID
+      try {
+        const { data, error } =
+          await taleForgeSupabase.functions.invoke(
+            "originality-review",
+            {
+              body: {
+                output_id: OUTPUT_ID
+              }
             }
-          }
-        );
+          );
 
+        if (error) {
+          resultElement.textContent =
+            JSON.stringify(
+              {
+                success: false,
+                error: error.message,
+                details: error
+              },
+              null,
+              2
+            );
 
-      if (error) {
+          return;
+        }
 
-        status.textContent =
-          "Continuity review returned an error.";
-
-        result.textContent =
+        resultElement.textContent =
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+      } catch (error) {
+        resultElement.textContent =
           JSON.stringify(
             {
-              error: error.message,
-              details: error
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : String(error)
             },
             null,
             2
           );
-
-        return;
+      } finally {
+        button.disabled = false;
       }
-
-
-      status.textContent =
-        "Continuity review completed.";
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-
-
-    } catch (error) {
-
-      status.textContent =
-        "Unexpected error.";
-
-      result.textContent =
-        JSON.stringify(
-          {
-            error:
-              error?.message ||
-              String(error),
-
-            stack:
-              error?.stack ||
-              null
-          },
-          null,
-          2
-        );
-
-    } finally {
-
-      runButton.disabled = false;
-
-    }
-
-  });
-
-</script>
-
+    });
+  </script>
 </body>
 </html>
