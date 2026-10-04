@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TaleForge Safety Review Test</title>
+  <title>TaleForge Publication Review Test</title>
 </head>
 
 <body>
-  <h1>TaleForge Safety Review</h1>
+  <h1>TaleForge Publication Review</h1>
 
-  <button id="runTest">Run Safety Review</button>
+  <button id="runTest">
+    Run Publication Review
+  </button>
 
   <pre id="result">Ready.</pre>
 
@@ -29,12 +31,12 @@
       button.disabled = true;
 
       resultElement.textContent =
-        "Running safety review...";
+        "Running publication review...";
 
       try {
         const { data, error } =
           await taleForgeSupabase.functions.invoke(
-            "safety-review",
+            "publication-review",
             {
               body: {
                 output_id: OUTPUT_ID
