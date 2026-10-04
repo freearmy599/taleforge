@@ -2,49 +2,162 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaleForge Function Test</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>TaleForge Revision Test</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0b0d12;
+      color: #e8edf5;
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: #9aa6b6;
+      line-height: 1.6;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 14px 20px;
+      border: 0;
+      border-radius: 10px;
+      background: #19c8ff;
+      color: #001018;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    pre {
+      margin-top: 24px;
+      padding: 18px;
+      background: #121722;
+      border: 1px solid #263142;
+      border-radius: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>TaleForge Generation Test</h1>
-  <button id="run">Run Generation Test</button>
+
+<main>
+
+  <h1>TaleForge Chapter Revision Test</h1>
+
+  <p>
+    This test sends the real Chapter 2 generation output
+    to the TaleForge revision engine.
+  </p>
+
+  <button id="run">
+    Run Chapter Revision
+  </button>
+
   <pre id="result">Ready...</pre>
 
-  <script type="module">
-    import "./supabase-client.js";
+</main>
 
-    const button = document.getElementById("run");
-    const result = document.getElementById("result");
+<script type="module">
 
-    button.addEventListener("click", async () => {
+  import "./supabase-client.js";
+
+  const button =
+    document.getElementById("run");
+
+  const result =
+    document.getElementById("result");
+
+  const OUTPUT_ID =
+    "bf9495ec-804b-48cb-bbea-ad0bff732734";
+
+  button.addEventListener(
+    "click",
+    async () => {
+
       button.disabled = true;
-      result.textContent = "Running...";
+
+      result.textContent =
+        "Running TaleForge chapter revision...\n\n";
 
       try {
-        const supabase = window.taleForgeSupabase;
 
-        const { data, error } = await supabase.functions.invoke(
-  "generate-chapter",
-  {
-    body: {
-      output_id: "bf9495ec-804b-48cb-bbea-ad0bff732734"
-    }
-  }
-);
+        const supabase =
+          window.taleForgeSupabase;
+
+        if (!supabase) {
+          throw new Error(
+            "Supabase client was not initialized."
+          );
+        }
+
+        const {
+          data,
+          error
+        } =
+          await supabase.functions.invoke(
+            "revise-chapter",
+            {
+              body: {
+                output_id: OUTPUT_ID
+              }
+            }
+          );
+
         if (error) {
           throw error;
         }
 
-        result.textContent = JSON.stringify(data, null, 2);
-      } catch (error) {
         result.textContent =
-          "ERROR:\n" +
-          (error?.message || String(error));
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+
+      } catch (error) {
+
+        result.textContent =
+          "ERROR:\n\n" +
+          (
+            error?.message ||
+            String(error)
+          );
+
       } finally {
+
         button.disabled = false;
+
       }
-    });
-  </script>
+
+    }
+  );
+
+</script>
+
 </body>
-</html>
+</html> 
