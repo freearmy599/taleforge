@@ -18,3 +18,7 @@ function allBookmarks(){return Object.values(library().bookmarks).sort((a,b)=>(b
 function recordHistory(item){const l=library();const entry={seriesId:item.seriesId,seriesTitle:item.seriesTitle,chapterId:item.chapterId,chapterNumber:item.chapterNumber,chapterTitle:item.chapterTitle,updatedAt:Date.now()};l.history=[entry,...l.history.filter(x=>x.chapterId!==item.chapterId)].slice(0,30);writeLibrary(l)}
 function allHistory(){return library().history||[]}
 window.taleForgeProgress={readProgress,saveProgress,getProgress,allProgress,clearProgress,library,followSeries,unfollowSeries,isFollowing,allFollows,bookmarkChapter,removeBookmark,isBookmarked,allBookmarks,recordHistory,allHistory};
+const EVENT_KEY="taleforge:visitor-id:v1";
+function visitorId(){let v=localStorage.getItem(EVENT_KEY);if(!v){v=crypto.randomUUID?crypto.randomUUID():Math.random().toString(36)+Date.now().toString(36);localStorage.setItem(EVENT_KEY,v)}return v}
+async function track(event_type,data={}){try{const supabase=window.taleForgeSupabase;if(!supabase)return;await supabase.from("reader_events").insert({visitor_id:visitorId(),event_type,series_id:data.seriesId||null,chapter_id:data.chapterId||null,progress_percent:data.progressPercent==null?null:Math.round(data.progressPercent)})}catch(e){console.debug("TaleForge event skipped",e)}}
+window.taleForgeProgress.track=track;window.taleForgeProgress.visitorId=visitorId;
