@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /draft/
+Sitemap: https://taleforge.pages.dev/sitemap.xml
