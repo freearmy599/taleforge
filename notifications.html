@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Updates — TaleForge</title>
+<meta name="description" content="See new chapters and story updates from TaleForge.">
+<style>
+:root{--bg:#08090b;--panel:#111316;--line:rgba(255,255,255,.09);--text:#f5f1e8;--muted:#a29e96;--gold:#d6b36a;--gold2:#f0d99c}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 78% 0,rgba(214,179,106,.11),transparent 31%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}a{color:inherit;text-decoration:none}
+.nav{height:74px;position:sticky;top:0;z-index:30;border-bottom:1px solid var(--line);background:rgba(8,9,11,.88);backdrop-filter:blur(20px)}.navin{height:100%;max-width:1120px;margin:auto;padding:0 22px;display:flex;align-items:center}.brand{font:26px Georgia,serif;margin-right:auto}.brand b{color:var(--gold);font-weight:600}.navlinks{display:flex;gap:22px;color:#a8a39b;font-size:13px}.navlinks a:hover,.navlinks .active{color:var(--gold2)}
+main{max-width:1120px;margin:auto;padding:58px 22px 100px}.kicker{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:800}.hero{padding-bottom:35px;border-bottom:1px solid var(--line)}h1{font:500 clamp(52px,8vw,78px)/.94 Georgia,serif;letter-spacing:-3px;margin:14px 0 17px}.hero p{max-width:660px;color:var(--muted);font:17px/1.7 Georgia,serif;margin:0}.section{margin-top:44px}.head{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}.head h2{font:500 30px Georgia,serif;margin:0}.count{font-size:11px;color:#77736c}.feed{display:grid;gap:10px}.item{display:grid;grid-template-columns:58px 1fr auto;gap:16px;align-items:center;padding:17px;border:1px solid var(--line);background:linear-gradient(145deg,#141619,#0e1012);transition:.2s}.item:hover{transform:translateY(-2px);border-color:rgba(214,179,106,.4)}.cover{width:58px;height:82px;border-radius:4px;overflow:hidden;background:#18191b;border:1px solid rgba(255,255,255,.1)}.cover img{width:100%;height:100%;object-fit:cover;display:block}.cover.missing{display:grid;place-items:center;color:#68635b;font:700 24px Georgia,serif}.tag{font-size:9px;color:var(--gold);letter-spacing:.15em;text-transform:uppercase;font-weight:800}.item h3{font:500 23px/1.08 Georgia,serif;margin:6px 0}.item p{color:#97938b;font:13px/1.5 Georgia,serif;margin:0}.date{font-size:10px;color:#77736c;white-space:nowrap}.empty{padding:30px;border:1px dashed var(--line);color:var(--muted);line-height:1.7}.empty a{color:var(--gold2);text-decoration:underline;text-underline-offset:3px}.note{margin-top:16px;color:#77736c;font-size:11px;line-height:1.6}
+@media(max-width:650px){main{padding:42px 17px 90px}.navin{padding:0 17px}.navlinks{gap:13px}.navlinks a:nth-child(1){display:none}h1{font-size:53px}.item{grid-template-columns:48px 1fr;gap:13px}.cover{width:48px;height:69px}.item .date{grid-column:2}.item h3{font-size:20px}}
+</style>
+</head>
+<body>
+<header class="nav"><div class="navin"><a class="brand" href="index.html">Tale<b>Forge</b></a><nav class="navlinks"><a href="stories.html">Explore</a><a class="active" href="notifications.html">Updates</a><a href="library.html">Library</a></nav></div></header>
+<main>
+<section class="hero"><div class="kicker">Your story pulse</div><h1>Updates.</h1><p>New chapters and meaningful story movement, gathered in one quiet place. Follow a series to make this feed personal.</p></section>
+<section class="section"><div class="head"><h2>From your shelf</h2><span id="followCount" class="count"></span></div><div id="following" class="feed"><div class="empty">Reading your shelf…</div></div></section>
+<section class="section"><div class="head"><h2>Fresh on TaleForge</h2><span id="freshCount" class="count"></span></div><div id="fresh" class="feed"><div class="empty">Loading recent chapters…</div></div></section>
+<p class="note">TaleForge currently keeps reading and follows locally, so these updates work without requiring an account. Account-backed notifications and push delivery can be added later without changing this feed.</p>
+</main>
+<script type="module">
+import "./supabase-client.js";import "./reading-progress.js";
+const supabase=window.taleForgeSupabase,following=document.getElementById("following"),fresh=document.getElementById("fresh"),followCount=document.getElementById("followCount"),freshCount=document.getElementById("freshCount");
+const esc=v=>{const d=document.createElement("div");d.textContent=v??"";return d.innerHTML};
+const fmt=v=>{if(!v)return "";const d=new Date(v);return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})};
+function card(ch,tag){const s=ch.series||{};const cover=s.cover_image?'<img loading="lazy" src="'+esc(s.cover_image)+'" alt="">':'<div class="cover missing">'+esc((s.title||"T")[0])+'</div>';return '<a class="item" href="chapter.html?id='+encodeURIComponent(ch.id)+'"><div class="cover">'+cover+'</div><div><div class="tag">'+esc(tag)+' · Chapter '+esc(ch.chapter_number)+'</div><h3>'+esc(s.title||"Story")+'</h3><p>'+esc(ch.title||"New chapter available.")+'</p></div><div class="date">'+esc(fmt(ch.published_at))+'</div></a>'}
+async function load(){
+ const follows=window.taleForgeProgress?.allFollows?.()||[];followCount.textContent=follows.length+" followed";
+ const followedIds=follows.map(x=>x.seriesId).filter(Boolean);
+ if(followedIds.length){
+   const {data,error}=await supabase.from("chapters").select("id,series_id,chapter_number,title,published_at,series:series_id(title,cover_image)").in("series_id",followedIds).eq("status","published").order("published_at",{ascending:false}).limit(20);
+   if(error)following.innerHTML='<div class="empty">Your followed updates could not be loaded right now.</div>';
+   else {const rows=data||[];following.innerHTML=rows.length?rows.map(x=>card(x,"Following")).join(""):'<div class="empty">No new chapters yet. Keep following stories and this feed will update when they publish.</div>'}
+ }else following.innerHTML='<div class="empty">You are not following any series yet. <a href="stories.html">Explore stories →</a></div>';
+ const {data,error}=await supabase.from("chapters").select("id,series_id,chapter_number,title,published_at,series:series_id(title,cover_image)").eq("status","published").order("published_at",{ascending:false}).limit(20);
+ if(error){fresh.innerHTML='<div class="empty">Recent updates could not be loaded right now.</div>';return}
+ const rows=data||[];freshCount.textContent=rows.length+" recent";fresh.innerHTML=rows.length?rows.map(x=>card(x,"New chapter")).join(""):'<div class="empty">No published chapters yet.</div>';
+}
+load();
+</script>
+</body>
+</html>
