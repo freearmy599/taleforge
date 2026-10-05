@@ -17,13 +17,16 @@
 <div><div class="kicker">A home for original fiction</div><h1>Stories that make you <em>stay.</em></h1><p>Step into original worlds, follow living series, and discover new chapters as they arrive. No noise. Just stories worth reading.</p><div class="actions"><a class="btn primary" href="stories.html">Explore stories →</a><a class="btn" href="#latest">See what's new</a></div></div>
 <a id="spotlight" class="feature" href="stories.html"><div class="mark">T</div><div class="kicker">Loading the latest world</div><h2>Opening the library…</h2><p>Connecting to published TaleForge stories.</p></a>
 </section>
+<section class="wrap" id="continue" style="display:none"><div class="sectionhead"><div><div class="kicker">Pick up where you left off</div><h2>Continue reading</h2></div><a href="stories.html"><span>Explore more →</span></a></div><div id="continueGrid" class="grid"></div></section>
 <section class="wrap" id="latest"><div class="sectionhead"><div><div class="kicker">The shelf</div><h2>New worlds to enter</h2></div><a href="stories.html"><span>View all →</span></a></div><div id="grid" class="grid"><div class="empty">Loading published stories…</div></div></section>
 <section class="wrap" id="about"><div class="sectionhead"><div><div class="kicker">TaleForge</div><h2>Built for the reading experience.</h2></div></div><p style="max-width:700px;color:#9d9991;font:18px/1.8 Georgia,serif">A focused home for serialized fiction — designed around discovery, continuity, and the simple pleasure of reading the next chapter.</p></section>
 </main><footer>© 2026 TaleForge · Short stories. Infinite worlds.</footer>
 <script type="module">
-import "./supabase-client.js";
-const supabase=window.taleForgeSupabase,grid=document.getElementById("grid"),spot=document.getElementById("spotlight");
+import "./supabase-client.js";import "./reading-progress.js";
+const supabase=window.taleForgeSupabase,continueSection=document.getElementById("continue"),continueGrid=document.getElementById("continueGrid"),grid=document.getElementById("grid"),spot=document.getElementById("spotlight");
 const esc=v=>{const d=document.createElement("div");d.textContent=v??"";return d.innerHTML};
+function renderContinue(){const items=(window.taleForgeProgress?.allProgress()||[]).filter(x=>(x.percent||0)<98).slice(0,3);if(!items.length)return;continueSection.style.display="block";continueGrid.innerHTML=items.map(x=>'<a class="card" href="chapter.html?id='+encodeURIComponent(x.chapterId)+'"><div class="genre">Chapter '+esc(x.chapterNumber)+' · '+Math.round(x.percent||0)+'% read</div><h3>'+esc(x.seriesTitle||"Story")+"</h3><p>"+esc(x.chapterTitle||"Continue reading where you stopped.")+"</p><div class="meta"><span style="display:block;height:3px;background:rgba(255,255,255,.08);margin-bottom:8px"><span style="display:block;width:"+Math.min(100,Math.max(0,x.percent||0))+"%;height:100%;background:var(--gold)"></span></span>Resume →</div></a>').join("")}
+renderContinue();
 async function load(){try{
  const {data,error}=await supabase.from("series").select("id,title,slug,subtitle,description,status,age_rating,mood,intensity,published_at,genres(name)").in("status",["ongoing","completed"]).order("published_at",{ascending:false});if(error)throw error;
  const series=data||[];if(!series.length){grid.innerHTML='<div class="empty">No published series yet.</div>';return}
