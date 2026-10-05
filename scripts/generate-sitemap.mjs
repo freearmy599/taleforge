@@ -26,8 +26,10 @@ const urls = new Map([
 ]);
 
 for (const s of series) {
-  if (!s.slug) continue;
-  urls.set(`${SITE_URL}/series.html?slug=${encodeURIComponent(s.slug)}`, {
+  const seriesUrl = s.slug
+    ? `${SITE_URL}/series.html?slug=${encodeURIComponent(s.slug)}`
+    : `${SITE_URL}/series.html?id=${encodeURIComponent(s.id)}`;
+  urls.set(seriesUrl, {
     lastmod: s.published_at, priority: "0.8", changefreq: "daily"
   });
 }
