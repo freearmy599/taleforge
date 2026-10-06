@@ -37,7 +37,7 @@
 <section class="wrap" id="about"><div class="sectionhead"><div><div class="kicker">TaleForge</div><h2>Built for the reading experience.</h2></div></div><p style="max-width:700px;color:#9d9991;font:18px/1.8 Georgia,serif">A focused home for serialized fiction — designed around discovery, continuity, and the simple pleasure of reading the next chapter.</p></section>
 </main><footer>© 2026 TaleForge · Short stories. Infinite worlds.<div style="margin-top:10px"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
 <script type="module">
-import "./supabase-client.js";import "./reading-progress.js";
+import "./taleforge-data.js";import "./reading-progress.js";
 const supabase=window.taleForgeSupabase,continueSection=document.getElementById("continue"),continueGrid=document.getElementById("continueGrid"),grid=document.getElementById("grid"),spot=document.getElementById("spotlight"),personal=document.getElementById("personal"),personalGrid=document.getElementById("personalGrid"),followed=document.getElementById("followed"),followGrid=document.getElementById("followGrid"),risingGrid=document.getElementById("risingGrid");
 const esc=v=>{const d=document.createElement("div");d.textContent=v??"";return d.innerHTML};
 const intelligenceBadge=s=>s.intelligence_status?'<span class="intel-badge intel-'+esc(s.intelligence_status.toLowerCase())+'">'+esc(s.intelligence_status)+'</span>':"";const cover=s=>s.cover_image?'<img src="'+esc(s.cover_image)+'" alt="" loading="lazy">':'<div style="height:100%;display:grid;place-items:center;color:#5f5b54;font:700 52px Georgia,serif">'+esc((s.title||"T")[0])+'</div>';
