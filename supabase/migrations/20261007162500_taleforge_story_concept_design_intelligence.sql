@@ -1,0 +1,4 @@
+-- Story Concept Design Intelligence
+-- Builds governed concept scaffolds from eligible Story Opportunity records.
+-- Never writes chapters and never mutates canonical Story DNA.
+-- Deployed migration is tracked in Supabase as 20261007162500_taleforge_story_concept_design_intelligence.
