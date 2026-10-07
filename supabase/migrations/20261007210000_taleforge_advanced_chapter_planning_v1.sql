@@ -1,0 +1,6 @@
+-- TaleForge Advanced Chapter Planning v1
+-- Live Supabase schema is authoritative; marker documents deployed architecture.
+-- Objects: taleforge_advanced_chapter_plans, taleforge_build_advanced_chapter_plans(uuid), taleforge_verify_advanced_chapter_planning()
+-- Engine: advanced-chapter-planning-v1
+-- Integrates chapter blueprints, story-specific depth, plot-thread progression, ending awareness and continuity requirements.
+-- No prose generation and no canon mutation.
