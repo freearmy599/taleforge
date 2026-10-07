@@ -1,0 +1,19 @@
+create or replace function public.taleforge_verify_arc_planning()
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare total_series integer; covered_series integer; invalid_series integer; duplicate_active integer; malformed_arcs integer; invalid_ranges integer; result jsonb;
+begin
+select count(*) into total_series from public.series where not (coalesce(description,'') ilike '%temporary internal series%' or coalesce(ai_disclosure,'') ilike '%internal test content%');
+select count(distinct ap.series_id) into covered_series from public.story_arc_plan ap join public.series s on s.id=ap.series_id where ap.status='active' and not (coalesce(s.description,'') ilike '%temporary internal series%' or coalesce(s.ai_disclosure,'') ilike '%internal test content%');
+select count(*) into duplicate_active from (select series_id from public.story_arc_plan where status='active' group by series_id having count(*)>1) x;
+select count(*) into malformed_arcs from public.story_arc_plan ap join public.series s on s.id=ap.series_id where ap.status='active' and not (coalesce(s.description,'') ilike '%temporary internal series%' or coalesce(s.ai_disclosure,'') ilike '%internal test content%') and (jsonb_typeof(ap.arcs)<>'array' or jsonb_array_length(ap.arcs)=0 or jsonb_typeof(ap.character_arcs)<>'array' or jsonb_typeof(ap.major_revelations)<>'array' or jsonb_typeof(ap.required_payoffs)<>'array' or jsonb_typeof(ap.ending_requirements)<>'array' or jsonb_typeof(ap.completion_definition)<>'object');
+select count(*) into invalid_ranges from public.story_arc_plan ap join public.series s on s.id=ap.series_id where ap.status='active' and not (coalesce(s.description,'') ilike '%temporary internal series%' or coalesce(s.ai_disclosure,'') ilike '%internal test content%') and ((ap.target_ending_chapter is not null and ap.target_ending_chapter<1) or (ap.flexibility_min_chapter is not null and ap.flexibility_min_chapter<1) or (ap.flexibility_max_chapter is not null and ap.flexibility_max_chapter<1) or (ap.flexibility_min_chapter is not null and ap.flexibility_max_chapter is not null and ap.flexibility_min_chapter>ap.flexibility_max_chapter) or (ap.target_ending_chapter is not null and ap.flexibility_min_chapter is not null and ap.target_ending_chapter<ap.flexibility_min_chapter) or (ap.target_ending_chapter is not null and ap.flexibility_max_chapter is not null and ap.target_ending_chapter>ap.flexibility_max_chapter));
+invalid_series:=total_series-covered_series;
+result:=jsonb_build_object('status',case when invalid_series=0 and duplicate_active=0 and malformed_arcs=0 and invalid_ranges=0 then 'pass' else 'fail' end,'total_production_series',total_series,'covered_series',covered_series,'uncovered_series',invalid_series,'duplicate_active_plans',duplicate_active,'malformed_arc_structures',malformed_arcs,'invalid_chapter_ranges',invalid_ranges,'verified_at',now());
+insert into public.taleforge_system_checks(check_key,category,status,score,details,checked_at) values('arc_planning_integrity','architecture',case when result->>'status'='pass' then 'pass' else 'fail' end,case when result->>'status'='pass' then 100 else 0 end,result,now());
+return result;
+end; $$;
+revoke all on function public.taleforge_verify_arc_planning() from public,anon,authenticated;
+grant execute on function public.taleforge_verify_arc_planning() to service_role;
+update public.taleforge_system_registry set status='active',authority_level=90,criticality='critical',health_check_prefix='arc_planning_integrity',description='Governed long-range arc architecture connecting Story Blueprint and Ending Architecture to future Chapter Planning.' where system_key='arc_planning';
+select public.taleforge_verify_arc_planning();
+select public.taleforge_refresh_system_health();
