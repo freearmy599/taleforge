@@ -1,0 +1,3 @@
+-- TaleForge Story Opportunity Candidate Discovery
+-- Discovers bounded opportunities from active grammar compatibility without generating prose/canon.
+-- Character architecture is an explicit downstream design requirement.
