@@ -1,6 +1,6 @@
 -- TaleForge semantic generation/revision integration marker.
 -- Live Edge Functions:
 -- generate-chapter v45: semantic Advanced Chapter Plan alignment review.
--- revise-chapter v25: semantic plan-alignment revision guidance.
+-- revise-chapter v27: Advanced Chapter Plan execution during revision.
 -- Generation Context v4 already carries advanced_chapter_plan.
 -- Live Supabase state is authoritative for deployed function bodies.
