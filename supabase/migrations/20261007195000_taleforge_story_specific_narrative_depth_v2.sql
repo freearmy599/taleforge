@@ -1,0 +1,9 @@
+-- TaleForge Story-Specific Narrative Depth & Arc Expansion Engine v2
+-- Live Supabase schema is authoritative; this migration marker documents the deployed architecture.
+-- Deployed objects include:
+--   public.taleforge_story_specific_depth_designs
+--   public.taleforge_design_story_specific_depth_v2(uuid)
+--   public.taleforge_verify_story_specific_depth_v2()
+-- Engine version: narrative-depth-v2
+-- Guarantees: no prose generation, no canon mutation, evidence-backed design only.
+-- Health check: narrative_depth_story_specific_integrity
