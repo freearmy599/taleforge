@@ -1,0 +1,27 @@
+create or replace function public.taleforge_verify_generation_context() returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare production_series integer; covered integer; missing_identity integer; missing_dna integer; missing_story_blueprint integer; missing_arc integer; malformed_blueprints integer; result jsonb; ok boolean;
+begin
+select count(*) into production_series from public.series s where s.status in ('ongoing','completed') and coalesce(s.description,'') not ilike '%temporary internal series%' and coalesce(s.ai_disclosure,'') not ilike '%internal test content%';
+select count(*) into covered from public.chapter_blueprints b where b.generation_status in ('planned','ready','queued','generating','generated','published','needs_revision')
+and exists(select 1 from public.series s where s.id=b.series_id and s.status in ('ongoing','completed') and coalesce(s.description,'') not ilike '%temporary internal series%' and coalesce(s.ai_disclosure,'') not ilike '%internal test content%')
+and exists(select 1 from public.story_dna d where d.series_id=b.series_id and d.status='active')
+and exists(select 1 from public.story_identity i where i.series_id=b.series_id and i.status='active')
+and exists(select 1 from public.story_blueprints sb where sb.series_id=b.series_id and sb.generation_status not in ('rejected','archived'))
+and exists(select 1 from public.story_arc_plan a where a.series_id=b.series_id and a.status='active');
+select count(*) into missing_dna from public.series s where s.status in ('ongoing','completed') and coalesce(s.description,'') not ilike '%temporary internal series%' and coalesce(s.ai_disclosure,'') not ilike '%internal test content%' and not exists(select 1 from public.story_dna d where d.series_id=s.id and d.status='active');
+select count(*) into missing_identity from public.series s where s.status in ('ongoing','completed') and coalesce(s.description,'') not ilike '%temporary internal series%' and coalesce(s.ai_disclosure,'') not ilike '%internal test content%' and not exists(select 1 from public.story_identity i where i.series_id=s.id and i.status='active');
+select count(*) into missing_story_blueprint from public.series s where s.status in ('ongoing','completed') and coalesce(s.description,'') not ilike '%temporary internal series%' and coalesce(s.ai_disclosure,'') not ilike '%internal test content%' and not exists(select 1 from public.story_blueprints sb where sb.series_id=s.id and sb.generation_status not in ('rejected','archived'));
+select count(*) into missing_arc from public.series s where s.status in ('ongoing','completed') and coalesce(s.description,'') not ilike '%temporary internal series%' and coalesce(s.ai_disclosure,'') not ilike '%internal test content%' and not exists(select 1 from public.story_arc_plan a where a.series_id=s.id and a.status='active');
+select count(*) into malformed_blueprints from public.chapter_blueprints b where b.generation_status in ('planned','ready','queued','generating','generated','published','needs_revision') and (jsonb_typeof(coalesce(b.plot_events,'[]'::jsonb))<>'array' or jsonb_typeof(coalesce(b.continuity_requirements,'[]'::jsonb))<>'array' or jsonb_typeof(coalesce(b.previous_chapter_dependencies,'[]'::jsonb))<>'array');
+ok:=missing_dna=0 and missing_identity=0 and missing_story_blueprint=0 and missing_arc=0 and malformed_blueprints=0;
+result:=jsonb_build_object('production_series',production_series,'chapter_blueprints_with_required_architecture',covered,'missing_dna',missing_dna,'missing_identity',missing_identity,'missing_story_blueprint',missing_story_blueprint,'missing_arc_plan',missing_arc,'malformed_current_blueprints',malformed_blueprints,'healthy',ok);
+insert into public.taleforge_system_checks(check_key,category,status,score,details,checked_at) values('generation_context_integrity','generation',case when ok then 'pass' else 'fail' end,case when ok then 100 else 0 end,result,now());
+return result; end; $$;
+revoke all on function public.taleforge_verify_generation_context() from public,anon,authenticated;
+grant execute on function public.taleforge_verify_generation_context() to service_role;
+insert into public.taleforge_system_registry(system_key,display_name,domain,status,authority_level,criticality,description,health_check_prefix)
+values('generation_context','Generation Context Engine','generation','active',95,'critical','Canonical assembly of Story DNA, Identity, Story Blueprint, Arc Plan, Chapter Blueprint, canon/continuity, characters, relationships, world state, prior chapters, and future payoff awareness before AI generation.','generation_context_integrity')
+on conflict(system_key) do update set display_name=excluded.display_name,domain=excluded.domain,status=excluded.status,authority_level=excluded.authority_level,criticality=excluded.criticality,description=excluded.description,health_check_prefix=excluded.health_check_prefix,updated_at=now();
+insert into public.taleforge_system_dependencies(system_key,depends_on_system_key,dependency_type) values
+('generation_context','story_dna','required'),('generation_context','story_identity','required'),('generation_context','story_blueprint','required'),('generation_context','arc_planning','required'),('generation_context','chapter_planning','required'),('generation_context','canon','required'),('generation_context','continuity','required') on conflict do nothing;
