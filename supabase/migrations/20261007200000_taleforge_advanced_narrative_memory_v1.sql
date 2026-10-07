@@ -1,0 +1,10 @@
+-- TaleForge Advanced Narrative Memory & State Consolidation
+-- Live DB deployment:
+--   taleforge_advanced_narrative_memory_v1
+--   taleforge_advanced_narrative_memory_v1_fix
+--   taleforge_advanced_narrative_memory_v1_hash_fix
+--   taleforge_advanced_narrative_memory_v1_governance
+-- Live DB is authoritative.
+--
+-- Provides versioned trusted/conditional/blocked memory consolidation from
+-- canonical continuity evidence. No prose generation and no canon mutation.
