@@ -1,0 +1,5 @@
+-- TaleForge Advanced Plot Thread Progression & Payoff Intelligence
+-- Live DB implementation includes progression evidence, stall detection,
+-- payoff timing, governance and verification.
+-- Live DB is authoritative.
+-- Semantic prose extraction remains intentionally separate and is not performed.
