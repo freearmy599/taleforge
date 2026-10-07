@@ -1,0 +1,15 @@
+-- TaleForge Advanced Continuity Intelligence & Semantic State Reconciliation
+-- Live database migration: taleforge_advanced_continuity_reconciliation_v1
+-- Follow-up fix: taleforge_advanced_continuity_reconciliation_v1_fix
+-- Live DB is authoritative for this deployed layer.
+--
+-- Provides:
+--   taleforge_continuity_reconciliation_runs
+--   taleforge_continuity_reconciliation_findings
+--   taleforge_reconcile_continuity()
+--   taleforge_verify_continuity_reconciliation()
+--   taleforge_refresh_continuity_reconciliation_health()
+--
+-- Boundary:
+--   This layer reconciles canonical continuity evidence and state snapshots.
+--   It does not generate prose, invent semantic facts, or mutate canon.
