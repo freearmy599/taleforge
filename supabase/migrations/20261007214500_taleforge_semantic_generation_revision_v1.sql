@@ -1,0 +1,5 @@
+-- TaleForge semantic generation/revision integration marker.
+-- Live Edge Functions: generate-chapter v45, revise-chapter v26.
+-- Generation quality review now evaluates Advanced Chapter Plan execution.
+-- Revision v9 consumes semantic plan-alignment findings.
+-- Live Supabase functions are authoritative; this marker preserves repository history.
