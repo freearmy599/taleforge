@@ -1,0 +1,4 @@
+-- TaleForge: Generation Context v4
+-- Advanced Chapter Planning is now included in canonical generation context.
+-- Live migration is authoritative in Supabase project sxmbnlgufqhcwxcpcsvb.
+-- This marker preserves repository migration history.
