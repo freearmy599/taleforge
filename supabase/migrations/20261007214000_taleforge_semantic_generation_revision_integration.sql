@@ -1,0 +1,5 @@
+-- TaleForge: Semantic Generation & Revision Integration
+-- Live edge functions: generate-chapter v44, revise-chapter v24.
+-- Generation quality review now audits Advanced Chapter Plan execution.
+-- Semantic plan alignment is a revision gate; revision v9 consumes those findings.
+-- Live Supabase functions are authoritative; this file preserves repository history.
