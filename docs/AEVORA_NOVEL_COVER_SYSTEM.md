@@ -23,6 +23,8 @@ Every public novel card and series page should have a deliberate, consistent cov
 - The design-branch `admin.html` has a **Request a Novel Cover** panel and a **Cover Request Queue**. The queue calls `aevora-cover-review`, lists recent jobs with their structured briefs, and permits rejection only for `queued` or `failed` jobs. Rendering uses DOM text nodes rather than inserting job data as HTML.
 - Edge Function `aevora-cover-review` v1 is deployed with JWT verification and trusted admin/owner checks. Its supported actions are `list` and `reject`; it deliberately does not offer approval until a validated candidate and safe private-image delivery exist.
 
+Provider selection and adapter contract: see [Aevora Cover Provider Adapter](AEVORA_COVER_PROVIDER_ADAPTER.md). Cloudflare Workers AI is the first adapter candidate, but no credentials are configured and the worker remains readiness-only until bounded processing, image validation, and editorial approval are implemented.
+
 ## Cover lifecycle (target)
 1. **Brief:** derive a cover brief from the approved series title, genre, premise, setting, mood, and distinct visual motifs.
 2. **Generate:** call a configured image-generation provider from a trusted server-side function. Never put provider API keys in browser code.
