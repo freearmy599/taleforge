@@ -23,6 +23,7 @@
 <div class="grid">
 <article class="card"><div class="icon">01 · Editorial governance</div><h2>Chief Editor Monitor</h2><p>Evaluate series health, review/revision signals, failed generation jobs, release buffer status, and active alerts. This monitor does not create chapters or publish stories.</p><div class="metric">Writes: <strong>editorial health snapshots and alerts</strong></div><button class="button" id="editorButton">Run editorial monitor</button><div id="editorStatus" class="status">No monitor run in this session.</div></article>
 <article class="card"><div class="icon">02 · Autonomous creation</div><h2>Series Creation Preflight</h2><p>Assess candidate opportunities, linked concepts, configured limits, and automated release schedules before any future controlled creation test.</p><div class="metric">Mode: <strong>preflight only</strong></div><div class="metric">Gemini / chapter generation: <strong>not called</strong></div><div class="metric">Production policy: <strong>remains disabled</strong></div><button class="button" id="preflightButton">Run readiness preflight</button><div id="preflightStatus" class="status">No preflight run in this session.</div></article>
+<article class="card"><div class="icon">03 · Operations visibility</div><h2>Live Operations Snapshot</h2><p>Read current database state for published chapters, recent jobs, release schedules, editorial alerts, and autonomous-creation audit history. This is read-only and does not start background work.</p><div class="metric">Database writes: <strong>none</strong></div><div class="metric">AI provider calls: <strong>none</strong></div><button class="button secondary" id="operationsButton">Load operations snapshot</button><div id="operationsStatus" class="status">No snapshot loaded in this session.</div></article>
 <article class="card wide"><div class="icon">Governance safeguards</div><h2>Production stays locked</h2><p>This panel does not offer a production-creation switch. The autonomous creation endpoint only accepts <code>mode: preflight</code>; it will reject execution requests. Existing release schedules are only reported, never triggered or changed here.</p><div class="row"><span class="tag">JWT protected</span><span class="tag">Admin/owner role check</span><span class="tag">No AI generation</span><span class="tag">No publication</span></div></article>
 </div>
 </section>
@@ -37,7 +38,7 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persist
 const $=id=>document.getElementById(id);
 const loginPanel=$("loginPanel"),operationsPanel=$("operationsPanel"),loginForm=$("loginForm");
 function setStatus(id,text,kind=""){const el=$(id);el.textContent=text;el.className="status"+(kind?" "+kind:"")}
-function setBusy(value){["loginButton","signOutButton","editorButton","preflightButton"].forEach(id=>$(id).disabled=value)}
+function setBusy(value){["loginButton","signOutButton","editorButton","preflightButton","operationsButton"].forEach(id=>$(id).disabled=value)}
 async function ensureAdmin(){
  const {data:{user},error}=await supabase.auth.getUser();
  if(error||!user)throw new Error("Could not verify the signed-in user. Please sign in again.");
@@ -80,6 +81,21 @@ $("preflightButton").addEventListener("click",async()=>{
  }catch(error){setStatus("preflightStatus","Preflight failed:\n"+(error?.message||"Unknown error"),"error");}
  finally{setBusy(false);}
 });
+
+$("operationsButton").addEventListener("click",async()=>{
+ setBusy(true);setStatus("operationsStatus","Reading current operational records…");
+ try{
+  await ensureAdmin();
+  const {data,error}=await supabase.functions.invoke("aevora-operations-snapshot",{method:"POST",body:{}});
+  if(error){let detail=error.message||"Function request failed.";try{if(error.context?.json)detail+="\\n"+JSON.stringify(await error.context.json(),null,2)}catch{}throw new Error(detail);}
+  if(!data?.success)throw new Error(JSON.stringify(data,null,2));
+  setStatus("operationsStatus",JSON.stringify(data,null,2),"ok");
+  const s=data.summary||{};
+  setStatus("globalStatus","Read-only snapshot loaded: "+(s.actually_published_chapters??0)+" published chapters, "+(s.open_editorial_alerts??0)+" open editorial alerts, "+(s.failed_jobs_in_snapshot??0)+" failed recent jobs. This reflects database records only.","ok");
+ }catch(error){setStatus("operationsStatus","Snapshot failed:\\n"+(error?.message||"Unknown error"),"error");}
+ finally{setBusy(false);}
+});
+
 $("signOutButton").addEventListener("click",async()=>{
  setBusy(true);try{await supabase.auth.signOut();}finally{loginForm.reset();loginPanel.classList.remove("hidden");operationsPanel.classList.add("hidden");setStatus("globalStatus","Signed out. Session cleared from this page.");setStatus("editorStatus","No monitor run in this session.");setStatus("preflightStatus","No preflight run in this session.");setBusy(false);}
 });
