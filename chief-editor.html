@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Aevora · Chief Editor Monitor</title>
+<style>
+:root{color-scheme:dark;--bg:#090c10;--panel:#111820;--line:#263341;--text:#edf5fb;--muted:#9aabba;--cyan:#67e8f9;--danger:#fca5a5;--ok:#86efac}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top right,#12303a 0,transparent 40%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,sans-serif;display:grid;place-items:center;padding:20px}.panel{width:min(100%,560px);background:rgba(17,24,32,.94);border:1px solid var(--line);border-radius:18px;padding:clamp(22px,5vw,36px);box-shadow:0 24px 80px #0008}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan)}h1{font-size:clamp(27px,5vw,38px);line-height:1.1;margin:10px 0}p{color:var(--muted)}label{display:block;font-size:13px;margin:16px 0 6px;color:#c9d6e2}input{width:100%;padding:13px 14px;border:1px solid #344454;border-radius:9px;background:#0b1117;color:var(--text);font:inherit}button{width:100%;padding:13px 16px;border:0;border-radius:9px;background:var(--cyan);color:#06212a;font-weight:800;font:inherit;cursor:pointer;margin-top:16px}button:disabled{opacity:.5;cursor:wait}.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}.status{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--line);background:#0b1117;border-radius:10px;padding:14px;margin-top:18px;color:#c8d5df;min-height:48px}.status.ok{color:var(--ok)}.status.error{color:var(--danger)}.note{font-size:12px}.hidden{display:none}.topline{display:flex;justify-content:space-between;align-items:center;gap:12px}.topline button{width:auto;margin:0;padding:8px 12px;font-size:12px}.warning{border-left:3px solid #fbbf24;padding-left:12px}.small{font-size:12px;color:#8193a4}
+</style>
+</head>
+<body>
+<main class="panel">
+<div class="eyebrow">Aevora · Operations</div>
+<div class="topline"><h1>Chief Editor Monitor</h1><span class="small">Admin-only</span></div>
+<p>Run a read/monitoring pass over series and editorial lifecycle signals. This page does not generate chapters, publish stories, or alter release schedules.</p>
+<div id="loginPanel">
+<form id="loginForm">
+<label for="email">Administrator email</label><input id="email" type="email" autocomplete="username" required>
+<label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required>
+<button id="loginButton" type="submit">Sign in securely</button>
+</form>
+<p class="note warning">Only use an account whose Supabase Auth <code>app_metadata.role</code> is <code>admin</code> or <code>owner</code>. Credentials are not written to this page or local storage. Use your own device and sign out when finished.</p>
+</div>
+<div id="monitorPanel" class="hidden">
+<p id="signedInAs"></p>
+<button id="runButton" type="button">Run Chief Editor monitor</button>
+<button id="signOutButton" class="secondary" type="button">Sign out</button>
+</div>
+<div id="status" class="status" role="status" aria-live="polite">Ready. Sign in with an authorized administrator account.</div>
+<p class="small">This page uses the public/publishable Supabase key and the signed-in user's short-lived session. It never uses a service-role key and never displays the access token.</p>
+</main>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPABASE_URL = "https://sxmbnlgufqhcwxcpcsvb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TE62_J3d3fxN8v-PK3CX6w_prxfHJwC";
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
+const loginPanel=document.getElementById("loginPanel");
+const monitorPanel=document.getElementById("monitorPanel");
+const loginForm=document.getElementById("loginForm");
+const loginButton=document.getElementById("loginButton");
+const runButton=document.getElementById("runButton");
+const signOutButton=document.getElementById("signOutButton");
+const statusBox=document.getElementById("status");
+const signedInAs=document.getElementById("signedInAs");
+function status(message,kind=""){statusBox.textContent=message;statusBox.className="status"+(kind?" "+kind:"")}
+function setBusy(busy){loginButton.disabled=busy;runButton.disabled=busy;signOutButton.disabled=busy}
+async function checkRole(){
+  const {data:{user},error}=await supabase.auth.getUser();
+  if(error||!user) throw new Error("Could not verify the signed-in user.");
+  const role=user.app_metadata?.role;
+  if(!["admin","owner"].includes(role)){
+    await supabase.auth.signOut();
+    throw new Error("Access denied. This account is not marked admin/owner in Supabase Auth app_metadata.");
+  }
+  signedInAs.textContent="Authorized administrator: "+(user.email||"signed-in user");
+  loginPanel.classList.add("hidden");
+  monitorPanel.classList.remove("hidden");
+}
+loginForm.addEventListener("submit",async(event)=>{
+  event.preventDefault();setBusy(true);status("Signing in and checking administrator role…");
+  try{
+    const email=document.getElementById("email").value.trim();
+    const password=document.getElementById("password").value;
+    const {error}=await supabase.auth.signInWithPassword({email,password});
+    document.getElementById("password").value="";
+    if(error) throw error;
+    await checkRole();
+    status("Authorized. No monitor run has started yet.","ok");
+  }catch(error){status(error?.message||"Sign-in failed.","error");}
+  finally{setBusy(false)}
+});
+runButton.addEventListener("click",async()=>{
+  setBusy(true);status("Calling Chief Editor monitor…");
+  try{
+    await checkRole();
+    const {data,error}=await supabase.functions.invoke("chief-editor-monitor",{method:"POST",body:{}});
+    if(error){
+      let detail=error.message||"Function request failed.";
+      try{if(error.context?.json){const payload=await error.context.json();detail+="\n"+JSON.stringify(payload,null,2)}}catch{}
+      throw new Error(detail);
+    }
+    status("Monitor request completed. Function response:\n"+JSON.stringify(data,null,2),"ok");
+  }catch(error){status("Monitor request failed:\n"+(error?.message||"Unknown error")+"\n\nNo generation job was created by this page.","error");}
+  finally{setBusy(false)}
+});
+signOutButton.addEventListener("click",async()=>{
+  setBusy(true);
+  try{await supabase.auth.signOut()}finally{
+    loginPanel.classList.remove("hidden");monitorPanel.classList.add("hidden");
+    loginForm.reset();document.getElementById("password").value="";
+    setBusy(false);status("Signed out. Session cleared from this page.");
+  }
+});
+</script>
+</body>
+</html>
