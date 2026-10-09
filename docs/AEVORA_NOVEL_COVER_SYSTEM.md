@@ -14,13 +14,15 @@ Every public novel card and series page should have a deliberate, consistent cov
 - Production Supabase migration `create_aevora_cover_job_queue` creates `public.aevora_cover_jobs`.
 - Queue jobs are deduplicated by `series_id + series_version`, have bounded retry metadata, track candidate/review states, and store a structured cover brief.
 - RLS is enabled. Direct table access is revoked from `anon` and `authenticated`; only `service_role` receives table privileges.
-- Verification query confirmed RLS enabled, anonymous/authenticated SELECT denied, and service-role SELECT allowed.
-- Read-only inspection found no existing Supabase Storage buckets at the time of inspection.
+- Verification confirmed RLS enabled and direct SELECT denied to anonymous/authenticated roles.
+- A private Supabase Storage bucket named `aevora-covers` is configured for PNG/JPEG/WebP files, with a 10 MiB per-file limit.
+- Edge Function `aevora-cover-worker` v1 is deployed with JWT verification enabled and admin/owner app-metadata role checks.
+- The function is deliberately **readiness-only**: it reports queue depth and whether server-side provider configuration exists. It does not claim jobs, generate images, or consume provider quota.
 
 ## Cover lifecycle (target)
 1. **Brief:** derive a cover brief from the approved series title, genre, premise, setting, mood, and distinct visual motifs.
 2. **Generate:** call a configured image-generation provider from a trusted server-side function. Never put provider API keys in browser code.
-3. **Store:** upload the candidate to a private or intentionally public Supabase Storage bucket using a deliberate access policy; save the approved image URL in the existing series `cover_image` field.
+3. **Store:** upload the candidate to the private `aevora-covers` bucket using the service role; only publish a deliberate public/authorized URL after approval.
 4. **Review:** validate image dimensions, file type, size, content safety, and series relevance. Allow an authorized editor to approve, regenerate, or replace.
 5. **Display:** use the same cover URL on Home, Explore, series detail, library, and recommendations. Use the designed placeholder whenever no valid image exists.
 6. **Monitor:** record generation failures and missing/broken covers without blocking chapter generation or publication.
@@ -28,14 +30,14 @@ Every public novel card and series page should have a deliberate, consistent cov
 ## Approval and cost safeguards
 - Do not generate covers from public-page requests or on every page load.
 - Deduplicate queue jobs by series/version to avoid duplicate provider charges.
-- Use an image provider only after its endpoint, credentials, free-tier/price, and output license are confirmed.
+- Configure `AEVORA_IMAGE_API_URL`, `AEVORA_IMAGE_API_KEY`, and `AEVORA_IMAGE_MODEL` as server-side Edge Function secrets only after choosing and validating a compatible provider adapter.
+- The readiness function checks whether these values exist but does not print them.
 - A failed cover job must not block series creation, chapter generation, review, or scheduled release.
 - Do not overwrite an approved cover automatically. Regeneration creates a candidate for review.
 - Keep provider credentials server-side; no secret keys in HTML, GitHub commits, client JavaScript, queue payloads, or public logs.
-- Do not create a Storage bucket or make it public until the storage access model is explicitly chosen.
 
 ## Current limitations
-The design branch implements the presentation and missing-image fallback. The production database now has the secure queue foundation, but no Edge Function yet claims jobs, calls an image provider, uploads candidate assets, or runs editorial approval. No provider has been configured, and no Storage bucket exists yet. Chapter generation and publication were not triggered or changed by this cover work.
+The frontend fallback, private bucket, queue table, and readiness-only Edge Function are implemented. Image generation is **not enabled**: no provider adapter/secrets have been configured, the function does not claim jobs, and editorial approval/final cover assignment is not wired. The private bucket means cover URLs cannot yet be assumed publicly accessible. Chapter generation and publication were not triggered or changed by this cover work.
 
 ## Acceptance checks
 - [ ] Home shows a readable placeholder for a series with no cover URL.
@@ -44,6 +46,6 @@ The design branch implements the presentation and missing-image fallback. The pr
 - [ ] A broken URL falls back cleanly.
 - [ ] Cover images preserve a portrait 2:3 ratio and use `object-fit: cover`.
 - [ ] Cover text and alt text remain accessible.
-- [ ] No provider secret appears in client code.
-- [ ] Cover jobs are cost-controlled, deduplicated, reviewable, and independent from chapter publishing.
-- [ ] Worker uses bounded retries and marks failures without blocking story operations.
+- [x] No provider secret appears in client code; none has been configured.
+- [x] Queue jobs are deduplicated and server-only.
+- [ ] Provider adapter, bounded worker processing, review workflow, and final cover assignment.
