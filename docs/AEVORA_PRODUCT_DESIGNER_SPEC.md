@@ -71,11 +71,14 @@ Only for low-risk, reversible design-token or copy changes, with visual regressi
 ## Initial scope
 
 1. Establish design tokens and shared UI foundations.
-2. Migrate Home page to the Aevora design system while preserving existing functionality.
-3. Migrate Explore page.
-4. Audit series details and reader experience against actual published data.
-5. Add browser automation and screenshot comparisons.
-6. Build a private Product Designer status panel into the existing admin command center after authorization and data contracts are established.
+2. Launch as a novel-first product: do not advertise Manga, Anime, or other unimplemented media categories in primary navigation.
+3. Migrate Home page to the Aevora design system while preserving existing functionality.
+4. Migrate Explore page and make search/filter/results states trustworthy.
+5. Implement a consistent novel cover presentation: branded title/genre fallback, graceful broken-image handling, and shared visual language across discovery surfaces.
+6. Implement the provider-backed cover-generation and storage workflow only after provider cost/credentials, Supabase Storage, and schema are inspected. Keep generation server-side, queued, deduplicated, and reviewable.
+7. Audit series details and reader experience against actual published data.
+8. Add browser automation and screenshot comparisons.
+9. Build a private Product Designer status panel into the existing admin command center after authorization and data contracts are established.
 
 ## Current status
 
