@@ -6,6 +6,8 @@ Give every series a deliberate, genre-aware cover presentation while Aevora has 
 ## Explore implementation
 - Explore cards select a deterministic visual theme from the series genre: fantasy, science fiction, mystery/thriller, romance/drama, horror/dark fiction, adventure/action, or the default Aevora midnight-blue palette.
 - Each theme combines a distinct color atmosphere with geometric light/ring motifs.
+- A motif is selected locally from existing title, subtitle, description, mood, and (on the series page) setting metadata. Current motif families include moon, clock, forest, city, ocean, rose, crown, door, train, and star.
+- Explore and series detail share the same genre-to-theme and motif-selection rules so the fallback is consistent across both pages.
 - The title and genre remain the cover's primary text; existing cover images continue to render above the fallback.
 - If a real cover URL is missing or fails, the template remains visible.
 - Unknown or mixed genres fall back safely to the default theme.
@@ -24,4 +26,4 @@ Give every series a deliberate, genre-aware cover presentation while Aevora has 
 4. Keep an admin spending cap and one-job-at-a-time processing before any paid provider is activated.
 
 ## Current limitations
-These are CSS-based cover designs, not standalone illustrations. Explore cards and the series detail cover now share the same deterministic genre theme mapping on the feature/aevora-design-system-v1 branch. No image API is configured, no provider request was made, and no cover was generated or published.
+These are CSS-based cover designs and typography, not standalone illustrations. The motif selection is keyword-based and intentionally simple; it does not infer deep story meaning. Explore cards and the series detail cover now share the same deterministic genre theme mapping on the feature/aevora-design-system-v1 branch. No image API is configured, no provider request was made, and no cover was generated or published.
