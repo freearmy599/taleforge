@@ -92,7 +92,7 @@ $("operationsButton").addEventListener("click",async()=>{
   if(!data?.success)throw new Error(JSON.stringify(data,null,2));
   setStatus("operationsStatus",JSON.stringify(data,null,2),"ok");
   const s=data.summary||{};
-  setStatus("globalStatus","Read-only snapshot loaded: "+(s.actually_published_chapters??0)+" published chapters, "+(s.open_editorial_alerts??0)+" open editorial alerts, "+(s.failed_jobs_in_snapshot??0)+" failed recent jobs. This reflects database records only.","ok");
+  setStatus("globalStatus","Read-only snapshot loaded: "+(s.actually_published_chapters??0)+" published chapters, "+(s.open_editorial_alerts??0)+" open editorial alerts, "+(s.failed_jobs_in_snapshot??0)+" failed recent jobs. Autonomous runner: "+(s.autonomous_creation_runner_last_status??"unknown")+". This reflects database and scheduler records only.","ok");
  }catch(error){setStatus("operationsStatus","Snapshot failed:\\n"+(error?.message||"Unknown error"),"error");}
  finally{setBusy(false);}
 });
