@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Aevora · Admin Operations</title>
+<style>
+:root{color-scheme:dark;--bg:#080b10;--panel:#111821;--panel2:#0c1219;--line:#263545;--text:#eef6ff;--muted:#9aabba;--cyan:#67e8f9;--green:#86efac;--amber:#fcd34d;--red:#fca5a5}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 80% -10%,#123541 0,transparent 40%),var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,sans-serif}.shell{max-width:1100px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0 26px;border-bottom:1px solid var(--line)}.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);font-weight:800}.top h1{font-size:clamp(27px,5vw,42px);line-height:1.1;margin:8px 0}.muted{color:var(--muted)}.tag{border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted);white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:22px 0}.card{background:linear-gradient(160deg,rgba(20,31,43,.96),rgba(12,18,25,.96));border:1px solid var(--line);border-radius:16px;padding:22px;min-width:0}.card h2{margin:7px 0;font-size:22px}.icon{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.card p{color:var(--muted);margin:10px 0 18px}.button{border:0;border-radius:9px;padding:12px 16px;background:var(--cyan);color:#06232a;font:700 14px system-ui;cursor:pointer}.button.secondary{background:#152431;color:var(--text);border:1px solid #304657}.button:disabled{opacity:.5;cursor:wait}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.field{display:block;margin:15px 0 6px;font-size:13px;color:#c9d6e2}input{width:100%;padding:12px 14px;border:1px solid #344454;border-radius:9px;background:#0b1117;color:var(--text);font:inherit}.login{max-width:500px;margin:30px auto}.hidden{display:none!important}.status{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--line);background:#080e14;border-radius:10px;padding:14px;margin-top:18px;color:#c8d5df;min-height:50px;max-height:500px;overflow:auto}.status.ok{color:var(--green)}.status.error{color:var(--red)}.status.warn{color:var(--amber)}.note{font-size:12px;color:#8fa2b3}.metric{font-size:13px;color:var(--muted);padding:10px 0;border-top:1px solid var(--line)}.metric strong{color:var(--text)}.wide{grid-column:1/-1}footer{padding:25px 0;color:#718496;font-size:12px;border-top:1px solid var(--line)}code{color:var(--cyan)}@media(max-width:700px){.shell{padding:16px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.top{align-items:flex-start}.tag{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top"><div><div class="eyebrow">Aevora · Command Center</div><h1>Admin Operations</h1><div class="muted">Governance, editorial health, and controlled automation readiness.</div></div><span class="tag">Private · Noindex</span></header>
+<section id="loginPanel" class="card login">
+<div class="icon">Secure administrator access</div><h2>Sign in to Aevora</h2><p>Use an account whose Supabase Auth <code>app_metadata.role</code> is <code>admin</code> or <code>owner</code>.</p>
+<form id="loginForm"><label class="field" for="email">Administrator email</label><input id="email" type="email" autocomplete="username" required><label class="field" for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button class="button" id="loginButton" type="submit" style="width:100%;margin-top:16px">Sign in securely</button></form>
+<p class="note">This page uses the public/publishable key and your short-lived signed-in session. It never uses a service-role key or stores credentials in local storage.</p>
+</section>
+<section id="operationsPanel" class="hidden">
+<div class="row" style="justify-content:space-between;margin:22px 0 8px"><div id="who" class="muted"></div><button class="button secondary" id="signOutButton">Sign out</button></div>
+<div class="grid">
+<article class="card"><div class="icon">01 · Editorial governance</div><h2>Chief Editor Monitor</h2><p>Evaluate series health, review/revision signals, failed generation jobs, release buffer status, and active alerts. This monitor does not create chapters or publish stories.</p><div class="metric">Writes: <strong>editorial health snapshots and alerts</strong></div><button class="button" id="editorButton">Run editorial monitor</button><div id="editorStatus" class="status">No monitor run in this session.</div></article>
+<article class="card"><div class="icon">02 · Autonomous creation</div><h2>Series Creation Preflight</h2><p>Assess candidate opportunities, linked concepts, configured limits, and automated release schedules before any future controlled creation test.</p><div class="metric">Mode: <strong>preflight only</strong></div><div class="metric">Gemini / chapter generation: <strong>not called</strong></div><div class="metric">Production policy: <strong>remains disabled</strong></div><button class="button" id="preflightButton">Run readiness preflight</button><div id="preflightStatus" class="status">No preflight run in this session.</div></article>
+<article class="card wide"><div class="icon">Governance safeguards</div><h2>Production stays locked</h2><p>This panel does not offer a production-creation switch. The autonomous creation endpoint only accepts <code>mode: preflight</code>; it will reject execution requests. Existing release schedules are only reported, never triggered or changed here.</p><div class="row"><span class="tag">JWT protected</span><span class="tag">Admin/owner role check</span><span class="tag">No AI generation</span><span class="tag">No publication</span></div></article>
+</div>
+</section>
+<div id="globalStatus" class="status" role="status" aria-live="polite">Ready. Sign in with an authorized administrator account.</div>
+<footer>Aevora private operations surface · Do not share this page as a public entry point.</footer>
+</div>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPABASE_URL="https://sxmbnlgufqhcwxcpcsvb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_TE62_J3d3fxN8v-PK3CX6w_prxfHJwC";
+const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+const $=id=>document.getElementById(id);
+const loginPanel=$("loginPanel"),operationsPanel=$("operationsPanel"),loginForm=$("loginForm");
+function setStatus(id,text,kind=""){const el=$(id);el.textContent=text;el.className="status"+(kind?" "+kind:"")}
+function setBusy(value){["loginButton","signOutButton","editorButton","preflightButton"].forEach(id=>$(id).disabled=value)}
+async function ensureAdmin(){
+ const {data:{user},error}=await supabase.auth.getUser();
+ if(error||!user)throw new Error("Could not verify the signed-in user. Please sign in again.");
+ const role=user.app_metadata?.role;
+ if(role!=="admin"&&role!=="owner"){await supabase.auth.signOut();throw new Error("Access denied: Supabase Auth app_metadata.role must be admin or owner.");}
+ $("who").textContent="Authorized administrator: "+(user.email||"signed-in user");
+ loginPanel.classList.add("hidden");operationsPanel.classList.remove("hidden");
+ return user;
+}
+loginForm.addEventListener("submit",async event=>{
+ event.preventDefault();setBusy(true);setStatus("globalStatus","Signing in and checking administrator role…");
+ try{
+  const {error}=await supabase.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  $("password").value="";
+  if(error)throw error;
+  await ensureAdmin();setStatus("globalStatus","Signed in. No background operation has started.","ok");
+ }catch(error){setStatus("globalStatus",error?.message||"Sign-in failed.","error");}
+ finally{setBusy(false);}
+});
+$("editorButton").addEventListener("click",async()=>{
+ setBusy(true);setStatus("editorStatus","Calling Chief Editor Monitor…");
+ try{
+  await ensureAdmin();
+  const {data,error}=await supabase.functions.invoke("chief-editor-monitor",{method:"POST",body:{}});
+  if(error){let detail=error.message||"Function request failed.";try{if(error.context?.json)detail+="\n"+JSON.stringify(await error.context.json(),null,2)}catch{}throw new Error(detail);}
+  setStatus("editorStatus","Monitor response:\n"+JSON.stringify(data,null,2),"ok");
+ }catch(error){setStatus("editorStatus","Monitor failed:\n"+(error?.message||"Unknown error"),"error");}
+ finally{setBusy(false);}
+});
+$("preflightButton").addEventListener("click",async()=>{
+ setBusy(true);setStatus("preflightStatus","Evaluating readiness. No AI generation or publication will run…");
+ try{
+  await ensureAdmin();
+  const requestId="admin-preflight-"+crypto.randomUUID();
+  const {data,error}=await supabase.functions.invoke("autonomous-series-creation",{method:"POST",body:{mode:"preflight",dry_run:true,request_id:requestId}});
+  if(error){let detail=error.message||"Function request failed.";try{if(error.context?.json)detail+="\n"+JSON.stringify(await error.context.json(),null,2)}catch{}throw new Error(detail);}
+  const blockers=data?.report?.blockers||[];
+  setStatus("preflightStatus",JSON.stringify(data,null,2),data?.success?(blockers.length?"warn":"ok"):"error");
+  setStatus("globalStatus",data?.success?"Preflight finished. Review the report and blockers before any future controlled test.":"Preflight returned an error.",data?.success?"ok":"error");
+ }catch(error){setStatus("preflightStatus","Preflight failed:\n"+(error?.message||"Unknown error"),"error");}
+ finally{setBusy(false);}
+});
+$("signOutButton").addEventListener("click",async()=>{
+ setBusy(true);try{await supabase.auth.signOut();}finally{loginForm.reset();loginPanel.classList.remove("hidden");operationsPanel.classList.add("hidden");setStatus("globalStatus","Signed out. Session cleared from this page.");setStatus("editorStatus","No monitor run in this session.");setStatus("preflightStatus","No preflight run in this session.");setBusy(false);}
+});
+</script>
+</body>
+</html>
