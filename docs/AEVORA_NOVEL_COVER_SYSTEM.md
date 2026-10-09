@@ -18,6 +18,8 @@ Every public novel card and series page should have a deliberate, consistent cov
 - A private Supabase Storage bucket named `aevora-covers` is configured for PNG/JPEG/WebP files, with a 10 MiB per-file limit.
 - Edge Function `aevora-cover-worker` v1 is deployed with JWT verification enabled and admin/owner app-metadata role checks.
 - The function is deliberately **readiness-only**: it reports queue depth and whether server-side provider configuration exists. It does not claim jobs, generate images, or consume provider quota.
+- Edge Function `aevora-cover-request` v2 is deployed with JWT verification and trusted `user.app_metadata.role` admin/owner checks. It accepts a series UUID, builds a structured brief from the series and genre metadata, and inserts one queue entry per series/version. Existing entries are reused; concurrent duplicate requests do not overwrite a job's status.
+- Cover requests reject a series that already has `cover_image`, so this endpoint cannot automatically replace an assigned cover. The endpoint only queues a brief; it does not call an image provider or publish a candidate.
 
 ## Cover lifecycle (target)
 1. **Brief:** derive a cover brief from the approved series title, genre, premise, setting, mood, and distinct visual motifs.
@@ -37,7 +39,7 @@ Every public novel card and series page should have a deliberate, consistent cov
 - Keep provider credentials server-side; no secret keys in HTML, GitHub commits, client JavaScript, queue payloads, or public logs.
 
 ## Current limitations
-The frontend fallback, private bucket, queue table, and readiness-only Edge Function are implemented. Image generation is **not enabled**: no provider adapter/secrets have been configured, the function does not claim jobs, and editorial approval/final cover assignment is not wired. The private bucket means cover URLs cannot yet be assumed publicly accessible. Chapter generation and publication were not triggered or changed by this cover work.
+The frontend fallback, private bucket, queue table, readiness-only worker, and admin-only cover-request endpoint are implemented. Image generation is **not enabled**: no provider adapter/secrets have been configured, the function does not claim jobs, and editorial approval/final cover assignment is not wired. The private bucket means cover URLs cannot yet be assumed publicly accessible. Chapter generation and publication were not triggered or changed by this cover work.
 
 ## Acceptance checks
 - [ ] Home shows a readable placeholder for a series with no cover URL.
@@ -48,4 +50,5 @@ The frontend fallback, private bucket, queue table, and readiness-only Edge Func
 - [ ] Cover text and alt text remain accessible.
 - [x] No provider secret appears in client code; none has been configured.
 - [x] Queue jobs are deduplicated and server-only.
+- [x] Admin-only request endpoint creates a metadata-based brief and deduplicates by series/version.
 - [ ] Provider adapter, bounded worker processing, review workflow, and final cover assignment.
