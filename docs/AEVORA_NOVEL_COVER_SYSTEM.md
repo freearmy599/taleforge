@@ -20,6 +20,7 @@ Every public novel card and series page should have a deliberate, consistent cov
 - The function is deliberately **readiness-only**: it reports queue depth and whether server-side provider configuration exists. It does not claim jobs, generate images, or consume provider quota.
 - Edge Function `aevora-cover-request` v2 is deployed with JWT verification and trusted `user.app_metadata.role` admin/owner checks. It accepts a series UUID, builds a structured brief from the series and genre metadata, and inserts one queue entry per series/version. Existing entries are reused; concurrent duplicate requests do not overwrite a job's status.
 - Cover requests reject a series that already has `cover_image`, so this endpoint cannot automatically replace an assigned cover. The endpoint only queues a brief; it does not call an image provider or publish a candidate.
+- The design-branch `admin.html` now has a **Request a Novel Cover** panel. An authorized admin enters a series UUID and calls the request endpoint through the signed-in Supabase client; no service-role key is exposed in the page.
 
 ## Cover lifecycle (target)
 1. **Brief:** derive a cover brief from the approved series title, genre, premise, setting, mood, and distinct visual motifs.
@@ -51,4 +52,5 @@ The frontend fallback, private bucket, queue table, readiness-only worker, and a
 - [x] No provider secret appears in client code; none has been configured.
 - [x] Queue jobs are deduplicated and server-only.
 - [x] Admin-only request endpoint creates a metadata-based brief and deduplicates by series/version.
+- [x] Admin page exposes the guarded request action without exposing privileged keys.
 - [ ] Provider adapter, bounded worker processing, review workflow, and final cover assignment.
