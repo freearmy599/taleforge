@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aevora — Design Preview</title>
+<meta name="description" content="A non-production visual preview of Aevora's proposed discovery experience.">
+<style>
+:root{color-scheme:dark;--bg:#06101e;--surface:#0c1a2a;--surface2:#10243a;--line:rgba(167,198,225,.15);--text:#f4f7fc;--muted:#a5b5c9;--cyan:#32d5f5;--violet:#8b7cff;--gold:#f0cc83}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 62% -10%,rgba(50,213,245,.13),transparent 38%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}button,input{font:inherit}.demo-banner{padding:8px 16px;text-align:center;background:#33294f;color:#e5deff;font-size:12px}.top{height:72px;display:flex;align-items:center;gap:26px;padding:0 max(20px,calc((100% - 1440px)/2));border-bottom:1px solid var(--line);background:rgba(6,16,30,.88);position:sticky;top:0;z-index:10;backdrop-filter:blur(18px)}.brand{display:flex;align-items:center;gap:10px;font:500 25px Georgia,serif;letter-spacing:.12em;white-space:nowrap}.mark{width:31px;height:31px;display:grid;place-items:center;color:var(--cyan);border:1px solid rgba(50,213,245,.6);clip-path:polygon(50% 0,100% 88%,0 88%);font:700 18px Georgia,serif}.search{flex:1;max-width:620px}.search input{width:100%;border:1px solid var(--line);border-radius:999px;background:#0c1a2a;color:var(--text);padding:12px 17px;outline:none}.search input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #32d5f51c}.toplinks{margin-left:auto;display:flex;gap:18px;color:var(--muted);white-space:nowrap}.toplinks a:hover{color:var(--cyan)}.layout{max-width:1440px;margin:auto;display:grid;grid-template-columns:190px minmax(0,1fr) 270px;gap:22px;padding:22px 20px 60px}.side{border-right:1px solid var(--line);padding:4px 15px 0 0}.navitem{display:block;padding:11px 13px;border-radius:11px;color:var(--muted);margin-bottom:5px}.navitem.active,.navitem:hover{background:#32d5f51a;color:var(--cyan)}.side-label{color:#70859d;text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:800;margin:24px 12px 8px}.genre{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;color:var(--muted);font-size:12px}.genre span:last-child{color:#7388a0}.main{min-width:0}.hero{position:relative;min-height:360px;overflow:hidden;border:1px solid var(--line);border-radius:22px;background:linear-gradient(105deg,#10243a 0%,#132b40 42%,#182844 100%);display:flex;align-items:end;padding:clamp(22px,4vw,42px);isolation:isolate}.hero:before{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(circle at 78% 30%,#7d8eff50,transparent 22%),radial-gradient(circle at 86% 45%,#32d5f533,transparent 30%),linear-gradient(90deg,#091827 0%,#091827ee 40%,#09182720 100%)}.hero:after{content:"";position:absolute;z-index:-1;right:8%;top:4%;width:230px;height:300px;border-radius:48% 48% 18% 18%;background:linear-gradient(150deg,#8b7cff88,#32d5f555 48%,#0b1727);filter:blur(1px);transform:rotate(9deg);opacity:.7}.hero-copy{max-width:540px}.eyebrow{color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.hero h1{font:500 clamp(36px,4.5vw,62px)/.99 Georgia,serif;letter-spacing:-.04em;margin:14px 0}.hero p{max-width:460px;color:#c1d0e1;line-height:1.7}.pills{display:flex;flex-wrap:wrap;gap:7px;margin:17px 0}.pill{padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:#07111e7a;color:#c4d1e0;font-size:11px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:10px 16px;background:#0b1a2b;color:var(--text);cursor:pointer}.btn.primary{background:var(--cyan);border-color:var(--cyan);color:#04121d;font-weight:800}.btn:hover{filter:brightness(1.12)}.hero-note{font-size:10px;color:#92a5ba;margin-top:17px}.section{margin-top:32px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:15px}.section-head h2{font:500 27px/1.15 Georgia,serif;margin:4px 0 0}.section-head a{color:var(--cyan);font-size:12px}.section-head p{color:var(--muted);font-size:12px;margin:5px 0 0}.shelf{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.book{min-width:0}.cover{aspect-ratio:2/2.7;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;align-items:end;padding:13px;position:relative;background:linear-gradient(145deg,#214e69,#1b2449 50%,#091626);box-shadow:inset 0 -90px 55px -45px #06101edb}.cover:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 65% 25%,#a8eaff66,transparent 22%),linear-gradient(145deg,transparent,#060d19aa)}.cover span{position:relative;font:500 18px/1.08 Georgia,serif;text-shadow:0 2px 12px #000}.cover.c2{background:linear-gradient(150deg,#4d243b,#9c4b53 38%,#151a35)}.cover.c3{background:linear-gradient(150deg,#0c4564,#177fa0 38%,#121a3e)}.cover.c4{background:linear-gradient(150deg,#25284b,#6d5c96 40%,#0b1528)}.cover.c5{background:linear-gradient(150deg,#4c452b,#b17843 45%,#17192d)}.book h3{font:500 15px/1.25 Georgia,serif;margin:10px 0 4px}.book p{margin:0;color:var(--muted);font-size:11px}.book .tag{color:var(--cyan);font-size:10px;margin-top:6px}.release-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.release{display:flex;gap:12px;align-items:center;border:1px solid var(--line);background:#0b1929;border-radius:13px;padding:11px;min-width:0}.mini-cover{flex:0 0 54px;height:72px;border-radius:7px;background:linear-gradient(140deg,#713c59,#142d4b,#0b1427)}.release strong{display:block;font:500 14px Georgia,serif}.release small{display:block;color:var(--muted);margin-top:5px;font-size:10px}.right{min-width:0}.panel{border:1px solid var(--line);background:linear-gradient(155deg,#0d1c2e,#091626);border-radius:16px;padding:17px;margin-bottom:14px}.panel h3{font:500 19px Georgia,serif;margin:0 0 12px}.panel p{color:var(--muted);font-size:12px;margin:0 0 13px}.genre-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.genre-row:last-child{border-bottom:0}.genre-row small{color:#8196ad}.callout{background:linear-gradient(145deg,#172b4a,#211e4b);border:1px solid #8b7cff55}.callout .btn{width:100%}.world-link{display:block;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}.world-link:last-child{border-bottom:0}.world-link small{display:block;color:var(--muted);margin-top:3px}.footer{border-top:1px solid var(--line);padding:25px;text-align:center;color:#71859c;font-size:11px}.mobile-nav{display:none}
+@media(max-width:1100px){.layout{grid-template-columns:155px minmax(0,1fr);}.right{display:none}.shelf{grid-template-columns:repeat(4,minmax(0,1fr))}.top{gap:15px}.toplinks{gap:10px}}
+@media(max-width:760px){.top{height:62px;padding:0 14px;gap:12px}.brand{font-size:20px}.mark{width:26px;height:26px}.toplinks{display:none}.layout{display:block;padding:14px 13px 82px}.side{display:none}.hero{min-height:345px;border-radius:17px;padding:24px}.hero:after{right:-18px;top:0;width:170px;height:225px;opacity:.5}.hero:before{background:linear-gradient(90deg,#091827 0%,#091827e8 48%,#09182755 100%)}.hero h1{font-size:42px;max-width:390px}.hero p{font-size:13px;max-width:390px}.shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.cover{aspect-ratio:2/2.5}.cover span{font-size:17px}.section{margin-top:28px}.section-head h2{font-size:24px}.release-grid{grid-template-columns:1fr}.release{padding:9px}.mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;justify-content:space-around;padding:10px 6px calc(10px + env(safe-area-inset-bottom));background:#07111ff2;border-top:1px solid var(--line);backdrop-filter:blur(18px)}.mobile-nav a{font-size:10px;color:var(--muted);text-align:center}.mobile-nav a.active{color:var(--cyan)}.hero-note{font-size:9px}}
+@media(max-width:390px){.brand{font-size:17px}.hero h1{font-size:36px}.hero{padding:19px}.search input{padding:10px 12px;font-size:12px}.shelf{gap:9px}.cover{padding:10px}.cover span{font-size:15px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="demo-banner">DESIGN PREVIEW · Sample titles and artwork treatments only · Not connected to live Aevora data</div>
+<header class="top">
+  <a class="brand" href="#" aria-label="Aevora preview home"><span class="mark">A</span> AEVORA</a>
+  <label class="search"><input id="search" type="search" placeholder="Search stories, worlds, characters…" aria-label="Search preview stories"></label>
+  <nav class="toplinks" aria-label="Main navigation"><a href="#discover">Discover</a><a href="#latest">Latest</a><a href="#worlds">Worlds</a></nav>
+</header>
+<div class="layout">
+  <aside class="side" aria-label="Discovery navigation">
+    <a class="navitem active" href="#discover">⌂ &nbsp; Discover</a>
+    <a class="navitem" href="#latest">▤ &nbsp; Novels</a>
+    <a class="navitem" href="#worlds">✧ &nbsp; Worlds</a>
+    <a class="navitem" href="#latest">◷ &nbsp; Latest releases</a>
+    <a class="navitem" href="#genres">⌕ &nbsp; Genres</a>
+    <div class="side-label">Explore by mood</div>
+    <div class="genre">Epic adventure <span>↗</span></div><div class="genre">Dark mystery <span>↗</span></div><div class="genre">Progression <span>↗</span></div><div class="genre">Found family <span>↗</span></div><div class="genre">Cosmic wonder <span>↗</span></div>
+    <div class="side-label">Aevora originals</div><a class="navitem" href="#worlds">Original worlds</a><a class="navitem" href="#latest">New voices</a>
+  </aside>
+  <main class="main" id="discover">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <div class="eyebrow">Featured world · Aevora Originals</div>
+        <h1 id="hero-title">Some empires are built on secrets.</h1>
+        <p>A vanished heir. A throne that remembers every betrayal. One impossible choice could change what the kingdom believes about its own history.</p>
+        <div class="pills"><span class="pill">Epic fantasy</span><span class="pill">Political mystery</span><span class="pill">Slow-burn intrigue</span></div>
+        <div class="actions"><a class="btn primary" href="#latest">Explore the story</a><a class="btn" href="#worlds">Enter the world ↗</a></div>
+        <div class="hero-note">Concept preview · This featured story is illustrative, not a published series.</div>
+      </div>
+    </section>
+    <section class="section" aria-labelledby="trending-title">
+      <div class="section-head"><div><div class="eyebrow">Find your next obsession</div><h2 id="trending-title">Stories to step into</h2><p>Distinct worlds, strong hooks, and room to get lost.</p></div><a href="#latest">Explore all ↗</a></div>
+      <div class="shelf" id="storyShelf">
+        <article class="book" data-search="the ninth throne remembers fantasy political mystery"><div class="cover"><span>The Ninth Throne Remembers</span></div><h3>The Ninth Throne Remembers</h3><p>Fantasy · Political mystery</p><div class="tag">Original concept</div></article>
+        <article class="book" data-search="a city beneath the tide adventure mystery"><div class="cover c2"><span>A City Beneath the Tide</span></div><h3>A City Beneath the Tide</h3><p>Adventure · Mystery</p><div class="tag">Original concept</div></article>
+        <article class="book" data-search="the archive of unwritten gods mythic fantasy"><div class="cover c3"><span>The Archive of Unwritten Gods</span></div><h3>The Archive of Unwritten Gods</h3><p>Mythic fantasy</p><div class="tag">Original concept</div></article>
+        <article class="book" data-search="where the stars go missing science fiction"><div class="cover c4"><span>Where the Stars Go Missing</span></div><h3>Where the Stars Go Missing</h3><p>Science fiction</p><div class="tag">Original concept</div></article>
+        <article class="book" data-search="a map of borrowed tomorrows time mystery"><div class="cover c5"><span>A Map of Borrowed Tomorrows</span></div><h3>A Map of Borrowed Tomorrows</h3><p>Time mystery</p><div class="tag">Original concept</div></article>
+      </div>
+      <p id="empty" hidden style="color:var(--muted);padding:18px 0">No preview titles match that search.</p>
+    </section>
+    <section class="section" id="latest" aria-labelledby="latest-title">
+      <div class="section-head"><div><div class="eyebrow">A world changes with every chapter</div><h2 id="latest-title">Release radar</h2><p>In production, this area will be powered by actual published chapter data.</p></div></div>
+      <div class="release-grid">
+        <div class="release"><div class="mini-cover"></div><div><strong>New chapters, clearly marked</strong><small>Real publication time · Series title · Chapter title</small></div></div>
+        <div class="release"><div class="mini-cover" style="background:linear-gradient(145deg,#164c54,#233b67,#11172c)"></div><div><strong>Continue where you left off</strong><small>Shown only when genuine reading progress exists</small></div></div>
+        <div class="release"><div class="mini-cover" style="background:linear-gradient(145deg,#49366c,#2a4d6b,#11172c)"></div><div><strong>Discover a rising original</strong><small>Ranking signals will be based on real activity</small></div></div>
+      </div>
+    </section>
+    <section class="section" id="worlds" aria-labelledby="worlds-title">
+      <div class="section-head"><div><div class="eyebrow">Beyond the chapter</div><h2 id="worlds-title">Explore the worlds</h2><p>Discover characters, places, factions, mysteries, and timelines connected to each series.</p></div></div>
+      <div class="release-grid">
+        <div class="panel"><h3>Characters</h3><p>Motivations, relationships, loyalties, and the choices that shape a life.</p><a class="btn" href="#worlds">Explore character profiles</a></div>
+        <div class="panel"><h3>World atlas</h3><p>Places, cultures, factions, artifacts, and the rules that govern each fictional world.</p><a class="btn" href="#worlds">Open the atlas</a></div>
+        <div class="panel"><h3>Timeline</h3><p>Trace turning points and uncover how events connect across a series.</p><a class="btn" href="#worlds">Follow the timeline</a></div>
+      </div>
+    </section>
+  </main>
+  <aside class="right">
+    <div class="panel callout"><div class="eyebrow">Welcome to Aevora</div><h3>Find a world that stays with you.</h3><p>Start with a story. Stay for the universe around it.</p><a class="btn primary" href="#discover">Start exploring</a></div>
+    <div class="panel" id="genres"><h3>Explore by genre</h3><div class="genre-row"><span>✦ &nbsp; Fantasy</span><small>Browse</small></div><div class="genre-row"><span>⌁ &nbsp; Science fiction</span><small>Browse</small></div><div class="genre-row"><span>◈ &nbsp; Mystery</span><small>Browse</small></div><div class="genre-row"><span>⚔ &nbsp; Adventure</span><small>Browse</small></div><div class="genre-row"><span>♡ &nbsp; Romance</span><small>Browse</small></div></div>
+    <div class="panel"><h3>World notes</h3><a class="world-link" href="#worlds">The Ninth Throne Remembers<small>Power has a memory.</small></a><a class="world-link" href="#worlds">The Archive of Unwritten Gods<small>Every forgotten god left a record.</small></a><a class="world-link" href="#worlds">Where the Stars Go Missing<small>Something is erasing the sky.</small></a></div>
+  </aside>
+</div>
+<footer class="footer">AEVORA · Discover stories. Explore worlds. Follow what happens next.<br><br>Non-production design preview. No live reader metrics or series data are displayed.</footer>
+<nav class="mobile-nav" aria-label="Mobile navigation"><a class="active" href="#discover">⌂<br>Discover</a><a href="#latest">▤<br>Latest</a><a href="#worlds">✧<br>Worlds</a><a href="#genres">⌕<br>Genres</a></nav>
+<script>
+const input=document.getElementById('search');
+const books=[...document.querySelectorAll('.book')];
+const empty=document.getElementById('empty');
+input.addEventListener('input',()=>{const q=input.value.trim().toLowerCase();let shown=0;books.forEach(book=>{const match=!q||book.dataset.search.includes(q);book.hidden=!match;if(match)shown++});empty.hidden=shown!==0;});
+</script>
+</body>
+</html>
