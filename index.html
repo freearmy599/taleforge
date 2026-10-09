@@ -71,11 +71,92 @@ a:focus-visible,button:focus-visible{outline:3px solid #55def6;outline-offset:3p
 @media(max-width:800px){.hero{padding-top:40px;gap:26px;min-height:unset}.hero h1{letter-spacing:-1.8px}.feature{min-height:unset}.feature-art{height:260px}}
 @media(max-width:560px){.brand{font-size:19px;letter-spacing:.15em}.brand b.brand-mark{font-size:23px}.nav{height:66px}.navlinks a:nth-child(n+4){display:none}.hero h1{font-size:clamp(43px,12vw,55px);letter-spacing:-1.7px}.hero p{font-size:15px;line-height:1.75}.hero-stats{gap:17px}.hero-stat strong{font-size:22px}.hero-stat span{font-size:9px}.feature{border-radius:16px}.feature-art{height:225px}.feature-copy{padding:20px}.feature-copy h2{font-size:30px}.grid{gap:10px}.card{min-height:320px;border-radius:12px}.cover{height:175px}.cardbody{padding:12px}.card h3{font-size:18px;line-height:1.12}.card p{font-size:12px;line-height:1.5}.genre{font-size:9px}.meta{font-size:10px}.sectionhead{gap:10px}.sectionhead h2{font-size:26px}.sectionhead span{font-size:11px}.wrap{padding-bottom:44px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* Aevora reference-led discovery layout v2. Existing Supabase story loading and progress logic stays intact. */
+:root{--bg:#030c18;--panel:#07182a;--panel2:#0b2036;--line:rgba(89,164,213,.19);--text:#f3f7ff;--muted:#9eafc4;--gold:#24c7ef;--gold2:#8ceaff}
+body{background:#030c18;color:var(--text)}
+.nav{height:67px;background:rgba(3,11,22,.96);border-color:var(--line)}
+.navin{max-width:none;padding:0 28px;gap:28px}
+.brand{font-size:27px;letter-spacing:.16em;white-space:nowrap}
+.brand b.brand-mark{color:#39d7f5;font-size:28px}
+.navlinks{flex:1;max-width:480px;justify-content:flex-start;gap:3px;padding:7px 12px;border:1px solid rgba(104,153,210,.16);border-radius:14px;background:#0b1b30}
+.navlinks a{padding:8px 10px;font-size:12px}
+.navcta{margin-left:auto}
+.aevora-layout{display:grid;grid-template-columns:198px minmax(0,1fr) 270px;min-height:calc(100vh - 67px);max-width:1800px;margin:auto}
+.aevora-sidebar{position:sticky;top:67px;height:calc(100vh - 67px);overflow:auto;padding:20px 13px 24px;border-right:1px solid var(--line);background:#040f1e;display:flex;flex-direction:column;gap:4px}
+.side-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:#b6c5d8;font-size:12px;white-space:nowrap}
+.side-link span{font-size:17px;width:17px;text-align:center;color:#9eb4ca}
+.side-link:hover{background:rgba(32,198,239,.08);color:#fff}.side-link.active{background:linear-gradient(100deg,rgba(20,193,235,.23),rgba(20,193,235,.07));box-shadow:inset 0 0 0 1px rgba(35,201,239,.36);color:#71e6ff}
+.side-link.active span{color:#71e6ff}
+.side-rule{height:1px;background:var(--line);margin:13px 5px}
+.side-label{padding:4px 12px 7px;font-size:10px;color:#8197ae;font-weight:800;letter-spacing:.12em}
+.side-community{margin-top:18px;border:1px solid var(--line);border-radius:13px;padding:14px;background:linear-gradient(145deg,#102644,#081629)}
+.side-community strong{font-size:12px}.side-community p{font-size:11px;line-height:1.6;color:#9fb3c9}.side-community .btn{font-size:11px;padding:9px 12px;border-radius:999px}
+.aevora-main{min-width:0}.aevora-main-inner{max-width:1050px;margin:0 auto;padding:0 0 40px}
+.aevora-main .hero{display:block;position:relative;min-height:0;padding:0;margin:0;max-width:none}
+.aevora-main .hero>div:first-child{position:absolute;z-index:2;left:38px;top:36px;max-width:45%;padding:0}
+.aevora-main .hero .kicker{color:#52dff9;font-size:10px;letter-spacing:.2em}
+.aevora-main .hero h1{font:500 clamp(38px,4vw,62px)/.98 Georgia,serif;letter-spacing:-1.9px;margin:15px 0 12px;max-width:440px}
+.aevora-main .hero h1 em{color:#b5c9ff;font-style:normal}
+.aevora-main .hero p{font:14px/1.7 Inter,system-ui,sans-serif;color:#d0d9e7;max-width:380px;margin:0}
+.aevora-main .actions{margin-top:20px;gap:9px}.aevora-main .btn{padding:10px 15px;font-size:12px;border-radius:9px}
+.aevora-main .hero-stats{display:none}
+.aevora-main .feature{display:block;position:relative;height:315px;min-height:315px;border:0;border-radius:0;background:#0b2035;box-shadow:none}
+.aevora-main .feature-art{position:absolute;inset:0;height:auto;background:linear-gradient(120deg,#09192b,#183653)}
+.aevora-main .feature-art img{object-fit:cover;object-position:center 34%;opacity:.91}
+.aevora-main .feature-art:after{background:linear-gradient(90deg,rgba(3,12,24,.98) 0%,rgba(3,12,24,.84) 32%,rgba(3,12,24,.12) 74%),linear-gradient(0deg,rgba(3,12,24,.7),transparent 45%)}
+.aevora-main .feature-copy{position:absolute;z-index:1;left:38px;bottom:19px;right:22px;background:none;padding:0;pointer-events:none}
+.aevora-main .feature-copy .kicker{display:none}
+.aevora-main .feature-copy h2{font:500 17px Georgia,serif;margin:0 0 5px;max-width:360px}
+.aevora-main .feature-copy p{display:none}.aevora-main .feature-copy .meta{font-size:10px;color:#c2d6e9;margin:0}
+.aevora-main .release-strip{margin:0;padding:0 24px}.aevora-main .release-inner{padding:11px 0;font-size:11px}
+.aevora-main .wrap{max-width:none;padding:24px 24px 8px}
+.aevora-main .sectionhead{align-items:center;margin-bottom:15px;padding-bottom:11px}
+.aevora-main .sectionhead h2{font:600 20px Inter,system-ui,sans-serif;letter-spacing:-.5px;margin-top:3px}
+.aevora-main .sectionhead .kicker{font-size:9px}.aevora-main .sectionhead>a{font-size:11px;color:#79dcf4}
+.aevora-main .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.aevora-main .card{min-height:0;border-radius:10px;background:#071727;border-color:rgba(102,163,209,.16)}
+.aevora-main .cover{height:auto;aspect-ratio:3/4;border:0;border-radius:0;background:#10253b}
+.aevora-main .cardbody{padding:11px 12px 13px;gap:5px}
+.aevora-main .genre{font-size:9px;letter-spacing:.09em}
+.aevora-main .card h3{font:600 13px/1.3 Inter,system-ui,sans-serif;letter-spacing:0;margin:3px 0}
+.aevora-main .card p{font:11px/1.5 Inter,system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.aevora-main .meta{font-size:9px;margin-top:7px}
+.aevora-main #continueGrid,.aevora-main #personalGrid,.aevora-main #followGrid,.aevora-main #risingGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.aevora-main #about{padding-bottom:30px}
+.aevora-main #about>p{font-size:13px!important;line-height:1.7!important}
+.aevora-right{position:sticky;top:67px;align-self:start;max-height:calc(100vh - 67px);overflow:auto;padding:18px 14px 25px 0;display:flex;flex-direction:column;gap:11px}
+.rail-card{border:1px solid var(--line);border-radius:13px;background:linear-gradient(155deg,#091a2d,#061323);padding:14px}
+.welcome{text-align:center;padding:17px 14px}.welcome-mark{margin:0 auto 9px;width:39px;height:39px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(140deg,#4259ff,#7c43db);font-size:20px}
+.rail-card h3{font-size:13px;margin:8px 0}.rail-card p{font-size:11px;line-height:1.6;color:#9eafc4;margin:7px 0 12px}
+.rail-button{display:block;border-radius:8px;background:linear-gradient(110deg,#3b5cff,#6543e9);color:#fff;font-size:11px;font-weight:700;padding:9px 12px;text-align:center;margin-top:7px}
+.rail-button.secondary{background:transparent;border:1px solid rgba(110,102,234,.55)}
+.rail-heading{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:11px}.rail-heading a{color:#70dff5;font-size:10px}
+.genre-row{display:flex;align-items:center;gap:9px;font-size:11px;padding:7px 0;color:#d2dfed}.genre-row>span:last-child{margin-left:auto;color:#8298b1;font-size:9px}
+.genre-icon{width:29px;height:29px;display:grid;place-items:center;border-radius:50%;background:#234c87;color:#d9f7ff;font-size:16px}.genre-icon.pink{background:#743e68}.genre-icon.orange{background:#7e4d32}.genre-icon.violet{background:#4d437b}.genre-icon.blue{background:#235f81}
+.creator-card{padding:0 0 14px;overflow:hidden}.creator-card h3,.creator-card p,.creator-card .rail-button{margin-left:13px;margin-right:13px}
+.creator-art{height:115px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at 50% 35%,#275b8a,#0a1930 62%,#07101e);color:#c9f6ff;font:500 24px Georgia,serif;letter-spacing:.15em}.creator-art span{font:700 8px Inter,system-ui,sans-serif;letter-spacing:.2em;margin-top:7px}
+a:focus-visible,button:focus-visible{outline:3px solid #57def6;outline-offset:3px}
+@media(max-width:1100px){.aevora-layout{grid-template-columns:172px minmax(0,1fr)}.aevora-right{display:none}.aevora-main .hero>div:first-child{left:28px;max-width:49%}.aevora-main .feature-copy{left:28px}}
+@media(max-width:720px){.navin{padding:0 13px;gap:12px}.navlinks{display:none}.navcta{font-size:11px;padding:9px 12px}.aevora-layout{display:block}.aevora-sidebar{display:none}.aevora-main-inner{max-width:none}.aevora-main .feature{height:360px;min-height:360px}.aevora-main .hero>div:first-child{left:20px;top:25px;max-width:68%}.aevora-main .hero h1{font-size:clamp(39px,9vw,55px);letter-spacing:-1.4px}.aevora-main .hero p{font-size:12px;line-height:1.6}.aevora-main .actions{gap:7px;margin-top:14px}.aevora-main .btn{font-size:11px;padding:9px 11px}.aevora-main .feature-copy{left:20px;bottom:17px}.aevora-main .wrap{padding:21px 14px 7px}.aevora-main .grid,.aevora-main #continueGrid,.aevora-main #personalGrid,.aevora-main #followGrid,.aevora-main #risingGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.aevora-main .card h3{font-size:12px}.aevora-main .cardbody{padding:10px}.aevora-main .cover{aspect-ratio:3/4}.aevora-main .sectionhead h2{font-size:18px}.aevora-main .release-strip{padding:0 14px}.aevora-main .release-inner{gap:8px;font-size:10px}.aevora-main .release-inner strong{font-size:8px}.aevora-main #about{padding-bottom:24px}}
+@media(max-width:380px){.aevora-main .hero>div:first-child{max-width:78%}.aevora-main .hero h1{font-size:37px}.aevora-main .feature{height:340px;min-height:340px}.aevora-main .grid{gap:7px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <header class="nav"><div class="navin"><a class="brand" href="index.html" aria-label="Aevora home"><b class="brand-mark">△</b> AEVORA</a><nav class="navlinks"><a href="stories.html">Explore</a><a href="notifications.html">Updates</a><a href="library.html">Library</a><a href="#latest">Latest</a><a href="#about">About</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav><a class="navcta" href="stories.html">Enter the library</a></div></header>
-<main>
+<div class="aevora-layout"><aside class="aevora-sidebar" aria-label="Primary navigation">
+<a class="side-link active" href="index.html"><span>⌂</span> Home</a>
+<a class="side-link" href="stories.html"><span>▣</span> Novels</a>
+<a class="side-link" href="stories.html"><span>▧</span> Manga</a>
+<a class="side-link" href="stories.html"><span>▣</span> Anime</a>
+<a class="side-link" href="stories.html"><span>✦</span> Originals</a>
+<a class="side-link" href="#rising"><span>♨</span> Trending</a>
+<a class="side-link" href="library.html"><span>▤</span> My Library</a>
+<div class="side-rule"></div><div class="side-label">GENRES</div>
+<a class="side-link" href="stories.html?genre=fantasy">✧ Fantasy</a><a class="side-link" href="stories.html?genre=romance">♡ Romance</a><a class="side-link" href="stories.html?genre=action">⚔ Action</a><a class="side-link" href="stories.html?genre=adventure">◇ Adventure</a><a class="side-link" href="stories.html?genre=mystery">⌕ Mystery</a><a class="side-link" href="stories.html?genre=sci-fi">⌘ Sci-Fi</a><a class="side-link" href="stories.html?genre=horror">◉ Horror</a><a class="side-link" href="stories.html?genre=slice-of-life">☼ Slice of Life</a><a class="side-link" href="stories.html">☷ All Genres</a>
+<div class="side-community"><strong>Join the community</strong><p>Discover new worlds and meet fellow readers.</p><a class="btn primary" href="stories.html">Explore now</a></div>
+</aside><main class="aevora-main"><div class="aevora-main-inner">
 <section class="hero">
 <div><div class="kicker">DISCOVER · READ · RETURN</div><h1>Find your next <em>world.</em></h1><p>Discover original stories with worlds worth exploring, characters worth remembering, and chapters that give you a reason to return.</p><div class="actions"><a class="btn primary" href="stories.html">Explore stories →</a><a class="btn" href="#latest">See what's new</a></div><div class="hero-stats"><div class="hero-stat"><strong id="statStories">—</strong><span>Published worlds</span></div><div class="hero-stat"><strong id="statChapters">—</strong><span>Chapters released</span></div><div class="hero-stat"><strong id="statUpdated">—</strong><span>Latest release</span></div></div></div>
 <a id="spotlight" class="feature" href="stories.html"><div class="feature-art"></div><div class="feature-copy"><div class="kicker">Loading the latest world</div><h2>Opening the library…</h2><p>Connecting to published TaleForge stories.</p></div></a>
@@ -86,7 +167,11 @@ a:focus-visible,button:focus-visible{outline:3px solid #55def6;outline-offset:3p
 <section class="wrap" id="rising"><div class="sectionhead"><div><div class="kicker">GATHERING MOMENTUM</div><h2>Rising stories</h2></div><a href="stories.html"><span>Explore all →</span></a></div><div id="risingGrid" class="grid"><div class="empty">Reading the latest signals…</div></div></section>
 <section class="wrap" id="latest"><div class="sectionhead"><div><div class="kicker">FRESH FROM THE ARCHIVE</div><h2>Explore new worlds</h2></div><a href="stories.html"><span>View all →</span></a></div><div id="grid" class="grid"><div class="empty">Loading published stories…</div></div></section>
 <section class="wrap" id="about"><div class="sectionhead"><div><div class="kicker">THE AEVORA PROMISE</div><h2>Made for the worlds you remember.</h2></div></div><p style="max-width:700px;color:#9d9991;font:18px/1.8 Georgia,serif">A growing home for original serialized fiction — designed around discovery, coherent story worlds, and the pleasure of returning for the next chapter.</p></section>
-</main><footer>© 2026 Aevora · Discover. Read. Return.<div style="margin-top:10px"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
+</div></main><aside class="aevora-right" aria-label="Discover more">
+<section class="rail-card welcome"><div class="welcome-mark">✦</div><h3>Welcome to Aevora</h3><p>Discover extraordinary stories. Explore limitless worlds.</p><a class="rail-button" href="stories.html">Explore stories</a><a class="rail-button secondary" href="library.html">My library</a></section>
+<section class="rail-card"><div class="rail-heading">Explore genres <a href="stories.html">All →</a></div><a class="genre-row" href="stories.html?genre=fantasy"><span class="genre-icon">✧</span> Fantasy <span>Explore</span></a><a class="genre-row" href="stories.html?genre=romance"><span class="genre-icon pink">♡</span> Romance <span>Explore</span></a><a class="genre-row" href="stories.html?genre=action"><span class="genre-icon orange">⚔</span> Action <span>Explore</span></a><a class="genre-row" href="stories.html?genre=mystery"><span class="genre-icon violet">⌕</span> Mystery <span>Explore</span></a><a class="genre-row" href="stories.html?genre=sci-fi"><span class="genre-icon blue">⌘</span> Sci-Fi <span>Explore</span></a></section>
+<section class="rail-card creator-card"><div class="creator-art">AEVORA<br><span>ORIGINAL WORLDS</span></div><h3>Have a story to share?</h3><p>Follow the journey as Aevora grows into a home for original serialized fiction.</p><a class="rail-button" href="stories.html">Discover originals</a></section>
+</aside></div><footer>© 2026 Aevora · Discover. Read. Return.<div style="margin-top:10px"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
 <script type="module">
 import "./taleforge-data.js";import "./reading-progress.js";
 const supabase=window.taleForgeSupabase,releaseStrip=document.getElementById("releaseStrip"),releaseText=document.getElementById("releaseText"),releaseLink=document.getElementById("releaseLink"),statStories=document.getElementById("statStories"),statChapters=document.getElementById("statChapters"),statUpdated=document.getElementById("statUpdated"),continueSection=document.getElementById("continue"),continueGrid=document.getElementById("continueGrid"),grid=document.getElementById("grid"),spot=document.getElementById("spotlight"),personal=document.getElementById("personal"),personalGrid=document.getElementById("personalGrid"),followed=document.getElementById("followed"),followGrid=document.getElementById("followGrid"),risingGrid=document.getElementById("risingGrid");
