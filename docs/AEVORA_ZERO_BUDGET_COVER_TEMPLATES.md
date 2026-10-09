@@ -24,4 +24,4 @@ Give every series a deliberate, genre-aware cover presentation while Aevora has 
 4. Keep an admin spending cap and one-job-at-a-time processing before any paid provider is activated.
 
 ## Current limitations
-These are CSS-based cover designs, not standalone illustrations. Explore theme selection is implemented on the feature/aevora-design-system-v1 branch. The series detail page has not yet been updated to share the same theme mapping. No image API is configured, no provider request was made, and no cover was generated or published.
+These are CSS-based cover designs, not standalone illustrations. Explore cards and the series detail cover now share the same deterministic genre theme mapping on the feature/aevora-design-system-v1 branch. No image API is configured, no provider request was made, and no cover was generated or published.
