@@ -86,3 +86,11 @@ A task is complete only when the result is verified and recorded. The worker sho
 - The claim RPC is deliberately limited to zero-budget verification and maintenance tasks with completed dependencies. It does not claim code-writing tasks.
 - Verified table RLS and grants: anonymous/authenticated roles cannot select the task, decision, or event ledgers and cannot execute the queue RPCs; service_role can.
 - These are queue primitives, not an active engineering worker. Runtime RPC tests and a worker executor remain pending.
+
+
+## Provider cooldown hardening follow-up (2026-10-10)
+
+- Verified live versions: `generate-chapter` v54, `generation-orchestrator` v31, and `review-orchestrator` v7 are ACTIVE.
+- Added a pre-review cooldown check to `review-orchestrator` v7 so the review pipeline skips model calls while the shared Gemini cooldown is active.
+- The underlying failure was confirmed in Supabase function logs: Gemini returned HTTP 429 / RESOURCE_EXHAUSTED for the free-tier input-token quota; the same run recorded a 24-hour cooldown. A `continuity-review` invocation returned HTTP 502 during that failure window.
+- No new generation was triggered. Runtime verification of the guards remains pending until the cooldown expires at `2026-10-11T08:00:35.441Z`.
