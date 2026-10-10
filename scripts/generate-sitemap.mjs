@@ -1,9 +1,9 @@
-const fs = require("node:fs/promises");
+import fs from "node:fs/promises";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 const SITE_URL = (process.env.SITE_URL || "https://taleforge.pages.dev").replace(/\/$/, "");
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Missing Supabase environment variables");
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Missing Supabase URL or public API key (SUPABASE_ANON_KEY/SUPABASE_PUBLISHABLE_KEY)");
 
 async function query(path) {
   const res = await fetch(SUPABASE_URL + path, {
