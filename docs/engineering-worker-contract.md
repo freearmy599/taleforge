@@ -52,3 +52,15 @@ Design-only contract. No worker is enabled by this document. The read-only audit
 
 ## Strategic decision required before code-writing autonomy
 Choose the execution environment and credential model for a persistent coding worker. Recommended initial posture: GitHub Actions, least-privilege repository token, no model calls until budget/provider choice is explicit, PR-only changes, no auto-merge, no production deployment.
+
+
+## Queue primitives deployed (2026-10-10)
+
+The database now provides service-role-only functions:
+- `aevora_claim_next_engineering_task(worker_id, lease_minutes)`
+- `aevora_heartbeat_engineering_task(task_id, worker_id, lease_minutes)`
+- `aevora_finish_engineering_task(task_id, worker_id, success, summary, evidence, blocked_reason)`
+
+The claim function currently permits only zero-budget `verification` and `maintenance` tasks, requires completed dependencies, uses `FOR UPDATE SKIP LOCKED`, and assigns a bounded lease. It does not claim `engineering` tasks and therefore does not authorize autonomous code-writing. All three functions are SECURITY DEFINER with a service-role JWT check; execute permission is denied to `anon` and `authenticated`.
+
+Database privilege verification confirmed RLS enabled on all three ledger tables, no `anon`/`authenticated` table SELECT privileges, and no execute grants on queue functions for those roles. Runtime RPC tests using service-role credentials remain pending.
