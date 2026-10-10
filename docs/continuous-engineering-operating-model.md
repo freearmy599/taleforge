@@ -78,3 +78,11 @@ A task is complete only when the result is verified and recorded. The worker sho
 - Verified the workflow itself executes successfully and creates/updates GitHub issue #3 when its token is missing. Runtime data auditing is intentionally blocked until the same privately generated `AEVORA_AUDIT_TOKEN` is configured in Supabase Edge Function secrets and GitHub Actions repository secrets.
 - GitHub issue: https://github.com/freearmy599/taleforge/issues/3
 - Separately fixed the sitemap generator's mixed CommonJS/ESM syntax and replaced its missing CI secret dependency with the existing public Supabase publishable key. Verified run 38039166221 succeeded, generated 74 URLs (6 series and 62 published chapters), and committed the updated sitemap.
+
+
+## Queue primitive implementation (2026-10-10)
+
+- Added atomic, service-role-only claim/heartbeat/finish RPCs for the engineering queue.
+- The claim RPC is deliberately limited to zero-budget verification and maintenance tasks with completed dependencies. It does not claim code-writing tasks.
+- Verified table RLS and grants: anonymous/authenticated roles cannot select the task, decision, or event ledgers and cannot execute the queue RPCs; service_role can.
+- These are queue primitives, not an active engineering worker. Runtime RPC tests and a worker executor remain pending.
