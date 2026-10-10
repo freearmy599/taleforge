@@ -46,7 +46,7 @@ async function report(title, body) {
     const created = await github("issues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body, labels: ["automation", "operations"] }),
+      body: JSON.stringify({ title, body }),
     });
     console.log(`Created audit issue #${created.number}`);
   }
