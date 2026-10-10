@@ -68,3 +68,13 @@ A task is complete only when the result is verified and recorded. The worker sho
 - The audit requires the repository secret `SUPABASE_SERVICE_ROLE_KEY`. If it is not configured, the workflow reports the missing configuration in the same issue; do not paste the key into source code, issues, or chat.
 - This is monitoring, not yet an autonomous code-writing worker. The worker remains disabled until its atomic task-claim path, narrow executor, tests, credential model, and owner-approved boundaries are in place.
 - Deployment to GitHub is verified by commit SHA; successful scheduled runtime execution and alert delivery are not yet verified.
+
+
+## Read-only audit monitor update (2026-10-10)
+
+- Added and deployed Supabase Edge Function `aevora-control-plane-audit` version 1. It uses custom bearer-token authentication and returns a bounded operational snapshot; it performs only REST reads.
+- GitHub Actions no longer receives the Supabase service-role key. It calls the audit endpoint using the separate `AEVORA_AUDIT_TOKEN` secret.
+- Added a 15-minute scheduled workflow plus manual dispatch and push-based validation for changes to the audit files.
+- Verified the workflow itself executes successfully and creates/updates GitHub issue #3 when its token is missing. Runtime data auditing is intentionally blocked until the same privately generated `AEVORA_AUDIT_TOKEN` is configured in Supabase Edge Function secrets and GitHub Actions repository secrets.
+- GitHub issue: https://github.com/freearmy599/taleforge/issues/3
+- Separately fixed the sitemap generator's mixed CommonJS/ESM syntax and replaced its missing CI secret dependency with the existing public Supabase publishable key. Verified run 38039166221 succeeded, generated 74 URLs (6 series and 62 published chapters), and committed the updated sitemap.
