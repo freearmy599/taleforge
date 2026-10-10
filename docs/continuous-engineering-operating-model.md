@@ -58,3 +58,13 @@ A blocked task must not halt unrelated safe work.
 ## Definition of continuous progress
 
 A task is complete only when the result is verified and recorded. The worker should then claim the next eligible task automatically. If one task requires an owner decision, it should wait only on that task and continue other safe, independent tasks. No system should claim to keep coding when no worker execution has actually occurred.
+
+
+## Control-plane implementation update (2026-10-10)
+
+- Added private-by-default Supabase ledgers: `aevora_engineering_tasks`, `aevora_engineering_decisions`, and `aevora_engineering_events`. RLS is enabled; `anon` and `authenticated` have no table privileges; `service_role` is the intended runtime role.
+- Seeded four zero-budget tasks covering provider cooldown verification, scheduled-job outcome auditing, publication-safeguard verification, and worker-contract design.
+- Added `scripts/aevora-control-plane-audit.mjs` and `.github/workflows/aevora-control-plane-audit.yml`. The workflow is scheduled every 15 minutes and can also be run manually. It is read-only against Supabase and reports findings in one GitHub issue.
+- The audit requires the repository secret `SUPABASE_SERVICE_ROLE_KEY`. If it is not configured, the workflow reports the missing configuration in the same issue; do not paste the key into source code, issues, or chat.
+- This is monitoring, not yet an autonomous code-writing worker. The worker remains disabled until its atomic task-claim path, narrow executor, tests, credential model, and owner-approved boundaries are in place.
+- Deployment to GitHub is verified by commit SHA; successful scheduled runtime execution and alert delivery are not yet verified.
