@@ -16,7 +16,7 @@ jobs:
       - name: Generate sitemap from published Supabase content
         env:
           SUPABASE_URL: https://sxmbnlgufqhcwxcpcsvb.supabase.co
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_TE62_J3d3fxN8v-PK3CX6w_prxfHJwC
           SITE_URL: https://taleforge.pages.dev
         run: node scripts/generate-sitemap.mjs
       - name: Commit updated sitemap
