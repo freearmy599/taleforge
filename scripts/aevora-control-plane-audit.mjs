@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
  * Read-only Aevora control-plane audit.
- * Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. Uses GITHUB_TOKEN only
- * to create/update one issue with findings; never writes to Supabase.
+ * GitHub Actions receives only a scoped AEVORA_AUDIT_TOKEN, never the
+ * Supabase service-role key. The Supabase Edge Function performs read-only
+ * table reads and returns a bounded status snapshot.
  */
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
-const supabaseUrl = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const auditUrl = process.env.AEVORA_AUDIT_URL;
+const auditToken = process.env.AEVORA_AUDIT_TOKEN;
 
 async function github(path, options = {}) {
   const response = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
@@ -21,15 +22,6 @@ async function github(path, options = {}) {
   });
   if (!response.ok) throw new Error(`GitHub API ${response.status}: ${(await response.text()).slice(0, 400)}`);
   return response.status === 204 ? null : response.json();
-}
-
-async function supabase(table, select, extra = "") {
-  const url = `${supabaseUrl}/rest/v1/${table}?select=${encodeURIComponent(select)}${extra}`;
-  const response = await fetch(url, {
-    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-  });
-  if (!response.ok) throw new Error(`Supabase read ${table} failed (${response.status}): ${(await response.text()).slice(0, 300)}`);
-  return response.json();
 }
 
 async function report(title, body) {
@@ -56,8 +48,8 @@ const title = "[Aevora Control Plane] Automated audit findings";
 const missing = [];
 if (!repo) missing.push("GITHUB_REPOSITORY");
 if (!token) missing.push("GITHUB_TOKEN");
-if (!supabaseUrl) missing.push("SUPABASE_URL");
-if (!serviceKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+if (!auditUrl) missing.push("AEVORA_AUDIT_URL");
+if (!auditToken) missing.push("AEVORA_AUDIT_TOKEN");
 
 if (missing.length) {
   const body = [
@@ -65,7 +57,7 @@ if (missing.length) {
     "",
     `Missing environment values: ${missing.join(", ")}`,
     "",
-    "This workflow is read-only and does not change Supabase. Configure the required repository secret/variable through GitHub Settings, or keep this monitor disabled. Do not paste secrets into issues or chat.",
+    "The monitor uses a scoped token to call a read-only Supabase Edge Function; the Supabase service-role key is not stored in GitHub. Configure AEVORA_AUDIT_TOKEN in Supabase Edge Function secrets and GitHub Actions secrets using the same privately generated value. Never paste it into source code, issues, or chat.",
     "",
     `Last checked: ${new Date().toISOString()}`,
   ].join("\n");
@@ -77,14 +69,17 @@ if (missing.length) {
 const findings = [];
 const evidence = [];
 try {
-  const [jobs, providers, schedules, tasks, decisions] = await Promise.all([
-    supabase("aevora_automation_job_status", "jobname,active,schedule,last_status,last_started_at,last_finished_at,last_message"),
-    supabase("taleforge_ai_provider_state", "provider,cooldown_until,consecutive_throttle_count,last_error_at"),
-    supabase("release_schedules", "id,series_id,enabled,auto_generate,auto_publish,next_release_at"),
-    supabase("aevora_engineering_tasks", "id,title,status,lease_until,updated_at,blocked_reason"),
-    supabase("aevora_engineering_decisions", "id,title,urgency,status,created_at,expires_at"),
-  ]);
-
+  const response = await fetch(auditUrl, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${auditToken}`, Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Audit endpoint returned ${response.status}: ${errorBody.slice(0, 180)}`);
+  }
+  const snapshot = await response.json();
+  const { jobs = [], providers = [], schedules = [], tasks = [], decisions = [] } = snapshot;
   const now = Date.now();
   const expectedMinutes = (cron) => {
     if (cron === "*/5 * * * *") return 20;
@@ -101,7 +96,7 @@ try {
       continue;
     }
     if (job.last_status && job.last_status !== "succeeded") {
-      findings.push(`**Scheduled job failure:** ${job.jobname} status=${job.last_status}; message=${String(job.last_message || "").slice(0, 180)}`);
+      findings.push(`**Scheduled job failure:** ${job.jobname} status=${job.last_status}`);
     }
     const finished = job.last_finished_at ? Date.parse(job.last_finished_at) : NaN;
     if (!Number.isFinite(finished) || now - finished > expectedMinutes(job.schedule) * 60_000) {
@@ -132,8 +127,9 @@ try {
   }
 
   for (const provider of providers) {
-    evidence.push(`- Gemini/provider ${provider.provider}: cooldown until ${provider.cooldown_until || "none"}; consecutive throttles=${provider.consecutive_throttle_count ?? "unknown"}`);
+    evidence.push(`- Provider ${provider.provider}: cooldown until ${provider.cooldown_until || "none"}; consecutive throttles=${provider.consecutive_throttle_count ?? "unknown"}`);
   }
+  evidence.push(`- Snapshot generated at: ${snapshot.generated_at || "unknown"}`);
   evidence.push(`- Scheduled jobs checked: ${jobs.length}`);
   evidence.push(`- Release schedules checked: ${schedules.length}`);
   evidence.push(`- Engineering tasks checked: ${tasks.length}`);
@@ -147,7 +143,7 @@ try {
     "## Evidence snapshot",
     ...evidence,
     "",
-    "This report is generated by a read-only audit. It does not invoke Gemini, mutate release schedules, publish content, or modify Supabase rows.",
+    "This report is generated by a read-only audit. It does not invoke Gemini, mutate release schedules, publish content, or modify Supabase.",
     "",
     `Last checked: ${new Date().toISOString()}`,
   ].join("\n");
@@ -159,7 +155,7 @@ try {
     "",
     `Error: ${String(error?.message || error)}`,
     "",
-    "No remediation was attempted. Verify credentials, table grants, and schema before enabling any write-capable worker.",
+    "No remediation was attempted. Verify the scoped audit token, endpoint configuration, and schema before enabling any write-capable worker.",
     "",
     `Last checked: ${new Date().toISOString()}`,
   ].join("\n");
