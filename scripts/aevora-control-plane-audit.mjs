@@ -69,6 +69,14 @@ if (missing.length) {
 const findings = [];
 const evidence = [];
 try {
+  // Diagnose header-incompatible characters without ever printing the secret.
+  const tokenChars = Array.from(auditToken);
+  const badIndex = tokenChars.findIndex((character) => character.codePointAt(0) > 127);
+  if (badIndex !== -1) {
+    const codePoint = tokenChars[badIndex].codePointAt(0);
+    throw new Error(`AEVORA_AUDIT_TOKEN contains a non-ASCII character at token position ${badIndex} (Unicode code point U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}); secret value not logged`);
+  }
+
   const response = await fetch(auditUrl, {
     method: "GET",
     headers: { Authorization: `Bearer ${auditToken}`, Accept: "application/json" },
