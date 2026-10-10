@@ -27,6 +27,6 @@ jobs:
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SUPABASE_URL: https://sxmbnlgufqhcwxcpcsvb.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AEVORA_AUDIT_URL: https://sxmbnlgufqhcwxcpcsvb.supabase.co/functions/v1/aevora-control-plane-audit
+          AEVORA_AUDIT_TOKEN: ${{ secrets.AEVORA_AUDIT_TOKEN }}
         run: node scripts/aevora-control-plane-audit.mjs
