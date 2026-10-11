@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Reading — TaleForge</title>
-<meta name="description" content="Read serialized fiction on TaleForge.">
+<title>Reading — Aevora</title>
+<meta name="description" content="Read original serialized fiction on Aevora with comfortable, adjustable reading controls.">
 <style>
 :root{
  --bg:#f4f0e7;--paper:#faf8f3;--ink:#29251f;--muted:#817a70;--line:rgba(41,37,31,.13);
@@ -55,11 +55,18 @@ body.night{--bg:#111214;--paper:#17191c;--ink:#e9e2d6;--muted:#aaa39a;--line:rgb
  .navigation{grid-template-columns:1fr}.center{grid-column:auto}.controls{right:10px;bottom:10px}
  .navlink{padding:8px 10px}.navlink span{display:none}
 }
+
+/* Aevora reader brand alignment. Warm paper/night reading themes remain intentional for reader comfort. */
+.brand{display:flex;align-items:center;gap:8px;font:600 21px Georgia,serif;letter-spacing:.14em}
+.brand b.brand-mark{color:#149db9;font-size:26px;font-weight:700}
+.navlink{border-radius:999px}
+a:focus-visible,button:focus-visible{outline:3px solid #16aeca;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <header class="nav"><div class="navin">
-<a class="brand" href="index.html">Tale<b>Forge</b></a>
+<a class="brand" href="index.html" aria-label="Aevora home"><b class="brand-mark">△</b> AEVORA</a>
 <a id="back" class="navlink" href="stories.html">← <span>Explore</span></a>
 </div></header>
 <div class="progress" id="progress"></div>

@@ -24,7 +24,9 @@
 <article class="card"><div class="icon">01 · Editorial governance</div><h2>Chief Editor Monitor</h2><p>Evaluate series health, review/revision signals, failed generation jobs, release buffer status, and active alerts. This monitor does not create chapters or publish stories.</p><div class="metric">Writes: <strong>editorial health snapshots and alerts</strong></div><button class="button" id="editorButton">Run editorial monitor</button><div id="editorStatus" class="status">No monitor run in this session.</div></article>
 <article class="card"><div class="icon">02 · Creation governance</div><h2>Series Creation Preflight</h2><p>Assess candidate opportunities, linked concepts, configured limits, and release readiness. This button only runs a preflight audit; it does not create series or chapters.</p><div class="metric">Manual action: <strong>preflight only</strong></div><div class="metric">Production canary: <strong>enabled with strict caps</strong></div><div class="metric">Creation cap: <strong>1 series per 7 days</strong></div><button class="button" id="preflightButton">Run readiness preflight</button><div id="preflightStatus" class="status">No preflight run in this session.</div></article>
 <article class="card"><div class="icon">03 · Operations visibility</div><h2>Live Operations Snapshot</h2><p>Read current database state for published chapters, recent jobs, release schedules, editorial alerts, and autonomous-creation audit history. This is read-only and does not start background work.</p><div class="metric">Database writes: <strong>none</strong></div><div class="metric">AI provider calls: <strong>none</strong></div><button class="button secondary" id="operationsButton">Load operations snapshot</button><div id="operationsStatus" class="status">No snapshot loaded in this session.</div></article>
-<article class="card"><div class="icon">04 · Autonomous runner</div><h2>Seven-day production canary</h2><p>The database scheduler is configured to check for one eligible new series each day at 11:30 AM India time. The creation policy caps successful autonomous creation at one series per rolling seven days and preserves score and catalog limits.</p><div class="metric">Runner: <strong>autonomous-series-creation-runner v1</strong></div><div class="metric">Release cadence for a new series: <strong>weekly</strong></div><div class="metric">Execution: <strong>automatic; no manual trigger here</strong></div><p class="note">Use Live Operations Snapshot to inspect recorded creation runs, actual published chapters, failed jobs, and release schedules. A configured schedule alone is not proof of success.</p></article>
+<article class="card"><div class="icon">04 · Cover production</div><h2>Request a Novel Cover</h2><p>Create a reviewable cover brief from a series’ metadata. This queues a request only; image generation is disabled until a provider adapter is configured.</p><label class="field" for="coverSeriesId">Series UUID</label><input id="coverSeriesId" inputmode="text" autocomplete="off" placeholder="Paste series UUID from Supabase"><div class="row" style="margin-top:14px"><button class="button" id="coverRequestButton">Queue cover brief</button></div><div id="coverStatus" class="status">No cover request in this session.</div><p class="note">Existing covers are protected. Duplicate requests for the same series version reuse the existing queue item.</p></article>
+<article class="card wide"><div class="icon">05 · Cover editorial review</div><h2>Cover Request Queue</h2><p>Inspect recent cover briefs and reject queued requests. Approval is intentionally unavailable until a real candidate image has passed validation and private delivery is implemented.</p><div class="row"><button class="button secondary" id="coverReviewButton">Refresh cover queue</button><span class="tag">Read-only list · Reject queued/failed only</span></div><div id="coverQueueStatus" class="status">Queue not loaded.</div><div id="coverQueueList" style="display:grid;gap:12px;margin-top:14px"></div></article>
+<article class="card"><div class="icon">06 · Autonomous runner</div><h2>Seven-day production canary</h2><p>The database scheduler is configured to check for one eligible new series each day at 11:30 AM India time. The creation policy caps successful autonomous creation at one series per rolling seven days and preserves score and catalog limits.</p><div class="metric">Runner: <strong>autonomous-series-creation-runner v1</strong></div><div class="metric">Release cadence for a new series: <strong>weekly</strong></div><div class="metric">Execution: <strong>automatic; no manual trigger here</strong></div><p class="note">Use Live Operations Snapshot to inspect recorded creation runs, actual published chapters, failed jobs, and release schedules. A configured schedule alone is not proof of success.</p></article>
 <article class="card wide"><div class="icon">Governance safeguards</div><h2>Controlled autonomous production</h2><p>The production canary is enabled under strict caps. This admin page cannot start production creation or bypass review gates. Creation, chapter generation, review, and publication are separate stages, and chapters must pass the existing quality, continuity, originality, safety, and publication checks.</p><div class="row"><span class="tag">JWT protected</span><span class="tag">Admin/owner role check</span><span class="tag">1 creation / 7 days</span><span class="tag">Review-gated publication</span></div></article>
 </div>
 </section>
@@ -39,7 +41,7 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persist
 const $=id=>document.getElementById(id);
 const loginPanel=$("loginPanel"),operationsPanel=$("operationsPanel"),loginForm=$("loginForm");
 function setStatus(id,text,kind=""){const el=$(id);el.textContent=text;el.className="status"+(kind?" "+kind:"")}
-function setBusy(value){["loginButton","signOutButton","editorButton","preflightButton","operationsButton"].forEach(id=>$(id).disabled=value)}
+function setBusy(value){["loginButton","signOutButton","editorButton","preflightButton","operationsButton","coverRequestButton","coverReviewButton"].forEach(id=>$(id).disabled=value)}
 async function ensureAdmin(){
  const {data:{user},error}=await supabase.auth.getUser();
  if(error||!user)throw new Error("Could not verify the signed-in user. Please sign in again.");
@@ -83,6 +85,57 @@ $("preflightButton").addEventListener("click",async()=>{
  finally{setBusy(false);}
 });
 
+$("coverRequestButton").addEventListener("click",async()=>{
+ setBusy(true);setStatus("coverStatus","Checking administrator access and queueing the cover brief…");
+ try{
+  await ensureAdmin();
+  const seriesId=$("coverSeriesId").value.trim();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(seriesId))throw new Error("Enter a valid series UUID.");
+  const {data,error}=await supabase.functions.invoke("aevora-cover-request",{method:"POST",body:{series_id:seriesId}});
+  if(error){let detail=error.message||"Function request failed.";try{if(error.context?.json)detail+="\\n"+JSON.stringify(await error.context.json(),null,2)}catch{}throw new Error(detail);}
+  setStatus("coverStatus",JSON.stringify(data,null,2),data?.accepted?"ok":"warn");
+  setStatus("globalStatus",data?.accepted?"Cover brief queued/reused. No image was generated and no provider credits were used.":"Cover request did not complete.",data?.accepted?"ok":"warn");
+ }catch(error){setStatus("coverStatus","Cover request failed:\\n"+(error?.message||"Unknown error"),"error");}
+ finally{setBusy(false);}
+});
+async function loadCoverQueue(){
+ setStatus("coverQueueStatus","Loading recent cover requests…");
+ const list=$("coverQueueList");list.replaceChildren();
+ const {data,error}=await supabase.functions.invoke("aevora-cover-review",{method:"POST",body:{action:"list"}});
+ if(error){let detail=error.message||"Function request failed.";try{if(error.context?.json)detail+="\\n"+JSON.stringify(await error.context.json(),null,2)}catch{}throw new Error(detail);}
+ if(!data?.success)throw new Error(JSON.stringify(data,null,2));
+ setStatus("coverQueueStatus","Loaded "+data.count+" cover request(s). Approval remains disabled.", "ok");
+ if(!data.jobs?.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No cover requests yet.";list.append(empty);return;}
+ for(const job of data.jobs){
+  const card=document.createElement("section");card.className="card";card.style.padding="16px";
+  const title=document.createElement("h3");title.textContent=job.series_title+" · "+job.status;title.style.margin="0 0 8px";
+  const meta=document.createElement("p");meta.className="muted";meta.textContent="Job "+job.id+" · version "+job.series_version+" · created "+job.created_at;meta.style.overflowWrap="anywhere";
+  const brief=document.createElement("pre");brief.className="status";brief.style.maxHeight="220px";brief.textContent=JSON.stringify(job.cover_brief,null,2);
+  card.append(title,meta,brief);
+  if(job.status==="queued"||job.status==="failed"){
+   const reject=document.createElement("button");reject.className="button secondary";reject.textContent="Reject request";
+   reject.addEventListener("click",async()=>{
+    if(!confirm("Reject this cover request? This does not delete the series or affect chapters."))return;
+    reject.disabled=true;
+    try{
+     const {data:result,error:rejectError}=await supabase.functions.invoke("aevora-cover-review",{method:"POST",body:{action:"reject",job_id:job.id}});
+     if(rejectError)throw new Error(rejectError.message||"Reject request failed.");
+     if(!result?.success)throw new Error(JSON.stringify(result,null,2));
+     setStatus("coverQueueStatus","Request rejected. No image provider was called.","ok");
+     await loadCoverQueue();
+    }catch(error){setStatus("coverQueueStatus","Could not reject request: "+(error?.message||"Unknown error"),"error");reject.disabled=false;}
+   });
+   card.append(reject);
+  }
+  list.append(card);
+ }
+}
+$("coverReviewButton").addEventListener("click",async()=>{
+ setBusy(true);
+ try{await ensureAdmin();await loadCoverQueue();}
+ catch(error){setStatus("coverQueueStatus","Queue load failed: "+(error?.message||"Unknown error"),"error");}
+ finally{setBusy(false);}
+});
 $("operationsButton").addEventListener("click",async()=>{
  setBusy(true);setStatus("operationsStatus","Reading current operational records…");
  try{
