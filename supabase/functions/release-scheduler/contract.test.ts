@@ -144,6 +144,12 @@ Deno.test("generation orchestrator failure updates cannot overwrite a blueprint 
   assert(claim >= 0, "the fenced failure paths must be paired with the existing atomic blueprint claim");
 });
 
+Deno.test("generation orchestrator success updates also preserve newer blueprint states", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  const successUpdate = 'update({generation_status:no.generation_status==="needs_revision"?"needs_revision":"generated",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");';
+  assert(source.includes(successUpdate), "successful generation must only transition a blueprint still claimed as generating");
+});
+
 Deno.test("generation orchestrator rejects malformed scope and mode inputs before schedule queries", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   const initialLookup = source.indexOf("geminiCooldown=await getGeminiCooldown(supabase)");
