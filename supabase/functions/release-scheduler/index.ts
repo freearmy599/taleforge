@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "release-scheduler-v5-contiguous-approved-release";
+const VERSION = "release-scheduler-v6-dryrun-safe-timezone-deterministic";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -13,6 +13,63 @@ function response(body: unknown, status=200) {
   });
 }
 function message(e: unknown){ return e instanceof Error ? e.message : String(e); }
+
+function partsAt(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone, year:"numeric", month:"2-digit", day:"2-digit",
+    hour:"2-digit", minute:"2-digit", second:"2-digit", hourCycle:"h23"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return {
+    year:Number(values.year), month:Number(values.month), day:Number(values.day),
+    hour:Number(values.hour), minute:Number(values.minute), second:Number(values.second)
+  };
+}
+function localWallTimeToUtc(year:number, month:number, day:number, hour:number, minute:number, second:number, timeZone:string):Date {
+  const target = Date.UTC(year, month - 1, day, hour, minute, second);
+  let guess = target;
+  for (let i=0; i<4; i++) {
+    const p = partsAt(new Date(guess), timeZone);
+    const represented = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    const delta = target - represented;
+    if (delta === 0) break;
+    guess += delta;
+  }
+  return new Date(guess);
+}
+function addLocalDays(year:number, month:number, day:number, days:number) {
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return {year:date.getUTCFullYear(),month:date.getUTCMonth()+1,day:date.getUTCDate()};
+}
+/** Return the next future wall-clock weekly occurrence in the schedule's IANA timezone. */
+function nextWeeklyRelease(now:Date, weekday:number, time:string, timeZone:string):Date {
+  if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) throw new Error("Invalid preferred weekday");
+  if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(time)) throw new Error("Invalid preferred time");
+  partsAt(now,timeZone); // validates the IANA timezone
+  const local = partsAt(now,timeZone);
+  const localWeekday = new Date(Date.UTC(local.year,local.month-1,local.day)).getUTCDay();
+  const [hour,minute,second=0] = time.split(":").map(Number);
+  const matches = (date:{year:number;month:number;day:number}, candidate:Date) => {
+    const p=partsAt(candidate,timeZone);
+    return p.year===date.year && p.month===date.month && p.day===date.day &&
+      p.hour===hour && p.minute===minute && p.second===second;
+  };
+  let delta=(weekday-localWeekday+7)%7;
+  if(delta===0) {
+    const today={year:local.year,month:local.month,day:local.day};
+    const candidate=localWallTimeToUtc(local.year,local.month,local.day,hour,minute,second,timeZone);
+    if(matches(today,candidate) && candidate.getTime()>now.getTime()) return candidate;
+    delta=7;
+  }
+  const date=addLocalDays(local.year,local.month,local.day,delta);
+  const candidate=localWallTimeToUtc(date.year,date.month,date.day,hour,minute,second,timeZone);
+  if(matches(date,candidate)) return candidate;
+  // Nonexistent local wall time during a DST jump: fail closed to the same slot next week.
+  const next=addLocalDays(date.year,date.month,date.day,7);
+  const nextCandidate=localWallTimeToUtc(next.year,next.month,next.day,hour,minute,second,timeZone);
+  if(!matches(next,nextCandidate)) throw new Error("Unable to resolve weekly release wall time");
+  return nextCandidate;
+}
 
 Deno.serve(async (req)=>{
   if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders});
@@ -29,29 +86,42 @@ Deno.serve(async (req)=>{
     const scheduleId=body?.schedule_id??null;
     const dryRun=body?.dry_run===true;
 
-    let query=supabase.from("release_schedules")
-      .select("*, series:series_id(id,title,status)")
-      .eq("enabled",true)
-      .neq("schedule_mode","manual");
-
-    if(scheduleId) query=query.eq("id",scheduleId);
-    else query=query.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);
-
-    const {data:schedules,error:scheduleError}=await query;
+    const buildScheduleQuery=()=>{
+      let q=supabase.from("release_schedules")
+        .select("*, series:series_id(id,title,status)")
+        .eq("enabled",true)
+        .neq("schedule_mode","manual");
+      if(scheduleId) q=q.eq("id",scheduleId);
+      else q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);
+      return q.order("id",{ascending:true});
+    };
+    const schedules:any[]=[];
+    let scheduleError:any=null;
+    for(let offset=0;;offset+=500){
+      const {data,error}=await buildScheduleQuery().range(offset,offset+499);
+      if(error){scheduleError=error;break;}
+      const page=data??[];
+      schedules.push(...page);
+      if(page.length<500) break;
+    }
     if(scheduleError) return response({success:false,error:"Failed to load due release schedules.",details:message(scheduleError)},500);
 
     const results=[];
 
-    for(const schedule of schedules??[]){
+    for(const schedule of schedules){
       const leaseToken=crypto.randomUUID();
-      const leaseClaim=await supabase.rpc("aevora_claim_release_scheduler_lease",{
-        p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
-      });
-      if(leaseClaim.error || leaseClaim.data!==true){
-        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_unavailable",
-          reason:"Another scheduler owns this schedule or the lease could not be claimed.",
-          details:leaseClaim.error?message(leaseClaim.error):null});
-        continue;
+      let leaseClaimed=false;
+      if(!dryRun){
+        const leaseClaim=await supabase.rpc("aevora_claim_release_scheduler_lease",{
+          p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
+        });
+        if(leaseClaim.error || leaseClaim.data!==true){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_unavailable",
+            reason:"Another scheduler owns this schedule or the lease could not be claimed.",
+            details:leaseClaim.error?message(leaseClaim.error):null});
+          continue;
+        }
+        leaseClaimed=true;
       }
       let leaseLost=false;
       try{
@@ -77,11 +147,21 @@ Deno.serve(async (req)=>{
       // the configured number of distinct chapters has passed all review gates.
       if(lifecycleStatus==="preparing"){
         const launchCount=Math.max(1,Number(lifecycle?.launch_chapter_count??5));
-        const {data:approved,error:approvedError}=await supabase.from("chapter_generation_outputs")
-          .select("chapter_number,created_at")
-          .eq("series_id",schedule.series_id)
-          .eq("generation_status","approved")
-          .order("chapter_number",{ascending:true});
+        const approved:any[]=[];
+        let approvedError:any=null;
+        for(let offset=0;;offset+=500){
+          const {data:page,error}=await supabase.from("chapter_generation_outputs")
+            .select("chapter_number,created_at,id")
+            .eq("series_id",schedule.series_id)
+            .eq("generation_status","approved")
+            .order("chapter_number",{ascending:true})
+            .order("created_at",{ascending:false})
+            .order("id",{ascending:true})
+            .range(offset,offset+499);
+          if(error){approvedError=error;break;}
+          approved.push(...(page??[]));
+          if((page??[]).length<500) break;
+        }
 
         if(approvedError){
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"error",reason:"Failed to inspect launch-ready chapters.",details:message(approvedError)});
@@ -104,10 +184,21 @@ Deno.serve(async (req)=>{
         .order("chapter_number",{ascending:false}).limit(1).maybeSingle();
       const latestNumber=latestPublished?.chapter_number??0;
 
-      const {data:readyOutputs,error:readyError}=await supabase.from("chapter_generation_outputs")
-        .select("id,chapter_number,title,generation_status,created_at")
-        .eq("series_id",schedule.series_id).eq("generation_status","approved")
-        .gt("chapter_number",latestNumber).order("chapter_number",{ascending:true});
+      const readyOutputs:any[]=[];
+      let readyError:any=null;
+      for(let offset=0;;offset+=500){
+        const {data:page,error}=await supabase.from("chapter_generation_outputs")
+          .select("id,chapter_number,title,generation_status,created_at")
+          .eq("series_id",schedule.series_id).eq("generation_status","approved")
+          .gt("chapter_number",latestNumber)
+          .order("chapter_number",{ascending:true})
+          .order("created_at",{ascending:false})
+          .order("id",{ascending:true})
+          .range(offset,offset+499);
+        if(error){readyError=error;break;}
+        readyOutputs.push(...(page??[]));
+        if((page??[]).length<500) break;
+      }
 
       if(readyError){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"error",reason:"Failed to inspect ready chapters.",details:message(readyError)});
@@ -116,17 +207,20 @@ Deno.serve(async (req)=>{
 
       // Deduplicate by chapter number so multiple attempts/reviews can never
       // cause duplicate publication of the same chapter.
-      const uniqueReady=[]; const seen=new Set<number>();
-      // Publish only a contiguous sequence beginning at latestPublished + 1.
-      // This prevents an approved Chapter 2+ from publishing while Chapter 1 is missing.
+      const uniqueReady:any[]=[];
+      // Fail closed if multiple approved outputs compete for the same chapter number.
+      // Stable ordering makes the diagnostic deterministic; it does not pick a winner.
       let expectedNumber=latestNumber+1;
-      for(const row of readyOutputs??[]){
+      let outputIndex=0;
+      while(outputIndex<readyOutputs.length){
+        const row=readyOutputs[outputIndex];
         const n=Number(row.chapter_number);
-        if(seen.has(n)) continue;
-        if(n!==expectedNumber) break;
-        seen.add(n);
+        let groupEnd=outputIndex+1;
+        while(groupEnd<readyOutputs.length && Number(readyOutputs[groupEnd].chapter_number)===n) groupEnd++;
+        if(n!==expectedNumber || groupEnd-outputIndex!==1) break;
         uniqueReady.push(row);
         expectedNumber++;
+        outputIndex=groupEnd;
       }
 
       const dailyMin=Math.max(1,Number(lifecycle?.daily_chapters_min??2));
@@ -234,14 +328,12 @@ Deno.serve(async (req)=>{
           }
         }
       }else if(schedule.schedule_mode==="weekly" && Number.isInteger(schedule.preferred_weekday) && schedule.preferred_time){
-        const candidate=new Date(now);
-        const current=candidate.getUTCDay();
-        let delta=(Number(schedule.preferred_weekday)-current+7)%7;
-        if(delta===0)delta=7;
-        candidate.setUTCDate(candidate.getUTCDate()+delta);
-        const [hh,mm,ss="0"]=String(schedule.preferred_time).split(":");
-        candidate.setUTCHours(Number(hh)||0,Number(mm)||0,Number(ss)||0,0);
-        nextRelease=candidate;
+        try{
+          nextRelease=nextWeeklyRelease(now,Number(schedule.preferred_weekday),String(schedule.preferred_time),String(schedule.timezone??"UTC"));
+        }catch(scheduleTimeError){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_time_invalid",
+            timezone:schedule.timezone??"UTC",details:message(scheduleTimeError)});
+        }
       }
 
       const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0
@@ -275,12 +367,14 @@ Deno.serve(async (req)=>{
         published,next_release_at:nextRelease?.toISOString()??schedule.next_release_at,dry_run:dryRun
       });
       }finally{
-        const released=await supabase.rpc("aevora_release_scheduler_lease",{
-          p_schedule_id:schedule.id,p_lease_token:leaseToken
-        });
-        if(released.error || released.data!==true){
-          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_release_warning",
-            details:released.error?message(released.error):"Lease token no longer owned; release was not confirmed."});
+        if(leaseClaimed){
+          const released=await supabase.rpc("aevora_release_scheduler_lease",{
+            p_schedule_id:schedule.id,p_lease_token:leaseToken
+          });
+          if(released.error || released.data!==true){
+            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_release_warning",
+              details:released.error?message(released.error):"Lease token no longer owned; release was not confirmed."});
+          }
         }
       }
     }
