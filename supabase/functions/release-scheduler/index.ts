@@ -240,14 +240,51 @@ Deno.serve(async (req)=>{
         continue;
       }
 
-      // Deduplicate by chapter number so multiple attempts/reviews can never
-      // cause duplicate publication of the same chapter.
+      // An approved status label is not a publication review. Qualify every
+      // candidate against its single review row before deduplicating by chapter;
+      // otherwise a newer unreviewed output can hide an older reviewed output.
+      const reviewQualifiedOutputIds=new Set<string>();
+      let reviewLoadError:any=null;
+      for(let offset=0;offset<readyOutputs.length;offset+=500){
+        const outputIds=readyOutputs.slice(offset,offset+500)
+          .map((row:any)=>String(row.id??"")).filter((id:string)=>id.length>0);
+        if(outputIds.length===0) continue;
+        const {data:reviewRows,error:reviewError}=await supabase.from("chapter_publication_reviews")
+          .select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")
+          .in("generation_output_id",outputIds)
+          .order("generation_output_id",{ascending:true});
+        if(reviewError){reviewLoadError=reviewError;break;}
+        const reviewsByOutput=new Map<string,any[]>();
+        for(const review of reviewRows??[]){
+          const id=String(review.generation_output_id??"");
+          if(!id) continue;
+          const rows=reviewsByOutput.get(id)??[];
+          rows.push(review);
+          reviewsByOutput.set(id,rows);
+        }
+        for(const [id,rows] of reviewsByOutput){
+          if(rows.length!==1) continue;
+          const review=rows[0];
+          if(review.decision==="approved" && review.quality_passed===true &&
+            review.continuity_passed===true && review.originality_passed===true &&
+            review.safety_passed===true) reviewQualifiedOutputIds.add(id);
+        }
+      }
+      if(reviewLoadError){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"error",
+          reason:"Failed to inspect publication reviews for ready chapters.",details:message(reviewLoadError)});
+        continue;
+      }
+      const reviewedReadyOutputs=readyOutputs.filter((row:any)=>reviewQualifiedOutputIds.has(String(row.id)));
+
+      // Deduplicate only after review qualification, so an unreviewed newer
+      // attempt cannot hide a safe, older approved output for the same chapter.
       const uniqueReady:any[]=[];
       // Deterministic latest-approved-output policy: rows are ordered by chapter,
       // newest created_at first, then stable ID. Choose one output per chapter.
       let expectedNumber=latestNumber+1;
       const seenChapterNumbers=new Set<number>();
-      for(const row of readyOutputs){
+      for(const row of reviewedReadyOutputs){
         const n=Number(row.chapter_number);
         if(seenChapterNumbers.has(n)) continue;
         if(n!==expectedNumber) break;
