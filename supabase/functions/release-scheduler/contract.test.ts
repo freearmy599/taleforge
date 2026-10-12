@@ -174,6 +174,8 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   assert(source.includes('.range(offset,offset+499)'), "launch chapter/output history queries must be paginated");
   assert(source.includes('.select("series_id,lifecycle_status").maybeSingle()'), "lifecycle activation must return a confirmation row");
   assert(source.includes('!updatedLifecycle || updatedLifecycle.lifecycle_status!=="active"'), "missing or non-active lifecycle update must fail closed");
+  assert(source.includes('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost)'), "preparing lifecycle verification must be retryable without publishing a new chapter");
+  assert(!source.includes('lifecycleStatus==="preparing" && published.length>0'), "lifecycle retry must not depend on a new publication in the current run");
 });
 
 Deno.test("publisher rejects non-approved generation statuses before review or publication", async () => {
