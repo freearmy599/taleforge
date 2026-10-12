@@ -43,7 +43,7 @@ Deno.test("scheduler lease RPC names and arguments match the live prerequisite c
 Deno.test("scheduler rejects malformed explicit schedule IDs before query scoping", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   const parseBody = source.indexOf("let body:any;");
-  const rawId = source.indexOf("const rawScheduleId=body?.schedule_id;");
+  const rawId = source.indexOf("const rawScheduleId=body.schedule_id;");
   const invalidGuard = source.indexOf('typeof rawScheduleId!=="string" || rawScheduleId.trim().length===0');
   const normalizedId = source.indexOf('const scheduleId=typeof rawScheduleId==="string"?rawScheduleId.trim():null;');
   const queryBuilder = source.indexOf("const buildScheduleQuery=()=>{");
