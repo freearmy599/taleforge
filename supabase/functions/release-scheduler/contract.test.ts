@@ -163,6 +163,15 @@ Deno.test("publisher idempotency paths reject non-published rows before side eff
   assert(source.includes("chapter_publication_reviews"), "publication review gate must remain");
 });
 
+Deno.test("publisher verifies the inserted database row before reporting success", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  const insertGuard = source.indexOf("if (!matchesPublishedOutput(insertedChapter, output))");
+  const syncSection = source.indexOf("13. Synchronize generation output");
+  assert(insertGuard >= 0, "inserted chapter identity/status confirmation guard missing");
+  assert(syncSection > insertGuard, "inserted row must be verified before synchronization and final success response");
+  assert(source.includes('code: "INSERTED_CHAPTER_STATUS_CONFLICT"'), "mismatched inserted row must return an explicit conflict");
+});
+
 Deno.test("publisher idempotency only confirms the exact published chapter output", () => {
   const output = {
     series_id: "series-a",
