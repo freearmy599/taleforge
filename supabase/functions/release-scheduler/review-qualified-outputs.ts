@@ -44,3 +44,34 @@ export function qualifyReviewedOutputs<T extends ReviewQualifiedOutput>(
     typeof output?.id === "string" && qualifiedIds.has(output.id)
   );
 }
+
+/** Verify that a published chapter is the same reviewed output, not just the same chapter number. */
+export function matchesPublishedChapterOutput(
+  chapter: {
+    status?: unknown;
+    series_id?: unknown;
+    chapter_number?: unknown;
+    title?: unknown;
+    content?: unknown;
+  } | null | undefined,
+  output: {
+    series_id?: unknown;
+    chapter_number?: unknown;
+    title?: unknown;
+    content?: unknown;
+  } | null | undefined,
+): boolean {
+  const chapterNumber = Number(chapter?.chapter_number);
+  const outputNumber = Number(output?.chapter_number);
+  const chapterTitle = typeof chapter?.title === "string" ? chapter.title.trim() : "";
+  const outputTitle = typeof output?.title === "string" ? output.title.trim() : "";
+  const chapterContent = typeof chapter?.content === "string" ? chapter.content.trim() : "";
+  const outputContent = typeof output?.content === "string" ? output.content.trim() : "";
+  return chapter?.status === "published" &&
+    chapter?.series_id === output?.series_id &&
+    Number.isSafeInteger(chapterNumber) && chapterNumber > 0 &&
+    Number.isSafeInteger(outputNumber) && outputNumber > 0 &&
+    chapterNumber === outputNumber &&
+    chapterTitle.length > 0 && chapterTitle === outputTitle &&
+    chapterContent.length > 0 && chapterContent === outputContent;
+}
