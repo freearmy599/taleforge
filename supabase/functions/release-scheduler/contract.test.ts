@@ -58,6 +58,10 @@ Deno.test("interval release resolver rejects overflow and non-advancing timestam
     try { resolveNextIntervalRelease(base, invalid); } catch { threw = true; }
     assert(threw, "invalid, overflowing, or non-advancing intervals must fail closed");
   }
+  let invalidBase = false;
+  try { resolveNextIntervalRelease(new Date(Number.NaN), 24); } catch { invalidBase = true; }
+  assert(invalidBase, "an invalid base timestamp must fail closed");
+
   let overflowedBase = false;
   try { resolveNextIntervalRelease(new Date(8.64e15 - 1000), 1); } catch { overflowedBase = true; }
   assert(overflowedBase, "an interval beyond JavaScript's supported date range must fail closed");
