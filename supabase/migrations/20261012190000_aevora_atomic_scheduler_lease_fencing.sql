@@ -19,7 +19,8 @@ DECLARE
   v_affected integer;
 BEGIN
   IF p_schedule_id IS NULL OR p_lease_token IS NULL
-     OR p_next_release_at IS NULL OR p_last_release_at IS NULL THEN
+     OR p_next_release_at IS NULL OR p_last_release_at IS NULL
+     OR p_next_release_at <= p_last_release_at THEN
     RETURN false;
   END IF;
 
