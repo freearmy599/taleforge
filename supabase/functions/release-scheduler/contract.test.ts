@@ -4,6 +4,8 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
+const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
+const { matchesPublishedOutput } = await import(publisherIdempotencyUrl.href);
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -53,4 +55,28 @@ Deno.test("publisher idempotency paths reject non-published rows before side eff
   assert(source.indexOf("if (!matchesPublishedOutput(racedChapter, output))") < source.indexOf("chapter_id: racedChapter.id"), "race guard must precede idempotent success");
   assert(source.includes("taleforge_ceo_execution_gate"), "Clara governance gate must remain");
   assert(source.includes("chapter_publication_reviews"), "publication review gate must remain");
+});
+
+Deno.test("publisher idempotency only confirms the exact published chapter output", () => {
+  const output = {
+    series_id: "series-a",
+    chapter_number: 7,
+    title: "  The Last Signal  ",
+    content: "  A beacon blinked twice.  ",
+  };
+  const exactChapter = {
+    id: "chapter-7",
+    series_id: "series-a",
+    chapter_number: 7,
+    status: "published",
+    title: "The Last Signal",
+    content: "A beacon blinked twice.",
+  };
+  assert(matchesPublishedOutput(exactChapter, output), "same published content should be safely idempotent");
+  assert(!matchesPublishedOutput({...exactChapter, content:"A different signal."}, output), "different output content must conflict");
+  assert(!matchesPublishedOutput({...exactChapter, title:"Another Title"}, output), "different output title must conflict");
+  assert(!matchesPublishedOutput({...exactChapter, status:"draft"}, output), "non-published row must conflict");
+  assert(!matchesPublishedOutput({...exactChapter, series_id:"series-b"}, output), "different series must conflict");
+  assert(!matchesPublishedOutput({...exactChapter, chapter_number:8}, output), "different chapter slot must conflict");
+  assert(!matchesPublishedOutput({...exactChapter, content:"   "}, output), "empty chapter content must not be idempotent");
 });
