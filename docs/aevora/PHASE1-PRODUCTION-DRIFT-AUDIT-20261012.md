@@ -129,3 +129,13 @@ The migration remains **prepared only** and has not been applied. Existing produ
 Added `docs/aevora/phase1-readonly-integrity-audit.sql` as a source-controlled, SELECT-only audit for future controlled verification. It reports published chapter-number gaps, duplicate published chapter slots, approved outputs with missing/non-unique/non-passing publication reviews, and enabled auto-publish schedules overdue by more than 24 hours. It does not mutate rows or attempt automatic repair.
 
 The query has been committed to the hardening branch but has **not** been executed against production. Its findings must be reviewed before any data repair; it is not a deployment or migration.
+
+### Read-only query execution result — 2026-10-12
+
+Executed the audit query directly against the configured Supabase project using SELECT-only SQL. The query completed without errors and returned:
+- **7 published chapter gaps** across three ongoing series: *The Last Unsent Letter* (chapter 3), *After the Red Eclipse* (chapters 3, 10, 11), and *The Clockwork Sky* (chapters 10, 16, 18).
+- **6 approved generation outputs without a publication-review row**, spanning chapter numbers 14, 15, 16, 21 (two outputs), and 25.
+- **0 duplicate published chapter slots** in this snapshot.
+- **0 enabled auto-publish schedules overdue by more than 24 hours** under the audit's defined threshold.
+
+No rows were inserted, updated, or deleted; no schedule was changed; no chapter was generated or published. The six reviewless outputs remain ineligible for publication under the prepared review-qualified scheduler/publisher path. The seven gaps need a separate story/blueprint reconciliation before any data repair; do not fabricate or auto-publish replacement chapters merely to fill the numbers.
