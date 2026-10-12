@@ -306,6 +306,18 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   assert(!source.includes('lifecycleStatus==="preparing" && published.length>0'), "lifecycle retry must not depend on a new publication in the current run");
 });
 
+Deno.test("publisher validates output_id before governance and database lookups", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  const parseBody = source.indexOf("const body = await req.json().catch(() => null)");
+  const validateId = source.indexOf('typeof outputId !== "string" || outputId.trim().length === 0');
+  const governance = source.indexOf('supabase.rpc("taleforge_ceo_execution_gate"');
+  const outputQuery = source.indexOf('.from("chapter_generation_outputs")');
+  assert(parseBody >= 0 && validateId > parseBody, "request body must be parsed before validating output_id");
+  assert(governance > validateId, "invalid identifiers must be rejected before the governance RPC");
+  assert(outputQuery > governance, "output lookup must follow request validation and governance authorization");
+  assert(source.includes('error: "output_id must be a non-empty string."'), "invalid identifiers must receive a clear client error");
+});
+
 Deno.test("publisher rejects non-approved generation statuses before review or publication", async () => {
   const source = await Deno.readTextFile(publisherUrl);
   const guard = source.indexOf("if (!isPublishableGenerationStatus(output.generation_status))");
