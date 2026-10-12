@@ -20,6 +20,22 @@ const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-
 const generationOrchestratorUrl = new URL("../generation-orchestrator/index.ts", import.meta.url);
 const reviewOrchestratorUrl = new URL("../review-orchestrator/index.ts", import.meta.url);
 
+Deno.test("scheduler only inspects disabled schedules for a targeted dry run", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const queryStart = source.indexOf("const buildScheduleQuery=()=>{");
+  const queryEnd = source.indexOf("const schedules:any[]=[];", queryStart);
+  const query = source.slice(queryStart, queryEnd);
+  assert(queryStart >= 0 && queryEnd > queryStart, "schedule query builder must exist");
+  assert(query.includes('if(!dryRun || !scheduleId) q=q.eq("enabled",true);'),
+    "real runs and unscoped dry runs must filter to enabled schedules");
+  assert(query.indexOf('if(!dryRun || !scheduleId) q=q.eq("enabled",true);') < query.indexOf('if(scheduleId) q=q.eq("id",scheduleId);'),
+    "enabled-schedule policy must be established before explicit ID scoping");
+  assert(query.includes("if(!dryRun && !scheduleId) q=q.eq(\"auto_publish\",true);"),
+    "unscoped real runs must stay limited to auto-publish schedules");
+  assert(source.includes("if(!dryRun && schedule.auto_publish){"),
+    "dry runs must not acquire a lease even when inspecting a disabled schedule");
+});
+
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes("if(!dryRun && schedule.auto_publish){\n        let leaseClaim:any=null;"), "only enabled auto-publish schedules may claim a real-run lease");
