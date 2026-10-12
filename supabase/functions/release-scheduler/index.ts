@@ -434,7 +434,11 @@ Deno.serve(async (req)=>{
           continue;
         }
       }else if(schedule.schedule_mode==="weekly"){
-        nextRelease=weeklyReleaseAt;
+        // Recompute at the end of processing. A long publication batch may cross
+        // the preflight slot; persisting that stale slot would make the schedule
+        // immediately due again on the next cron tick.
+        nextRelease=nextWeeklyRelease(new Date(),Number(schedule.preferred_weekday),
+          String(schedule.preferred_time),String(schedule.timezone??"UTC"));
       }
 
       const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0
