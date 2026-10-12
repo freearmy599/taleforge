@@ -216,7 +216,7 @@ Deno.serve(async (req)=>{
       let publishedHistoryError:any=null;
       for(let offset=0;;offset+=500){
         const {data:page,error}=await supabase.from("chapters")
-          .select("id,chapter_number").eq("series_id",schedule.series_id).eq("status","published")
+          .select("id,chapter_number,published_at").eq("series_id",schedule.series_id).eq("status","published")
           .order("chapter_number",{ascending:true}).order("id",{ascending:true})
           .range(offset,offset+499);
         if(error){publishedHistoryError=error;break;}
@@ -242,6 +242,29 @@ Deno.serve(async (req)=>{
         continue;
       }
       const latestNumber=publishedHistoryCheck.latestNumber;
+
+      // A failed schedule-row advancement must not let the next cron tick publish
+      // another batch immediately. Use chapter timestamps as the recovery source
+      // of truth, with last_release_at as a secondary reference.
+      const releaseReferenceTimes=[schedule.last_release_at,...publishedHistory.map((row:any)=>row.published_at)]
+        .map((value:any)=>value?new Date(value).getTime():Number.NaN)
+        .filter((value:number)=>Number.isFinite(value));
+      if(!dryRun && releaseReferenceTimes.length>0){
+        const latestReleaseMs=Math.max(...releaseReferenceTimes);
+        let cooldownUntil:Date|null=null;
+        if(schedule.schedule_mode==="interval"){
+          cooldownUntil=new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000);
+        }else if(schedule.schedule_mode==="weekly"){
+          cooldownUntil=nextWeeklyRelease(new Date(latestReleaseMs),Number(schedule.preferred_weekday),
+            String(schedule.preferred_time),String(schedule.timezone??"UTC"));
+        }
+        if(cooldownUntil && now.getTime()<cooldownUntil.getTime()){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_cooldown",
+            latest_release_reference:new Date(latestReleaseMs).toISOString(),next_eligible_release_at:cooldownUntil.toISOString(),
+            reason:"A recent confirmed published chapter or release timestamp prevents an immediate follow-up batch."});
+          continue;
+        }
+      }
 
       const readyOutputs:any[]=[];
       let readyError:any=null;
