@@ -421,18 +421,17 @@ Deno.serve(async (req)=>{
 
       let nextRelease:any=null;
       if(schedule.schedule_mode==="interval"){
-        const hours=Number(schedule.interval_hours);
-        if(Number.isFinite(hours)&&hours>0){
-          // The activation run has already published its confirmed batch. Schedule
-          // the next batch after the configured interval to prevent an immediate burst.
-          const base=schedule.next_release_at?new Date(schedule.next_release_at):now;
-          try{
-            nextRelease=resolveNextIntervalRelease(base>now?base:now,hours);
-          }catch(intervalError){
-            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
-              reason:"Next interval release cannot be represented as a valid future timestamp.",details:message(intervalError)});
-            continue;
-          }
+        // Pass the raw database value to the strict resolver. Coercing it with
+        // Number() here would re-accept hexadecimal/binary strings rejected by the resolver.
+        // The activation run has already published its confirmed batch. Schedule
+        // the next batch after the configured interval to prevent an immediate burst.
+        const base=schedule.next_release_at?new Date(schedule.next_release_at):now;
+        try{
+          nextRelease=resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours);
+        }catch(intervalError){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+            reason:"Next interval release cannot be represented as a valid future timestamp.",details:message(intervalError)});
+          continue;
         }
       }else if(schedule.schedule_mode==="weekly"){
         nextRelease=weeklyReleaseAt;
