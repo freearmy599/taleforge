@@ -283,8 +283,24 @@ Deno.serve(async (req) => {
           break;
         }
 
-        if (step.name !== "publication") {
-          const result = call.data as Record<string, unknown> | null;
+        const result = call.data as Record<string, unknown> | null;
+        if (step.name === "publication") {
+          // publication-review intentionally returns HTTP 200 for both approved
+          // and rejected decisions. Treating HTTP success alone as approval can
+          // make the orchestrator report a completed review for an ineligible output.
+          const gates = result?.review_gates as Record<string, { passed?: unknown }> | undefined;
+          const allGatesPassed = gates?.quality?.passed === true
+            && gates?.continuity?.passed === true
+            && gates?.originality?.passed === true
+            && gates?.safety?.passed === true;
+          if (result?.decision !== "approved"
+            || result?.eligible !== true
+            || result?.generation_status !== "approved"
+            || !allGatesPassed) {
+            blocked = true;
+            break;
+          }
+        } else {
           const decision = result?.decision;
           const score = Number(result?.score ?? 0);
 
