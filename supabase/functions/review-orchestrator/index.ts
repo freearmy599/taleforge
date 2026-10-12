@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
 const VERSION = "review-orchestrator-v4-fail-closed-provider-state";
 
@@ -47,6 +48,10 @@ Deno.serve(async (req) => {
 
     if (!supabaseUrl || !serviceRoleKey) {
       return json({ success: false, error: "Missing Supabase environment configuration." }, 500);
+    }
+
+    if (!isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey, Deno.env.get("SUPABASE_SECRET_KEYS"), Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))) {
+      return json({ success: false, error: "Caller must authenticate with a configured server-side Supabase API key." }, 401);
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
