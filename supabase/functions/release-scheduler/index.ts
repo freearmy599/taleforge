@@ -31,9 +31,17 @@ Deno.serve(async (req)=>{
       return response({success:false,error:"Caller must authenticate with a configured server-side Supabase API key."},401);
 
     const supabase=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
-    const body=await req.json().catch(()=>({}));
+    let body:any;
+    try{
+      body=await req.json();
+    }catch{
+      return response({success:false,error:"Request body must be valid JSON."},400);
+    }
+    if(body===null || typeof body!=="object" || Array.isArray(body)){
+      return response({success:false,error:"Request body must be a JSON object."},400);
+    }
     const now=new Date();
-    const rawScheduleId=body?.schedule_id;
+    const rawScheduleId=body.schedule_id;
     if(rawScheduleId!==undefined && rawScheduleId!==null
       && (typeof rawScheduleId!=="string" || rawScheduleId.trim().length===0)){
       return response({success:false,error:"schedule_id must be a non-empty string when provided."},400);
