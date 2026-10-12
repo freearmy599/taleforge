@@ -78,7 +78,7 @@ Prepared branch repair now:
 
 Validation evidence: workflow run [38280268489](https://github.com/freearmy599/taleforge/actions/runs/38280268489) passed the expanded source-contract suite and type-checks, including the restored generation orchestrator. This is branch-only validation; the active production generation orchestrator remains unchanged until a separately authorized deployment.
 
-A further review of active `review-orchestrator` v11 found that its top-level cooldown response returned HTTP 200 with `success: true` and `blocked: true`. Although the payload communicated the block, callers that rely on HTTP success could misclassify the skipped review as successful. The prepared branch restores the exact active source and changes this cooldown response to HTTP 429 while preserving explicit `blocked` and `retryable` fields. CI run [38280442756](https://github.com/freearmy599/taleforge/actions/runs/38280442756) passed the expanded type-check and regression suite. Production remains unchanged.
+A further review of active `review-orchestrator` v11 found that its top-level cooldown response returned HTTP 200 with `success: true` and `blocked: true`. Although the payload communicated the block, callers that rely on HTTP success could misclassify the skipped review as successful. The prepared branch restores the exact active source and changes this cooldown response to HTTP 429 with `success: false`, `blocked: true`, and `retryable: true`, so callers cannot confuse a skipped review with a successful review. CI run [38280548722](https://github.com/freearmy599/taleforge/actions/runs/38280548722) passed the expanded type-check and regression suite. Production remains unchanged.
 
 ## Safe next sequence
 
