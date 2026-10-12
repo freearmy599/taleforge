@@ -24,6 +24,12 @@ The claim/renew functions default to 300 seconds and reject requested durations 
 - A read-only count found zero current lease rows (zero unexpired and zero expired leases), so no existing lease row would block the prepared scheduler at this snapshot.
 - RLS is enabled. anon and authenticated have no SELECT/INSERT/UPDATE/DELETE table privileges; service_role has those privileges.
 
+## Repository migration-tracking gap
+
+A follow-up inspection of the current hardening branch found no lease-named migration among its 39 SQL migration files, and neither `database-schema.sql` nor `series-chapters-schema.sql` contains the lease table or RPC definitions. Production metadata confirms these objects currently exist, but this branch does not contain their source definitions. This is a repository reproducibility gap, not evidence that the live production objects are missing.
+
+Do not fabricate a migration from function names alone. Before Phase 1 can be considered fully reproducible, recover and review the exact deployed definitions and grants through a read-only inspection, then prepare a source-controlled migration or a documented dependency with explicit justification. Do not apply a migration as part of this audit.
+
 ## Deployment implications
 
 - The prepared scheduler's claim/renew/release RPC names and signatures match the live functions.
