@@ -85,8 +85,8 @@ Deno.test("scheduler validates interval arithmetic before side effects and reuse
     "invalid interval deadlines must be rejected before lifecycle or publication processing");
   assert(source.includes("resolveNextIntervalRelease(new Date(latestReleaseMs),schedule.interval_hours)"),
     "cooldown arithmetic must reject overflow instead of accidentally bypassing the cooldown");
-  assert(source.includes("resolveNextIntervalRelease(base>now?base:now,hours)"),
-    "next-release scheduling must use the same safe interval resolver");
+  assert(source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"),
+    "next-release scheduling must pass raw interval configuration through the same strict resolver");
   assert(!source.includes("new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000)"),
     "raw interval arithmetic must not bypass validation");
 });
