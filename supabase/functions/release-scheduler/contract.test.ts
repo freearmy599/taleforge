@@ -1,5 +1,6 @@
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { nextWeeklyRelease } from "./weekly-schedule.ts";
+import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { inspectPublishedChapterHistory } from "./published-history.ts";
 import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts";
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
@@ -44,6 +45,38 @@ Deno.test("scheduler pages schedules and approved outputs in stable order", asyn
   assert(source.includes('return q.order("id",{ascending:true});'), "schedule ID ordering missing");
   assert(source.includes("buildScheduleQuery().range(offset,offset+499)"), "schedule paging missing");
   assert(source.includes('.order("chapter_number",{ascending:true})\n          .order("created_at",{ascending:false})\n          .order("id",{ascending:true})\n          .range(offset,offset+499)'), "approved output ordering/paging missing");
+});
+
+Deno.test("interval release resolver rejects overflow and non-advancing timestamps", () => {
+  const base = new Date("2026-10-12T12:00:00.000Z");
+  assert(resolveNextIntervalRelease(base, 24).toISOString() === "2026-10-13T12:00:00.000Z",
+    "a valid 24-hour interval should resolve exactly");
+  assert(resolveNextIntervalRelease(base, "0.5").toISOString() === "2026-10-12T12:30:00.000Z",
+    "numeric database interval values should resolve");
+  for (const invalid of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e308, 1e-100, null, "not-a-number"]) {
+    let threw = false;
+    try { resolveNextIntervalRelease(base, invalid); } catch { threw = true; }
+    assert(threw, "invalid, overflowing, or non-advancing intervals must fail closed");
+  }
+  let overflowedBase = false;
+  try { resolveNextIntervalRelease(new Date(8.64e15 - 1000), 1); } catch { overflowedBase = true; }
+  assert(overflowedBase, "an interval beyond JavaScript's supported date range must fail closed");
+});
+
+Deno.test("scheduler validates interval arithmetic before side effects and reuses safe resolver", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes('import { resolveNextIntervalRelease } from "./interval-schedule.ts"'),
+    "scheduler must use the tested interval resolver");
+  const preflight = source.indexOf("resolveNextIntervalRelease(now,schedule.interval_hours)");
+  const lifecycleRead = source.indexOf('from("story_lifecycle")');
+  assert(preflight >= 0 && preflight < lifecycleRead,
+    "invalid interval deadlines must be rejected before lifecycle or publication processing");
+  assert(source.includes("resolveNextIntervalRelease(new Date(latestReleaseMs),schedule.interval_hours)"),
+    "cooldown arithmetic must reject overflow instead of accidentally bypassing the cooldown");
+  assert(source.includes("resolveNextIntervalRelease(base>now?base:now,hours)"),
+    "next-release scheduling must use the same safe interval resolver");
+  assert(!source.includes("new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000)"),
+    "raw interval arithmetic must not bypass validation");
 });
 
 Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time", async () => {
