@@ -103,7 +103,7 @@ Deno.serve(async (req)=>{
       if(scheduleId) q=q.eq("id",scheduleId);
       // Explicit schedule IDs are useful for diagnostics, but must not bypass
       // the due-time safety gate during a real run. Dry-run may inspect future rows.
-      if(!dryRun) q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);
+      if(!dryRun || !scheduleId) q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);
       // Do not repeatedly claim leases and scan disabled schedules on every cron tick.
       // Explicit IDs can inspect disabled schedules, but auto-publish remains separately gated.
       if(!dryRun && !scheduleId) q=q.eq("auto_publish",true);
