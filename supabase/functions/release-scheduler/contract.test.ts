@@ -181,7 +181,7 @@ Deno.test("review orchestrator does not treat an HTTP-200 rejected publication r
   assert(publicationGuard > httpGuard, "publication decision must be checked after transport success");
   assert(approvedDecision > publicationGuard && eligibleGuard > approvedDecision && statusGuard > eligibleGuard,
     "publication result must explicitly confirm approved decision, eligibility, and output status");
-  assert(safetyGate > statusGuard && blockedResult > safetyGate, "all four publication gates must be checked and rejected results must block the orchestration");
+  assert(safetyGate > publicationGuard && blockedResult > statusGuard && blockedResult > safetyGate, "all four publication gates must be checked and rejected results must block the orchestration");
   assert(source.includes("publication-review intentionally returns HTTP 200 for both approved"), "the HTTP-200 rejected-decision hazard must remain documented in source");
 });
 
