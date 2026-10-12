@@ -1,6 +1,7 @@
 import { inspectPublishedChapterHistory } from "./published-history.ts";
 import { qualifyReviewedOutputs } from "./review-qualified-outputs.ts";
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
+import { isPublishableGenerationStatus } from "../release-publisher/publisher-output-status.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -11,6 +12,7 @@ const reviewQualifiedOutputsUrl = new URL("./review-qualified-outputs.ts", impor
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
+const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-status.ts", import.meta.url);
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -166,4 +168,19 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   assert(source.includes("const launchReviewRows:any[]=[];"), "launch review rows must be fetched");
   assert(qualification > query && approvedSet > qualification && activation > approvedSet, "lifecycle activation must follow review-qualified launch verification");
   assert(source.includes("launchReviewError"), "review query failure must block lifecycle activation");
+});
+
+Deno.test("publisher rejects non-approved generation statuses before review or publication", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  const guard = source.indexOf("if (!isPublishableGenerationStatus(output.generation_status))");
+  const reviewQuery = source.indexOf('from("chapter_publication_reviews")');
+  assert(guard >= 0 && guard < reviewQuery, "generation status must be checked before publication processing");
+  assert(source.includes('from "./publisher-output-status.ts"'), "publisher must use the tested status policy");
+  assert(source.includes('code: "OUTPUT_STATUS_CONFLICT"'), "ineligible status must return a distinct conflict");
+  await Deno.readTextFile(publisherOutputStatusUrl);
+  assert(isPublishableGenerationStatus("approved"), "approved output should be eligible for review-gated publication");
+  assert(isPublishableGenerationStatus("published"), "published output should permit safe idempotent retry");
+  for (const status of [null, undefined, "", "generated", "quality_check", "needs_revision", "rejected", "draft"]) {
+    assert(!isPublishableGenerationStatus(status), "non-approved status must fail closed");
+  }
 });
