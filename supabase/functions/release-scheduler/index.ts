@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
 const VERSION = "release-scheduler-v10-confirm-schedule-advance";
 const corsHeaders = {
@@ -204,28 +204,20 @@ Deno.serve(async (req)=>{
           reason:"Failed to inspect published chapter history.",details:message(publishedHistoryError)});
         continue;
       }
-      const parsedPublishedNumbers=publishedHistory.map((row:any)=>Number(row.chapter_number));
-      if(parsedPublishedNumbers.some((n:number)=>!Number.isSafeInteger(n)||n<1)){
+      const publishedHistoryCheck=inspectPublishedChapterHistory(publishedHistory.map((row:any)=>row.chapter_number));
+      if(!publishedHistoryCheck.ok){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"published_chapter_history_invalid",
           reason:"Published chapter history contains an invalid chapter number."});
         continue;
       }
-      const sortedPublishedNumbers=Array.from(new Set(parsedPublishedNumbers)).sort((a,b)=>a-b);
-      let expectedPublishedNumber=1;
-      let firstMissingPublishedNumber:number|null=null;
-      for(const number of sortedPublishedNumbers){
-        if(number<expectedPublishedNumber) continue;
-        if(number!==expectedPublishedNumber){firstMissingPublishedNumber=expectedPublishedNumber;break;}
-        expectedPublishedNumber++;
-      }
-      if(firstMissingPublishedNumber!==null){
+      if(publishedHistoryCheck.firstMissingChapter!==null){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"published_chapter_gap",
-          first_missing_chapter:firstMissingPublishedNumber,
-          highest_published_chapter:sortedPublishedNumbers[sortedPublishedNumbers.length-1]??0,
+          first_missing_chapter:publishedHistoryCheck.firstMissingChapter,
+          highest_published_chapter:publishedHistoryCheck.latestNumber,
           reason:"A later chapter is published while an earlier chapter is missing. Automatic release is paused for this series until the numbering gap is repaired."});
         continue;
       }
-      const latestNumber=sortedPublishedNumbers[sortedPublishedNumbers.length-1]??0;
+      const latestNumber=publishedHistoryCheck.latestNumber;
 
       const readyOutputs:any[]=[];
       let readyError:any=null;
