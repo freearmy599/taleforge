@@ -73,6 +73,20 @@ Deno.serve(async (req) => {
         reason: "provider_state_unavailable",
         note: "Review pipeline blocked because Gemini provider cooldown state could not be verified; no review model calls were made.",
       }, 503);
+    } else if (providerState?.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())) {
+      console.error("[review-orchestrator] provider cooldown timestamp is invalid; failing closed", String(providerState.cooldown_until));
+      return json({
+        success: false,
+        mode: "review-orchestrator",
+        orchestrator_version: VERSION,
+        checked_at: new Date().toISOString(),
+        outputs_checked: 0,
+        results: [],
+        blocked: true,
+        retryable: true,
+        reason: "provider_state_unavailable",
+        note: "Review pipeline blocked because Gemini cooldown state is malformed; no review model calls were made.",
+      }, 503);
     } else if (providerState?.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now()) {
       console.warn("[review-orchestrator] review pipeline skipped due to active provider cooldown", JSON.stringify({
         cooldown_until: providerState.cooldown_until,
