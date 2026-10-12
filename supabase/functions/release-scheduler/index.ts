@@ -249,21 +249,17 @@ Deno.serve(async (req)=>{
       const releaseReferenceTimes=[schedule.last_release_at,...publishedHistory.map((row:any)=>row.published_at)]
         .map((value:any)=>value?new Date(value).getTime():Number.NaN)
         .filter((value:number)=>Number.isFinite(value));
+      let scheduleCooldownActive=false;
+      let scheduleCooldownUntil:Date|null=null;
       if(!dryRun && releaseReferenceTimes.length>0){
         const latestReleaseMs=Math.max(...releaseReferenceTimes);
-        let cooldownUntil:Date|null=null;
         if(schedule.schedule_mode==="interval"){
-          cooldownUntil=new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000);
+          scheduleCooldownUntil=new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000);
         }else if(schedule.schedule_mode==="weekly"){
-          cooldownUntil=nextWeeklyRelease(new Date(latestReleaseMs),Number(schedule.preferred_weekday),
+          scheduleCooldownUntil=nextWeeklyRelease(new Date(latestReleaseMs),Number(schedule.preferred_weekday),
             String(schedule.preferred_time),String(schedule.timezone??"UTC"));
         }
-        if(cooldownUntil && now.getTime()<cooldownUntil.getTime()){
-          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_cooldown",
-            latest_release_reference:new Date(latestReleaseMs).toISOString(),next_eligible_release_at:cooldownUntil.toISOString(),
-            reason:"A recent confirmed published chapter or release timestamp prevents an immediate follow-up batch."});
-          continue;
-        }
+        scheduleCooldownActive=!!scheduleCooldownUntil && now.getTime()<scheduleCooldownUntil.getTime();
       }
 
       const readyOutputs:any[]=[];
@@ -327,7 +323,7 @@ Deno.serve(async (req)=>{
 
       const dailyMin=dailyMinConfig;
       const dailyMax=dailyMaxConfig;
-      const publishCount=Math.min(uniqueReady.length,dailyMax);
+      const publishCount=scheduleCooldownActive?0:Math.min(uniqueReady.length,dailyMax);
       let published:any[]=[];
       let publicationFailed=false;
       let attemptedCount=0;
@@ -495,12 +491,13 @@ Deno.serve(async (req)=>{
 
       results.push({
         schedule_id:schedule.id,series_id:schedule.series_id,series_title:series.title,
-        action:leaseLost?"lease_lost":publicationFailed?"publication_incomplete":published.length?"published":"checked",
+        action:leaseLost?"lease_lost":publicationFailed?"publication_incomplete":published.length?"published":scheduleCooldownActive?"schedule_cooldown":"checked",
         lifecycle_status:lifecycleStatus,lifecycle_transition:lifecycleTransition,
         latest_published_chapter:latestNumber,ready_chapters:uniqueReady.length,
         daily_chapters_target:{min:dailyMin,max:dailyMax},published_count:published.length,
         auto_generate:schedule.auto_generate,auto_publish:schedule.auto_publish,
-        published,next_release_at:nextRelease?.toISOString()??schedule.next_release_at,dry_run:dryRun
+        published,next_release_at:nextRelease?.toISOString()??schedule.next_release_at,
+        schedule_cooldown_until:scheduleCooldownUntil?.toISOString()??null,dry_run:dryRun
       });
       }catch(scheduleError){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_error",
