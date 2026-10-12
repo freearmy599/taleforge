@@ -48,7 +48,10 @@ Deno.serve(async (req)=>{
     }
     // An empty or malformed explicit ID must never degrade into an unscoped batch run.
     const scheduleId=typeof rawScheduleId==="string"?rawScheduleId.trim():null;
-    const dryRun=body?.dry_run===true;
+    if(body.dry_run!==undefined && typeof body.dry_run!=="boolean"){
+      return response({success:false,error:"dry_run must be a boolean when provided."},400);
+    }
+    const dryRun=body.dry_run===true;
 
     const buildScheduleQuery=()=>{
       let q=supabase.from("release_schedules")
