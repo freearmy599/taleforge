@@ -126,6 +126,7 @@ Deno.test("recent publication timestamps prevent immediate follow-up batches aft
   assert(source.includes("row.published_at"), "published chapter timestamps must provide a recovery reference");
   assert(source.includes("releaseReferenceTimes.reduce"), "large publication histories must not use spread arguments to compute the latest timestamp");
   assert(source.includes("scheduleCooldownActive=!!scheduleCooldownUntil && now.getTime()<scheduleCooldownUntil.getTime()"), "cooldown must compare current time with next eligible release");
+  assert(source.includes("if(releaseReferenceTimes.length>0)") && !source.includes("if(!dryRun && releaseReferenceTimes.length>0)"), "dry-run must report the same cooldown without mutating state");
   assert(source.includes("const publishCount=scheduleCooldownActive?0:Math.min(uniqueReady.length,dailyMax)"), "active cooldown must suppress publishing another batch");
   assert(source.includes('scheduleCooldownActive?"schedule_cooldown":"checked"'), "cooldown must be observable in the result");
   assert(source.indexOf("const publishCount=scheduleCooldownActive?0:") < source.indexOf("if(!dryRun && schedule.auto_publish && publishCount>0)"), "cooldown must be evaluated before publication");
