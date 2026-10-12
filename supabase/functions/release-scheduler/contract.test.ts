@@ -1,4 +1,5 @@
 import { inspectPublishedChapterHistory } from "./published-history.ts";
+import { qualifyReviewedOutputs } from "./review-qualified-outputs.ts";
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -6,6 +7,7 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const publishedHistoryUrl = new URL("./published-history.ts", import.meta.url);
+const reviewQualifiedOutputsUrl = new URL("./review-qualified-outputs.ts", import.meta.url);
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
@@ -111,16 +113,42 @@ Deno.test("scheduler pages complete published history and pauses on a numbering 
 
 Deno.test("scheduler qualifies publication reviews before deduplicating output revisions", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
+  const helperSource = await Deno.readTextFile(reviewQualifiedOutputsUrl);
   const reviewQuery = source.indexOf('from("chapter_publication_reviews")');
-  const qualification = source.indexOf("review.quality_passed===true");
-  const filter = source.indexOf("const reviewedReadyOutputs=readyOutputs.filter");
+  const filter = source.indexOf("qualifyReviewedOutputs(readyOutputs,publicationReviewRows)");
   const deduplication = source.indexOf("const uniqueReady:any[]=[];");
   assert(reviewQuery >= 0, "scheduler must load review rows for ready outputs");
   assert(source.includes('select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")'), "all review gates must be loaded");
-  assert(source.includes('review.decision==="approved"'), "review decision must be explicitly approved");
-  assert(source.includes("review.quality_passed===true") && source.includes("review.continuity_passed===true") &&
-    source.includes("review.originality_passed===true") && source.includes("review.safety_passed===true"), "all four gates must be explicitly true");
-  assert(source.includes("if(rows.length!==1) continue;"), "ambiguous/multiple review rows must fail closed");
-  assert(reviewQuery < qualification && qualification < filter && filter < deduplication, "review qualification must precede output selection and chapter-slot deduplication");
+  assert(source.includes('from "./review-qualified-outputs.ts"'), "scheduler must use the tested review helper");
+  assert(filter > reviewQuery && filter < deduplication, "review qualification must precede chapter-slot deduplication");
   assert(source.includes("Failed to inspect publication reviews for ready chapters."), "review query failure must fail closed");
+  assert(helperSource.includes("review.decision === \"approved\""), "review decision must be explicitly approved");
+  assert(helperSource.includes("review.quality_passed === true") && helperSource.includes("review.continuity_passed === true") &&
+    helperSource.includes("review.originality_passed === true") && helperSource.includes("review.safety_passed === true"), "all four gates must be explicitly true");
+  assert(helperSource.includes("if (rows.length !== 1) continue;"), "ambiguous/multiple review rows must fail closed");
+});
+
+Deno.test("review qualification excludes missing, rejected, incomplete, and ambiguous reviews", () => {
+  const outputs = [
+    {id:"valid",chapter_number:1},
+    {id:"missing",chapter_number:2},
+    {id:"rejected",chapter_number:3},
+    {id:"one-gate-failed",chapter_number:4},
+    {id:"ambiguous",chapter_number:5},
+  ];
+  const approved = (id:string) => ({
+    generation_output_id:id,decision:"approved",quality_passed:true,
+    continuity_passed:true,originality_passed:true,safety_passed:true,
+  });
+  const reviews = [
+    approved("valid"),
+    {...approved("rejected"),decision:"rejected"},
+    {...approved("one-gate-failed"),safety_passed:false},
+    approved("ambiguous"),
+    approved("ambiguous"),
+  ];
+  const qualified = qualifyReviewedOutputs(outputs,reviews);
+  assert(JSON.stringify(qualified.map((row)=>row.id)) === JSON.stringify(["valid"]), "only exactly-one fully approved review should qualify");
+  assert(qualifyReviewedOutputs(outputs,[]).length===0, "missing review rows must be excluded");
+  assert(qualifyReviewedOutputs([{id:"numeric-id"}],[approved("numeric-id")]).length===0, "malformed output identifiers must fail closed");
 });
