@@ -42,7 +42,7 @@ Deno.test("scheduler lease RPC names and arguments match the live prerequisite c
 
 Deno.test("scheduler rejects malformed explicit schedule IDs before query scoping", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  const parseBody = source.indexOf("const body=await req.json().catch(()=>({}));");
+  const parseBody = source.indexOf("let body:any;");
   const rawId = source.indexOf("const rawScheduleId=body?.schedule_id;");
   const invalidGuard = source.indexOf('typeof rawScheduleId!=="string" || rawScheduleId.trim().length===0');
   const normalizedId = source.indexOf('const scheduleId=typeof rawScheduleId==="string"?rawScheduleId.trim():null;');
@@ -50,6 +50,9 @@ Deno.test("scheduler rejects malformed explicit schedule IDs before query scopin
   assert(parseBody >= 0 && rawId > parseBody, "request body must be parsed before reading the explicit schedule ID");
   assert(invalidGuard > rawId && normalizedId > invalidGuard, "explicit IDs must be validated and normalized before query construction");
   assert(queryBuilder > normalizedId, "query scoping must follow explicit schedule ID validation");
+  assert(source.includes('error:"Request body must be valid JSON."'), "malformed JSON must not degrade into an unscoped scheduler run");
+  assert(source.includes('body===null || typeof body!=="object" || Array.isArray(body)'), "scheduler request must be a JSON object, not null or an array");
+  assert(source.includes('error:"Request body must be a JSON object."'), "non-object request bodies must receive a clear client error");
   assert(source.includes('error:"schedule_id must be a non-empty string when provided."'), "invalid explicit IDs must receive a clear client error");
   assert(source.includes("if(scheduleId) q=q.eq(\"id\",scheduleId);"), "a normalized valid ID must scope the query");
 });
