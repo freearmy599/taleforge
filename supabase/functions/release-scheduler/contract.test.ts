@@ -345,7 +345,8 @@ Deno.test("atomic lease-fencing migration locks and validates ownership and rest
   const sql = await Deno.readTextFile(leaseFencingMigrationUrl);
   assert(sql.includes("aevora_advance_release_schedule_if_lease_owned"), "atomic schedule RPC definition missing");
   assert(sql.includes("aevora_activate_story_lifecycle_if_lease_owned"), "atomic lifecycle RPC definition missing");
-  assert(sql.split("FOR UPDATE").length - 1 === 2, "both RPCs must lock the lease row through their transaction");
+  assert(sql.split("FOR UPDATE").length - 1 === 3, "both lease locks and the lifecycle schedule-row lock must remain transactional");
+  assert(sql.split("FROM public.aevora_release_scheduler_leases").length - 1 === 2, "both RPCs must read and lock the lease table");
   assert(sql.split("v_lease_token <> p_lease_token").length - 1 === 2, "both RPCs must validate the exact lease token");
   assert(sql.split("v_lease_expires_at <= clock_timestamp()").length - 1 === 2, "both RPCs must reject expired leases");
   assert(sql.includes("OR p_next_release_at <= p_last_release_at THEN"), "atomic advancement must reject a non-advancing release deadline");
