@@ -42,7 +42,7 @@ Deno.serve(async (req)=>{
     }
     const now=new Date();
     const rawScheduleId=body.schedule_id;
-    if(rawScheduleId!==undefined && rawScheduleId!==null
+    if(rawScheduleId!==undefined
       && (typeof rawScheduleId!=="string" || rawScheduleId.trim().length===0)){
       return response({success:false,error:"schedule_id must be a non-empty string when provided."},400);
     }
