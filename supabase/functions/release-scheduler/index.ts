@@ -175,7 +175,7 @@ Deno.serve(async (req)=>{
       const publishedHistoryCheck=inspectPublishedChapterHistory(publishedHistory.map((row:any)=>row.chapter_number));
       if(!publishedHistoryCheck.ok){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"published_chapter_history_invalid",
-          reason:"Published chapter history contains an invalid chapter number."});
+          reason:"Published chapter history contains an invalid or duplicate chapter number."});
         continue;
       }
       if(publishedHistoryCheck.firstMissingChapter!==null){
