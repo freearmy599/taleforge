@@ -8,7 +8,7 @@
 export function isTrustedInternalApiKey(
   presentedApiKey: string | null,
   legacyServiceRoleKey: string | null,
-  secretKeysJson: string | null,
+  secretKeysJson: string | null | undefined,
 ): boolean {
   if (!presentedApiKey) return false;
   const candidates: string[] = [];
