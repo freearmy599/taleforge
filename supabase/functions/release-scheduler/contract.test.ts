@@ -473,7 +473,7 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved,launchReviewRows)");
   const launchReady = source.indexOf("const launchReady=launchNumbers.filter");
   const activationGate = source.indexOf("if(launchReady.length===launchCount)");
-  const activation = source.indexOf('supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned",{ '.trim());
+  const activation = source.indexOf('supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned",{');
   assert(query >= 0 && source.indexOf('.in("generation_status",["approved","published"]).lte("chapter_number",launchCount)',query) > query, "launch verification must load approved/published output IDs and chapter numbers");
   assert(source.includes("const launchReviewRows:any[]=[];"), "launch review rows must be fetched");
   assert(qualification > query && launchReady > qualification && activationGate > launchReady && activation > activationGate, "lifecycle activation must follow review-qualified launch verification");
