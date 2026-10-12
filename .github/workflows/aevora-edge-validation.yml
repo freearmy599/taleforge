@@ -32,4 +32,4 @@ jobs:
       - name: Type-check publisher
         run: deno check supabase/functions/release-publisher/index.ts
       - name: Run source-contract regression tests
-        run: deno test --allow-read=supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts supabase/functions/release-scheduler/contract.test.ts
+        run: deno test --allow-read=supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts supabase/functions/release-scheduler/contract.test.ts
