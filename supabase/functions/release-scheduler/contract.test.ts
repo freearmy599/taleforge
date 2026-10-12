@@ -4,8 +4,8 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
+import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
-const { matchesPublishedOutput } = await import(publisherIdempotencyUrl.href);
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -47,8 +47,10 @@ Deno.test("scheduler requires strict publisher confirmation and database-publish
 Deno.test("publisher idempotency paths reject non-published rows before side effects", async () => {
   const source = await Deno.readTextFile(publisherUrl);
   assert(source.split("CHAPTER_SLOT_CONFLICT").length - 1 === 2, "both existing-row and race guards must exist");
-  assert(source.includes("function matchesPublishedOutput(chapter: any, output: any): boolean"), "published-output identity check missing");
-  assert(source.includes("chapterContent === outputContent"), "existing chapter must match the requested output content");
+  const identitySource = await Deno.readTextFile(publisherIdempotencyUrl);
+  assert(source.includes('from "./publisher-idempotency.ts"'), "publisher must use the tested identity helper");
+  assert(identitySource.includes("function matchesPublishedOutput(chapter: any, output: any): boolean"), "published-output identity check missing");
+  assert(identitySource.includes("chapterContent === outputContent"), "existing chapter must match the requested output content");
   assert(source.includes("if (!matchesPublishedOutput(existingChapter, output))"), "existing-row identity guard missing");
   assert(source.indexOf("if (!matchesPublishedOutput(existingChapter, output))") < source.indexOf("const synchronizationWarnings: string[] = [];"), "existing-row guard must precede synchronization");
   assert(source.includes("if (!matchesPublishedOutput(racedChapter, output))"), "race-path identity guard missing");
