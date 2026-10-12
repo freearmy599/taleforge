@@ -113,11 +113,22 @@ Deno.test("published chapter history fails closed on gaps and malformed numbers"
 Deno.test("scheduler pages complete published history and pauses on a numbering gap", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('from "./published-history.ts"'), "scheduler must use the tested history helper");
-  assert(source.includes('.select("id,chapter_number").eq("series_id",schedule.series_id).eq("status","published")'), "published history query missing");
+  assert(source.includes('.select("id,chapter_number,published_at").eq("series_id",schedule.series_id).eq("status","published")'), "published history query missing");
   assert(source.includes('.range(offset,offset+499)'), "published history must be paginated");
   assert(source.includes('action:"published_chapter_gap"'), "scheduler must pause on a published chapter gap");
   assert(source.indexOf('action:"published_chapter_gap"') < source.indexOf("const readyOutputs:any[]=[];"), "gap guard must run before ready output selection");
   await Deno.readTextFile(publishedHistoryUrl);
+});
+
+Deno.test("recent publication timestamps prevent immediate follow-up batches after failed schedule advancement", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes("schedule.last_release_at"), "schedule last-release timestamp must be considered");
+  assert(source.includes("row.published_at"), "published chapter timestamps must provide a recovery reference");
+  assert(source.includes("scheduleCooldownActive=!!scheduleCooldownUntil && now.getTime()<scheduleCooldownUntil.getTime()"), "cooldown must compare current time with next eligible release");
+  assert(source.includes("const publishCount=scheduleCooldownActive?0:Math.min(uniqueReady.length,dailyMax)"), "active cooldown must suppress publishing another batch");
+  assert(source.includes('scheduleCooldownActive?"schedule_cooldown":"checked"'), "cooldown must be observable in the result");
+  assert(source.indexOf("if(scheduleCooldownActive)") < source.indexOf("if(!dryRun && schedule.auto_publish && publishCount>0)"), "cooldown must be evaluated before publication");
+  assert(source.indexOf('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing"') > source.indexOf("const publishCount="), "cooldown must not bypass preparing-lifecycle verification");
 });
 
 Deno.test("scheduler qualifies publication reviews before deduplicating output revisions", async () => {
