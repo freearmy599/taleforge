@@ -16,7 +16,7 @@ const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  assert(source.includes("if(!dryRun){\n        let leaseClaim:any=null;"), "real-run-only lease claim guard missing");
+  assert(source.includes("if(!dryRun && schedule.auto_publish){\n        let leaseClaim:any=null;"), "only enabled auto-publish schedules may claim a real-run lease");
   assert(source.includes("if(leaseClaimed){\n          let released:any=null;"), "conditional lease release guard missing");
   assert(!source.includes('if(dryRun){\n        const leaseClaim'), "dry-run lease claim must not exist");
   assert(source.includes("catch(leaseClaimError)"), "lease claim transport exceptions must be isolated to one schedule");
@@ -251,7 +251,7 @@ Deno.test("explicit schedule IDs cannot bypass due-time checks during real runs"
 Deno.test("explicit disabled schedule diagnostics do not claim a write lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('if(!dryRun && schedule.auto_publish){'), "lease claims must require a real run and auto_publish=true");
-  assert(source.includes('if(leaseClaimed){\\n          let released:any=null;'), "only an actually claimed lease may be released");
+  assert(source.includes("if(leaseClaimed){\n          let released:any=null;"), "only an actually claimed lease may be released");
   assert(source.includes('if(!dryRun && schedule.auto_publish && publishCount>0){'), "disabled schedules must not publish when explicitly inspected");
   assert(source.includes('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing"'), "disabled schedules must not transition lifecycle state");
 });
