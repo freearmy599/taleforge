@@ -28,6 +28,13 @@ Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time"
   assert(!source.includes("nextRelease=now;"), "activation must not trigger an immediate extra release batch");
 });
 
+Deno.test("schedule advancement requires a confirmed update row", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes('.update(update).eq("id",schedule.id).select("id,next_release_at").maybeSingle()'), "schedule update must return the updated row");
+  assert(source.includes("if(updateError || !updatedSchedule)"), "missing-row schedule update must fail closed");
+  assert(!source.includes("const approved:any[]=[];"), "redundant preparing-lifecycle output preflight should stay removed");
+});
+
 Deno.test("scheduler requires strict publisher confirmation and database-published status", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes("d.success===true && d.published===true"), "publisher positive flags missing");
