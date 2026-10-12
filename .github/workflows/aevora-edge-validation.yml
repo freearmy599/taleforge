@@ -10,6 +10,7 @@ name: Aevora Edge source validation
     paths:
       - "supabase/functions/release-scheduler/**"
       - "supabase/functions/release-publisher/**"
+      - "supabase/functions/_shared/**"
       - ".github/workflows/aevora-edge-validation.yml"
 
 permissions:
