@@ -100,6 +100,8 @@ Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time"
   assert(helper.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
   assert(source.indexOf("Validate scheduling configuration before any publication side effect.") < source.indexOf('from("story_lifecycle")'), "schedule preflight must precede publication setup");
   assert(!source.includes("nextRelease=now;"), "activation must not trigger an immediate extra release batch");
+  assert(source.includes("nextRelease=nextWeeklyRelease(new Date(),Number(schedule.preferred_weekday)"),
+    "weekly next-release deadline must be recomputed after processing so a long batch cannot persist an already-expired slot");
 });
 
 Deno.test("weekly resolver handles normal timezone conversion, DST gaps, and both sides of DST folds", () => {
