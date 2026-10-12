@@ -108,3 +108,19 @@ Deno.test("scheduler pages complete published history and pauses on a numbering 
   assert(source.indexOf('action:"published_chapter_gap"') < source.indexOf("const readyOutputs:any[]=[];"), "gap guard must run before ready output selection");
   await Deno.readTextFile(publishedHistoryUrl);
 });
+
+Deno.test("scheduler qualifies publication reviews before deduplicating output revisions", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const reviewQuery = source.indexOf('from("chapter_publication_reviews")');
+  const qualification = source.indexOf("review.quality_passed===true");
+  const filter = source.indexOf("const reviewedReadyOutputs=readyOutputs.filter");
+  const deduplication = source.indexOf("const uniqueReady:any[]=[];");
+  assert(reviewQuery >= 0, "scheduler must load review rows for ready outputs");
+  assert(source.includes('select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")'), "all review gates must be loaded");
+  assert(source.includes('review.decision==="approved"'), "review decision must be explicitly approved");
+  assert(source.includes("review.quality_passed===true") && source.includes("review.continuity_passed===true") &&
+    source.includes("review.originality_passed===true") && source.includes("review.safety_passed===true"), "all four gates must be explicitly true");
+  assert(source.includes("if(rows.length!==1) continue;"), "ambiguous/multiple review rows must fail closed");
+  assert(reviewQuery < qualification && qualification < filter && filter < deduplication, "review qualification must precede output selection and chapter-slot deduplication");
+  assert(source.includes("Failed to inspect publication reviews for ready chapters."), "review query failure must fail closed");
+});
