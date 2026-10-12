@@ -1,5 +1,5 @@
 import { inspectPublishedChapterHistory } from "./published-history.ts";
-import { qualifyReviewedOutputs } from "./review-qualified-outputs.ts";
+import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts";
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
 import { isPublishableGenerationStatus } from "../release-publisher/publisher-output-status.ts";
 
@@ -160,13 +160,14 @@ Deno.test("review qualification excludes missing, rejected, incomplete, and ambi
 
 Deno.test("preparing lifecycle activation requires fully reviewed launch outputs", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  const query = source.indexOf('.select("id,chapter_number,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])');
+  const query = source.indexOf('.select("id,series_id,chapter_number,title,content,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])');
   const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved??[],launchReviewRows)");
   const approvedSet = source.indexOf("const approvedSet=new Set(launchReviewedOutputs.map");
   const activation = source.indexOf('.update({lifecycle_status:"active"');
   assert(query >= 0, "launch verification must load output IDs and chapter numbers");
   assert(source.includes("const launchReviewRows:any[]=[];"), "launch review rows must be fetched");
   assert(qualification > query && approvedSet > qualification && activation > approvedSet, "lifecycle activation must follow review-qualified launch verification");
+  assert(source.includes("matchesPublishedChapterOutput(chapterRows[0],output)"), "launch chapter must match reviewed output identity");
   assert(source.includes("launchReviewError"), "review query failure must block lifecycle activation");
 });
 
@@ -194,4 +195,15 @@ Deno.test("normal cron scans exclude auto-publish-disabled schedules while dry-r
   assert(queryBuilder >= 0 && explicitSchedule > queryBuilder && dueFilter > explicitSchedule, "schedule query branching must remain explicit");
   assert(autoPublishFilter > dueFilter, "normal cron scans should filter disabled auto-publish schedules only in the due-schedule branch");
   assert(source.includes("Dry-run intentionally keeps them visible for diagnostics."), "dry-run should retain diagnostic visibility");
+});
+
+Deno.test("lifecycle chapter identity requires matching published content and scope", () => {
+  const output = {series_id:"series-a",chapter_number:1,title:"  Opening  ",content:"  The story begins.  "};
+  const chapter = {series_id:"series-a",chapter_number:1,status:"published",title:"Opening",content:"The story begins."};
+  assert(matchesPublishedChapterOutput(chapter,output), "matching published chapter/output should qualify");
+  assert(!matchesPublishedChapterOutput({...chapter,content:"Different content."},output), "content mismatch must fail");
+  assert(!matchesPublishedChapterOutput({...chapter,title:"Different title"},output), "title mismatch must fail");
+  assert(!matchesPublishedChapterOutput({...chapter,series_id:"series-b"},output), "series mismatch must fail");
+  assert(!matchesPublishedChapterOutput({...chapter,chapter_number:2},output), "chapter mismatch must fail");
+  assert(!matchesPublishedChapterOutput({...chapter,status:"draft"},output), "non-published chapter must fail");
 });
