@@ -56,8 +56,10 @@ Deno.serve(async (req)=>{
     const buildScheduleQuery=()=>{
       let q=supabase.from("release_schedules")
         .select("*, series:series_id(id,title,status)")
-        .eq("enabled",true)
         .neq("schedule_mode","manual");
+      // Only a targeted dry run may inspect a disabled schedule. Real runs and
+      // unscoped diagnostics must remain limited to enabled schedules.
+      if(!dryRun || !scheduleId) q=q.eq("enabled",true);
       if(scheduleId) q=q.eq("id",scheduleId);
       // Explicit schedule IDs are useful for diagnostics, but must not bypass
       // the due-time safety gate during a real run. Dry-run may inspect future rows.
