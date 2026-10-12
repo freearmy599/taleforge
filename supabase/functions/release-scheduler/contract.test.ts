@@ -184,3 +184,14 @@ Deno.test("publisher rejects non-approved generation statuses before review or p
     assert(!isPublishableGenerationStatus(status), "non-approved status must fail closed");
   }
 });
+
+Deno.test("normal cron scans exclude auto-publish-disabled schedules while dry-run can inspect them", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const queryBuilder = source.indexOf("const buildScheduleQuery=()=>");
+  const explicitSchedule = source.indexOf('if(scheduleId) q=q.eq("id",scheduleId);');
+  const dueFilter = source.indexOf('q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);');
+  const autoPublishFilter = source.indexOf('if(!dryRun) q=q.eq("auto_publish",true);');
+  assert(queryBuilder >= 0 && explicitSchedule > queryBuilder && dueFilter > explicitSchedule, "schedule query branching must remain explicit");
+  assert(autoPublishFilter > dueFilter, "normal cron scans should filter disabled auto-publish schedules only in the due-schedule branch");
+  assert(source.includes("Dry-run intentionally keeps them visible for diagnostics."), "dry-run should retain diagnostic visibility");
+});
