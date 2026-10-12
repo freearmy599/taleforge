@@ -80,5 +80,9 @@ Deno.test("publisher idempotency only confirms the exact published chapter outpu
   assert(!matchesPublishedOutput({...exactChapter, status:"draft"}, output), "non-published row must conflict");
   assert(!matchesPublishedOutput({...exactChapter, series_id:"series-b"}, output), "different series must conflict");
   assert(!matchesPublishedOutput({...exactChapter, chapter_number:8}, output), "different chapter slot must conflict");
+  for (const malformed of [null, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert(!matchesPublishedOutput({...exactChapter, chapter_number:malformed}, output), "malformed existing chapter number must conflict");
+    assert(!matchesPublishedOutput(exactChapter, {...output, chapter_number:malformed}), "malformed requested chapter number must conflict");
+  }
   assert(!matchesPublishedOutput({...exactChapter, content:"   "}, output), "empty chapter content must not be idempotent");
 });
