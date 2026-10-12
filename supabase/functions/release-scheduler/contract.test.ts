@@ -186,6 +186,28 @@ Deno.test("review orchestrator does not treat an HTTP-200 rejected publication r
   assert(source.includes("publication-review intentionally returns HTTP 200 for both approved"), "the HTTP-200 rejected-decision hazard must remain documented in source");
 });
 
+Deno.test("chapter generation and quality review fail closed on missing or malformed Gemini provider state", async () => {
+  const source = await Deno.readTextFile(generateChapterUrl);
+  const generationMissingState = source.indexOf("if(providerStateError||!providerState)");
+  const generationInvalidTimestamp = source.indexOf("!Number.isFinite(new Date(providerState.cooldown_until).getTime())");
+  const generationActiveCooldown = source.indexOf("new Date(providerState.cooldown_until).getTime()>Date.now()");
+  const reviewMissingState = source.indexOf("if(reviewProviderStateError||!reviewProviderState)");
+  const reviewInvalidTimestamp = source.indexOf("!Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())");
+  const reviewActiveCooldown = source.indexOf("new Date(reviewProviderState.cooldown_until).getTime()>Date.now()");
+  assert(generationMissingState >= 0 && source.includes('"No Gemini provider-state row found"'),
+    "generation must block when provider state is missing");
+  assert(generationInvalidTimestamp > generationMissingState && generationActiveCooldown > generationInvalidTimestamp,
+    "generation must reject malformed cooldown timestamps before active-cooldown comparison");
+  assert(reviewMissingState >= 0 && source.includes('mode:"quality-review"'),
+    "quality review must block when provider state is missing");
+  assert(reviewInvalidTimestamp > reviewMissingState && reviewActiveCooldown > reviewInvalidTimestamp,
+    "quality review must reject malformed cooldown timestamps before active-cooldown comparison");
+  assert(source.includes("Gemini cooldown state is malformed; generation was blocked to protect quota."),
+    "generation malformed state must fail closed with retryable provider-state error");
+  assert(source.includes("Gemini cooldown state is malformed; quality review was blocked to protect quota."),
+    "quality-review malformed state must fail closed with retryable provider-state error");
+});
+
 Deno.test("review orchestrator fails closed when Gemini cooldown timestamp is malformed", async () => {
   const source = await Deno.readTextFile(reviewOrchestratorUrl);
   const invalidTimestampGuard = source.indexOf('!Number.isFinite(new Date(providerState.cooldown_until).getTime())');
