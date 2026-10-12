@@ -1,6 +1,5 @@
 export type ReviewQualifiedOutput = {
   id?: unknown;
-  [key: string]: unknown;
 };
 
 export type PublicationReview = {
