@@ -334,15 +334,31 @@ Deno.serve(async (req)=>{
           .select("chapter_number").eq("series_id",schedule.series_id).eq("status","published")
           .lte("chapter_number",launchCount);
         const {data:launchApproved,error:launchApprovedError}=await supabase.from("chapter_generation_outputs")
-          .select("chapter_number").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])
+          .select("id,chapter_number,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])
           .lte("chapter_number",launchCount);
-        if(launchPublishedError || launchApprovedError){
+        let launchReviewError:any=null;
+        const launchReviewRows:any[]=[];
+        if(!launchApprovedError){
+          for(let offset=0;offset<(launchApproved??[]).length;offset+=500){
+            const outputIds=(launchApproved??[]).slice(offset,offset+500)
+              .map((row:any)=>String(row.id??"")).filter((id:string)=>id.length>0);
+            if(outputIds.length===0) continue;
+            const {data:page,error}=await supabase.from("chapter_publication_reviews")
+              .select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")
+              .in("generation_output_id",outputIds)
+              .order("generation_output_id",{ascending:true});
+            if(error){launchReviewError=error;break;}
+            launchReviewRows.push(...(page??[]));
+          }
+        }
+        if(launchPublishedError || launchApprovedError || launchReviewError){
           publicationFailed=true;
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_verification_failed",
-            details:message(launchPublishedError??launchApprovedError)});
+            details:message(launchPublishedError??launchApprovedError??launchReviewError)});
         }else{
           const publishedSet=new Set((launchPublished??[]).map((x:any)=>Number(x.chapter_number)));
-          const approvedSet=new Set((launchApproved??[]).map((x:any)=>Number(x.chapter_number)));
+          const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved??[],launchReviewRows);
+          const approvedSet=new Set(launchReviewedOutputs.map((x:any)=>Number(x.chapter_number)));
           const launchNumbers=Array.from({length:launchCount},(_,i)=>i+1);
           const launchReady=launchNumbers.filter(n=>publishedSet.has(n)&&approvedSet.has(n));
           if(launchReady.length===launchCount){
