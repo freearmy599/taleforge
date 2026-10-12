@@ -414,25 +414,18 @@ Deno.serve(async (req)=>{
               (output.generation_status==="approved" || output.generation_status==="published"));
           });
           if(launchReady.length===launchCount){
-            const renewed=await supabase.rpc("aevora_renew_release_scheduler_lease",{
-              p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
+            const reviewedAt=new Date().toISOString();
+            const activation=await supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned",{
+              p_schedule_id:schedule.id,p_lease_token:leaseToken,p_series_id:schedule.series_id,p_reviewed_at:reviewedAt
             });
-            if(renewed.error || renewed.data!==true){
+            if(activation.error || activation.data!==true){
               leaseLost=true;
               publicationFailed=true;
+              results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_transition_failed",
+                details:activation.error?message(activation.error):"Atomic lifecycle activation rejected because the lease or lifecycle precondition was not valid."});
             }else{
-              const {data:updatedLifecycle,error:updateError}=await supabase.from("story_lifecycle")
-                .update({lifecycle_status:"active",last_lifecycle_review_at:new Date().toISOString(),updated_at:new Date().toISOString()})
-                .eq("series_id",schedule.series_id).eq("lifecycle_status","preparing")
-                .select("series_id,lifecycle_status").maybeSingle();
-              if(updateError || !updatedLifecycle || updatedLifecycle.lifecycle_status!=="active"){
-                publicationFailed=true;
-                results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_transition_failed",
-                  details:updateError?message(updateError):"Lifecycle transition was not confirmed by a returned active row."});
-              }else{
-                lifecycleTransition={from:"preparing",to:"active",launch_ready_chapters:launchReady,required_launch_chapters:launchCount};
-                lifecycleStatus="active";
-              }
+              lifecycleTransition={from:"preparing",to:"active",launch_ready_chapters:launchReady,required_launch_chapters:launchCount};
+              lifecycleStatus="active";
             }
           }
         }
@@ -467,22 +460,14 @@ Deno.serve(async (req)=>{
         && attemptedCount===publishCount && published.length===publishCount
         && !publicationFailed && !leaseLost;
       if(!dryRun && nextRelease && allSelectedConfirmed){
-        const renewed=await supabase.rpc("aevora_renew_release_scheduler_lease",{
-          p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
+        const advancement=await supabase.rpc("aevora_advance_release_schedule_if_lease_owned",{
+          p_schedule_id:schedule.id,p_lease_token:leaseToken,
+          p_next_release_at:nextRelease.toISOString(),p_last_release_at:processingCompletedAt.toISOString()
         });
-        if(renewed.error || renewed.data!==true){
+        if(advancement.error || advancement.data!==true){
           leaseLost=true;
-          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_lost_before_schedule_update",
-            published_count:published.length,details:renewed.error?message(renewed.error):null});
-        }else{
-          const update:any={next_release_at:nextRelease.toISOString(),updated_at:new Date().toISOString(),last_release_at:processingCompletedAt.toISOString()};
-          const {data:updatedSchedule,error:updateError}=await supabase.from("release_schedules")
-            .update(update).eq("id",schedule.id).select("id,next_release_at").maybeSingle();
-          if(updateError || !updatedSchedule){
-            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_update_failed",published,
-              details:updateError?message(updateError):"Schedule row was not returned after update; advancement is unconfirmed."});
-            continue;
-          }
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_advance_unconfirmed",published_count:published.length,
+            details:advancement.error?message(advancement.error):"Atomic schedule advancement rejected because the lease or schedule precondition was not valid."});
         }
       }
 
