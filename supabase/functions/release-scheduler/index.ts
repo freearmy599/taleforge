@@ -419,6 +419,8 @@ Deno.serve(async (req)=>{
         }
       }
 
+      // Use one completion-time anchor for the next deadline and release timestamp.
+      const processingCompletedAt=new Date();
       let nextRelease:any=null;
       if(schedule.schedule_mode==="interval"){
         // Pass the raw database value to the strict resolver. Coercing it with
@@ -427,9 +429,8 @@ Deno.serve(async (req)=>{
         // the next batch after the configured interval to prevent an immediate burst.
         // Anchor the next interval to processing completion, not the invocation's
         // initial timestamp. A slow batch must not persist an already-expired deadline.
-        const completedAt=new Date();
         try{
-          nextRelease=resolveNextIntervalRelease(completedAt,schedule.interval_hours);
+          nextRelease=resolveNextIntervalRelease(processingCompletedAt,schedule.interval_hours);
         }catch(intervalError){
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
             reason:"Next interval release cannot be represented as a valid future timestamp.",details:message(intervalError)});
@@ -439,7 +440,7 @@ Deno.serve(async (req)=>{
         // Recompute at the end of processing. A long publication batch may cross
         // the preflight slot; persisting that stale slot would make the schedule
         // immediately due again on the next cron tick.
-        nextRelease=nextWeeklyRelease(new Date(),Number(schedule.preferred_weekday),
+        nextRelease=nextWeeklyRelease(processingCompletedAt,Number(schedule.preferred_weekday),
           String(schedule.preferred_time),String(schedule.timezone??"UTC"));
       }
 
@@ -455,7 +456,7 @@ Deno.serve(async (req)=>{
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_lost_before_schedule_update",
             published_count:published.length,details:renewed.error?message(renewed.error):null});
         }else{
-          const update:any={next_release_at:nextRelease.toISOString(),updated_at:new Date().toISOString(),last_release_at:now.toISOString()};
+          const update:any={next_release_at:nextRelease.toISOString(),updated_at:new Date().toISOString(),last_release_at:processingCompletedAt.toISOString()};
           const {data:updatedSchedule,error:updateError}=await supabase.from("release_schedules")
             .update(update).eq("id",schedule.id).select("id,next_release_at").maybeSingle();
           if(updateError || !updatedSchedule){
