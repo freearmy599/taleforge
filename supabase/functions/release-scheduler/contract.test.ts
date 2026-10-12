@@ -1,12 +1,13 @@
+import { inspectPublishedChapterHistory } from "./published-history.ts";
+import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-import { inspectPublishedChapterHistory } from "./published-history.ts";
 const publishedHistoryUrl = new URL("./published-history.ts", import.meta.url);
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
-import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
