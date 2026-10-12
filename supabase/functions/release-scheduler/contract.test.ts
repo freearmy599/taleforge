@@ -189,9 +189,10 @@ Deno.test("publisher idempotency only confirms the exact published chapter outpu
   assert(!matchesPublishedOutput({...exactChapter, content:"   "}, output), "empty chapter content must not be idempotent");
 });
 
-Deno.test("published chapter history fails closed on gaps and malformed numbers", () => {
+Deno.test("published chapter history fails closed on gaps, duplicates, and malformed numbers", () => {
   assert(JSON.stringify(inspectPublishedChapterHistory([])) === JSON.stringify({ok:true,latestNumber:0,firstMissingChapter:null}), "empty history should be valid");
-  assert(JSON.stringify(inspectPublishedChapterHistory([1,2,3,3])) === JSON.stringify({ok:true,latestNumber:3,firstMissingChapter:null}), "duplicates should not create a false gap");
+  assert(JSON.stringify(inspectPublishedChapterHistory([1,2,3])) === JSON.stringify({ok:true,latestNumber:3,firstMissingChapter:null}), "contiguous chapter history should be valid");
+  assert(JSON.stringify(inspectPublishedChapterHistory([1,2,3,3])) === JSON.stringify({ok:false,reason:"duplicate_chapter_number"}), "duplicate published chapter numbers must fail closed");
   assert(JSON.stringify(inspectPublishedChapterHistory([1,2,4,5])) === JSON.stringify({ok:true,latestNumber:5,firstMissingChapter:3}), "missing middle chapter should be detected");
   for (const malformed of [null, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert(inspectPublishedChapterHistory([1,2,malformed]).ok === false, "malformed published chapter numbers must fail closed");
