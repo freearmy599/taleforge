@@ -17,6 +17,7 @@ const weeklyScheduleUrl = new URL("./weekly-schedule.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
 const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-status.ts", import.meta.url);
+const generationOrchestratorUrl = new URL("../generation-orchestrator/index.ts", import.meta.url);
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -79,6 +80,25 @@ Deno.test("scheduler validates caller and request before any database query or l
     "invalid explicit schedule IDs must be rejected before database access");
   assert(source.indexOf('error:"dry_run must be a boolean when provided."') < firstDatabaseRead,
     "invalid dry_run values must be rejected before database access");
+});
+
+Deno.test("generation orchestrator fails closed when Gemini provider state is unavailable or malformed", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  const helperStart = source.indexOf("async function getGeminiCooldown(");
+  const helperEnd = source.indexOf("\n }", helperStart);
+  const helper = source.slice(helperStart, helperEnd >= 0 ? helperEnd : helperStart + 2000);
+  assert(helper.includes("if(error || !data)"), "provider-state lookup errors and missing rows must both fail closed");
+  assert(helper.includes("lookup_error:"), "unavailable provider state must expose an internal diagnostic reason");
+  assert(helper.includes("Number.isFinite(until.getTime())"), "malformed cooldown timestamps must fail closed");
+  const initialLookup = source.indexOf("geminiCooldown=await getGeminiCooldown(supabase)");
+  const unavailableGuard = source.indexOf("if(geminiCooldown.lookup_error)", initialLookup);
+  const requestParse = source.indexOf("const body=await req.json()", initialLookup);
+  const intelligenceRefresh = source.indexOf("refreshDeterministicIntelligence(supabase)", initialLookup);
+  assert(initialLookup >= 0 && unavailableGuard > initialLookup, "initial provider state must be checked");
+  assert(requestParse > unavailableGuard && intelligenceRefresh > unavailableGuard,
+    "unavailable provider state must stop orchestration before request processing and planning refresh");
+  assert(source.includes('reason:"provider_state_unavailable"'), "provider-state failure must be explicitly reported as retryable and blocked");
+  assert(source.includes('},503)}const body=await req.json()'), "provider-state failure must return HTTP 503 before orchestration continues");
 });
 
 Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
