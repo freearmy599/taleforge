@@ -425,9 +425,11 @@ Deno.serve(async (req)=>{
         // Number() here would re-accept hexadecimal/binary strings rejected by the resolver.
         // The activation run has already published its confirmed batch. Schedule
         // the next batch after the configured interval to prevent an immediate burst.
-        const base=schedule.next_release_at?new Date(schedule.next_release_at):now;
+        // Anchor the next interval to processing completion, not the invocation's
+        // initial timestamp. A slow batch must not persist an already-expired deadline.
+        const completedAt=new Date();
         try{
-          nextRelease=resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours);
+          nextRelease=resolveNextIntervalRelease(completedAt,schedule.interval_hours);
         }catch(intervalError){
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
             reason:"Next interval release cannot be represented as a valid future timestamp.",details:message(intervalError)});
