@@ -169,6 +169,22 @@ Deno.test("review orchestrator rejects malformed or unscoped request values befo
   assert(source.includes('request.dry_run === true'), "only an explicit boolean true may enable dry-run mode");
 });
 
+Deno.test("review orchestrator does not treat an HTTP-200 rejected publication review as success", async () => {
+  const source = await Deno.readTextFile(reviewOrchestratorUrl);
+  const httpGuard = source.indexOf("if (!call.ok)");
+  const publicationGuard = source.indexOf('if (step.name === "publication")');
+  const approvedDecision = source.indexOf('result?.decision !== "approved"', publicationGuard);
+  const eligibleGuard = source.indexOf("result?.eligible !== true", publicationGuard);
+  const statusGuard = source.indexOf('result?.generation_status !== "approved"', publicationGuard);
+  const safetyGate = source.indexOf("gates?.safety?.passed === true", publicationGuard);
+  const blockedResult = source.indexOf("blocked = true;", approvedDecision);
+  assert(publicationGuard > httpGuard, "publication decision must be checked after transport success");
+  assert(approvedDecision > publicationGuard && eligibleGuard > approvedDecision && statusGuard > eligibleGuard,
+    "publication result must explicitly confirm approved decision, eligibility, and output status");
+  assert(safetyGate > statusGuard && blockedResult > safetyGate, "all four publication gates must be checked and rejected results must block the orchestration");
+  assert(source.includes("publication-review intentionally returns HTTP 200 for both approved"), "the HTTP-200 rejected-decision hazard must remain documented in source");
+});
+
 Deno.test("review orchestrator fails closed when Gemini cooldown timestamp is malformed", async () => {
   const source = await Deno.readTextFile(reviewOrchestratorUrl);
   const invalidTimestampGuard = source.indexOf('!Number.isFinite(new Date(providerState.cooldown_until).getTime())');
