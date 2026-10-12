@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "release-scheduler-v6-dryrun-safe-timezone-deterministic";
+const VERSION = "release-scheduler-v7-config-preflight";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -44,7 +44,7 @@ function addLocalDays(year:number, month:number, day:number, days:number) {
 /** Return the next future wall-clock weekly occurrence in the schedule's IANA timezone. */
 function nextWeeklyRelease(now:Date, weekday:number, time:string, timeZone:string):Date {
   if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) throw new Error("Invalid preferred weekday");
-  if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(time)) throw new Error("Invalid preferred time");
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)) throw new Error("Invalid preferred time");
   partsAt(now,timeZone); // validates the IANA timezone
   const local = partsAt(now,timeZone);
   const localWeekday = new Date(Date.UTC(local.year,local.month-1,local.day)).getUTCDay();
@@ -128,6 +128,35 @@ Deno.serve(async (req)=>{
       const series=schedule.series;
       if(!series || ["draft","cancelled","hiatus"].includes(series.status)){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"skipped",reason:"Series is not currently publishable."});
+        continue;
+      }
+
+      // Validate scheduling configuration before any publication side effect.
+      // A bad timezone or interval must not leave a published batch immediately due again.
+      let weeklyReleaseAt:Date|null=null;
+      if(schedule.schedule_mode==="weekly"){
+        if(!Number.isInteger(schedule.preferred_weekday) || !schedule.preferred_time){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+            reason:"Weekly schedules require a weekday and preferred time."});
+          continue;
+        }
+        try{
+          weeklyReleaseAt=nextWeeklyRelease(now,Number(schedule.preferred_weekday),String(schedule.preferred_time),String(schedule.timezone??"UTC"));
+        }catch(scheduleTimeError){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+            timezone:schedule.timezone??"UTC",details:message(scheduleTimeError)});
+          continue;
+        }
+      }else if(schedule.schedule_mode==="interval"){
+        const hours=Number(schedule.interval_hours);
+        if(!Number.isFinite(hours) || hours<=0){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+            reason:"Interval schedules require a positive interval_hours value."});
+          continue;
+        }
+      }else{
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+          reason:"Unsupported non-manual schedule mode."});
         continue;
       }
 
@@ -327,14 +356,8 @@ Deno.serve(async (req)=>{
             nextRelease=new Date((base>now?base:now).getTime()+hours*3600000);
           }
         }
-      }else if(schedule.schedule_mode==="weekly" && Number.isInteger(schedule.preferred_weekday) && schedule.preferred_time){
-        try{
-          nextRelease=nextWeeklyRelease(now,Number(schedule.preferred_weekday),String(schedule.preferred_time),String(schedule.timezone??"UTC"));
-        }catch(scheduleTimeError){
-          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_time_invalid",
-            timezone:schedule.timezone??"UTC",details:message(scheduleTimeError)});
-        }
-      }
+      }else if(schedule.schedule_mode==="weekly"){
+        nextRelease=weeklyReleaseAt;
 
       const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0
         && attemptedCount===publishCount && published.length===publishCount
