@@ -122,7 +122,7 @@ Read-only production SQL inspection recovered the exact claim/renew/release leas
 
 Validation evidence: [workflow run 38283233964](https://github.com/freearmy599/taleforge/actions/runs/38283233964) passed all four Edge Function type checks and all 37 source-contract tests on commit `e6186e4fd5853e271272d65e8ec0f7eaf13d7d28`. The SQL contract also rejects a release deadline that does not advance beyond the recorded completion timestamp.
 
-The migration remains **prepared only** and has not been applied. Existing production claim/renew/release function definitions still lack their original source migration in the repository, so full schema reproducibility remains incomplete. This result is not production integration validation and does not authorize deployment.
+The lease foundation source migration has now been reconstructed from the exact live table/RPC definitions and ACLs and is committed at `supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql`, before the atomic fencing migration. Both migrations remain **prepared only** and have not been applied. Contract tests cover the recovered table/function security and ownership/expiry semantics. This is source-level reproducibility plus type/contract validation, not production integration validation, and does not authorize deployment.
 
 ## Repeatable read-only publication integrity audit
 
