@@ -186,10 +186,46 @@ Deno.serve(async (req)=>{
       // Avoid a redundant preflight output query; the publisher independently
       // enforces the publication review and all four review gates.
 
-      const {data:latestPublished}=await supabase.from("chapters")
-        .select("chapter_number").eq("series_id",schedule.series_id).eq("status","published")
-        .order("chapter_number",{ascending:false}).limit(1).maybeSingle();
-      const latestNumber=latestPublished?.chapter_number??0;
+      // Load the full published-number history. Using only MAX(chapter_number)
+      // silently skips missing chapters when a later chapter was published manually.
+      const publishedHistory:any[]=[];
+      let publishedHistoryError:any=null;
+      for(let offset=0;;offset+=500){
+        const {data:page,error}=await supabase.from("chapters")
+          .select("id,chapter_number").eq("series_id",schedule.series_id).eq("status","published")
+          .order("chapter_number",{ascending:true}).order("id",{ascending:true})
+          .range(offset,offset+499);
+        if(error){publishedHistoryError=error;break;}
+        publishedHistory.push(...(page??[]));
+        if((page??[]).length<500) break;
+      }
+      if(publishedHistoryError){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"error",
+          reason:"Failed to inspect published chapter history.",details:message(publishedHistoryError)});
+        continue;
+      }
+      const parsedPublishedNumbers=publishedHistory.map((row:any)=>Number(row.chapter_number));
+      if(parsedPublishedNumbers.some((n:number)=>!Number.isSafeInteger(n)||n<1)){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"published_chapter_history_invalid",
+          reason:"Published chapter history contains an invalid chapter number."});
+        continue;
+      }
+      const sortedPublishedNumbers=Array.from(new Set(parsedPublishedNumbers)).sort((a,b)=>a-b);
+      let expectedPublishedNumber=1;
+      let firstMissingPublishedNumber:number|null=null;
+      for(const number of sortedPublishedNumbers){
+        if(number<expectedPublishedNumber) continue;
+        if(number!==expectedPublishedNumber){firstMissingPublishedNumber=expectedPublishedNumber;break;}
+        expectedPublishedNumber++;
+      }
+      if(firstMissingPublishedNumber!==null){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"published_chapter_gap",
+          first_missing_chapter:firstMissingPublishedNumber,
+          highest_published_chapter:sortedPublishedNumbers[sortedPublishedNumbers.length-1]??0,
+          reason:"A later chapter is published while an earlier chapter is missing. Automatic release is paused for this series until the numbering gap is repaired."});
+        continue;
+      }
+      const latestNumber=sortedPublishedNumbers[sortedPublishedNumbers.length-1]??0;
 
       const readyOutputs:any[]=[];
       let readyError:any=null;
