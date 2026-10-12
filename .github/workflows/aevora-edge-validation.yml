@@ -9,6 +9,7 @@ name: Aevora Edge source validation
       - main
     paths:
       - "supabase/functions/release-scheduler/**"
+      - "supabase/functions/generation-orchestrator/**"
       - "supabase/functions/release-publisher/**"
       - "supabase/functions/_shared/**"
       - ".github/workflows/aevora-edge-validation.yml"
@@ -32,5 +33,7 @@ jobs:
         run: deno check supabase/functions/release-scheduler/index.ts
       - name: Type-check publisher
         run: deno check supabase/functions/release-publisher/index.ts
+      - name: Type-check generation orchestrator
+        run: deno check supabase/functions/generation-orchestrator/index.ts
       - name: Run source-contract regression tests
-        run: deno test --allow-read=supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/_shared/internal-api-key.ts supabase/functions/release-scheduler/contract.test.ts
+        run: deno test --allow-read=supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/_shared/internal-api-key.ts supabase/functions/release-scheduler/contract.test.ts
