@@ -24,6 +24,12 @@ The claim/renew functions default to 300 seconds and reject requested durations 
 - A read-only count found zero current lease rows (zero unexpired and zero expired leases), so no existing lease row would block the prepared scheduler at this snapshot.
 - RLS is enabled. anon and authenticated have no SELECT/INSERT/UPDATE/DELETE table privileges; service_role has those privileges.
 
+## Remaining lease-fencing race
+
+The current prepared scheduler renews the lease and then updates `release_schedules` through a separate PostgREST request filtered only by schedule ID. The lease RPC correctly checks the matching token at renewal time, but that check is not atomic with the subsequent schedule update. If execution is paused long enough for the lease to expire and another scheduler to claim it between those requests, the former owner could still advance the schedule row. The 180-second lease and immediate follow-up reduce the window but do not mathematically eliminate it.
+
+A robust final fix should use a narrowly scoped database function that, in one transaction, verifies the matching unexpired lease token and updates the schedule deadline; it should return an explicit boolean/row result and remain executable only by `service_role` and `postgres`. The prepared scheduler must fail closed if that atomic operation returns false or errors. Review the lifecycle activation write for the same fencing requirement. Do not implement or apply this function until the migration source and security contract have been reviewed.
+
 ## Repository migration-tracking gap
 
 A follow-up inspection of the current hardening branch found no lease-named migration among its 39 SQL migration files, and neither `database-schema.sql` nor `series-chapters-schema.sql` contains the lease table or RPC definitions. Production metadata confirms these objects currently exist, but this branch does not contain their source definitions. This is a repository reproducibility gap, not evidence that the live production objects are missing.
