@@ -125,7 +125,7 @@ Deno.serve(async (req)=>{
     for(const schedule of schedules){
       const leaseToken=crypto.randomUUID();
       let leaseClaimed=false;
-      if(!dryRun){
+      if(!dryRun && schedule.auto_publish){
         let leaseClaim:any=null;
         try{
           leaseClaim=await supabase.rpc("aevora_claim_release_scheduler_lease",{
