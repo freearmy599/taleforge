@@ -1,5 +1,6 @@
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { nextWeeklyRelease } from "./weekly-schedule.ts";
+import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
 const VERSION = "release-scheduler-v11-due-time-lease-guard";
@@ -109,10 +110,13 @@ Deno.serve(async (req)=>{
           continue;
         }
       }else if(schedule.schedule_mode==="interval"){
-        const hours=Number(schedule.interval_hours);
-        if(!Number.isFinite(hours) || hours<=0){
+        try{
+          // Validate the actual deadline arithmetic before any publication side effect.
+          resolveNextIntervalRelease(now,schedule.interval_hours);
+        }catch(intervalError){
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
-            reason:"Interval schedules require a positive interval_hours value."});
+            reason:"Interval schedules require a positive interval_hours value that resolves to a valid future timestamp.",
+            details:message(intervalError)});
           continue;
         }
       }else{
@@ -194,7 +198,13 @@ Deno.serve(async (req)=>{
       if(releaseReferenceTimes.length>0){
         const latestReleaseMs=releaseReferenceTimes.reduce((latest:number,value:number)=>Math.max(latest,value),Number.NEGATIVE_INFINITY);
         if(schedule.schedule_mode==="interval"){
-          scheduleCooldownUntil=new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000);
+          try{
+            scheduleCooldownUntil=resolveNextIntervalRelease(new Date(latestReleaseMs),schedule.interval_hours);
+          }catch(intervalError){
+            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+              reason:"Interval cooldown cannot be represented as a valid future timestamp.",details:message(intervalError)});
+            continue;
+          }
         }else if(schedule.schedule_mode==="weekly"){
           scheduleCooldownUntil=nextWeeklyRelease(new Date(latestReleaseMs),Number(schedule.preferred_weekday),
             String(schedule.preferred_time),String(schedule.timezone??"UTC"));
@@ -416,7 +426,13 @@ Deno.serve(async (req)=>{
           // The activation run has already published its confirmed batch. Schedule
           // the next batch after the configured interval to prevent an immediate burst.
           const base=schedule.next_release_at?new Date(schedule.next_release_at):now;
-          nextRelease=new Date((base>now?base:now).getTime()+hours*3600000);
+          try{
+            nextRelease=resolveNextIntervalRelease(base>now?base:now,hours);
+          }catch(intervalError){
+            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_config_invalid",
+              reason:"Next interval release cannot be represented as a valid future timestamp.",details:message(intervalError)});
+            continue;
+          }
         }
       }else if(schedule.schedule_mode==="weekly"){
         nextRelease=weeklyReleaseAt;
