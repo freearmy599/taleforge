@@ -124,6 +124,7 @@ Deno.test("recent publication timestamps prevent immediate follow-up batches aft
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes("schedule.last_release_at"), "schedule last-release timestamp must be considered");
   assert(source.includes("row.published_at"), "published chapter timestamps must provide a recovery reference");
+  assert(source.includes("releaseReferenceTimes.reduce"), "large publication histories must not use spread arguments to compute the latest timestamp");
   assert(source.includes("scheduleCooldownActive=!!scheduleCooldownUntil && now.getTime()<scheduleCooldownUntil.getTime()"), "cooldown must compare current time with next eligible release");
   assert(source.includes("const publishCount=scheduleCooldownActive?0:Math.min(uniqueReady.length,dailyMax)"), "active cooldown must suppress publishing another batch");
   assert(source.includes('scheduleCooldownActive?"schedule_cooldown":"checked"'), "cooldown must be observable in the result");
