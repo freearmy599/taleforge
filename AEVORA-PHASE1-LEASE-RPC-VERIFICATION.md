@@ -49,3 +49,5 @@ The foundation migration is source-controlled and covered by contract assertions
 - No lease migration appears necessary based on the inspected function/table metadata.
 - This confirms schema prerequisites only. It does not validate the prepared scheduler's full runtime behavior, authentication environment, or publication path.
 - Production scheduler and publisher remain unchanged. No RPC was invoked, no lease was acquired or released, no schedule was modified, and no chapter was generated or published.
+
+Foundation migration validation: [workflow run 38285856951](https://github.com/freearmy599/taleforge/actions/runs/38285856951) passed the four Edge Function type checks and source-contract regression suite after the foundation SQL path was added to the test runner's read allowlist. The test run reads the SQL file but does not apply it.
