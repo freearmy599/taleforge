@@ -231,12 +231,21 @@ Deno.serve(async (req)=>{
         const outputIds=readyOutputs.slice(offset,offset+500)
           .map((row:any)=>String(row.id??"")).filter((id:string)=>id.length>0);
         if(outputIds.length===0) continue;
-        const {data:reviewRows,error:reviewError}=await supabase.from("chapter_publication_reviews")
-          .select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")
-          .in("generation_output_id",outputIds)
-          .order("generation_output_id",{ascending:true});
-        if(reviewError){reviewLoadError=reviewError;break;}
-        publicationReviewRows.push(...(reviewRows??[]));
+        // Review rows can outnumber output IDs when duplicate/ambiguous reviews exist.
+        // Page them fully so a PostgREST row cap cannot hide a second review and
+        // accidentally turn an ambiguous output into an eligible one.
+        for(let reviewOffset=0;;reviewOffset+=500){
+          const {data:reviewRows,error:reviewError}=await supabase.from("chapter_publication_reviews")
+            .select("id,generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")
+            .in("generation_output_id",outputIds)
+            .order("generation_output_id",{ascending:true}).order("id",{ascending:true})
+            .range(reviewOffset,reviewOffset+499);
+          if(reviewError){reviewLoadError=reviewError;break;}
+          const page=reviewRows??[];
+          publicationReviewRows.push(...page);
+          if(page.length<500) break;
+        }
+        if(reviewLoadError) break;
       }
       if(reviewLoadError){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"error",
@@ -346,12 +355,19 @@ Deno.serve(async (req)=>{
             const outputIds=launchApproved.slice(offset,offset+500)
               .map((row:any)=>String(row.id??"")).filter((id:string)=>id.length>0);
             if(outputIds.length===0) continue;
-            const {data:page,error}=await supabase.from("chapter_publication_reviews")
-              .select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")
-              .in("generation_output_id",outputIds)
-              .order("generation_output_id",{ascending:true});
-            if(error){launchReviewError=error;break;}
-            launchReviewRows.push(...(page??[]));
+            // Keep lifecycle activation fail-closed even if review rows exceed the API page cap.
+            for(let reviewOffset=0;;reviewOffset+=500){
+              const {data:page,error}=await supabase.from("chapter_publication_reviews")
+                .select("id,generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")
+                .in("generation_output_id",outputIds)
+                .order("generation_output_id",{ascending:true}).order("id",{ascending:true})
+                .range(reviewOffset,reviewOffset+499);
+              if(error){launchReviewError=error;break;}
+              const rows=page??[];
+              launchReviewRows.push(...rows);
+              if(rows.length<500) break;
+            }
+            if(launchReviewError) break;
           }
         }
         if(launchPublishedError || launchApprovedError || launchReviewError){
