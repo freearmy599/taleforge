@@ -1,4 +1,5 @@
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
+import { nextWeeklyRelease } from "./weekly-schedule.ts";
 import { inspectPublishedChapterHistory } from "./published-history.ts";
 import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts";
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
@@ -11,6 +12,7 @@ function assert(condition: unknown, message: string): asserts condition {
 const publishedHistoryUrl = new URL("./published-history.ts", import.meta.url);
 const reviewQualifiedOutputsUrl = new URL("./review-qualified-outputs.ts", import.meta.url);
 const schedulerUrl = new URL("./index.ts", import.meta.url);
+const weeklyScheduleUrl = new URL("./weekly-schedule.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
 const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-status.ts", import.meta.url);
@@ -46,11 +48,33 @@ Deno.test("scheduler pages schedules and approved outputs in stable order", asyn
 
 Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
+  const helper = await Deno.readTextFile(weeklyScheduleUrl);
   assert(source.includes('String(schedule.timezone??"UTC")'), "schedule timezone is not passed to weekly resolver");
-  assert(source.includes('/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/'), "strict wall-time validation regex missing");
-  assert(source.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
+  assert(source.includes('import { nextWeeklyRelease } from "./weekly-schedule.ts"'), "scheduler must use the directly tested weekly resolver");
+  assert(helper.includes('/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/'), "strict wall-time validation regex missing");
+  assert(helper.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
   assert(source.indexOf("Validate scheduling configuration before any publication side effect.") < source.indexOf('from("story_lifecycle")'), "schedule preflight must precede publication setup");
   assert(!source.includes("nextRelease=now;"), "activation must not trigger an immediate extra release batch");
+});
+
+Deno.test("weekly resolver handles normal timezone conversion, DST gaps, and both sides of DST folds", () => {
+  const india = nextWeeklyRelease(new Date("2026-10-10T12:00:00Z"), 0, "09:00", "Asia/Kolkata");
+  assert(india.toISOString() === "2026-10-11T03:30:00.000Z", "India wall time should convert to the correct UTC instant");
+
+  const springGap = nextWeeklyRelease(new Date("2026-03-07T17:00:00Z"), 0, "02:30", "America/New_York");
+  assert(springGap.toISOString() === "2026-03-15T06:30:00.000Z", "nonexistent spring-forward wall time should defer to the next valid week");
+
+  const fallFoldBefore = nextWeeklyRelease(new Date("2026-10-31T16:00:00Z"), 0, "01:30", "America/New_York");
+  assert(fallFoldBefore.toISOString() === "2026-11-01T05:30:00.000Z", "before a fall-back fold, choose its first future occurrence");
+
+  const fallFoldBetween = nextWeeklyRelease(new Date("2026-11-01T05:45:00Z"), 0, "01:30", "America/New_York");
+  assert(fallFoldBetween.toISOString() === "2026-11-01T06:30:00.000Z", "between repeated wall times, choose the second future occurrence");
+
+  for (const [weekday, time, zone] of [[7, "09:00", "UTC"], [0, "25:00", "UTC"], [0, "09:00", "Not/AZone"]] as const) {
+    let threw = false;
+    try { nextWeeklyRelease(new Date("2026-10-10T12:00:00Z"), weekday, time, zone); } catch { threw = true; }
+    assert(threw, "invalid weekday, wall time, or timezone must be rejected");
+  }
 });
 
 Deno.test("schedule advancement requires a confirmed update row", async () => {
