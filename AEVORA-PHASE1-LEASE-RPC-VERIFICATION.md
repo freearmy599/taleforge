@@ -35,7 +35,7 @@ Read-only production inspection recovered the exact definitions and ACLs for the
 
 Both functions use SECURITY DEFINER with a fixed `pg_catalog, public, pg_temp` search path, revoke execution from PUBLIC/anon/authenticated, and grant execution only to postgres/service_role. The prepared scheduler now calls these RPCs and fails closed on errors or false results. Contract tests cover token/expiry checks, row locking, function security, and the scheduler's use of atomic writes.
 
-**This migration has not been applied.** Hosted validation run [38283112882](https://github.com/freearmy599/taleforge/actions/runs/38283112882) passed all prepared Edge Function type checks and the source-contract suite, including the atomic migration contract. This is source/type validation only, not a live migration or integration test. Do not deploy the scheduler until the migration has been reviewed and separately authorized for application and deployment.
+**This migration has not been applied.** Hosted validation run [38283233964](https://github.com/freearmy599/taleforge/actions/runs/38283233964) passed all prepared Edge Function type checks and the 37-test source-contract suite, including the atomic migration contract and non-advancing-deadline guard. This is source/type validation only, not a live migration or integration test. Do not deploy the scheduler until the migration has been reviewed and separately authorized for application and deployment.
 
 ## Remaining repository migration-tracking gap
 
