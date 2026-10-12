@@ -126,7 +126,7 @@ Deno.test("review orchestrator reports active Gemini cooldown as HTTP 429", asyn
   const responseEnd = source.indexOf('}, 429);', responseStart);
   assert(cooldownGuard >= 0 && responseStart > cooldownGuard, "active provider cooldown must return a blocked response");
   assert(responseEnd > responseStart, "active provider cooldown must use HTTP 429 so callers do not treat it as successful review");
-  assert(source.slice(responseStart, responseEnd).includes('success: true'), "legacy payload success flag remains for response compatibility; HTTP status is authoritative");
+  assert(source.slice(responseStart, responseEnd).includes('success: false'), "blocked cooldown must not be represented as a successful review");
   assert(source.slice(responseStart, responseEnd).includes('blocked: true') && source.slice(responseStart, responseEnd).includes('retryable: true'),
     "cooldown response must be explicitly blocked and retryable");
 });
