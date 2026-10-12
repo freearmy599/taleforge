@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "release-scheduler-v9-no-launch-burst";
+const VERSION = "release-scheduler-v10-confirm-schedule-advance";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -181,41 +181,10 @@ Deno.serve(async (req)=>{
       let lifecycleStatus=lifecycle?.lifecycle_status??"active";
       let lifecycleTransition=null;
 
-      // Generic launch gate: every future series leaves preparing only after
-      // the configured number of distinct chapters has passed all review gates.
-      if(lifecycleStatus==="preparing"){
-        const launchCount=Math.max(1,Number(lifecycle?.launch_chapter_count??5));
-        const approved:any[]=[];
-        let approvedError:any=null;
-        for(let offset=0;;offset+=500){
-          const {data:page,error}=await supabase.from("chapter_generation_outputs")
-            .select("chapter_number,created_at,id")
-            .eq("series_id",schedule.series_id)
-            .eq("generation_status","approved")
-            .order("chapter_number",{ascending:true})
-            .order("created_at",{ascending:false})
-            .order("id",{ascending:true})
-            .range(offset,offset+499);
-          if(error){approvedError=error;break;}
-          approved.push(...(page??[]));
-          if((page??[]).length<500) break;
-        }
-
-        if(approvedError){
-          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"error",reason:"Failed to inspect launch-ready chapters.",details:message(approvedError)});
-          continue;
-        }
-
-        const distinct=[...new Set((approved??[]).map((x:any)=>Number(x.chapter_number)).filter(Number.isFinite))].sort((a,b)=>a-b);
-        // Launch requires the first N chapters, in order, to be approved.
-        // Later approved chapters cannot bypass an unapproved Chapter 1.
-        const approvedSet=new Set<number>(distinct);
-        const launchReady=Array.from({length:launchCount},(_,i)=>i+1).filter(n=>approvedSet.has(n));
-        // Approval is necessary but not sufficient for activation. Continue
-        // publishing the contiguous approved launch sequence; activation is
-        // checked after database-confirmed publication to avoid a deadlock.
-        lifecycleTransition=null;
-      }
+      // Preparing lifecycle activation is checked after publication using
+      // database-confirmed published chapters and approved/published outputs below.
+      // Avoid a redundant preflight output query; the publisher independently
+      // enforces the publication review and all four review gates.
 
       const {data:latestPublished}=await supabase.from("chapters")
         .select("chapter_number").eq("series_id",schedule.series_id).eq("status","published")
@@ -375,9 +344,11 @@ Deno.serve(async (req)=>{
             published_count:published.length,details:renewed.error?message(renewed.error):null});
         }else{
           const update:any={next_release_at:nextRelease.toISOString(),updated_at:new Date().toISOString(),last_release_at:now.toISOString()};
-          const {error}=await supabase.from("release_schedules").update(update).eq("id",schedule.id);
-          if(error){
-            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_update_failed",published,details:message(error)});
+          const {data:updatedSchedule,error:updateError}=await supabase.from("release_schedules")
+            .update(update).eq("id",schedule.id).select("id,next_release_at").maybeSingle();
+          if(updateError || !updatedSchedule){
+            results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_update_failed",published,
+              details:updateError?message(updateError):"Schedule row was not returned after update; advancement is unconfirmed."});
             continue;
           }
         }
