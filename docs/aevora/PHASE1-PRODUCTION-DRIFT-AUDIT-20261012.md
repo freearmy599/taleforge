@@ -8,10 +8,17 @@ Scope: Read-only production inspection; prepared repair branch only.
 
 - Repository: `freearmy599/taleforge`
 - Prepared branch: `aevora/release-scheduler-hardening`
-- Latest validated branch commit: `bf827c572b9f320530c600b23a1e5c3172db6e94`
-- Latest hosted CI run: [38255316392](https://github.com/freearmy599/taleforge/actions/runs/38255316392) — type checks and source-contract regression tests passed.
+- Latest validated branch commit: `b2ee3de7a6d9f5b9e3506241b5b06266255add36`
+- Latest hosted CI run: [38274956230](https://github.com/freearmy599/taleforge/actions/runs/38274956230) — scheduler/publisher type-check and source-contract regression tests passed.
 - Production Edge Functions remain unchanged during this audit.
 - No migrations, schedule changes, chapter publishing, secret access/rotation, billable branches, or deployment were performed.
+
+## Follow-up source hardening on 2026-10-12
+
+- Published chapter history parsing now accepts only integer numbers or plain decimal digit strings before safe-integer/range validation. This prevents JavaScript coercions such as `true`, `[1]`, hexadecimal strings, exponent strings, and decimal-form strings from being interpreted as plausible chapter numbers.
+- Regression coverage was added for those malformed input classes while retaining plain decimal-string compatibility.
+- Hosted validation run [38274956230](https://github.com/freearmy599/taleforge/actions/runs/38274956230) completed successfully on commit `b2ee3de7a6d9f5b9e3506241b5b06266255add36`.
+- This is prepared-branch-only source hardening. Production remains unchanged; no database writes, migration applications, schedule changes, chapter generation/publication, secret changes, or deployments were performed.
 
 ## Confirmed live/prepared source mismatch
 
