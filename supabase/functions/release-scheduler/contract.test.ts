@@ -311,6 +311,7 @@ Deno.test("atomic lease-fencing migration locks and validates ownership and rest
   assert(sql.split("FOR UPDATE").length - 1 === 2, "both RPCs must lock the lease row through their transaction");
   assert(sql.split("v_lease_token <> p_lease_token").length - 1 === 2, "both RPCs must validate the exact lease token");
   assert(sql.split("v_lease_expires_at <= clock_timestamp()").length - 1 === 2, "both RPCs must reject expired leases");
+  assert(sql.includes("OR p_next_release_at <= p_last_release_at THEN"), "atomic advancement must reject a non-advancing release deadline");
   assert(sql.split("SECURITY DEFINER").length - 1 === 2, "both RPCs must use the reviewed security-definer contract");
   assert(sql.split("SET search_path TO 'pg_catalog', 'public', 'pg_temp'").length - 1 === 2, "both RPCs must pin search_path");
   assert(sql.includes("FROM PUBLIC, anon, authenticated"), "untrusted roles must not retain execute privileges");
