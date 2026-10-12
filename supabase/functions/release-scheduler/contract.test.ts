@@ -1,0 +1,45 @@
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+
+const schedulerUrl = new URL("./index.ts", import.meta.url);
+const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
+
+Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes("if(!dryRun){\n        const leaseClaim"), "real-run-only lease claim guard missing");
+  assert(source.includes("if(leaseClaimed){\n          const released"), "conditional lease release guard missing");
+  assert(!source.includes('if(dryRun){\n        const leaseClaim'), "dry-run lease claim must not exist");
+});
+
+Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes('return q.order("id",{ascending:true});'), "schedule ID ordering missing");
+  assert(source.includes("buildScheduleQuery().range(offset,offset+499)"), "schedule paging missing");
+  assert(source.includes('.order("chapter_number",{ascending:true})\n          .order("created_at",{ascending:false})\n          .order("id",{ascending:true})\n          .range(offset,offset+499)'), "approved output ordering/paging missing");
+});
+
+Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes('String(schedule.timezone??"UTC")'), "schedule timezone is not passed to weekly resolver");
+  assert(source.includes('/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/'), "strict wall-time validation regex missing");
+  assert(source.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
+  assert(source.indexOf("Validate scheduling configuration before any publication side effect.") < source.indexOf('from("story_lifecycle")'), "schedule preflight must precede publication setup");
+  assert(!source.includes("nextRelease=now;"), "activation must not trigger an immediate extra release batch");
+});
+
+Deno.test("scheduler requires strict publisher confirmation and database-published status", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes("d.success===true && d.published===true"), "publisher positive flags missing");
+  assert(source.includes('d.status==="published"'), "publisher published status check missing");
+  assert(source.includes('confirmedChapter.status!=="published"'), "database status confirmation missing");
+});
+
+Deno.test("publisher idempotency paths reject non-published rows before side effects", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  assert(source.split("CHAPTER_SLOT_CONFLICT").length - 1 === 2, "both existing-row and race guards must exist");
+  assert(source.indexOf('if (existingChapter.status !== "published"') < source.indexOf("const synchronizationWarnings: string[] = [];"), "existing-row guard must precede synchronization");
+  assert(source.indexOf('if (racedChapter.status !== "published"') < source.indexOf("chapter_id: racedChapter.id"), "race guard must precede idempotent success");
+  assert(source.includes("taleforge_ceo_execution_gate"), "Clara governance gate must remain");
+  assert(source.includes("chapter_publication_reviews"), "publication review gate must remain");
+});
