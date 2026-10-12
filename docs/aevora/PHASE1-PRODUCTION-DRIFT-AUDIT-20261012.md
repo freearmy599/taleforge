@@ -123,3 +123,9 @@ Read-only production SQL inspection recovered the exact claim/renew/release leas
 Validation evidence: [workflow run 38283233964](https://github.com/freearmy599/taleforge/actions/runs/38283233964) passed all four Edge Function type checks and all 37 source-contract tests on commit `e6186e4fd5853e271272d65e8ec0f7eaf13d7d28`. The SQL contract also rejects a release deadline that does not advance beyond the recorded completion timestamp.
 
 The migration remains **prepared only** and has not been applied. Existing production claim/renew/release function definitions still lack their original source migration in the repository, so full schema reproducibility remains incomplete. This result is not production integration validation and does not authorize deployment.
+
+## Repeatable read-only publication integrity audit
+
+Added `docs/aevora/phase1-readonly-integrity-audit.sql` as a source-controlled, SELECT-only audit for future controlled verification. It reports published chapter-number gaps, duplicate published chapter slots, approved outputs with missing/non-unique/non-passing publication reviews, and enabled auto-publish schedules overdue by more than 24 hours. It does not mutate rows or attempt automatic repair.
+
+The query has been committed to the hardening branch but has **not** been executed against production. Its findings must be reviewed before any data repair; it is not a deployment or migration.
