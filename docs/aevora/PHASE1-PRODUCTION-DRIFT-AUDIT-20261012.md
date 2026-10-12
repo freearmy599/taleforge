@@ -139,3 +139,9 @@ Executed the audit query directly against the configured Supabase project using 
 - **0 enabled auto-publish schedules overdue by more than 24 hours** under the audit's defined threshold.
 
 No rows were inserted, updated, or deleted; no schedule was changed; no chapter was generated or published. The six reviewless outputs remain ineligible for publication under the prepared review-qualified scheduler/publisher path. The seven gaps need a separate story/blueprint reconciliation before any data repair; do not fabricate or auto-publish replacement chapters merely to fill the numbers.
+
+### Gap reconciliation — existing story assets found
+
+A second SELECT-only query joined each of the seven missing published slots to its existing chapter blueprint and generation outputs. **All seven gaps already have a blueprint and at least one output**; there is no evidence here that a new blueprint or chapter should be fabricated. The latest output statuses are `generated` for *The Last Unsent Letter* chapter 3 and *After the Red Eclipse* chapter 3; `quality_check` for *After the Red Eclipse* chapters 10–11 and *The Clockwork Sky* chapters 10 and 18; and `generated` for *The Clockwork Sky* chapter 16. Older attempts for Clockwork Sky chapters 10, 16, and 18 include `needs_revision`.
+
+Safe next repair is to trace why these existing outputs remain non-publishable, verify review/revision state and generation-job linkage, and resume only through the normal guarded pipeline after review eligibility is established. No generation or status change was initiated during this reconciliation.
