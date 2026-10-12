@@ -62,6 +62,10 @@ Deno.test("publisher idempotency paths reject non-published rows before side eff
   assert(source.indexOf("if (!matchesPublishedOutput(existingChapter, output))") < source.indexOf("const synchronizationWarnings: string[] = [];"), "existing-row guard must precede synchronization");
   assert(source.includes("if (!matchesPublishedOutput(racedChapter, output))"), "race-path identity guard missing");
   assert(source.indexOf("if (!matchesPublishedOutput(racedChapter, output))") < source.indexOf("chapter_id: racedChapter.id"), "race guard must precede idempotent success");
+  const raceGuard = source.indexOf("if (!matchesPublishedOutput(racedChapter, output))");
+  const raceSync = source.indexOf("const raceSynchronizationWarnings");
+  assert(raceSync > raceGuard, "race-path metadata sync must occur only after identity validation");
+  assert(source.includes("racedOutputSyncError") && source.includes("racedBlueprintSyncError"), "verified race path must attempt output and blueprint synchronization");
   assert(source.includes("taleforge_ceo_execution_gate"), "Clara governance gate must remain");
   assert(source.includes("chapter_publication_reviews"), "publication review gate must remain");
 });
