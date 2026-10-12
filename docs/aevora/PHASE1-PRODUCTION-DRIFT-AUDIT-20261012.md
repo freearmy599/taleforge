@@ -166,3 +166,5 @@ Prepared-branch repair:
 - Regression tests now assert that scheduler, publisher, generation orchestrator, and review orchestrator authenticate before client creation.
 
 No JWT verification setting was changed. This is branch-only source hardening; production handlers remain unchanged pending explicit deployment authorization.
+
+Validation evidence for the privileged-handler authentication repair: [workflow run 38285648719](https://github.com/freearmy599/taleforge/actions/runs/38285648719) passed all four prepared Edge Function type checks and the expanded source-contract suite on commit `5c6cf5ecebd1375786e2793e055dbde027bbff5c`. The audit SQL was also executed read-only from its committed source and completed successfully. Neither result is a production deployment or live Edge Function integration test.
