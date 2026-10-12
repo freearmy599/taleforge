@@ -40,6 +40,20 @@ Deno.test("scheduler lease RPC names and arguments match the live prerequisite c
   assert(source.includes("if(leaseClaimed){"), "release must be conditional on an acquired lease");
 });
 
+Deno.test("scheduler rejects malformed explicit schedule IDs before query scoping", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const parseBody = source.indexOf("const body=await req.json().catch(()=>({}));");
+  const rawId = source.indexOf("const rawScheduleId=body?.schedule_id;");
+  const invalidGuard = source.indexOf('typeof rawScheduleId!=="string" || rawScheduleId.trim().length===0');
+  const normalizedId = source.indexOf('const scheduleId=typeof rawScheduleId==="string"?rawScheduleId.trim():null;');
+  const queryBuilder = source.indexOf("const buildScheduleQuery=()=>{");
+  assert(parseBody >= 0 && rawId > parseBody, "request body must be parsed before reading the explicit schedule ID");
+  assert(invalidGuard > rawId && normalizedId > invalidGuard, "explicit IDs must be validated and normalized before query construction");
+  assert(queryBuilder > normalizedId, "query scoping must follow explicit schedule ID validation");
+  assert(source.includes('error:"schedule_id must be a non-empty string when provided."'), "invalid explicit IDs must receive a clear client error");
+  assert(source.includes("if(scheduleId) q=q.eq(\"id\",scheduleId);"), "a normalized valid ID must scope the query");
+});
+
 Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('return q.order("id",{ascending:true});'), "schedule ID ordering missing");
