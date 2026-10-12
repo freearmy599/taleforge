@@ -72,6 +72,7 @@ Deno.test("scheduler rejects malformed explicit schedule IDs before query scopin
   assert(source.includes('body===null || typeof body!=="object" || Array.isArray(body)'), "scheduler request must be a JSON object, not null or an array");
   assert(source.includes('error:"Request body must be a JSON object."'), "non-object request bodies must receive a clear client error");
   assert(source.includes('error:"schedule_id must be a non-empty string when provided."'), "invalid explicit IDs must receive a clear client error");
+  assert(!source.includes("rawScheduleId!==undefined && rawScheduleId!==null"), "explicit null IDs must not silently degrade into unscoped batch runs");
   assert(source.includes('body.dry_run!==undefined && typeof body.dry_run!=="boolean"'), "dry_run must be explicitly boolean when supplied");
   assert(source.includes('error:"dry_run must be a boolean when provided."'), "invalid dry_run values must receive a clear client error");
   assert(source.indexOf('body.dry_run!==undefined && typeof body.dry_run!=="boolean"') < source.indexOf("const dryRun=body.dry_run===true;"),
