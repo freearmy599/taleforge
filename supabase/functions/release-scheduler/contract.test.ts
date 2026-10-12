@@ -14,6 +14,7 @@ const publishedHistoryUrl = new URL("./published-history.ts", import.meta.url);
 const reviewQualifiedOutputsUrl = new URL("./review-qualified-outputs.ts", import.meta.url);
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const leaseFencingMigrationUrl = new URL("../../migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", import.meta.url);
+const leaseFoundationMigrationUrl = new URL("../../migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql", import.meta.url);
 const weeklyScheduleUrl = new URL("./weekly-schedule.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
@@ -302,6 +303,26 @@ Deno.test("schedule advancement and lifecycle activation use atomic lease-fenced
   assert(source.includes("if(activation.error || activation.data!==true)"),
     "unconfirmed atomic lifecycle activation must fail closed");
   assert(!source.includes("const approved:any[]=[];"), "redundant preparing-lifecycle output preflight should stay removed");
+});
+
+Deno.test("lease foundation migration reproduces the inspected lease table and RPC contract", async () => {
+  const sql = await Deno.readTextFile(leaseFoundationMigrationUrl);
+  assert(sql.includes("CREATE TABLE IF NOT EXISTS public.aevora_release_scheduler_leases"), "lease table definition missing");
+  for (const column of ["schedule_id uuid PRIMARY KEY", "lease_token uuid NOT NULL", "lease_expires_at timestamptz NOT NULL", "created_at timestamptz NOT NULL DEFAULT clock_timestamp()", "updated_at timestamptz NOT NULL DEFAULT clock_timestamp()"]) {
+    assert(sql.includes(column), "lease table column contract missing: " + column);
+  }
+  assert(sql.includes("ENABLE ROW LEVEL SECURITY"), "lease table must keep RLS enabled");
+  assert(sql.includes("FROM PUBLIC, anon, authenticated"), "untrusted roles must not receive table/function privileges");
+  assert(sql.includes("GRANT ALL ON TABLE public.aevora_release_scheduler_leases TO postgres, service_role"), "table access must remain restricted to server roles");
+  for (const name of ["aevora_claim_release_scheduler_lease", "aevora_renew_release_scheduler_lease", "aevora_release_scheduler_lease"]) {
+    assert(sql.includes("CREATE OR REPLACE FUNCTION public." + name), "lease RPC definition missing: " + name);
+  }
+  assert(sql.split("SECURITY DEFINER").length - 1 === 3, "all lease RPCs must use security-definer execution");
+  assert(sql.split("SET search_path TO 'pg_catalog', 'public', 'pg_temp'").length - 1 === 3, "all lease RPCs must pin search_path");
+  assert(sql.includes("p_lease_seconds < 30 OR p_lease_seconds > 900"), "lease duration bounds must match the inspected production contract");
+  assert(sql.includes("WHERE public.aevora_release_scheduler_leases.lease_expires_at <= clock_timestamp()"), "claim must not replace an unexpired lease");
+  assert(sql.includes("AND lease_expires_at > clock_timestamp()"), "renewal must reject expired leases");
+  assert(sql.includes("WHERE schedule_id = p_schedule_id AND lease_token = p_lease_token"), "release must require the exact lease token");
 });
 
 Deno.test("atomic lease-fencing migration locks and validates ownership and restricts execution", async () => {
