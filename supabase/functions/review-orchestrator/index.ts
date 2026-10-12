@@ -93,10 +93,28 @@ Deno.serve(async (req) => {
       }, 429);
     }
 
-    const body = await req.json().catch(() => ({}));
-    const requestedOutputId = body?.output_id ?? null;
-    const requestedSeriesId = body?.series_id ?? null;
-    const dryRun = body?.dry_run === true;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return json({ success: false, error: "Request body must be valid JSON." }, 400);
+    }
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      return json({ success: false, error: "Request body must be a JSON object." }, 400);
+    }
+    const request = body as Record<string, unknown>;
+    for (const field of ["output_id", "series_id"] as const) {
+      if (request[field] !== undefined &&
+          (typeof request[field] !== "string" || request[field].trim().length === 0)) {
+        return json({ success: false, error: field + " must be a non-empty string when provided." }, 400);
+      }
+    }
+    if (request.dry_run !== undefined && typeof request.dry_run !== "boolean") {
+      return json({ success: false, error: "dry_run must be a boolean when provided." }, 400);
+    }
+    const requestedOutputId = typeof request.output_id === "string" ? request.output_id.trim() : null;
+    const requestedSeriesId = typeof request.series_id === "string" ? request.series_id.trim() : null;
+    const dryRun = request.dry_run === true;
 
     let outputQuery = supabase
       .from("chapter_generation_outputs")
