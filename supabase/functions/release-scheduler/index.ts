@@ -251,7 +251,7 @@ Deno.serve(async (req)=>{
         .filter((value:number)=>Number.isFinite(value));
       let scheduleCooldownActive=false;
       let scheduleCooldownUntil:Date|null=null;
-      if(!dryRun && releaseReferenceTimes.length>0){
+      if(releaseReferenceTimes.length>0){
         const latestReleaseMs=releaseReferenceTimes.reduce((latest:number,value:number)=>Math.max(latest,value),Number.NEGATIVE_INFINITY);
         if(schedule.schedule_mode==="interval"){
           scheduleCooldownUntil=new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000);
