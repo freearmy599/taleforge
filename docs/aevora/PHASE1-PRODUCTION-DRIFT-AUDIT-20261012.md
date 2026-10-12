@@ -181,7 +181,7 @@ Validation evidence for the publication-review response fix and lifecycle lock a
 
 ### Wider privileged-endpoint authentication inventory — 2026-10-12
 
-A read-only inventory of deployed Edge Function metadata and handler source found that the following active functions all report `verify_jwt=true` but do **not** validate the expected server-side `apikey` in their handlers, while constructing privileged Supabase clients and/or performing model-dependent work:
+A read-only inventory of deployed Edge Function metadata and handler source found that these active functions report `verify_jwt=true` but lacked handler-level validation of the expected server-side `apikey` while constructing privileged Supabase clients and/or performing model-dependent work:
 
 - `generate-chapter` v59
 - `revise-chapter` v40
@@ -190,4 +190,6 @@ A read-only inventory of deployed Edge Function metadata and handler source foun
 - `safety-review` v9
 - `publication-review` v8
 
-The shared handler-level guard is now prepared for the scheduler, publisher, generation orchestrator, and review orchestrator in this branch, but the six functions above remain outside the current source-controlled patch set. Gateway JWT validation alone does not establish that the caller is a trusted internal service. These endpoints require controlled source recovery and the same explicit internal-key validation before a safe broad rollout. Do not weaken `verify_jwt` to work around this; preserve it until cron/internal authentication is verified end-to-end. No function was deployed or invoked as part of this inventory.
+The current branch now includes a source-controlled snapshot of `generate-chapter` v59 with the shared internal-key guard before privileged client creation, plus fail-closed checks for missing provider-state rows and malformed cooldown timestamps in both generation and quality-review paths. The remaining four review/revision endpoints (`revise-chapter`, `continuity-review`, `originality-review`, `safety-review`) and `publication-review` still need controlled source recovery and the same explicit internal-key validation before a safe broad rollout. Gateway JWT validation alone does not establish that the caller is a trusted internal service. Do not weaken `verify_jwt` to work around this; preserve it until cron/internal authentication is verified end-to-end. No function was deployed or invoked as part of this inventory.
+
+Validation evidence for the `generate-chapter` repair: [workflow run 38286805866](https://github.com/freearmy599/taleforge/actions/runs/38286805866) passed all five prepared Edge Function type checks and **40 source-contract tests** (0 failures) on commit `4187e939bd5c07bc776c69ccf659a49b7f860b1c`.
