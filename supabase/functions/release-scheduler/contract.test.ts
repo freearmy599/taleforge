@@ -136,6 +136,22 @@ Deno.test("generation orchestrator dry-run avoids known database mutations", asy
     "read-only dry-run must report which mutations were skipped");
 });
 
+Deno.test("review orchestrator rejects malformed or unscoped request values before output queries", async () => {
+  const source = await Deno.readTextFile(reviewOrchestratorUrl);
+  const parseBody = source.indexOf("let body: unknown;");
+  const objectGuard = source.indexOf("body === null || typeof body !== \"object\" || Array.isArray(body)");
+  const fieldGuard = source.indexOf('for (const field of ["output_id", "series_id"] as const)');
+  const dryRunGuard = source.indexOf('request.dry_run !== undefined && typeof request.dry_run !== "boolean"');
+  const outputQuery = source.indexOf('let outputQuery = supabase');
+  assert(parseBody >= 0 && objectGuard > parseBody, "malformed JSON and non-object request bodies must be rejected");
+  assert(source.includes('error: "Request body must be valid JSON."'), "malformed JSON must not become an unscoped review batch");
+  assert(source.includes('error: "Request body must be a JSON object."'), "request body must be an object");
+  assert(fieldGuard > objectGuard && dryRunGuard > fieldGuard, "scope and execution-mode validation must precede query construction");
+  assert(source.includes('field + " must be a non-empty string when provided."'), "explicit null, blank, and non-string IDs must be rejected");
+  assert(outputQuery > dryRunGuard, "output queries must follow all request validation");
+  assert(source.includes('request.dry_run === true'), "only an explicit boolean true may enable dry-run mode");
+});
+
 Deno.test("review orchestrator reports active Gemini cooldown as HTTP 429", async () => {
   const source = await Deno.readTextFile(reviewOrchestratorUrl);
   const cooldownGuard = source.indexOf('} else if (providerState?.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now())');
