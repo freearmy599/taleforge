@@ -92,3 +92,18 @@ A further review of active `review-orchestrator` v11 found that its top-level co
 ## Stop conditions
 
 Stop and report rather than making a production change if verification requires reading secret values, changing JWT verification, modifying cron credentials, creating a billable Supabase branch, changing release schedules, publishing chapters, applying schema changes, or merging to the default branch.
+
+## Request-scope hardening follow-up — 2026-10-12
+
+A further branch-only source review found malformed request bodies could silently become unscoped batch runs in the generation and review orchestrators. An explicit JSON `null`, invalid JSON, or invalid identifier types could otherwise trigger work across multiple outputs/schedules instead of rejecting the request.
+
+Prepared-branch changes now:
+- Reject malformed/non-object request bodies in the generation and review orchestrators.
+- Reject explicitly supplied null, blank, or non-string series/schedule/output IDs rather than degrading to an unscoped run.
+- Require boolean values for `dry_run` and `review_after_generation` when supplied.
+- Align scheduler diagnostics with the documented policy: only a targeted dry run may inspect a disabled schedule; real runs and unscoped dry runs remain limited to enabled schedules.
+- Reject an explicitly null scheduler `schedule_id`, preventing an unintended unscoped batch invocation.
+
+Validation evidence: [workflow run 38282486239](https://github.com/freearmy599/taleforge/actions/runs/38282486239) passed scheduler, publisher, generation-orchestrator, and review-orchestrator Deno type-checks plus source-contract regression tests on commit `434bc51ef6c010c31cf69843fa5910fd2efc4def`.
+
+These changes are branch-only and do not establish live runtime integration or production behavior. No deployment, migration, schedule mutation, chapter generation, or publication was performed.
