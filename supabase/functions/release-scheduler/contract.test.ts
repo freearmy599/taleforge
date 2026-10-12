@@ -53,7 +53,7 @@ Deno.test("interval release resolver rejects overflow and non-advancing timestam
     "a valid 24-hour interval should resolve exactly");
   assert(resolveNextIntervalRelease(base, "0.5").toISOString() === "2026-10-12T12:30:00.000Z",
     "numeric database interval values should resolve");
-  for (const invalid of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e308, 1e-100, null, "not-a-number"]) {
+  for (const invalid of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e308, 1e-100, null, undefined, true, false, [], {}, "", "   ", "not-a-number"]) {
     let threw = false;
     try { resolveNextIntervalRelease(base, invalid); } catch { threw = true; }
     assert(threw, "invalid, overflowing, or non-advancing intervals must fail closed");
