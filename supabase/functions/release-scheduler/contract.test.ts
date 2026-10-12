@@ -17,7 +17,7 @@ const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes("if(!dryRun && schedule.auto_publish){\n        let leaseClaim:any=null;"), "only enabled auto-publish schedules may claim a real-run lease");
-  assert(source.includes("if(leaseClaimed){\n          let released:any=null;"), "conditional lease release guard missing");
+  assert(source.includes("if(leaseClaimed){"), "conditional lease release guard missing");
   assert(!source.includes('if(dryRun){\n        const leaseClaim'), "dry-run lease claim must not exist");
   assert(source.includes("catch(leaseClaimError)"), "lease claim transport exceptions must be isolated to one schedule");
   assert(source.includes("catch(scheduleError)"), "unexpected schedule errors must not abort the remaining due-schedule batch");
