@@ -185,6 +185,18 @@ Deno.serve(async (req)=>{
 
       let lifecycleStatus=lifecycle?.lifecycle_status??"active";
       let lifecycleTransition=null;
+      const dailyMinConfig=Number(lifecycle?.daily_chapters_min??2);
+      const dailyMaxConfig=Number(lifecycle?.daily_chapters_max??3);
+      const launchCountConfig=Number(lifecycle?.launch_chapter_count??5);
+      const invalidDailyConfig=!Number.isSafeInteger(dailyMinConfig) || dailyMinConfig<1
+        || !Number.isSafeInteger(dailyMaxConfig) || dailyMaxConfig<dailyMinConfig || dailyMaxConfig>100;
+      const invalidLaunchConfig=lifecycleStatus==="preparing"
+        && (!Number.isSafeInteger(launchCountConfig) || launchCountConfig<1 || launchCountConfig>1000);
+      if(invalidDailyConfig || invalidLaunchConfig){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_config_invalid",
+          reason:"Lifecycle chapter limits must be positive safe integers; daily maximum is capped at 100 and launch count at 1000."});
+        continue;
+      }
 
       // Preparing lifecycle activation is checked after publication using
       // database-confirmed published chapters and approved/published outputs below.
@@ -283,8 +295,8 @@ Deno.serve(async (req)=>{
         expectedNumber++;
       }
 
-      const dailyMin=Math.max(1,Number(lifecycle?.daily_chapters_min??2));
-      const dailyMax=Math.max(dailyMin,Number(lifecycle?.daily_chapters_max??3));
+      const dailyMin=dailyMinConfig;
+      const dailyMax=dailyMaxConfig;
       const publishCount=Math.min(uniqueReady.length,dailyMax);
       let published:any[]=[];
       let publicationFailed=false;
@@ -334,7 +346,7 @@ Deno.serve(async (req)=>{
       }
 
       if(!dryRun && lifecycleStatus==="preparing" && published.length>0 && !publicationFailed && !leaseLost){
-        const launchCount=Math.max(1,Number(lifecycle?.launch_chapter_count??5));
+        const launchCount=launchCountConfig;
         const launchPublished:any[]=[];
         let launchPublishedError:any=null;
         for(let offset=0;;offset+=500){
