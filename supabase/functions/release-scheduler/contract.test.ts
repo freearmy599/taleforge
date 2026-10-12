@@ -167,6 +167,19 @@ Deno.test("review orchestrator rejects malformed or unscoped request values befo
   assert(source.includes('request.dry_run === true'), "only an explicit boolean true may enable dry-run mode");
 });
 
+Deno.test("review orchestrator fails closed when Gemini cooldown timestamp is malformed", async () => {
+  const source = await Deno.readTextFile(reviewOrchestratorUrl);
+  const invalidTimestampGuard = source.indexOf('!Number.isFinite(new Date(providerState.cooldown_until).getTime())');
+  const invalidResponse = source.indexOf('reason: "provider_state_unavailable"', invalidTimestampGuard);
+  const responseEnd = source.indexOf('}, 503);', invalidTimestampGuard);
+  const activeCooldownGuard = source.indexOf('providerState?.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now()');
+  assert(invalidTimestampGuard >= 0, "malformed non-empty cooldown timestamps must be detected");
+  assert(invalidResponse > invalidTimestampGuard && responseEnd > invalidTimestampGuard,
+    "malformed cooldown state must return a retryable fail-closed response");
+  assert(activeCooldownGuard > invalidTimestampGuard, "timestamp validation must precede active-cooldown comparison");
+  assert(source.includes("no review model calls were made."), "malformed provider state must block all review model calls");
+});
+
 Deno.test("review orchestrator reports active Gemini cooldown as HTTP 429", async () => {
   const source = await Deno.readTextFile(reviewOrchestratorUrl);
   const cooldownGuard = source.indexOf('} else if (providerState?.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now())');
