@@ -58,7 +58,7 @@ function matchingWallTimeCandidates(year:number,month:number,day:number,hour:num
 /** Return the next future wall-clock weekly occurrence in the schedule's IANA timezone. */
 function nextWeeklyRelease(now:Date, weekday:number, time:string, timeZone:string):Date {
   if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) throw new Error("Invalid preferred weekday");
-  if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(time)) throw new Error("Invalid preferred time");
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)) throw new Error("Invalid preferred time");
   partsAt(now,timeZone); // validates the IANA timezone
   const local = partsAt(now,timeZone);
   const localWeekday = new Date(Date.UTC(local.year,local.month-1,local.day)).getUTCDay();
