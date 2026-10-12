@@ -50,6 +50,23 @@ Verification evidence:
 
 These are prepared-branch type/source-contract checks only. They do not prove full runtime integration or production behavior. No production deployment, migration, schedule mutation, chapter generation, or publication was performed by these commits.
 
+## Additional quota-protection verification — 2026-10-12
+
+A fresh read-only inspection of active Edge Function source found that several earlier quota-guard concerns are no longer current for the active versions inspected:
+- `generate-chapter` v59 checks Gemini provider state in both the chapter-generation and quality-review paths, and blocks when the lookup errors or the cooldown is active.
+- `review-orchestrator` v11 blocks with HTTP 503 when provider state errors or the Gemini row is missing.
+- `revise-chapter` v40 has a provider-state check before its revision model-call paths.
+
+One concrete remaining gap was found in `generation-orchestrator` v35: its `getGeminiCooldown` helper treated a successful lookup with no provider-state row as inactive. An invalid non-empty cooldown timestamp could also compare as inactive. The orchestrator did not immediately stop on its initial lookup's `lookup_error` field before deterministic planning refresh work.
+
+Prepared branch repair:
+- Restored the exact active v35 `generation-orchestrator` source into source control because the function was absent from the branch tree.
+- Changed provider-state lookup to fail closed for lookup errors, missing rows, and invalid cooldown timestamps.
+- Added an immediate retryable HTTP 503 response before request processing, deterministic refresh, schedule iteration, or AI-dependent work when provider state is unavailable.
+- Added the function to branch CI type-checking and source-contract regression tests.
+
+Validation evidence: workflow run [38280010050](https://github.com/freearmy599/taleforge/actions/runs/38280010050) completed successfully after the map typing correction. This proves the branch's Deno type checks and source-contract tests passed; it is not a live integration test. Production function versions and configuration remain unchanged.
+
 ## Safe next sequence
 
 1. Keep the repair branch isolated and preserve the passing CI run.
