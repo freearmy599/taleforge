@@ -162,11 +162,12 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   const source = await Deno.readTextFile(schedulerUrl);
   const query = source.indexOf('.select("id,series_id,chapter_number,title,content,generation_status")');
   const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved,launchReviewRows)");
-  const approvedSet = source.indexOf("const approvedSet=new Set(launchReviewedOutputs.map");
+  const launchReady = source.indexOf("const launchReady=launchNumbers.filter");
+  const activationGate = source.indexOf("if(launchReady.length===launchCount)");
   const activation = source.indexOf('.update({lifecycle_status:"active"');
   assert(query >= 0 && source.indexOf('.in("generation_status",["approved","published"]).lte("chapter_number",launchCount)',query) > query, "launch verification must load approved/published output IDs and chapter numbers");
   assert(source.includes("const launchReviewRows:any[]=[];"), "launch review rows must be fetched");
-  assert(qualification > query && approvedSet > qualification && activation > approvedSet, "lifecycle activation must follow review-qualified launch verification");
+  assert(qualification > query && launchReady > qualification && activationGate > launchReady && activation > activationGate, "lifecycle activation must follow review-qualified launch verification");
   assert(source.includes("matchesPublishedChapterOutput(chapterRows[0],output)"), "launch chapter must match reviewed output identity");
   assert(source.includes("launchReviewError"), "review query failure must block lifecycle activation");
   assert(source.includes("const invalidDailyConfig=") && source.includes("const invalidLaunchConfig="), "invalid lifecycle chapter limits must be rejected before publication");
