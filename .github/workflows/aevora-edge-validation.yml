@@ -1,6 +1,6 @@
 name: Aevora Edge source validation
 
-on:
+"on":
   push:
     branches:
       - aevora/release-scheduler-hardening
