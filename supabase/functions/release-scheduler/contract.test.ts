@@ -2,6 +2,8 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+import { inspectPublishedChapterHistory } from "./published-history.ts";
+const publishedHistoryUrl = new URL("./published-history.ts", import.meta.url);
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
@@ -85,4 +87,23 @@ Deno.test("publisher idempotency only confirms the exact published chapter outpu
     assert(!matchesPublishedOutput(exactChapter, {...output, chapter_number:malformed}), "malformed requested chapter number must conflict");
   }
   assert(!matchesPublishedOutput({...exactChapter, content:"   "}, output), "empty chapter content must not be idempotent");
+});
+
+Deno.test("published chapter history fails closed on gaps and malformed numbers", () => {
+  assert(JSON.stringify(inspectPublishedChapterHistory([])) === JSON.stringify({ok:true,latestNumber:0,firstMissingChapter:null}), "empty history should be valid");
+  assert(JSON.stringify(inspectPublishedChapterHistory([1,2,3,3])) === JSON.stringify({ok:true,latestNumber:3,firstMissingChapter:null}), "duplicates should not create a false gap");
+  assert(JSON.stringify(inspectPublishedChapterHistory([1,2,4,5])) === JSON.stringify({ok:true,latestNumber:5,firstMissingChapter:3}), "missing middle chapter should be detected");
+  for (const malformed of [null, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert(inspectPublishedChapterHistory([1,2,malformed]).ok === false, "malformed published chapter numbers must fail closed");
+  }
+});
+
+Deno.test("scheduler pages complete published history and pauses on a numbering gap", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes('from "./published-history.ts"'), "scheduler must use the tested history helper");
+  assert(source.includes('.select("id,chapter_number").eq("series_id",schedule.series_id).eq("status","published")'), "published history query missing");
+  assert(source.includes('.range(offset,offset+499)'), "published history must be paginated");
+  assert(source.includes('action:"published_chapter_gap"'), "scheduler must pause on a published chapter gap");
+  assert(source.indexOf('action:"published_chapter_gap"') < source.indexOf("const readyOutputs:any[]=[];"), "gap guard must run before ready output selection");
+  await Deno.readTextFile(publishedHistoryUrl);
 });
