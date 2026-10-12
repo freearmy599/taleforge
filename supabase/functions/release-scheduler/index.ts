@@ -88,6 +88,7 @@ Deno.serve(async (req)=>{
     const url=Deno.env.get("SUPABASE_URL");
     const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if(!url||!key) return response({success:false,error:"Missing Supabase environment configuration."},500);
+    if(req.headers.get("Authorization")!==`Bearer ${key}`) return response({success:false,error:"Caller must authenticate with the service-role credential."},401);
 
     const supabase=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
     const body=await req.json().catch(()=>({}));
