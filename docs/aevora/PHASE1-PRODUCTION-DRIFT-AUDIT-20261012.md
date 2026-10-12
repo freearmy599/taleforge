@@ -178,3 +178,16 @@ The same read-only source review found that deployed `publication-review` v8 doe
 No production function was changed or invoked. Keep the rollout blocked until this remaining endpoint guard and the cron-to-gateway authentication behavior are addressed through the authorized source/configuration workflow.
 
 Validation evidence for the publication-review response fix and lifecycle lock adjustment: [workflow run 38286371683](https://github.com/freearmy599/taleforge/actions/runs/38286371683) passed all four prepared Edge Function type checks and **39 source-contract tests** (0 failures) on commit `90010ffbffeaa461f6f1115a5304e1b0b906f193`.
+
+### Wider privileged-endpoint authentication inventory — 2026-10-12
+
+A read-only inventory of deployed Edge Function metadata and handler source found that the following active functions all report `verify_jwt=true` but do **not** validate the expected server-side `apikey` in their handlers, while constructing privileged Supabase clients and/or performing model-dependent work:
+
+- `generate-chapter` v59
+- `revise-chapter` v40
+- `continuity-review` v10
+- `originality-review` v9
+- `safety-review` v9
+- `publication-review` v8
+
+The shared handler-level guard is now prepared for the scheduler, publisher, generation orchestrator, and review orchestrator in this branch, but the six functions above remain outside the current source-controlled patch set. Gateway JWT validation alone does not establish that the caller is a trusted internal service. These endpoints require controlled source recovery and the same explicit internal-key validation before a safe broad rollout. Do not weaken `verify_jwt` to work around this; preserve it until cron/internal authentication is verified end-to-end. No function was deployed or invoked as part of this inventory.
