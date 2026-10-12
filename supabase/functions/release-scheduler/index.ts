@@ -468,6 +468,7 @@ Deno.serve(async (req)=>{
           leaseLost=true;
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_advance_unconfirmed",published_count:published.length,
             details:advancement.error?message(advancement.error):"Atomic schedule advancement rejected because the lease or schedule precondition was not valid."});
+          continue;
         }
       }
 
