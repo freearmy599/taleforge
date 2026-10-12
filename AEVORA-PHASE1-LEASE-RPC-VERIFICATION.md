@@ -24,17 +24,24 @@ The claim/renew functions default to 300 seconds and reject requested durations 
 - A read-only count found zero current lease rows (zero unexpired and zero expired leases), so no existing lease row would block the prepared scheduler at this snapshot.
 - RLS is enabled. anon and authenticated have no SELECT/INSERT/UPDATE/DELETE table privileges; service_role has those privileges.
 
-## Remaining lease-fencing race
+## Atomic lease fencing — prepared, not applied
 
-The current prepared scheduler renews the lease and then updates `release_schedules` through a separate PostgREST request filtered only by schedule ID. The lease RPC correctly checks the matching token at renewal time, but that check is not atomic with the subsequent schedule update. If execution is paused long enough for the lease to expire and another scheduler to claim it between those requests, the former owner could still advance the schedule row. The 180-second lease and immediate follow-up reduce the window but do not mathematically eliminate it.
+The initial prepared scheduler renewed the lease and then updated `release_schedules` through a separate PostgREST request. A lease could expire and be claimed by another scheduler between those requests, allowing the former owner to advance the deadline after losing ownership. Lifecycle activation had the same check-then-write gap.
 
-A robust final fix should use a narrowly scoped database function that, in one transaction, verifies the matching unexpired lease token and updates the schedule deadline; it should return an explicit boolean/row result and remain executable only by `service_role` and `postgres`. The prepared scheduler must fail closed if that atomic operation returns false or errors. Review the lifecycle activation write for the same fencing requirement. Do not implement or apply this function until the migration source and security contract have been reviewed.
+Read-only production inspection recovered the exact definitions and ACLs for the existing claim/renew/release RPCs. The prepared branch now adds `supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql`, defining two narrowly scoped functions:
 
-## Repository migration-tracking gap
+- `aevora_advance_release_schedule_if_lease_owned`: locks the lease row, verifies the exact token and unexpired lease, and advances the release deadline in the same transaction.
+- `aevora_activate_story_lifecycle_if_lease_owned`: applies the same lease fence and verifies the schedule-to-series relationship before transitioning a preparing lifecycle to active.
 
-A follow-up inspection of the current hardening branch found no lease-named migration among its 39 SQL migration files, and neither `database-schema.sql` nor `series-chapters-schema.sql` contains the lease table or RPC definitions. Production metadata confirms these objects currently exist, but this branch does not contain their source definitions. This is a repository reproducibility gap, not evidence that the live production objects are missing.
+Both functions use SECURITY DEFINER with a fixed `pg_catalog, public, pg_temp` search path, revoke execution from PUBLIC/anon/authenticated, and grant execution only to postgres/service_role. The prepared scheduler now calls these RPCs and fails closed on errors or false results. Contract tests cover token/expiry checks, row locking, function security, and the scheduler's use of atomic writes.
 
-Do not fabricate a migration from function names alone. Before Phase 1 can be considered fully reproducible, recover and review the exact deployed definitions and grants through a read-only inspection, then prepare a source-controlled migration or a documented dependency with explicit justification. Do not apply a migration as part of this audit.
+**This migration has not been applied.** Hosted validation is still required for the newest source revision. Do not deploy the scheduler until the migration has been reviewed and separately authorized for application and deployment.
+
+## Remaining repository migration-tracking gap
+
+The existing production lease table and original claim/renew/release function definitions still do not have their source migration recovered in this branch. The new migration only adds atomic write functions and does not recreate the existing lease foundation. This remains a reproducibility gap, not evidence that the live production objects are missing.
+
+The exact live definitions and grants were inspected read-only. Do not fabricate the missing original migration or apply any migration as part of this audit.
 
 ## Deployment implications
 
