@@ -46,10 +46,13 @@ if(governance.error||governance.data?.authorized!==true){
 
 if(blueprintId&&!outputId){
  const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
- if(providerStateError){
-  console.error("[generate-chapter] provider cooldown lookup failed; failing closed",providerStateError.message);
+ if(providerStateError||!providerState){
+  console.error("[generate-chapter] provider cooldown lookup failed; failing closed",providerStateError?.message??"No Gemini provider-state row found");
   return reply({success:false,retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state could not be verified; generation was blocked to protect quota."},503);
- }else if(providerState?.cooldown_until && new Date(providerState.cooldown_until).getTime()>Date.now()){
+ }else if(providerState.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())){
+  console.error("[generate-chapter] provider cooldown timestamp is invalid; failing closed",String(providerState.cooldown_until));
+  return reply({success:false,retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state is malformed; generation was blocked to protect quota."},503);
+ }else if(providerState.cooldown_until && new Date(providerState.cooldown_until).getTime()>Date.now()){
   console.warn("[generate-chapter] generation skipped due to active provider cooldown",JSON.stringify({cooldown_until:providerState.cooldown_until,consecutive_throttle_count:providerState.consecutive_throttle_count}));
   return reply({success:false,retryable:true,reason:"provider_cooldown",error:"Gemini provider cooldown is active; generation was skipped to protect quota.",cooldown_until:providerState.cooldown_until},429);
  }
@@ -102,10 +105,13 @@ return reply({success:true,mode:"generation",generator_version:"generation-v5-se
 if(!outputId)return reply({success:false,error:"A blueprint_id is required for generation or an output_id is required for quality review."},400);
 
 const {data:reviewProviderState,error:reviewProviderStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
-if(reviewProviderStateError){
- console.error("[generate-chapter] quality-review provider cooldown lookup failed; failing closed",reviewProviderStateError.message);
+if(reviewProviderStateError||!reviewProviderState){
+ console.error("[generate-chapter] quality-review provider cooldown lookup failed; failing closed",reviewProviderStateError?.message??"No Gemini provider-state row found");
  return reply({success:false,retryable:true,reason:"provider_state_unavailable",mode:"quality-review",error:"Gemini cooldown state could not be verified; quality review was blocked to protect quota."},503);
-}else if(reviewProviderState?.cooldown_until && new Date(reviewProviderState.cooldown_until).getTime()>Date.now()){
+}else if(reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())){
+ console.error("[generate-chapter] quality-review provider cooldown timestamp is invalid; failing closed",String(reviewProviderState.cooldown_until));
+ return reply({success:false,retryable:true,reason:"provider_state_unavailable",mode:"quality-review",error:"Gemini cooldown state is malformed; quality review was blocked to protect quota."},503);
+}else if(reviewProviderState.cooldown_until && new Date(reviewProviderState.cooldown_until).getTime()>Date.now()){
  console.warn("[generate-chapter] quality review skipped due to active provider cooldown",JSON.stringify({cooldown_until:reviewProviderState.cooldown_until,consecutive_throttle_count:reviewProviderState.consecutive_throttle_count}));
  return reply({success:false,retryable:true,reason:"provider_cooldown",mode:"quality-review",error:"Gemini provider cooldown is active; quality review was skipped to protect quota.",cooldown_until:reviewProviderState.cooldown_until},429);
 }
