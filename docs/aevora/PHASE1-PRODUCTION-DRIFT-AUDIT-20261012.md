@@ -67,6 +67,17 @@ Prepared branch repair:
 
 Validation evidence: workflow run [38280010050](https://github.com/freearmy599/taleforge/actions/runs/38280010050) completed successfully after the map typing correction. This proves the branch's Deno type checks and source-contract tests passed; it is not a live integration test. Production function versions and configuration remain unchanged.
 
+Additional read-only review found a second issue in active `generation-orchestrator` v35: `dry_run=true` still called deterministic-intelligence refresh RPCs, rebuilt advanced chapter plans, updated exhausted revision statuses, and invoked `taleforge_select_revision_strategy`, which inserts/updates `taleforge_revision_selections`. Therefore the existing diagnostic mode was not read-only.
+
+Prepared branch repair now:
+- Skips deterministic-intelligence refresh, advanced chapter-plan build, and revision-exhaustion status updates during dry runs.
+- Reuses previously stored revision-selection rows through a read-only query rather than invoking the mutating selection RPC.
+- Leaves generation, revision, and review calls behind the existing dry-run early exit.
+- Returns `read_only: true` and lists skipped mutation classes when dry-run is selected.
+- Adds source-contract tests for the no-mutation guarantees.
+
+Validation evidence: workflow run [38280268489](https://github.com/freearmy599/taleforge/actions/runs/38280268489) passed the expanded source-contract suite and type-checks, including the restored generation orchestrator. This is branch-only validation; the active production generation orchestrator remains unchanged until a separately authorized deployment.
+
 ## Safe next sequence
 
 1. Keep the repair branch isolated and preserve the passing CI run.
