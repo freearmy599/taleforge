@@ -155,3 +155,15 @@ Deno.test("review qualification excludes missing, rejected, incomplete, and ambi
   assert(qualifyReviewedOutputs(outputs,[]).length===0, "missing review rows must be excluded");
   assert(qualifyReviewedOutputs([{id:"numeric-id"}],[approved("numeric-id")]).length===0, "malformed output identifiers must fail closed");
 });
+
+Deno.test("preparing lifecycle activation requires fully reviewed launch outputs", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const query = source.indexOf('.select("id,chapter_number,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])');
+  const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved??[],launchReviewRows)");
+  const approvedSet = source.indexOf("const approvedSet=new Set(launchReviewedOutputs.map");
+  const activation = source.indexOf('.update({lifecycle_status:"active"');
+  assert(query >= 0, "launch verification must load output IDs and chapter numbers");
+  assert(source.includes("const launchReviewRows:any[]=[];"), "launch review rows must be fetched");
+  assert(qualification > query && approvedSet > qualification && activation > approvedSet, "lifecycle activation must follow review-qualified launch verification");
+  assert(source.includes("launchReviewError"), "review query failure must block lifecycle activation");
+});
