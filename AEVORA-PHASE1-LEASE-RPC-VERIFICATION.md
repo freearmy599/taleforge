@@ -21,6 +21,7 @@ The claim/renew functions default to 300 seconds and reject requested durations 
 - Explicit function EXECUTE grants were observed for postgres and service_role only; no PUBLIC, anon, or authenticated execute grant was observed.
 - The public.aevora_release_scheduler_leases table exists with non-null schedule ID, token, expiry, creation, and update columns.
 - Its primary key is a unique index on schedule_id, supporting one lease row per schedule.
+- A read-only count found zero current lease rows (zero unexpired and zero expired leases), so no existing lease row would block the prepared scheduler at this snapshot.
 - RLS is enabled. anon and authenticated have no SELECT/INSERT/UPDATE/DELETE table privileges; service_role has those privileges.
 
 ## Deployment implications
