@@ -134,6 +134,16 @@ Deno.test("generation orchestrator distinguishes mid-run provider-state failure 
   assert(source.includes('action:"ai_cooldown"'), "a confirmed active cooldown must remain distinguishable from unavailable state");
 });
 
+Deno.test("generation orchestrator failure updates cannot overwrite a blueprint reclaimed by another worker", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  const unguardedRejectedUpdate = 'update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id);';
+  const guardedRejectedUpdate = 'update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");';
+  assert(!source.includes(unguardedRejectedUpdate), "failure and exception paths must not overwrite a blueprint whose status changed after this worker claimed it");
+  assert(source.split(guardedRejectedUpdate).length - 1 >= 2, "both generation failure and pipeline exception paths must fence status updates to this worker's generating claim");
+  const claim = source.indexOf('.update({generation_status:"generating",updated_at:new Date().toISOString()}).eq("id",b.id).in("generation_status",["planned","ready","rejected"])');
+  assert(claim >= 0, "the fenced failure paths must be paired with the existing atomic blueprint claim");
+});
+
 Deno.test("generation orchestrator rejects malformed scope and mode inputs before schedule queries", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   const initialLookup = source.indexOf("geminiCooldown=await getGeminiCooldown(supabase)");
