@@ -116,7 +116,22 @@ Deno.test("generation orchestrator fails closed when Gemini provider state is un
   assert(requestParse > unavailableGuard && intelligenceRefresh > unavailableGuard,
     "unavailable provider state must stop orchestration before request processing and planning refresh");
   assert(source.includes('reason:"provider_state_unavailable"'), "provider-state failure must be explicitly reported as retryable and blocked");
-  assert(source.includes('},503)}const body=await req.json()'), "provider-state failure must return HTTP 503 before orchestration continues");
+  assert(source.includes('},503)}const body=await req.json().catch(()=>null)'), "provider-state failure must return HTTP 503 before orchestration continues");
+});
+
+Deno.test("generation orchestrator rejects malformed scope and mode inputs before schedule queries", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  const initialLookup = source.indexOf("geminiCooldown=await getGeminiCooldown(supabase)");
+  const parseBody = source.indexOf("const body=await req.json().catch(()=>null)", initialLookup);
+  const objectGuard = source.indexOf('body===null||typeof body!=="object"||Array.isArray(body)', parseBody);
+  const scheduleQuery = source.indexOf('let q=supabase.from("release_schedules")', objectGuard);
+  assert(parseBody > initialLookup && objectGuard > parseBody, "malformed JSON and non-object bodies must be rejected after provider-state protection");
+  assert(source.includes('error:"Request body must be valid JSON object."'), "malformed requests must not degrade into unscoped generation runs");
+  assert(source.includes('for(const field of ["series_id","schedule_id"] as const)'), "explicit scope identifiers must be validated");
+  assert(source.includes('field+" must be a non-empty string when provided."'), "null, blank, and non-string scope IDs must be rejected");
+  assert(source.includes('body.dry_run!==undefined&&typeof body.dry_run!=="boolean"'), "dry_run must be boolean when provided");
+  assert(source.includes('body.review_after_generation!==undefined&&typeof body.review_after_generation!=="boolean"'), "review_after_generation must be boolean when provided");
+  assert(scheduleQuery > objectGuard, "schedule queries must follow request validation");
 });
 
 Deno.test("generation orchestrator dry-run avoids known database mutations", async () => {
