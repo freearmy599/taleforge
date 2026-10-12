@@ -70,6 +70,12 @@ Deno.test("weekly resolver handles normal timezone conversion, DST gaps, and bot
   const fallFoldBetween = nextWeeklyRelease(new Date("2026-11-01T05:45:00Z"), 0, "01:30", "America/New_York");
   assert(fallFoldBetween.toISOString() === "2026-11-01T06:30:00.000Z", "between repeated wall times, choose the second future occurrence");
 
+  const afterToday = nextWeeklyRelease(new Date("2026-10-11T10:00:00Z"), 0, "01:30", "America/New_York");
+  assert(afterToday.toISOString() === "2026-10-18T05:30:00.000Z", "after today's weekly slot, advance to next week");
+
+  const exactlyAtSlot = nextWeeklyRelease(new Date("2026-10-11T05:30:00Z"), 0, "01:30", "America/New_York");
+  assert(exactlyAtSlot.toISOString() === "2026-10-18T05:30:00.000Z", "an occurrence at exactly now is not a future release");
+
   for (const [weekday, time, zone] of [[7, "09:00", "UTC"], [0, "25:00", "UTC"], [0, "09:00", "Not/AZone"]] as const) {
     let threw = false;
     try { nextWeeklyRelease(new Date("2026-10-10T12:00:00Z"), weekday, time, zone); } catch { threw = true; }
