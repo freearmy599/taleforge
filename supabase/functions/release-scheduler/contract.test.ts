@@ -1,3 +1,4 @@
+import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { inspectPublishedChapterHistory } from "./published-history.ts";
 import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts";
 import { matchesPublishedOutput } from "../release-publisher/publisher-idempotency.ts";
@@ -265,20 +266,34 @@ Deno.test("explicit disabled schedule diagnostics do not claim a write lease", a
 Deno.test("release handlers reject non-service-role callers before database operations", async () => {
   const scheduler = await Deno.readTextFile(schedulerUrl);
   const publisher = await Deno.readTextFile(publisherUrl);
-  const schedulerGuard = scheduler.indexOf('req.headers.get("Authorization")!==`Bearer ${key}`');
+  const schedulerGuard = scheduler.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"))');
   const schedulerClient = scheduler.indexOf("createClient(url,key");
   assert(schedulerGuard >= 0 && schedulerGuard < schedulerClient,
-    "scheduler must authenticate exact service-role bearer before creating a database client");
-  const publisherGuard = publisher.indexOf('req.headers.get("Authorization") !== `Bearer ${serviceRoleKey}`');
+    "scheduler must authenticate the configured server-side apikey before creating a database client");
+  const publisherGuard = publisher.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey, Deno.env.get("SUPABASE_SECRET_KEYS"))');
   const publisherClient = publisher.indexOf("createClient(");
   assert(publisherGuard >= 0 && publisherGuard < publisherClient,
-    "publisher must authenticate exact service-role bearer before creating a database client");
+    "publisher must authenticate the configured server-side apikey before creating a database client");
   assert(scheduler.includes("},401);"), "scheduler unauthorized callers must receive HTTP 401");
   assert(publisher.includes("}, 401);"), "publisher unauthorized callers must receive HTTP 401");
+  assert(scheduler.includes('Deno.env.get("SUPABASE_SECRET_KEYS")') && publisher.includes('Deno.env.get("SUPABASE_SECRET_KEYS")'),
+    "both handlers must support the newer server-side secret-key environment");
   const publisherCall = scheduler.indexOf('fetch(url+"/functions/v1/release-publisher"');
   const publisherAuth = scheduler.indexOf('Authorization:"Bearer "+key,apikey:key', publisherCall);
   assert(publisherCall >= 0 && publisherAuth > publisherCall,
-    "scheduler internal publisher call must forward the service-role bearer and apikey");
+    "scheduler internal publisher call must forward its configured server-side apikey");
   assert(scheduler.includes('const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")'),
-    "scheduler internal-call credential must come from the server-side service-role environment variable");
+    "scheduler database client must retain its legacy service-role environment fallback");
+});
+
+Deno.test("internal API-key validation accepts configured secret keys and rejects user keys", () => {
+  const legacy = "legacy-service-role";
+  const secretKeys = JSON.stringify({default:"sb_secret_default_key",internal:"sb_secret_internal_key"});
+  assert(isTrustedInternalApiKey("sb_secret_default_key",legacy,secretKeys), "default secret key should be trusted");
+  assert(isTrustedInternalApiKey("sb_secret_internal_key",legacy,secretKeys), "configured internal secret key should be trusted");
+  assert(isTrustedInternalApiKey(legacy,legacy,secretKeys), "legacy service-role key compatibility should remain");
+  assert(!isTrustedInternalApiKey("sb_publishable_public_key",legacy,secretKeys), "publishable key must not be trusted");
+  assert(!isTrustedInternalApiKey("ordinary-user-token",legacy,secretKeys), "ordinary user token must not be trusted");
+  assert(!isTrustedInternalApiKey(null,legacy,secretKeys), "missing apikey must be rejected");
+  assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,"not-json"), "malformed secret-key config must not authenticate by itself");
 });
