@@ -261,3 +261,18 @@ Deno.test("explicit disabled schedule diagnostics do not claim a write lease", a
   assert(source.includes('if(!dryRun && schedule.auto_publish && publishCount>0){'), "disabled schedules must not publish when explicitly inspected");
   assert(source.includes('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing"'), "disabled schedules must not transition lifecycle state");
 });
+
+Deno.test("release handlers reject non-service-role callers before database operations", async () => {
+  const scheduler = await Deno.readTextFile(schedulerUrl);
+  const publisher = await Deno.readTextFile(publisherUrl);
+  const schedulerGuard = scheduler.indexOf('req.headers.get("Authorization")!==`Bearer ${key}`');
+  const schedulerClient = scheduler.indexOf("createClient(url,key");
+  assert(schedulerGuard >= 0 && schedulerGuard < schedulerClient,
+    "scheduler must authenticate exact service-role bearer before creating a database client");
+  const publisherGuard = publisher.indexOf('req.headers.get("Authorization") !== `Bearer ${serviceRoleKey}`');
+  const publisherClient = publisher.indexOf("createClient(");
+  assert(publisherGuard >= 0 && publisherGuard < publisherClient,
+    "publisher must authenticate exact service-role bearer before creating a database client");
+  assert(scheduler.includes("},401);"), "scheduler unauthorized callers must receive HTTP 401");
+  assert(publisher.includes("}, 401);"), "publisher unauthorized callers must receive HTTP 401");
+});
