@@ -1,0 +1,33 @@
+name: Aevora Edge source validation
+
+on:
+  push:
+    branches:
+      - aevora/release-scheduler-hardening
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/functions/release-scheduler/**"
+      - "supabase/functions/release-publisher/**"
+      - ".github/workflows/aevora-edge-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deno-check:
+    name: Type-check prepared Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check scheduler
+        run: deno check supabase/functions/release-scheduler/index.ts
+      - name: Type-check publisher
+        run: deno check supabase/functions/release-publisher/index.ts
