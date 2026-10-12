@@ -107,3 +107,11 @@ Prepared-branch changes now:
 Validation evidence: [workflow run 38282486239](https://github.com/freearmy599/taleforge/actions/runs/38282486239) passed scheduler, publisher, generation-orchestrator, and review-orchestrator Deno type-checks plus source-contract regression tests on commit `434bc51ef6c010c31cf69843fa5910fd2efc4def`.
 
 These changes are branch-only and do not establish live runtime integration or production behavior. No deployment, migration, schedule mutation, chapter generation, or publication was performed.
+
+## Provider cooldown timestamp validation — 2026-10-12
+
+The branch's review orchestrator previously treated a malformed non-empty `cooldown_until` timestamp as if no cooldown were active because an invalid date compares as `NaN`. It now returns a retryable HTTP 503 and blocks review model calls whenever that timestamp is malformed, matching the generation orchestrator's fail-closed provider-state behavior.
+
+Validation evidence: [workflow run 38282606264](https://github.com/freearmy599/taleforge/actions/runs/38282606264) passed all prepared Edge Function type-checks and source-contract regression tests on commit `ebcf8793b2678f93acc50cf1a32c660d735e3261`.
+
+This remains branch-only source validation; production is unchanged.
