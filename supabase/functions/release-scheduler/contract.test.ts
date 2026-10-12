@@ -161,7 +161,7 @@ Deno.test("review qualification excludes missing, rejected, incomplete, and ambi
 Deno.test("preparing lifecycle activation requires fully reviewed launch outputs", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   const query = source.indexOf('.select("id,series_id,chapter_number,title,content,generation_status")');
-  const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved??[],launchReviewRows)");
+  const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved,launchReviewRows)");
   const approvedSet = source.indexOf("const approvedSet=new Set(launchReviewedOutputs.map");
   const activation = source.indexOf('.update({lifecycle_status:"active"');
   assert(query >= 0 && source.indexOf('.in("generation_status",["approved","published"]).lte("chapter_number",launchCount)',query) > query, "launch verification must load approved/published output IDs and chapter numbers");
