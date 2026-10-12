@@ -345,7 +345,10 @@ Deno.serve(async (req)=>{
         }
       }
 
-      if(!dryRun && lifecycleStatus==="preparing" && published.length>0 && !publicationFailed && !leaseLost){
+      // Retry activation on later runs even when this invocation publishes no new
+      // chapters; a transient lifecycle-row update failure must not strand a fully
+      // published launch permanently in the preparing state.
+      if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost){
         const launchCount=launchCountConfig;
         const launchPublished:any[]=[];
         let launchPublishedError:any=null;
