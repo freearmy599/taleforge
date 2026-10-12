@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
 const VERSION = "release-scheduler-v10-confirm-schedule-advance";
 const corsHeaders = {
@@ -336,10 +336,10 @@ Deno.serve(async (req)=>{
       if(!dryRun && lifecycleStatus==="preparing" && published.length>0 && !publicationFailed && !leaseLost){
         const launchCount=Math.max(1,Number(lifecycle?.launch_chapter_count??5));
         const {data:launchPublished,error:launchPublishedError}=await supabase.from("chapters")
-          .select("chapter_number").eq("series_id",schedule.series_id).eq("status","published")
+          .select("id,series_id,chapter_number,title,content,status").eq("series_id",schedule.series_id).eq("status","published")
           .lte("chapter_number",launchCount);
         const {data:launchApproved,error:launchApprovedError}=await supabase.from("chapter_generation_outputs")
-          .select("id,chapter_number,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])
+          .select("id,series_id,chapter_number,title,content,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])
           .lte("chapter_number",launchCount);
         let launchReviewError:any=null;
         const launchReviewRows:any[]=[];
@@ -361,11 +361,15 @@ Deno.serve(async (req)=>{
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_verification_failed",
             details:message(launchPublishedError??launchApprovedError??launchReviewError)});
         }else{
-          const publishedSet=new Set((launchPublished??[]).map((x:any)=>Number(x.chapter_number)));
           const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved??[],launchReviewRows);
-          const approvedSet=new Set(launchReviewedOutputs.map((x:any)=>Number(x.chapter_number)));
           const launchNumbers=Array.from({length:launchCount},(_,i)=>i+1);
-          const launchReady=launchNumbers.filter(n=>publishedSet.has(n)&&approvedSet.has(n));
+          const launchReady=launchNumbers.filter(n=>{
+            const chapterRows=(launchPublished??[]).filter((chapter:any)=>Number(chapter.chapter_number)===n);
+            if(chapterRows.length!==1) return false;
+            return launchReviewedOutputs.some((output:any)=>
+              matchesPublishedChapterOutput(chapterRows[0],output) &&
+              (output.generation_status==="approved" || output.generation_status==="published"));
+          });
           if(launchReady.length===launchCount){
             const renewed=await supabase.rpc("aevora_renew_release_scheduler_lease",{
               p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
