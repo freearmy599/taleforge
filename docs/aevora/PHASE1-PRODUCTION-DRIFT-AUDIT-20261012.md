@@ -145,3 +145,12 @@ No rows were inserted, updated, or deleted; no schedule was changed; no chapter 
 A second SELECT-only query joined each of the seven missing published slots to its existing chapter blueprint and generation outputs. **All seven gaps already have a blueprint and at least one output**; there is no evidence here that a new blueprint or chapter should be fabricated. The latest output statuses are `generated` for *The Last Unsent Letter* chapter 3 and *After the Red Eclipse* chapter 3; `quality_check` for *After the Red Eclipse* chapters 10–11 and *The Clockwork Sky* chapters 10 and 18; and `generated` for *The Clockwork Sky* chapter 16. Older attempts for Clockwork Sky chapters 10, 16, and 18 include `needs_revision`.
 
 Safe next repair is to trace why these existing outputs remain non-publishable, verify review/revision state and generation-job linkage, and resume only through the normal guarded pipeline after review eligibility is established. No generation or status change was initiated during this reconciliation.
+
+### Existing review/job state for the seven gaps
+
+Further SELECT-only checks show the current output rows for these gaps have no linked `generation_job_id`, and there are no matching `generation_jobs` rows for those series/chapter slots. Review state is incomplete rather than publish-ready:
+- The two *After the Red Eclipse* outputs at chapters 10 and 11 and *The Clockwork Sky* outputs at chapters 10 and 18 have a single passing **quality** review (score 92) but no publication-review row; this is not equivalent to passing continuity, originality, safety, and publication gates.
+- *After the Red Eclipse* chapter 3 and *The Last Unsent Letter* chapter 3 have no `chapter_reviews` rows.
+- *The Clockwork Sky* chapter 16 has a newer `generated` output with no review rows and an older `needs_revision` output without a review row; chapter 10 and 18 also retain older `needs_revision` attempts.
+
+No job was enqueued and no review/model function was invoked. The correct next step is a guarded, one-output-at-a-time review/revision recovery plan after verifying the production review-orchestrator's deployed version and quota guard; the current branch's review fixes are not yet deployed.
