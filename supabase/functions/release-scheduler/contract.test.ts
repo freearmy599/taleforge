@@ -85,7 +85,7 @@ Deno.test("scheduler validates interval arithmetic before side effects and reuse
     "invalid interval deadlines must be rejected before lifecycle or publication processing");
   assert(source.includes("resolveNextIntervalRelease(new Date(latestReleaseMs),schedule.interval_hours)"),
     "cooldown arithmetic must reject overflow instead of accidentally bypassing the cooldown");
-  assert(source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"),
+  assert(source.includes("resolveNextIntervalRelease(processingCompletedAt,schedule.interval_hours)"),
     "next-release scheduling must pass raw interval configuration through the same strict resolver");
   assert(source.includes("const processingCompletedAt=new Date();"), "next interval deadline must use processing-completion time");
   assert(!source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"), "stale invocation time must not anchor the next interval deadline");
@@ -104,7 +104,7 @@ Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time"
   assert(helper.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
   assert(source.indexOf("Validate scheduling configuration before any publication side effect.") < source.indexOf('from("story_lifecycle")'), "schedule preflight must precede publication setup");
   assert(!source.includes("nextRelease=now;"), "activation must not trigger an immediate extra release batch");
-  assert(source.includes("nextRelease=nextWeeklyRelease(new Date(),Number(schedule.preferred_weekday)"),
+  assert(source.includes("nextRelease=nextWeeklyRelease(processingCompletedAt,Number(schedule.preferred_weekday)"),
     "weekly next-release deadline must be recomputed after processing so a long batch cannot persist an already-expired slot");
 });
 
