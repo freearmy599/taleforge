@@ -206,6 +206,12 @@ Deno.test("publisher rejects non-approved generation statuses before review or p
   assert(guard >= 0 && guard < reviewQuery, "generation status must be checked before publication processing");
   assert(source.includes('from "./publisher-output-status.ts"'), "publisher must use the tested status policy");
   assert(source.includes('code: "OUTPUT_STATUS_CONFLICT"'), "ineligible status must return a distinct conflict");
+  const existingChapterQuery = source.indexOf('.from("chapters")');
+  const orphanedPublishedGuard = source.indexOf('if (output.generation_status === "published")');
+  const insertChapter = source.indexOf('.insert(chapterInsert)');
+  assert(existingChapterQuery >= 0 && orphanedPublishedGuard > existingChapterQuery && orphanedPublishedGuard < insertChapter,
+    "published-status output without an existing chapter must be rejected before creating a new chapter");
+  assert(source.includes("no matching published chapter occupies its slot"), "orphaned published output conflict must be explicit");
   await Deno.readTextFile(publisherOutputStatusUrl);
   assert(isPublishableGenerationStatus("approved"), "approved output should be eligible for review-gated publication");
   assert(isPublishableGenerationStatus("published"), "published output should permit safe idempotent retry");
