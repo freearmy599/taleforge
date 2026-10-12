@@ -4,7 +4,7 @@ export function resolveNextIntervalRelease(base: Date, intervalHours: unknown): 
   // Accept numeric values and non-empty numeric strings from database drivers, but
   // do not coerce booleans, arrays, or empty strings into plausible intervals.
   const intervalText = typeof intervalHours === "string" ? intervalHours.trim() : "";
-  const isDecimalInterval = /^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?$/.test(intervalText);
+  const isDecimalInterval = /^[+-]?(?:\d+(?:\\.\d*)?|\\.\d+)(?:[eE][+-]?\d+)?$/.test(intervalText);
   const hours = typeof intervalHours === "number"
     ? intervalHours
     : isDecimalInterval
