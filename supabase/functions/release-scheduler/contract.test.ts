@@ -169,6 +169,9 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   assert(qualification > query && approvedSet > qualification && activation > approvedSet, "lifecycle activation must follow review-qualified launch verification");
   assert(source.includes("matchesPublishedChapterOutput(chapterRows[0],output)"), "launch chapter must match reviewed output identity");
   assert(source.includes("launchReviewError"), "review query failure must block lifecycle activation");
+  assert(source.includes('.range(offset,offset+499)'), "launch chapter/output history queries must be paginated");
+  assert(source.includes('.select("series_id,lifecycle_status").maybeSingle()'), "lifecycle activation must return a confirmation row");
+  assert(source.includes('!updatedLifecycle || updatedLifecycle.lifecycle_status!=="active"'), "missing or non-active lifecycle update must fail closed");
 });
 
 Deno.test("publisher rejects non-approved generation statuses before review or publication", async () => {
