@@ -18,6 +18,7 @@ const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
 const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-status.ts", import.meta.url);
 const generationOrchestratorUrl = new URL("../generation-orchestrator/index.ts", import.meta.url);
+const reviewOrchestratorUrl = new URL("../review-orchestrator/index.ts", import.meta.url);
 
 Deno.test("scheduler dry-run skips lease mutation and releases only a claimed lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -116,6 +117,18 @@ Deno.test("generation orchestrator dry-run avoids known database mutations", asy
   assert(source.includes("read_only:dryRun"), "response must declare whether the diagnostic run was read-only");
   assert(source.includes('mutations_skipped:dryRun?["deterministic_intelligence_refresh","advanced_chapter_plan_build","revision_exhaustion_updates","revision_strategy_selection"]:[]'),
     "read-only dry-run must report which mutations were skipped");
+});
+
+Deno.test("review orchestrator reports active Gemini cooldown as HTTP 429", async () => {
+  const source = await Deno.readTextFile(reviewOrchestratorUrl);
+  const cooldownGuard = source.indexOf('} else if (providerState?.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now())');
+  const responseStart = source.indexOf('return json({', cooldownGuard);
+  const responseEnd = source.indexOf('}, 429);', responseStart);
+  assert(cooldownGuard >= 0 && responseStart > cooldownGuard, "active provider cooldown must return a blocked response");
+  assert(responseEnd > responseStart, "active provider cooldown must use HTTP 429 so callers do not treat it as successful review");
+  assert(source.slice(responseStart, responseEnd).includes('success: true'), "legacy payload success flag remains for response compatibility; HTTP status is authoritative");
+  assert(source.slice(responseStart, responseEnd).includes('blocked: true') && source.slice(responseStart, responseEnd).includes('retryable: true'),
+    "cooldown response must be explicitly blocked and retryable");
 });
 
 Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
