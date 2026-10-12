@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "release-scheduler-v7-config-preflight";
+const VERSION = "release-scheduler-v8-dst-fold-safe";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -41,34 +41,43 @@ function addLocalDays(year:number, month:number, day:number, days:number) {
   const date = new Date(Date.UTC(year, month - 1, day + days));
   return {year:date.getUTCFullYear(),month:date.getUTCMonth()+1,day:date.getUTCDate()};
 }
+function matchingWallTimeCandidates(year:number,month:number,day:number,hour:number,minute:number,second:number,timeZone:string):Date[] {
+  const base=localWallTimeToUtc(year,month,day,hour,minute,second,timeZone);
+  const matches:Date[]=[];
+  // Search around the converged instant so repeated wall times at a DST fall-back
+  // can yield both real instants; nonexistent spring-forward times yield none.
+  for(let offsetMinutes=-180;offsetMinutes<=180;offsetMinutes+=15){
+    const candidate=new Date(base.getTime()+offsetMinutes*60000);
+    const p=partsAt(candidate,timeZone);
+    if(p.year===year && p.month===month && p.day===day &&
+      p.hour===hour && p.minute===minute && p.second===second &&
+      !matches.some(existing=>existing.getTime()===candidate.getTime())) matches.push(candidate);
+  }
+  return matches.sort((a,b)=>a.getTime()-b.getTime());
+}
 /** Return the next future wall-clock weekly occurrence in the schedule's IANA timezone. */
 function nextWeeklyRelease(now:Date, weekday:number, time:string, timeZone:string):Date {
   if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) throw new Error("Invalid preferred weekday");
-  if (!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)) throw new Error("Invalid preferred time");
+  if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(time)) throw new Error("Invalid preferred time");
   partsAt(now,timeZone); // validates the IANA timezone
   const local = partsAt(now,timeZone);
   const localWeekday = new Date(Date.UTC(local.year,local.month-1,local.day)).getUTCDay();
   const [hour,minute,second=0] = time.split(":").map(Number);
-  const matches = (date:{year:number;month:number;day:number}, candidate:Date) => {
-    const p=partsAt(candidate,timeZone);
-    return p.year===date.year && p.month===date.month && p.day===date.day &&
-      p.hour===hour && p.minute===minute && p.second===second;
-  };
   let delta=(weekday-localWeekday+7)%7;
   if(delta===0) {
-    const today={year:local.year,month:local.month,day:local.day};
-    const candidate=localWallTimeToUtc(local.year,local.month,local.day,hour,minute,second,timeZone);
-    if(matches(today,candidate) && candidate.getTime()>now.getTime()) return candidate;
+    const today=matchingWallTimeCandidates(local.year,local.month,local.day,hour,minute,second,timeZone);
+    const upcoming=today.find(candidate=>candidate.getTime()>now.getTime());
+    if(upcoming) return upcoming;
     delta=7;
   }
   const date=addLocalDays(local.year,local.month,local.day,delta);
-  const candidate=localWallTimeToUtc(date.year,date.month,date.day,hour,minute,second,timeZone);
-  if(matches(date,candidate)) return candidate;
+  const candidates=matchingWallTimeCandidates(date.year,date.month,date.day,hour,minute,second,timeZone);
+  if(candidates.length) return candidates[0];
   // Nonexistent local wall time during a DST jump: fail closed to the same slot next week.
   const next=addLocalDays(date.year,date.month,date.day,7);
-  const nextCandidate=localWallTimeToUtc(next.year,next.month,next.day,hour,minute,second,timeZone);
-  if(!matches(next,nextCandidate)) throw new Error("Unable to resolve weekly release wall time");
-  return nextCandidate;
+  const nextCandidates=matchingWallTimeCandidates(next.year,next.month,next.day,hour,minute,second,timeZone);
+  if(!nextCandidates.length) throw new Error("Unable to resolve weekly release wall time");
+  return nextCandidates[0];
 }
 
 Deno.serve(async (req)=>{
