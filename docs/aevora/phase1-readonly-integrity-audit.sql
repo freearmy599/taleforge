@@ -43,6 +43,25 @@ review_counts AS (
   FROM public.chapter_publication_reviews r
   GROUP BY r.generation_output_id
 ),
+gap_output_state AS (
+  SELECT
+    g.series_id,
+    g.chapter_number,
+    o.id AS output_id,
+    o.generation_status,
+    o.generation_job_id,
+    o.revision_of_output_id,
+    (SELECT count(*)::integer FROM public.chapter_reviews cr
+      WHERE cr.generation_output_id = o.id) AS chapter_review_count,
+    coalesce(rc.review_count, 0) AS publication_review_count,
+    coalesce(rc.all_gates_passed, false) AS publication_gates_passed,
+    (SELECT count(*)::integer FROM public.generation_jobs j
+      WHERE j.series_id = g.series_id AND j.target_chapter_number = g.chapter_number) AS matching_job_count
+  FROM chapter_gaps g
+  JOIN public.chapter_generation_outputs o
+    ON o.series_id = g.series_id AND o.chapter_number = g.chapter_number
+  LEFT JOIN review_counts rc ON rc.generation_output_id = o.id
+),
 findings AS (
   SELECT
     'published_chapter_gap'::text AS finding_type,
@@ -51,6 +70,24 @@ findings AS (
     NULL::text AS output_id,
     jsonb_build_object('expected_chapter_number', g.chapter_number) AS details
   FROM chapter_gaps g
+
+  UNION ALL
+
+  SELECT
+    'published_chapter_gap_existing_output_state',
+    gos.series_id::text,
+    gos.chapter_number,
+    gos.output_id::text,
+    jsonb_build_object(
+      'generation_status', gos.generation_status,
+      'generation_job_id', gos.generation_job_id,
+      'revision_of_output_id', gos.revision_of_output_id,
+      'chapter_review_count', gos.chapter_review_count,
+      'publication_review_count', gos.publication_review_count,
+      'publication_gates_passed', gos.publication_gates_passed,
+      'matching_generation_job_count', gos.matching_job_count
+    )
+  FROM gap_output_state gos
 
   UNION ALL
 
