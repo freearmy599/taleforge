@@ -25,6 +25,14 @@ Deno.test("scheduler dry-run skips lease mutation and releases only a claimed le
   assert(source.includes("catch(releaseError)"), "lease release transport exceptions must be reported without aborting the batch");
 });
 
+Deno.test("scheduler lease RPC names and arguments match the live prerequisite contract", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes('supabase.rpc("aevora_claim_release_scheduler_lease",{p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180}'), "claim RPC name and lease arguments must remain aligned");
+  assert(source.includes('supabase.rpc("aevora_renew_release_scheduler_lease",{p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180}'), "renew RPC name and lease arguments must remain aligned");
+  assert(source.includes('supabase.rpc("aevora_release_scheduler_lease",{p_schedule_id:schedule.id,p_lease_token:leaseToken}'), "release RPC name and token-scoped arguments must remain aligned");
+  assert(source.includes("if(leaseClaimed){"), "release must be conditional on an acquired lease");
+});
+
 Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('return q.order("id",{ascending:true});'), "schedule ID ordering missing");
