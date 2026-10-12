@@ -1,17 +1,21 @@
 export type PublishedChapterHistoryResult =
   | { ok: true; latestNumber: number; firstMissingChapter: number | null }
-  | { ok: false; reason: "invalid_chapter_number" };
+  | { ok: false; reason: "invalid_chapter_number" | "duplicate_chapter_number" };
 
-/** Validate published chapter numbers and detect holes without iterating up to an untrusted MAX value. */
+/** Validate published chapter numbers and detect duplicates/gaps without iterating up to an untrusted MAX value. */
 export function inspectPublishedChapterHistory(values: unknown[]): PublishedChapterHistoryResult {
   const numbers = values.map((value) => Number(value));
   if (numbers.some((number) => !Number.isSafeInteger(number) || number < 1)) {
     return { ok: false, reason: "invalid_chapter_number" };
   }
-  const sorted = Array.from(new Set(numbers)).sort((a, b) => a - b);
+  const seen = new Set<number>();
+  for (const number of numbers) {
+    if (seen.has(number)) return { ok: false, reason: "duplicate_chapter_number" };
+    seen.add(number);
+  }
+  const sorted = Array.from(seen).sort((a, b) => a - b);
   let expected = 1;
   for (const number of sorted) {
-    if (number < expected) continue;
     if (number !== expected) {
       return {
         ok: true,
