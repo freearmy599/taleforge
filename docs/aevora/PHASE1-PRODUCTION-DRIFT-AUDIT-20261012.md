@@ -154,3 +154,15 @@ Further SELECT-only checks show the current output rows for these gaps have no l
 - *The Clockwork Sky* chapter 16 has a newer `generated` output with no review rows and an older `needs_revision` output without a review row; chapter 10 and 18 also retain older `needs_revision` attempts.
 
 No job was enqueued and no review/model function was invoked. The correct next step is a guarded, one-output-at-a-time review/revision recovery plan after verifying the production review-orchestrator's deployed version and quota guard; the current branch's review fixes are not yet deployed.
+
+## Privileged orchestration authentication hardening — 2026-10-12
+
+A source-level review found that the prepared `generation-orchestrator` and `review-orchestrator` constructed Supabase service-role clients without checking the caller's `apikey`. With gateway JWT verification alone, a valid publishable/anon JWT can satisfy JWT validation; the handler must still enforce its own server-to-server authorization before using elevated credentials. This is particularly sensitive for generation orchestration, which can initiate expensive model work and mutate workflow state.
+
+Prepared-branch repair:
+- Both orchestrators now validate the request `apikey` using the existing shared `isTrustedInternalApiKey` helper before constructing the privileged client.
+- The check accepts the legacy service-role key for existing internal calls and newer secret keys only when their names are explicitly allowlisted in `AEVORA_INTERNAL_API_KEY_NAMES`.
+- Untrusted or missing keys receive HTTP 401.
+- Regression tests now assert that scheduler, publisher, generation orchestrator, and review orchestrator authenticate before client creation.
+
+No JWT verification setting was changed. This is branch-only source hardening; production handlers remain unchanged pending explicit deployment authorization.
