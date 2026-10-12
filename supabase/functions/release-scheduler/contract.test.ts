@@ -266,11 +266,11 @@ Deno.test("explicit disabled schedule diagnostics do not claim a write lease", a
 Deno.test("release handlers reject non-service-role callers before database operations", async () => {
   const scheduler = await Deno.readTextFile(schedulerUrl);
   const publisher = await Deno.readTextFile(publisherUrl);
-  const schedulerGuard = scheduler.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"))');
+  const schedulerGuard = scheduler.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
   const schedulerClient = scheduler.indexOf("createClient(url,key");
   assert(schedulerGuard >= 0 && schedulerGuard < schedulerClient,
     "scheduler must authenticate the configured server-side apikey before creating a database client");
-  const publisherGuard = publisher.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey, Deno.env.get("SUPABASE_SECRET_KEYS"))');
+  const publisherGuard = publisher.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey, Deno.env.get("SUPABASE_SECRET_KEYS"), Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
   const publisherClient = publisher.indexOf("createClient(");
   assert(publisherGuard >= 0 && publisherGuard < publisherClient,
     "publisher must authenticate the configured server-side apikey before creating a database client");
@@ -278,6 +278,8 @@ Deno.test("release handlers reject non-service-role callers before database oper
   assert(publisher.includes("}, 401);"), "publisher unauthorized callers must receive HTTP 401");
   assert(scheduler.includes('Deno.env.get("SUPABASE_SECRET_KEYS")') && publisher.includes('Deno.env.get("SUPABASE_SECRET_KEYS")'),
     "both handlers must support the newer server-side secret-key environment");
+  assert(scheduler.includes('Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")') && publisher.includes('Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")'),
+    "both handlers must require an explicit allowlist for newer secret-key names");
   const publisherCall = scheduler.indexOf('fetch(url+"/functions/v1/release-publisher"');
   const publisherAuth = scheduler.indexOf('Authorization:"Bearer "+key,apikey:key', publisherCall);
   assert(publisherCall >= 0 && publisherAuth > publisherCall,
@@ -286,14 +288,18 @@ Deno.test("release handlers reject non-service-role callers before database oper
     "scheduler database client must retain its legacy service-role environment fallback");
 });
 
-Deno.test("internal API-key validation accepts configured secret keys and rejects user keys", () => {
+Deno.test("internal API-key validation requires an explicit named-secret allowlist", () => {
   const legacy = "legacy-service-role";
-  const secretKeys = JSON.stringify({default:"sb_secret_default_key",internal:"sb_secret_internal_key"});
-  assert(isTrustedInternalApiKey("sb_secret_default_key",legacy,secretKeys), "default secret key should be trusted");
-  assert(isTrustedInternalApiKey("sb_secret_internal_key",legacy,secretKeys), "configured internal secret key should be trusted");
-  assert(isTrustedInternalApiKey(legacy,legacy,secretKeys), "legacy service-role key compatibility should remain");
-  assert(!isTrustedInternalApiKey("sb_publishable_public_key",legacy,secretKeys), "publishable key must not be trusted");
-  assert(!isTrustedInternalApiKey("ordinary-user-token",legacy,secretKeys), "ordinary user token must not be trusted");
-  assert(!isTrustedInternalApiKey(null,legacy,secretKeys), "missing apikey must be rejected");
-  assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,"not-json"), "malformed secret-key config must not authenticate by itself");
+  const secretKeys = JSON.stringify({default:"sb_secret_default_key",internal:"sb_secret_internal_key",other:"sb_secret_other_key"});
+  assert(isTrustedInternalApiKey("sb_secret_internal_key",legacy,secretKeys,"internal"), "allowlisted internal secret key should be trusted");
+  assert(isTrustedInternalApiKey("sb_secret_default_key",legacy,secretKeys," default , internal "), "allowlist should trim whitespace and accept multiple explicit names");
+  assert(isTrustedInternalApiKey(legacy,legacy,secretKeys,null), "legacy service-role compatibility should remain");
+  assert(!isTrustedInternalApiKey("sb_secret_default_key",legacy,secretKeys,null), "new secret keys must be rejected when allowlist is unset");
+  assert(!isTrustedInternalApiKey("sb_secret_other_key",legacy,secretKeys,"internal"), "configured but non-allowlisted secret key must be rejected");
+  assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,secretKeys,""), "empty allowlist must reject new secret keys");
+  assert(!isTrustedInternalApiKey("sb_publishable_public_key",legacy,secretKeys,"internal"), "publishable key must not be trusted");
+  assert(!isTrustedInternalApiKey("ordinary-user-token",legacy,secretKeys,"internal"), "ordinary user token must not be trusted");
+  assert(!isTrustedInternalApiKey(null,legacy,secretKeys,"internal"), "missing apikey must be rejected");
+  assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,"not-json","internal"), "malformed secret-key config must not authenticate by itself");
+  assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,JSON.stringify(["sb_secret_internal_key"]),"0"), "array-shaped secret config must be rejected");
 });
