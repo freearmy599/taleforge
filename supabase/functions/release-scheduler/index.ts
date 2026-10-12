@@ -91,7 +91,7 @@ Deno.serve(async (req)=>{
     if(!url||!key) return response({success:false,error:"Missing Supabase environment configuration."},500);
     // Cron uses the project's newer secret API key in apikey. Do not compare
     // it to SUPABASE_SERVICE_ROLE_KEY: that environment variable is the legacy JWT key.
-    if(!isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS")))
+    if(!isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")))
       return response({success:false,error:"Caller must authenticate with a configured server-side Supabase API key."},401);
 
     const supabase=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
