@@ -33,7 +33,13 @@ Deno.serve(async (req)=>{
     const supabase=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
     const body=await req.json().catch(()=>({}));
     const now=new Date();
-    const scheduleId=body?.schedule_id??null;
+    const rawScheduleId=body?.schedule_id;
+    if(rawScheduleId!==undefined && rawScheduleId!==null
+      && (typeof rawScheduleId!=="string" || rawScheduleId.trim().length===0)){
+      return response({success:false,error:"schedule_id must be a non-empty string when provided."},400);
+    }
+    // An empty or malformed explicit ID must never degrade into an unscoped batch run.
+    const scheduleId=typeof rawScheduleId==="string"?rawScheduleId.trim():null;
     const dryRun=body?.dry_run===true;
 
     const buildScheduleQuery=()=>{
