@@ -13,6 +13,7 @@ function assert(condition: unknown, message: string): asserts condition {
 const publishedHistoryUrl = new URL("./published-history.ts", import.meta.url);
 const reviewQualifiedOutputsUrl = new URL("./review-qualified-outputs.ts", import.meta.url);
 const schedulerUrl = new URL("./index.ts", import.meta.url);
+const leaseFencingMigrationUrl = new URL("../../migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", import.meta.url);
 const weeklyScheduleUrl = new URL("./weekly-schedule.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
@@ -286,11 +287,34 @@ Deno.test("weekly resolver handles normal timezone conversion, DST gaps, and bot
   }
 });
 
-Deno.test("schedule advancement requires a confirmed update row", async () => {
+Deno.test("schedule advancement and lifecycle activation use atomic lease-fenced RPCs", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  assert(source.includes('.update(update).eq("id",schedule.id).select("id,next_release_at").maybeSingle()'), "schedule update must return the updated row");
-  assert(source.includes("if(updateError || !updatedSchedule)"), "missing-row schedule update must fail closed");
+  assert(source.includes('supabase.rpc("aevora_advance_release_schedule_if_lease_owned",{'),
+    "schedule deadline writes must use the atomic lease-fenced RPC");
+  assert(source.includes('supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned",{'),
+    "lifecycle activation must use the atomic lease-fenced RPC");
+  assert(!source.includes('.update(update).eq("id",schedule.id)'),
+    "schedule advancement must not be split into a separate PostgREST update");
+  assert(!source.includes('.update({lifecycle_status:"active"'),
+    "lifecycle activation must not be split into a separate PostgREST update");
+  assert(source.includes("if(advancement.error || advancement.data!==true)"),
+    "unconfirmed atomic schedule advancement must fail closed");
+  assert(source.includes("if(activation.error || activation.data!==true)"),
+    "unconfirmed atomic lifecycle activation must fail closed");
   assert(!source.includes("const approved:any[]=[];"), "redundant preparing-lifecycle output preflight should stay removed");
+});
+
+Deno.test("atomic lease-fencing migration locks and validates ownership and restricts execution", async () => {
+  const sql = await Deno.readTextFile(leaseFencingMigrationUrl);
+  assert(sql.includes("aevora_advance_release_schedule_if_lease_owned"), "atomic schedule RPC definition missing");
+  assert(sql.includes("aevora_activate_story_lifecycle_if_lease_owned"), "atomic lifecycle RPC definition missing");
+  assert(sql.split("FOR UPDATE").length - 1 === 2, "both RPCs must lock the lease row through their transaction");
+  assert(sql.split("v_lease_token <> p_lease_token").length - 1 === 2, "both RPCs must validate the exact lease token");
+  assert(sql.split("v_lease_expires_at <= clock_timestamp()").length - 1 === 2, "both RPCs must reject expired leases");
+  assert(sql.split("SECURITY DEFINER").length - 1 === 2, "both RPCs must use the reviewed security-definer contract");
+  assert(sql.split("SET search_path TO 'pg_catalog', 'public', 'pg_temp'").length - 1 === 2, "both RPCs must pin search_path");
+  assert(sql.includes("FROM PUBLIC, anon, authenticated"), "untrusted roles must not retain execute privileges");
+  assert(sql.includes("TO postgres, service_role"), "only postgres and service_role should be granted execute");
 });
 
 Deno.test("scheduler requires strict publisher confirmation and database-published status", async () => {
