@@ -82,7 +82,8 @@ BEGIN
 
   PERFORM 1
     FROM public.release_schedules
-    WHERE id = p_schedule_id AND series_id = p_series_id;
+    WHERE id = p_schedule_id AND series_id = p_series_id
+    FOR UPDATE;
 
   IF NOT FOUND THEN
     RETURN false;
