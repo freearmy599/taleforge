@@ -335,17 +335,34 @@ Deno.serve(async (req)=>{
 
       if(!dryRun && lifecycleStatus==="preparing" && published.length>0 && !publicationFailed && !leaseLost){
         const launchCount=Math.max(1,Number(lifecycle?.launch_chapter_count??5));
-        const {data:launchPublished,error:launchPublishedError}=await supabase.from("chapters")
-          .select("id,series_id,chapter_number,title,content,status").eq("series_id",schedule.series_id).eq("status","published")
-          .lte("chapter_number",launchCount);
-        const {data:launchApproved,error:launchApprovedError}=await supabase.from("chapter_generation_outputs")
-          .select("id,series_id,chapter_number,title,content,generation_status").eq("series_id",schedule.series_id).in("generation_status",["approved","published"])
-          .lte("chapter_number",launchCount);
+        const launchPublished:any[]=[];
+        let launchPublishedError:any=null;
+        for(let offset=0;;offset+=500){
+          const {data:page,error}=await supabase.from("chapters")
+            .select("id,series_id,chapter_number,title,content,status").eq("series_id",schedule.series_id).eq("status","published")
+            .lte("chapter_number",launchCount).order("chapter_number",{ascending:true}).order("id",{ascending:true})
+            .range(offset,offset+499);
+          if(error){launchPublishedError=error;break;}
+          launchPublished.push(...(page??[]));
+          if((page??[]).length<500) break;
+        }
+        const launchApproved:any[]=[];
+        let launchApprovedError:any=null;
+        for(let offset=0;;offset+=500){
+          const {data:page,error}=await supabase.from("chapter_generation_outputs")
+            .select("id,series_id,chapter_number,title,content,generation_status").eq("series_id",schedule.series_id)
+            .in("generation_status",["approved","published"]).lte("chapter_number",launchCount)
+            .order("chapter_number",{ascending:true}).order("created_at",{ascending:false}).order("id",{ascending:true})
+            .range(offset,offset+499);
+          if(error){launchApprovedError=error;break;}
+          launchApproved.push(...(page??[]));
+          if((page??[]).length<500) break;
+        }
         let launchReviewError:any=null;
         const launchReviewRows:any[]=[];
         if(!launchApprovedError){
-          for(let offset=0;offset<(launchApproved??[]).length;offset+=500){
-            const outputIds=(launchApproved??[]).slice(offset,offset+500)
+          for(let offset=0;offset<launchApproved.length;offset+=500){
+            const outputIds=launchApproved.slice(offset,offset+500)
               .map((row:any)=>String(row.id??"")).filter((id:string)=>id.length>0);
             if(outputIds.length===0) continue;
             const {data:page,error}=await supabase.from("chapter_publication_reviews")
@@ -361,7 +378,7 @@ Deno.serve(async (req)=>{
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_verification_failed",
             details:message(launchPublishedError??launchApprovedError??launchReviewError)});
         }else{
-          const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved??[],launchReviewRows);
+          const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved,launchReviewRows);
           const launchNumbers=Array.from({length:launchCount},(_,i)=>i+1);
           const launchReady=launchNumbers.filter(n=>{
             const chapterRows=(launchPublished??[]).filter((chapter:any)=>Number(chapter.chapter_number)===n);
@@ -378,12 +395,14 @@ Deno.serve(async (req)=>{
               leaseLost=true;
               publicationFailed=true;
             }else{
-              const {error:updateError}=await supabase.from("story_lifecycle")
+              const {data:updatedLifecycle,error:updateError}=await supabase.from("story_lifecycle")
                 .update({lifecycle_status:"active",last_lifecycle_review_at:new Date().toISOString(),updated_at:new Date().toISOString()})
-                .eq("series_id",schedule.series_id).eq("lifecycle_status","preparing");
-              if(updateError){
+                .eq("series_id",schedule.series_id).eq("lifecycle_status","preparing")
+                .select("series_id,lifecycle_status").maybeSingle();
+              if(updateError || !updatedLifecycle || updatedLifecycle.lifecycle_status!=="active"){
                 publicationFailed=true;
-                results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_transition_failed",details:message(updateError)});
+                results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_transition_failed",
+                  details:updateError?message(updateError):"Lifecycle transition was not confirmed by a returned active row."});
               }else{
                 lifecycleTransition={from:"preparing",to:"active",launch_ready_chapters:launchReady,required_launch_chapters:launchCount};
                 lifecycleStatus="active";
