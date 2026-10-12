@@ -206,3 +206,18 @@ This is not repaired in the current branch because those deployed source snapsho
 A source-level concurrency review found that generation failure and exception paths could update a chapter blueprint to `rejected` by ID alone, potentially overwriting a newer state written after the worker's claim. The successful-output path similarly changed the blueprint status without confirming it remained `generating`. The prepared branch now conditionally fences all three transitions with `.eq("generation_status", "generating")`, so stale workers cannot overwrite a blueprint that another process has moved to a different state. Source-contract tests cover the failure, exception, and successful-output transitions, alongside the existing atomic claim guard.
 
 Validation: [workflow run 38287411189](https://github.com/freearmy599/taleforge/actions/runs/38287411189) completed successfully on commit `0bc63b46d9949b63293081fd86132bb97e1cb44a`; the five prepared Edge Function type checks and source-contract regression suite passed. This is source-level validation only; no production function was deployed and no database or schedule state was changed.
+
+
+## Controlled review/revision endpoint source recovery — 2026-10-12
+
+A fresh read-only retrieval of the active Supabase Edge Function metadata/source confirmed these deployed versions and source hashes:
+
+- `revise-chapter` v40 — `d187fc6977e6a442f7bf85afa4f3216cb3723cd6e7b0683839108a6a2f669614`
+- `continuity-review` v10 — `1bf17f4f4d9ab7a1c3064a53133ee50461dd2732584b6a8ce195df484e177e15`
+- `originality-review` v9 — `b132a55e1a49a88edd14f33c9b37997d4f4b364174385451537644abbb74d3cb`
+- `safety-review` v9 — `c5cb78f5a015c748a6f4cdf87e64c5fd5cbaf992698be36825babea16f0f219d`
+- `publication-review` v8 — `bbd7addb82c4f231c0a109dcd284c073d39c2921118d3440bb3fb9803c5004ef`
+
+All five currently report `verify_jwt=true`, but none of the retrieved sources contains the shared `isTrustedInternalApiKey` handler guard. The cooldown paths in `revise-chapter` v40, `continuity-review` v10, `originality-review` v9, and `safety-review` v9 compare parsed dates without rejecting malformed non-empty timestamps. The revision helper also reads cooldown state without checking its query error or missing row. These are confirmed live-source findings, not assumptions about the prepared branch.
+
+The retrieved source payloads are heavily whitespace-corrupted and exceptionally large, so they are not safe to copy into the repository and patch with broad string substitutions: doing so could damage prompts or alter generation/review behavior. The safe next step is controlled, reviewable source recovery for each endpoint, with tests and type-checking, before any production rollout. No endpoint was deployed or changed in this audit; JWT settings were not changed.
