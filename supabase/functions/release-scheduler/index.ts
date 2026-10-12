@@ -360,6 +360,7 @@ Deno.serve(async (req)=>{
         }
       }else if(schedule.schedule_mode==="weekly"){
         nextRelease=weeklyReleaseAt;
+      }
 
       const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0
         && attemptedCount===publishCount && published.length===publishCount
