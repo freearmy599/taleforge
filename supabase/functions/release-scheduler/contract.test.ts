@@ -45,8 +45,12 @@ Deno.test("scheduler requires strict publisher confirmation and database-publish
 Deno.test("publisher idempotency paths reject non-published rows before side effects", async () => {
   const source = await Deno.readTextFile(publisherUrl);
   assert(source.split("CHAPTER_SLOT_CONFLICT").length - 1 === 2, "both existing-row and race guards must exist");
-  assert(source.indexOf('if (existingChapter.status !== "published"') < source.indexOf("const synchronizationWarnings: string[] = [];"), "existing-row guard must precede synchronization");
-  assert(source.indexOf('if (racedChapter.status !== "published"') < source.indexOf("chapter_id: racedChapter.id"), "race guard must precede idempotent success");
+  assert(source.includes("function matchesPublishedOutput(chapter: any, output: any): boolean"), "published-output identity check missing");
+  assert(source.includes("chapterContent === outputContent"), "existing chapter must match the requested output content");
+  assert(source.includes("if (!matchesPublishedOutput(existingChapter, output))"), "existing-row identity guard missing");
+  assert(source.indexOf("if (!matchesPublishedOutput(existingChapter, output))") < source.indexOf("const synchronizationWarnings: string[] = [];"), "existing-row guard must precede synchronization");
+  assert(source.includes("if (!matchesPublishedOutput(racedChapter, output))"), "race-path identity guard missing");
+  assert(source.indexOf("if (!matchesPublishedOutput(racedChapter, output))") < source.indexOf("chapter_id: racedChapter.id"), "race guard must precede idempotent success");
   assert(source.includes("taleforge_ceo_execution_gate"), "Clara governance gate must remain");
   assert(source.includes("chapter_publication_reviews"), "publication review gate must remain");
 });
