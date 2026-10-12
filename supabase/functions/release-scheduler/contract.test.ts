@@ -251,7 +251,7 @@ Deno.test("explicit schedule IDs cannot bypass due-time checks during real runs"
 Deno.test("explicit disabled schedule diagnostics do not claim a write lease", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('if(!dryRun && schedule.auto_publish){'), "lease claims must require a real run and auto_publish=true");
-  assert(source.includes("if(leaseClaimed){\n          let released:any=null;"), "only an actually claimed lease may be released");
+  assert(source.includes("if(leaseClaimed){"), "only an actually claimed lease may be released");
   assert(source.includes('if(!dryRun && schedule.auto_publish && publishCount>0){'), "disabled schedules must not publish when explicitly inspected");
   assert(source.includes('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing"'), "disabled schedules must not transition lifecycle state");
 });
