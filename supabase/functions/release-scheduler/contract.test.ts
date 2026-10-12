@@ -240,7 +240,8 @@ Deno.test("lifecycle chapter identity requires matching published content and sc
 Deno.test("explicit schedule IDs cannot bypass due-time checks during real runs", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('if(scheduleId) q=q.eq("id",scheduleId);'), "explicit schedule ID filter missing");
-  assert(source.includes('if(!dryRun) q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);'), "real runs must enforce due-time even for explicit schedule IDs");
+  assert(source.includes('if(!dryRun || !scheduleId) q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);'), "normal scans and all real runs must enforce due-time");
   assert(source.includes('if(!dryRun && !scheduleId) q=q.eq("auto_publish",true);'), "normal cron scans must filter auto-publish-disabled schedules");
-  assert(source.indexOf('if(!dryRun) q=q.or(') < source.indexOf('if(!dryRun && !scheduleId) q=q.eq("auto_publish",true);'), "due-time gate must apply before normal-scan filter");
+  assert(source.includes("if(!dryRun || !scheduleId) q=q.or("), "only an explicit dry-run diagnostic may inspect a future schedule");
+  assert(source.indexOf('if(!dryRun || !scheduleId) q=q.or(') < source.indexOf('if(!dryRun && !scheduleId) q=q.eq("auto_publish",true);'), "due-time gate must apply before normal-scan filter");
 });
