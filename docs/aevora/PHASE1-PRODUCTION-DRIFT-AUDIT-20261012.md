@@ -40,6 +40,16 @@ This is source divergence, not proof of a currently exploitable endpoint: both d
 - The database currently reports 62 rows with `status='published'` across the whole chapters table; this is a count of published chapter rows, not a claim that all series are contiguous.
 - Supabase security advisors currently report 91 tables with RLS enabled but no policies. Some may be intentionally service-only; triage by table access requirements before making any policy changes. Do not apply blanket policies.
 
+## Subsequent branch-only hardening — 2026-10-12
+
+The prepared scheduler now rejects malformed JSON, non-object request bodies, non-string or blank explicit `schedule_id` values, and non-boolean `dry_run` values before constructing schedule queries or attempting lease claims. Valid explicit schedule IDs are trimmed before query scoping. Source-contract tests assert caller authentication precedes client initialization and that request validation precedes database reads and lease side effects.
+
+Verification evidence:
+- Commit `13539bf3e35f4b65596a3f0b0d61e8469fe7f2f6`: source validation workflow passed after strict `dry_run` validation.
+- Commit `fde29aec564624b12a7421f9e9428ddcbf3acab9`: source validation workflow passed with the additional ordering contract for authentication, request validation, database reads, and lease claims.
+
+These are prepared-branch type/source-contract checks only. They do not prove full runtime integration or production behavior. No production deployment, migration, schedule mutation, chapter generation, or publication was performed by these commits.
+
 ## Safe next sequence
 
 1. Keep the repair branch isolated and preserve the passing CI run.
