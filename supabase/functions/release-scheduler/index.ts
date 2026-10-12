@@ -126,13 +126,20 @@ Deno.serve(async (req)=>{
       const leaseToken=crypto.randomUUID();
       let leaseClaimed=false;
       if(!dryRun){
-        const leaseClaim=await supabase.rpc("aevora_claim_release_scheduler_lease",{
-          p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
-        });
-        if(leaseClaim.error || leaseClaim.data!==true){
+        let leaseClaim:any=null;
+        try{
+          leaseClaim=await supabase.rpc("aevora_claim_release_scheduler_lease",{
+            p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180
+          });
+        }catch(leaseClaimError){
+          results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_unavailable",
+            reason:"Lease claim request failed; this schedule was skipped safely.",details:message(leaseClaimError)});
+          continue;
+        }
+        if(leaseClaim?.error || leaseClaim?.data!==true){
           results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_unavailable",
             reason:"Another scheduler owns this schedule or the lease could not be claimed.",
-            details:leaseClaim.error?message(leaseClaim.error):null});
+            details:leaseClaim?.error?message(leaseClaim.error):null});
           continue;
         }
         leaseClaimed=true;
@@ -472,14 +479,23 @@ Deno.serve(async (req)=>{
         auto_generate:schedule.auto_generate,auto_publish:schedule.auto_publish,
         published,next_release_at:nextRelease?.toISOString()??schedule.next_release_at,dry_run:dryRun
       });
+      }catch(scheduleError){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_error",
+          reason:"Unexpected schedule processing error; no schedule advancement was assumed.",details:message(scheduleError)});
       }finally{
         if(leaseClaimed){
-          const released=await supabase.rpc("aevora_release_scheduler_lease",{
-            p_schedule_id:schedule.id,p_lease_token:leaseToken
-          });
-          if(released.error || released.data!==true){
+          let released:any=null;
+          let releaseThrown:any=null;
+          try{
+            released=await supabase.rpc("aevora_release_scheduler_lease",{
+              p_schedule_id:schedule.id,p_lease_token:leaseToken
+            });
+          }catch(releaseError){
+            releaseThrown=releaseError;
+          }
+          if(releaseThrown || released?.error || released?.data!==true){
             results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lease_release_warning",
-              details:released.error?message(released.error):"Lease token no longer owned; release was not confirmed."});
+              details:releaseThrown?message(releaseThrown):released?.error?message(released.error):"Lease token no longer owned; release was not confirmed."});
           }
         }
       }
