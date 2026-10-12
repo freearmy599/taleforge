@@ -212,6 +212,12 @@ Deno.test("published chapter history fails closed on gaps, duplicates, and malfo
   for (const malformed of [null, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert(inspectPublishedChapterHistory([1,2,malformed]).ok === false, "malformed published chapter numbers must fail closed");
   }
+  for (const malformed of [true, false, {}, [], [1], "0x1", "1e0", "1.0", " 1 "]) {
+    assert(inspectPublishedChapterHistory([1,2,malformed]).ok === false,
+      "booleans, objects, arrays, and non-decimal numeric strings must not coerce into chapter numbers");
+  }
+  assert(inspectPublishedChapterHistory([1, "2", 3]).ok === true,
+    "plain decimal integer strings remain compatible with serialized database values");
 });
 
 Deno.test("scheduler pages complete published history and pauses on a numbering gap", async () => {
