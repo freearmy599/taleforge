@@ -61,6 +61,26 @@ Deno.test("scheduler rejects malformed explicit schedule IDs before query scopin
   assert(source.includes("if(scheduleId) q=q.eq(\"id\",scheduleId);"), "a normalized valid ID must scope the query");
 });
 
+Deno.test("scheduler validates caller and request before any database query or lease side effect", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const authGuard = source.indexOf("if(!isTrustedInternalApiKey(");
+  const createClient = source.indexOf("const supabase=createClient(");
+  const parseBody = source.indexOf("let body:any;");
+  const malformedJsonGuard = source.indexOf('error:"Request body must be valid JSON."');
+  const objectGuard = source.indexOf('body===null || typeof body!=="object" || Array.isArray(body)');
+  const scheduleQuery = source.indexOf("const buildScheduleQuery=()=>{");
+  const firstDatabaseRead = source.indexOf('supabase.from("release_schedules")');
+  const leaseClaim = source.indexOf('supabase.rpc("aevora_claim_release_scheduler_lease"');
+  assert(authGuard >= 0 && authGuard < createClient, "caller authentication must precede client initialization");
+  assert(parseBody > createClient && malformedJsonGuard > parseBody, "request parsing must follow authentication and reject malformed JSON");
+  assert(objectGuard > parseBody && scheduleQuery > objectGuard, "request shape validation must finish before query construction");
+  assert(firstDatabaseRead > objectGuard && leaseClaim > objectGuard, "invalid request bodies must be rejected before database reads or lease claims");
+  assert(source.indexOf('error:"schedule_id must be a non-empty string when provided."') < firstDatabaseRead,
+    "invalid explicit schedule IDs must be rejected before database access");
+  assert(source.indexOf('error:"dry_run must be a boolean when provided."') < firstDatabaseRead,
+    "invalid dry_run values must be rejected before database access");
+});
+
 Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('return q.order("id",{ascending:true});'), "schedule ID ordering missing");
