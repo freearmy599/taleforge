@@ -31,7 +31,9 @@ Deno.test("scheduler lease RPC names and arguments match the live prerequisite c
   assert(source.includes('supabase.rpc("aevora_renew_release_scheduler_lease",{'), "renew RPC name must remain aligned");
   assert(source.includes('supabase.rpc("aevora_release_scheduler_lease",{'), "release RPC name must remain aligned");
   assert(source.includes("p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180"), "claim/renew lease argument names must remain aligned");
-  assert(source.includes("p_schedule_id:schedule.id,p_lease_token:leaseToken}"), "release must be scoped to the schedule and exact lease token");
+  const releaseCall = source.indexOf('supabase.rpc("aevora_release_scheduler_lease",{');
+  assert(releaseCall >= 0 && source.indexOf("p_schedule_id:schedule.id,p_lease_token:leaseToken", releaseCall) > releaseCall,
+    "release must be scoped to the schedule and exact lease token");
   assert(source.includes("if(leaseClaimed){"), "release must be conditional on an acquired lease");
 });
 
