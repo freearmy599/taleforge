@@ -8,12 +8,12 @@ The scheduler and publisher use the Supabase service-role key internally, while 
 
 Both prepared handlers now compare the `Authorization` header to the exact configured `Bearer <SUPABASE_SERVICE_ROLE_KEY>` value before constructing the Supabase client or processing the request. Other callers receive HTTP 401. The scheduler-to-publisher call already supplies the service-role bearer token.
 
-A new Deno source-contract test asserts both guards precede database-client creation and unauthorized responses are explicit. This is a source-level regression check, not a live security test.
+Deno source-contract coverage asserts both guards precede database-client creation, unauthorized responses are explicit, and the scheduler-to-publisher call forwards the server-side service-role bearer and apikey. GitHub Actions run `38230726454` on commit `8ba9f93125dc6b79731afad55dd98a2faa72e4cb` passed both Edge Function type checks and all 19 source-contract tests. These are source/type checks, not live authorization or end-to-end handler tests.
 
 ## Required verification before deployment
 
 - Confirm the configured Supabase Cron/HTTP caller uses the exact service-role bearer credential expected by the function.
-- Run the latest hosted Deno checks and all 19 source-contract tests.
+- Keep the hosted Deno checks and all 19 source-contract tests passing on subsequent changes.
 - Run full-handler tests with a service-role caller (success path) and anon/user caller (401 path).
 - Review whether any legitimate internal caller uses a distinct JWT or gateway-injected authorization header; if so, replace the raw role-key comparison with a dedicated server-side internal secret before deployment.
 
