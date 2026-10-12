@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "release-scheduler-v8-dst-fold-safe";
+const VERSION = "release-scheduler-v9-no-launch-burst";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -246,19 +246,17 @@ Deno.serve(async (req)=>{
       // Deduplicate by chapter number so multiple attempts/reviews can never
       // cause duplicate publication of the same chapter.
       const uniqueReady:any[]=[];
-      // Fail closed if multiple approved outputs compete for the same chapter number.
-      // Stable ordering makes the diagnostic deterministic; it does not pick a winner.
+      // Deterministic latest-approved-output policy: rows are ordered by chapter,
+      // newest created_at first, then stable ID. Choose one output per chapter.
       let expectedNumber=latestNumber+1;
-      let outputIndex=0;
-      while(outputIndex<readyOutputs.length){
-        const row=readyOutputs[outputIndex];
+      const seenChapterNumbers=new Set<number>();
+      for(const row of readyOutputs){
         const n=Number(row.chapter_number);
-        let groupEnd=outputIndex+1;
-        while(groupEnd<readyOutputs.length && Number(readyOutputs[groupEnd].chapter_number)===n) groupEnd++;
-        if(n!==expectedNumber || groupEnd-outputIndex!==1) break;
+        if(seenChapterNumbers.has(n)) continue;
+        if(n!==expectedNumber) break;
+        seenChapterNumbers.add(n);
         uniqueReady.push(row);
         expectedNumber++;
-        outputIndex=groupEnd;
       }
 
       const dailyMin=Math.max(1,Number(lifecycle?.daily_chapters_min??2));
@@ -355,15 +353,10 @@ Deno.serve(async (req)=>{
       if(schedule.schedule_mode==="interval"){
         const hours=Number(schedule.interval_hours);
         if(Number.isFinite(hours)&&hours>0){
-          // A series that has just crossed its preparing -> active launch gate
-          // must release its first approved chapter immediately. After that,
-          // all releases follow the configured interval.
-          if(lifecycleTransition?.to==="active"){
-            nextRelease=now;
-          }else{
-            const base=schedule.next_release_at?new Date(schedule.next_release_at):now;
-            nextRelease=new Date((base>now?base:now).getTime()+hours*3600000);
-          }
+          // The activation run has already published its confirmed batch. Schedule
+          // the next batch after the configured interval to prevent an immediate burst.
+          const base=schedule.next_release_at?new Date(schedule.next_release_at):now;
+          nextRelease=new Date((base>now?base:now).getTime()+hours*3600000);
         }
       }else if(schedule.schedule_mode==="weekly"){
         nextRelease=weeklyReleaseAt;
