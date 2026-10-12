@@ -149,6 +149,9 @@ Deno.test("review qualification excludes missing, rejected, incomplete, and ambi
   ];
   const qualified = qualifyReviewedOutputs(outputs,reviews);
   assert(JSON.stringify(qualified.map((row)=>row.id)) === JSON.stringify(["valid"]), "only exactly-one fully approved review should qualify");
+  const revisions = [{id:"newer-unreviewed",chapter_number:6},{id:"older-reviewed",chapter_number:6}];
+  assert(JSON.stringify(qualifyReviewedOutputs(revisions,[approved("older-reviewed")]).map((row)=>row.id)) === JSON.stringify(["older-reviewed"]),
+    "a newer unreviewed revision must not hide an older reviewed output");
   assert(qualifyReviewedOutputs(outputs,[]).length===0, "missing review rows must be excluded");
   assert(qualifyReviewedOutputs([{id:"numeric-id"}],[approved("numeric-id")]).length===0, "malformed output identifiers must fail closed");
 });
