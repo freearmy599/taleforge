@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         consecutive_throttle_count: providerState.consecutive_throttle_count,
       }));
       return json({
-        success: true,
+        success: false,
         mode: "review-orchestrator",
         orchestrator_version: VERSION,
         checked_at: new Date().toISOString(),
