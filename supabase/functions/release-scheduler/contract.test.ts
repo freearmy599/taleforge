@@ -473,7 +473,7 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   const qualification = source.indexOf("const launchReviewedOutputs=qualifyReviewedOutputs(launchApproved,launchReviewRows)");
   const launchReady = source.indexOf("const launchReady=launchNumbers.filter");
   const activationGate = source.indexOf("if(launchReady.length===launchCount)");
-  const activation = source.indexOf('.update({lifecycle_status:"active"');
+  const activation = source.indexOf('supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned",{ '.trim());
   assert(query >= 0 && source.indexOf('.in("generation_status",["approved","published"]).lte("chapter_number",launchCount)',query) > query, "launch verification must load approved/published output IDs and chapter numbers");
   assert(source.includes("const launchReviewRows:any[]=[];"), "launch review rows must be fetched");
   assert(qualification > query && launchReady > qualification && activationGate > launchReady && activation > activationGate, "lifecycle activation must follow review-qualified launch verification");
@@ -482,8 +482,7 @@ Deno.test("preparing lifecycle activation requires fully reviewed launch outputs
   assert(source.includes("const invalidDailyConfig=") && source.includes("const invalidLaunchConfig="), "invalid lifecycle chapter limits must be rejected before publication");
   assert(source.indexOf("if(invalidDailyConfig || invalidLaunchConfig)") < source.indexOf("if(!dryRun && schedule.auto_publish && publishCount>0)"), "lifecycle limits must be validated before publication side effects");
   assert(source.includes('.range(offset,offset+499)'), "launch chapter/output history queries must be paginated");
-  assert(source.includes('.select("series_id,lifecycle_status").maybeSingle()'), "lifecycle activation must return a confirmation row");
-  assert(source.includes('!updatedLifecycle || updatedLifecycle.lifecycle_status!=="active"'), "missing or non-active lifecycle update must fail closed");
+  assert(source.includes("if(activation.error || activation.data!==true)"), "unconfirmed atomic lifecycle activation must fail closed");
   assert(source.includes('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost)'), "preparing lifecycle verification must be retryable without publishing a new chapter");
   assert(!source.includes('lifecycleStatus==="preparing" && published.length>0'), "lifecycle retry must not depend on a new publication in the current run");
 });
