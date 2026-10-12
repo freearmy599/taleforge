@@ -13,6 +13,7 @@ name: Aevora Edge source validation
       - "supabase/functions/review-orchestrator/**"
       - "supabase/functions/release-publisher/**"
       - "supabase/functions/_shared/**"
+      - "supabase/migrations/**"
       - ".github/workflows/aevora-edge-validation.yml"
 
 permissions:
@@ -39,4 +40,4 @@ jobs:
       - name: Type-check review orchestrator
         run: deno check supabase/functions/review-orchestrator/index.ts
       - name: Run source-contract regression tests
-        run: deno test --allow-read=supabase/functions/review-orchestrator/index.ts,supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/_shared/internal-api-key.ts supabase/functions/release-scheduler/contract.test.ts
+        run: deno test --allow-read=supabase/functions/review-orchestrator/index.ts,supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/_shared/internal-api-key.ts,supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql supabase/functions/release-scheduler/contract.test.ts
