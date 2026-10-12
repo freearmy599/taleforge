@@ -37,11 +37,11 @@ Both functions use SECURITY DEFINER with a fixed `pg_catalog, public, pg_temp` s
 
 **This migration has not been applied.** Hosted validation run [38283233964](https://github.com/freearmy599/taleforge/actions/runs/38283233964) passed all prepared Edge Function type checks and the 37-test source-contract suite, including the atomic migration contract and non-advancing-deadline guard. This is source/type validation only, not a live migration or integration test. Do not deploy the scheduler until the migration has been reviewed and separately authorized for application and deployment.
 
-## Remaining repository migration-tracking gap
+## Lease foundation source migration — prepared, not applied
 
-The existing production lease table and original claim/renew/release function definitions still do not have their source migration recovered in this branch. The new migration only adds atomic write functions and does not recreate the existing lease foundation. This remains a reproducibility gap, not evidence that the live production objects are missing.
+Read-only production inspection recovered the existing lease table columns, primary key, RLS state, role grants, and exact claim/renew/release RPC definitions and ACLs. The branch now includes `supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql`, which reconstructs that inspected contract for fresh environments, followed by the atomic write-fencing migration at `20261012190000`.
 
-The exact live definitions and grants were inspected read-only. Do not fabricate the missing original migration or apply any migration as part of this audit.
+The foundation migration is source-controlled and covered by contract assertions for table shape, RLS, restricted roles, lease-duration bounds, token ownership, expiry handling, and pinned security-definer search paths. It has **not** been applied. This closes the repository's missing-source artifact, but a source reconstruction is not a substitute for controlled migration review or live integration testing.
 
 ## Deployment implications
 
