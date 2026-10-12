@@ -168,3 +168,11 @@ Prepared-branch repair:
 No JWT verification setting was changed. This is branch-only source hardening; production handlers remain unchanged pending explicit deployment authorization.
 
 Validation evidence for the privileged-handler authentication repair: [workflow run 38285648719](https://github.com/freearmy599/taleforge/actions/runs/38285648719) passed all four prepared Edge Function type checks and the expanded source-contract suite on commit `5c6cf5ecebd1375786e2793e055dbde027bbff5c`. The audit SQL was also executed read-only from its committed source and completed successfully. Neither result is a production deployment or live Edge Function integration test.
+
+## Publication-review decision and endpoint boundary — 2026-10-12
+
+Read-only inspection of deployed `publication-review` v8 confirmed it intentionally returns HTTP 200 with `success: true` for both approved and rejected review decisions; the actual outcome is expressed by `decision`, `eligible`, `generation_status`, and the four gate results. The prepared review orchestrator previously treated any 2xx response as a successful publication-review step. It now requires `decision=approved`, `eligible=true`, `generation_status=approved`, and all four gate `passed` flags to be true; otherwise the output result is marked blocked.
+
+The same read-only source review found that deployed `publication-review` v8 does not contain the shared handler-level internal API-key guard used by the prepared scheduler/publisher/orchestrators. Its gateway currently reports `verify_jwt=true`, which is not a substitute for checking the expected server-side caller. The function can update publication-review and generation-output state, so it remains a separate endpoint-hardening item before a broader rollout. It is not included in the current branch because the live source needs a clean, reviewed source-control recovery rather than a risky whitespace transformation of the returned source.
+
+No production function was changed or invoked. Keep the rollout blocked until this remaining endpoint guard and the cron-to-gateway authentication behavior are addressed through the authorized source/configuration workflow.
