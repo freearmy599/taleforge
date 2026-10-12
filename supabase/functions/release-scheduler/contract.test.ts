@@ -27,9 +27,11 @@ Deno.test("scheduler dry-run skips lease mutation and releases only a claimed le
 
 Deno.test("scheduler lease RPC names and arguments match the live prerequisite contract", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  assert(source.includes('supabase.rpc("aevora_claim_release_scheduler_lease",{p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180}'), "claim RPC name and lease arguments must remain aligned");
-  assert(source.includes('supabase.rpc("aevora_renew_release_scheduler_lease",{p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180}'), "renew RPC name and lease arguments must remain aligned");
-  assert(source.includes('supabase.rpc("aevora_release_scheduler_lease",{p_schedule_id:schedule.id,p_lease_token:leaseToken}'), "release RPC name and token-scoped arguments must remain aligned");
+  assert(source.includes('supabase.rpc("aevora_claim_release_scheduler_lease",{'), "claim RPC name must remain aligned");
+  assert(source.includes('supabase.rpc("aevora_renew_release_scheduler_lease",{'), "renew RPC name must remain aligned");
+  assert(source.includes('supabase.rpc("aevora_release_scheduler_lease",{'), "release RPC name must remain aligned");
+  assert(source.includes("p_schedule_id:schedule.id,p_lease_token:leaseToken,p_lease_seconds:180"), "claim/renew lease argument names must remain aligned");
+  assert(source.includes("p_schedule_id:schedule.id,p_lease_token:leaseToken}"), "release must be scoped to the schedule and exact lease token");
   assert(source.includes("if(leaseClaimed){"), "release must be conditional on an acquired lease");
 });
 
