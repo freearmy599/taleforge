@@ -218,11 +218,12 @@ Deno.test("normal cron scans exclude auto-publish-disabled schedules while dry-r
   const source = await Deno.readTextFile(schedulerUrl);
   const queryBuilder = source.indexOf("const buildScheduleQuery=()=>");
   const explicitSchedule = source.indexOf('if(scheduleId) q=q.eq("id",scheduleId);');
-  const dueFilter = source.indexOf('q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);');
-  const autoPublishFilter = source.indexOf('if(!dryRun) q=q.eq("auto_publish",true);');
+  const dueFilter = source.indexOf('if(!dryRun || !scheduleId) q=q.or(');
+  const autoPublishFilter = source.indexOf('if(!dryRun && !scheduleId) q=q.eq("auto_publish",true);');
   assert(queryBuilder >= 0 && explicitSchedule > queryBuilder && dueFilter > explicitSchedule, "schedule query branching must remain explicit");
   assert(autoPublishFilter > dueFilter, "normal cron scans should filter disabled auto-publish schedules only in the due-schedule branch");
-  assert(source.includes("Dry-run intentionally keeps them visible for diagnostics."), "dry-run should retain diagnostic visibility");
+  assert(source.includes("Explicit IDs can inspect disabled schedules, but auto-publish remains separately gated."), "explicit schedule IDs should retain diagnostic visibility without bypassing auto-publish");
+  assert(source.includes("if(!dryRun || !scheduleId)"), "only an explicit dry-run diagnostic may inspect a future schedule");
 });
 
 Deno.test("lifecycle chapter identity requires matching published content and scope", () => {
