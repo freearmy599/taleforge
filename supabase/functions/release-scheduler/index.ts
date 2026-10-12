@@ -101,7 +101,12 @@ Deno.serve(async (req)=>{
         .eq("enabled",true)
         .neq("schedule_mode","manual");
       if(scheduleId) q=q.eq("id",scheduleId);
-      else q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);
+      else {
+        q=q.or(`next_release_at.is.null,next_release_at.lte.${now.toISOString()}`);
+        // Do not repeatedly claim leases and scan disabled schedules on every cron tick.
+        // Dry-run intentionally keeps them visible for diagnostics.
+        if(!dryRun) q=q.eq("auto_publish",true);
+      }
       return q.order("id",{ascending:true});
     };
     const schedules:any[]=[];
