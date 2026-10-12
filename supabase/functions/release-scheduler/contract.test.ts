@@ -564,9 +564,11 @@ Deno.test("explicit disabled schedule diagnostics do not claim a write lease", a
   assert(source.includes('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing"'), "disabled schedules must not transition lifecycle state");
 });
 
-Deno.test("release handlers reject non-service-role callers before database operations", async () => {
+Deno.test("privileged release and orchestration handlers reject untrusted callers before database operations", async () => {
   const scheduler = await Deno.readTextFile(schedulerUrl);
   const publisher = await Deno.readTextFile(publisherUrl);
+  const generation = await Deno.readTextFile(generationOrchestratorUrl);
+  const review = await Deno.readTextFile(reviewOrchestratorUrl);
   const schedulerGuard = scheduler.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
   const schedulerClient = scheduler.indexOf("createClient(url,key");
   assert(schedulerGuard >= 0 && schedulerGuard < schedulerClient,
@@ -587,6 +589,18 @@ Deno.test("release handlers reject non-service-role callers before database oper
     "scheduler internal publisher call must forward its configured server-side apikey");
   assert(scheduler.includes('const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")'),
     "scheduler database client must retain its legacy service-role environment fallback");
+
+  const generationGuard = generation.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
+  const generationClient = generation.indexOf("createClient(supabaseUrl,key");
+  assert(generationGuard >= 0 && generationGuard < generationClient,
+    "generation orchestrator must authenticate the configured server-side apikey before creating a privileged client");
+  assert(generation.includes('},401)'), "generation orchestrator unauthorized callers must receive HTTP 401");
+
+  const reviewGuard = review.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey, Deno.env.get("SUPABASE_SECRET_KEYS"), Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
+  const reviewClient = review.indexOf("createClient(supabaseUrl, serviceRoleKey");
+  assert(reviewGuard >= 0 && reviewGuard < reviewClient,
+    "review orchestrator must authenticate the configured server-side apikey before creating a privileged client");
+  assert(review.includes('}, 401)'), "review orchestrator unauthorized callers must receive HTTP 401");
 });
 
 Deno.test("internal API-key validation requires an explicit named-secret allowlist", () => {
