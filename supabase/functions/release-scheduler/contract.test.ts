@@ -47,6 +47,14 @@ Deno.test("scheduler pages schedules and approved outputs in stable order", asyn
   assert(source.includes('.order("chapter_number",{ascending:true})\n          .order("created_at",{ascending:false})\n          .order("id",{ascending:true})\n          .range(offset,offset+499)'), "approved output ordering/paging missing");
 });
 
+Deno.test("scheduler passes raw interval configuration to the strict resolver", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert(source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"),
+    "scheduler must pass the original interval value so strict string validation cannot be bypassed");
+  assert(!source.includes("const hours=Number(schedule.interval_hours)"),
+    "scheduler must not coerce malformed interval strings before validation");
+});
+
 Deno.test("interval release resolver rejects overflow and non-advancing timestamps", () => {
   const base = new Date("2026-10-12T12:00:00.000Z");
   assert(resolveNextIntervalRelease(base, 24).toISOString() === "2026-10-13T12:00:00.000Z",
