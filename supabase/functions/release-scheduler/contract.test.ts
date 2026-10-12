@@ -17,6 +17,7 @@ const leaseFencingMigrationUrl = new URL("../../migrations/20261012190000_aevora
 const leaseFoundationMigrationUrl = new URL("../../migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql", import.meta.url);
 const weeklyScheduleUrl = new URL("./weekly-schedule.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
+const generateChapterUrl = new URL("../generate-chapter/index.ts", import.meta.url);
 const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempotency.ts", import.meta.url);
 const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-status.ts", import.meta.url);
 const generationOrchestratorUrl = new URL("../generation-orchestrator/index.ts", import.meta.url);
@@ -608,6 +609,7 @@ Deno.test("privileged release and orchestration handlers reject untrusted caller
   const publisher = await Deno.readTextFile(publisherUrl);
   const generation = await Deno.readTextFile(generationOrchestratorUrl);
   const review = await Deno.readTextFile(reviewOrchestratorUrl);
+  const generateChapter = await Deno.readTextFile(generateChapterUrl);
   const schedulerGuard = scheduler.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
   const schedulerClient = scheduler.indexOf("createClient(url,key");
   assert(schedulerGuard >= 0 && schedulerGuard < schedulerClient,
@@ -640,6 +642,12 @@ Deno.test("privileged release and orchestration handlers reject untrusted caller
   assert(reviewGuard >= 0 && reviewGuard < reviewClient,
     "review orchestrator must authenticate the configured server-side apikey before creating a privileged client");
   assert(review.includes('}, 401)'), "review orchestrator unauthorized callers must receive HTTP 401");
+
+  const generateChapterGuard = generateChapter.indexOf('isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))');
+  const generateChapterClient = generateChapter.indexOf("createClient(url,key");
+  assert(generateChapterGuard >= 0 && generateChapterGuard < generateChapterClient,
+    "generate-chapter must authenticate the configured server-side apikey before creating a privileged client");
+  assert(generateChapter.includes('},401)'), "generate-chapter unauthorized callers must receive HTTP 401");
 });
 
 Deno.test("internal API-key validation requires an explicit named-secret allowlist", () => {
