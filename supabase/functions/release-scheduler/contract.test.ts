@@ -183,7 +183,10 @@ Deno.test("scheduler qualifies publication reviews before deduplicating output r
   const filter = source.indexOf("qualifyReviewedOutputs(readyOutputs,publicationReviewRows)");
   const deduplication = source.indexOf("const uniqueReady:any[]=[];");
   assert(reviewQuery >= 0, "scheduler must load review rows for ready outputs");
-  assert(source.includes('select("generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")'), "all review gates must be loaded");
+  assert(source.includes('select("id,generation_output_id,decision,quality_passed,continuity_passed,originality_passed,safety_passed")'), "all review gates and stable review IDs must be loaded");
+  assert(source.split("for(let reviewOffset=0;;reviewOffset+=500)").length - 1 === 2, "candidate and lifecycle review rows must be fully paginated");
+  assert(source.split('.order("generation_output_id",{ascending:true}).order("id",{ascending:true})').length - 1 === 2, "review pagination must use a deterministic unique tie-breaker");
+  assert(source.split(".range(reviewOffset,reviewOffset+499)").length - 1 === 2, "review pagination must not rely on the default API row limit");
   assert(source.includes('from "./review-qualified-outputs.ts"'), "scheduler must use the tested review helper");
   assert(filter > reviewQuery && filter < deduplication, "review qualification must precede chapter-slot deduplication");
   assert(source.includes("Failed to inspect publication reviews for ready chapters."), "review query failure must fail closed");
