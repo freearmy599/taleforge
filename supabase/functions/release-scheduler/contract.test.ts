@@ -101,6 +101,23 @@ Deno.test("generation orchestrator fails closed when Gemini provider state is un
   assert(source.includes('},503)}const body=await req.json()'), "provider-state failure must return HTTP 503 before orchestration continues");
 });
 
+Deno.test("generation orchestrator dry-run avoids known database mutations", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  assert(source.includes('const intelligenceRefresh=dryRun?{ok:true,report:{gemini_used:false,content_generation_performed:false,skipped:"dry_run_read_only"}}:await refreshDeterministicIntelligence(supabase);'),
+    "dry-run must skip deterministic intelligence refresh RPCs that write state");
+  assert(source.includes('const advancedPlanBuildResult=dryRun?{data:null,error:null}:await supabase.rpc("taleforge_build_advanced_chapter_plans"'),
+    "dry-run must not build or upsert advanced chapter plans");
+  assert(source.includes('if(!dryRun)for(const o of [...latest.values()].filter((o)=>o.generation_status==="needs_revision"'),
+    "dry-run must not mutate exhausted revision statuses");
+  assert(source.includes('if(!dryRun){for(const c of candidates){const sel=await supabase.rpc("taleforge_select_revision_strategy"'),
+    "dry-run must not invoke the revision-selection RPC that inserts or updates selections");
+  assert(source.includes('else if(candidates.length){const{data:storedSelections,error:storedSelectionsError}=await supabase.from("taleforge_revision_selections").select('),
+    "dry-run should use existing revision selections through read-only lookup");
+  assert(source.includes("read_only:dryRun"), "response must declare whether the diagnostic run was read-only");
+  assert(source.includes('mutations_skipped:dryRun?["deterministic_intelligence_refresh","advanced_chapter_plan_build","revision_exhaustion_updates","revision_strategy_selection"]:[]'),
+    "read-only dry-run must report which mutations were skipped");
+});
+
 Deno.test("scheduler pages schedules and approved outputs in stable order", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('return q.order("id",{ascending:true});'), "schedule ID ordering missing");
