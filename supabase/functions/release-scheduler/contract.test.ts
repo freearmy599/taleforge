@@ -275,4 +275,10 @@ Deno.test("release handlers reject non-service-role callers before database oper
     "publisher must authenticate exact service-role bearer before creating a database client");
   assert(scheduler.includes("},401);"), "scheduler unauthorized callers must receive HTTP 401");
   assert(publisher.includes("}, 401);"), "publisher unauthorized callers must receive HTTP 401");
+  const publisherCall = scheduler.indexOf('fetch(url+"/functions/v1/release-publisher"');
+  const publisherAuth = scheduler.indexOf('Authorization:"Bearer "+key,apikey:key', publisherCall);
+  assert(publisherCall >= 0 && publisherAuth > publisherCall,
+    "scheduler internal publisher call must forward the service-role bearer and apikey");
+  assert(scheduler.includes('const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")'),
+    "scheduler internal-call credential must come from the server-side service-role environment variable");
 });
