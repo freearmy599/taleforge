@@ -49,7 +49,7 @@ Deno.test("scheduler pages schedules and approved outputs in stable order", asyn
 
 Deno.test("scheduler passes raw interval configuration to the strict resolver", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  assert(source.includes("resolveNextIntervalRelease(completedAt,schedule.interval_hours)"),
+  assert(source.includes("resolveNextIntervalRelease(processingCompletedAt,schedule.interval_hours)"),
     "scheduler must pass the original interval value so strict string validation cannot be bypassed");
   assert(!source.includes("const hours=Number(schedule.interval_hours)"),
     "scheduler must not coerce malformed interval strings before validation");
@@ -87,8 +87,10 @@ Deno.test("scheduler validates interval arithmetic before side effects and reuse
     "cooldown arithmetic must reject overflow instead of accidentally bypassing the cooldown");
   assert(source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"),
     "next-release scheduling must pass raw interval configuration through the same strict resolver");
-  assert(source.includes("const completedAt=new Date();"), "next interval deadline must use processing-completion time");
+  assert(source.includes("const processingCompletedAt=new Date();"), "next interval deadline must use processing-completion time");
   assert(!source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"), "stale invocation time must not anchor the next interval deadline");
+  assert(source.includes("nextWeeklyRelease(processingCompletedAt,Number(schedule.preferred_weekday)"), "weekly deadline must share the completion-time anchor");
+  assert(source.includes("last_release_at:processingCompletedAt.toISOString()"), "last release timestamp must reflect processing completion, not invocation start");
   assert(!source.includes("new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000)"),
     "raw interval arithmetic must not bypass validation");
 });
