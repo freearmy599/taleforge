@@ -1035,6 +1035,16 @@ Deno.test("review orchestrator fails closed and reports blocked batches as unsuc
     "dedicated review workers must explicitly affirm success before their decisions are trusted");
   assert(source.includes("The dedicated continuity, originality, safety, and publication workers must"),
     "the quality worker's legacy response contract must remain explicitly documented");
+  for (const workerPath of [
+    "../continuity-review/index.ts",
+    "../originality-review/index.ts",
+    "../safety-review/index.ts",
+    "../publication-review/index.ts",
+  ]) {
+    const worker = await Deno.readTextFile(new URL(workerPath, import.meta.url));
+    assert(worker.includes("success: true"),
+      workerPath + " must explicitly affirm success in its positive response contract");
+  }
   assert(source.includes("partial_success: results.some((result: any) => result.action === \"reviewed\") && hasReviewFailures"),
     "mixed reviewed and blocked batches must be explicitly identified as partial success");
   assert(source.includes("}, hasReviewFailures ? 422 : 200);"),
