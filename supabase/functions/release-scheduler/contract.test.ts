@@ -378,7 +378,7 @@ Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time"
   const source = await Deno.readTextFile(schedulerUrl);
   const helper = await Deno.readTextFile(weeklyScheduleUrl);
   assert(source.includes('String(schedule.timezone??"UTC")'), "schedule timezone is not passed to weekly resolver");
-  assert(source.includes('import { nextWeeklyRelease } from "./weekly-schedule.ts"'), "scheduler must use the directly tested weekly resolver");
+  assert(source.includes('import { nextWeeklyRelease, nextWeeklyReleaseAfterBatch } from "./weekly-schedule.ts"'), "scheduler must use the directly tested weekly resolver and post-batch cadence guard");
   assert(helper.includes('/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/'), "strict wall-time validation regex missing");
   assert(helper.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
   assert(source.indexOf("Validate scheduling configuration before any publication side effect.") < source.indexOf('from("story_lifecycle")'), "schedule preflight must precede publication setup");
