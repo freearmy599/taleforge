@@ -550,6 +550,7 @@ const { data: existingRevision, error: existingRevisionError } = await supabase
 .from("chapter_generation_outputs")
 .select("id,generation_status,generation_attempt")
 .eq("revision_of_output_id", outputId)
+.neq("generation_status", "rejected")
 .order("created_at", { ascending: false })
 .order("id", { ascending: false })
 .limit(1)
