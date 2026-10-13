@@ -16,10 +16,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
-}
-
 // Only return decision fields the orchestrator needs. Downstream diagnostics,
 // provider payloads, raw text, and arbitrary nested fields stay server-side.
 function sanitizeReviewResult(value: unknown): Record<string, unknown> {
@@ -193,7 +189,7 @@ Deno.serve(async (req) => {
       return json({
         success: false,
         error: "Failed to load outputs for review.",
-        details: errorMessage(outputError),
+        note: "The review pipeline could not load candidate outputs; internal database diagnostics were withheld.",
       }, 500);
     }
 
@@ -230,7 +226,7 @@ Deno.serve(async (req) => {
           output_id: output.id,
           chapter_number: output.chapter_number,
           action: "error",
-          details: errorMessage(reviewsError),
+          reason: "review_records_unavailable",
         });
         continue;
       }
@@ -397,7 +393,7 @@ Deno.serve(async (req) => {
       mode: "review-orchestrator",
       orchestrator_version: VERSION,
       error: "Unexpected review orchestrator error.",
-      details: errorMessage(error),
+      note: "The operation failed unexpectedly; internal diagnostics were withheld.",
     }, 500);
   }
 });
