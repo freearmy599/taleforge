@@ -8,9 +8,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const functions = [
-  ["continuity-review", "continuity-v8-monotonic-cooldown"],
-  ["originality-review", "originality-v8-monotonic-cooldown"],
-  ["safety-review", "safety-v8-monotonic-cooldown"],
+  ["continuity-review", "continuity-v9-redacted-provider-state"],
+  ["originality-review", "originality-v9-redacted-provider-state"],
+  ["safety-review", "safety-v9-redacted-provider-state"],
   ["publication-review", "publication-v2-redacted-error-details"],
 ];
 
@@ -23,6 +23,10 @@ for (const [name, version] of functions) {
   test(name + " redacts database and provider exception details", () => {
     assert.ok(source.includes(version), "redaction version marker must be present");
     assert.ok(source.includes("Internal review diagnostics were withheld."));
+    if (name !== "publication-review") {
+      assert.ok(source.includes('console.error("[quota-guard] Gemini provider state unavailable; failing closed.")'), "provider-state lookup logs must be sanitized");
+      assert.equal(source.includes("providerStateError?.message"), false, "database exception details must not enter review-worker logs");
+    }
     assert.equal(/const errorText = await response.text\(\)/.test(source), false);
     assert.equal(/Gemini request failed \(\$\{response.status\}\): \$\{errorText\}/.test(source), false);
     assert.equal(/details:\s*\w+Error\.message/.test(source), false);
