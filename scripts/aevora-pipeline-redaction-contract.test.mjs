@@ -136,7 +136,8 @@ test("chapter revision is authenticated, quota-guarded, and state-fenced", async
   assert.ok(s.includes('reason: "invalid_cooldown_timestamp"'), "revision must fail closed on malformed cooldown timestamps");
   assert.ok(s.includes('reason: "provider_cooldown"'), "revision must respect an active Gemini cooldown");
   assert.ok(s.includes("Math.max(proposedUntil, existingUntil)"), "revision quota recorder must not shorten an existing cooldown");
-  assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'), "revision must store only sanitized quota diagnostics");
+  assert.ok(s.includes('last_error: "Gemini quota, rate-limit, or temporary overload response"'), "revision must store only sanitized provider diagnostics");
+  assert.ok(s.includes('reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable"'), "revision must distinguish quota blocks from temporary provider overloads");
   assert.ok(s.includes('reason: "provider_quota_blocked"'), "revision quota failures must have a stable safe reason");
   assert.ok(s.includes('if (originalOutput.generation_status !== "needs_revision")'), "only outputs in needs_revision state may be revised");
   assert.ok(s.includes(".eq(\"revision_of_output_id\", outputId)"), "revision must check for an existing successor");
