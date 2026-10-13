@@ -17,6 +17,11 @@ const internalTablesMigration = await readFile(
   "utf8",
 );
 
+const narrativeMigration = await readFile(
+  new URL("../supabase/migrations/20261013103000_lock_internal_narrative_intelligence_tables.sql", import.meta.url),
+  "utf8",
+);
+
 test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("ALTER TABLE public.taleforge_ai_provider_state ENABLE ROW LEVEL SECURITY"));
   assert.ok(migration.includes("REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"));
@@ -61,4 +66,28 @@ test("internal policyless intelligence tables are server-side only", () => {
   assert.ok(internalTablesMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"));
   assert.equal(/CREATE POLICY/i.test(internalTablesMigration), false, "internal tables must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(internalTablesMigration), false, "migration must not re-grant client access");
+});
+
+test("internal narrative intelligence tables lose public read policies and client grants", () => {
+  const internalTables = [
+    "character_continuity_events",
+    "world_continuity_events",
+    "taleforge_continuity_reconciliation_findings",
+    "taleforge_continuity_reconciliation_runs",
+    "taleforge_narrative_depth_plans",
+    "taleforge_narrative_memory_snapshots",
+    "taleforge_narrative_thread_events",
+    "taleforge_narrative_thread_progression",
+    "taleforge_narrative_threads",
+    "taleforge_novelty_evaluations",
+    "taleforge_system_dependencies",
+    "taleforge_system_health",
+    "taleforge_system_registry",
+  ];
+  for (const table of internalTables) {
+    assert.ok(narrativeMigration.includes(`public.${table}`), `missing internal narrative lock for ${table}`);
+  }
+  assert.ok(narrativeMigration.includes("REVOKE ALL PRIVILEGES ON TABLE"));
+  assert.equal(/CREATE POLICY/i.test(narrativeMigration), false, "internal narrative state must not gain client policies");
+  assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(narrativeMigration), false, "migration must not re-grant client access");
 });
