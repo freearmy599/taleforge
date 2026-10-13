@@ -991,3 +991,28 @@ Deno.test("internal planner and metrics RPCs lose client EXECUTE grants", async 
   }
   assert(migration.includes("FROM anon, authenticated"), "both client roles must lose direct EXECUTE grants");
 });
+
+
+Deno.test("publisher blocks success when canonical-sync outbox has exhausted retries", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  assert(source.includes('const terminalFailure = data.status === "failed" && Number(data.attempts) >= 8;'),
+    "terminal outbox failure must be derived from the persisted status and retry count");
+  assert(source.includes('status: "failed_terminal"'),
+    "publisher must expose terminal synchronization failure for recovery");
+  assert(source.includes("confirmed: false, queued: false, status: \"failed_terminal\""),
+    "a terminal outbox row must not be reported as confirmed or queued");
+  assert(source.includes("success: canonSyncResult.confirmed"),
+    "publisher success must depend on confirmed canonical-sync outbox state");
+});
+
+Deno.test("scheduler aggregate response fails when any schedule reports a safety failure", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const failureSet = source.slice(source.indexOf("const failureActions=new Set("), source.indexOf("const hasScheduleFailures="));
+  assert(failureSet.includes('"lease_unavailable"'), "lease claim failure must fail the aggregate result");
+  assert(failureSet.includes('"publish_unconfirmed"'), "unconfirmed publication must fail the aggregate result");
+  assert(failureSet.includes('"schedule_advance_unconfirmed"'), "unconfirmed schedule advancement must fail the aggregate result");
+  assert(failureSet.includes('"lease_release_warning"'), "unconfirmed lease release must be visible in aggregate failure status");
+  assert(source.includes("success:!hasScheduleFailures"), "aggregate success must not be hard-coded true");
+  assert(source.includes('partial_success:results.some((result:any)=>result.action==="published")&&hasScheduleFailures'),
+    "partial publication plus any safety failure must be reported distinctly");
+});
