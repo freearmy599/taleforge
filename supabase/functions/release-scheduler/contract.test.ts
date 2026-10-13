@@ -758,6 +758,10 @@ Deno.test("privileged release and orchestration handlers reject untrusted caller
   assert(generateChapterGuard >= 0 && generateChapterGuard < generateChapterClient,
     "generate-chapter must authenticate the configured server-side apikey before creating a privileged client");
   assert(generateChapter.includes('},401)'), "generate-chapter unauthorized callers must receive HTTP 401");
+  assert(generateChapter.includes('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY")'),
+    "generate-chapter must prefer the standard Supabase service-role environment while retaining legacy compatibility");
+  assert(generateChapter.includes("for Aevora.") && !generateChapter.includes("for TaleForge."),
+    "chapter-generation prompts must use the current Aevora brand");
 });
 
 Deno.test("internal API-key validation requires an explicit named-secret allowlist", () => {
