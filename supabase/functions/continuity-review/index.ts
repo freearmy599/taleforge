@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const CONTINUITY_VERSION = "continuity-v3-redacted-error-details";
+const CONTINUITY_VERSION = "continuity-v4-redacted-provider-errors";
 
 const MIN_SCORE = 85;
 
@@ -100,9 +100,9 @@ responseMimeType: "application/json",
 );
 
 if (!response.ok) {
-const errorText = await response.text();
+// Do not retain or propagate the provider response body; it may contain sensitive diagnostics.
 throw new Error(
-`Gemini request failed (${response.status}): ${errorText}`
+`Gemini HTTP ${response.status}${response.status === 429 ? " RESOURCE_EXHAUSTED" : ""}`
 );
 }
 
