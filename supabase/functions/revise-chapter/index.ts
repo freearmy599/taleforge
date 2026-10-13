@@ -1200,9 +1200,15 @@ outputId,
 .single();
 
 if (insertError) {
-throw new Error(
-`Could not save revised output: ${insertError.message}`
-);
+if (typeof insertError === "object" && insertError !== null && "code" in insertError && (insertError as { code?: unknown }).code === "23505") {
+return jsonResponse({
+success: false,
+retryable: false,
+error: "A revision successor was committed concurrently; review the existing successor instead.",
+reason: "revision_successor_already_exists",
+}, 409);
+}
+throw new Error("Could not save revised output.");
 }
 
 /*
