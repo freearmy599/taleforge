@@ -1068,13 +1068,20 @@ if (
 
 // Persist one failed revision cycle so the orchestrator's existing attempt limit
 // can eventually exhaust this output instead of retrying it forever.
-const failedAttemptNumber = Math.min(MAX_REVISION_ATTEMPTS, Math.max(1, Number(originalOutput.generation_attempt || 1)) + 1);
-const { data: failedAttemptState, error: failedAttemptStateError } = await supabase
+const failedAttemptNumber = Math.min(MAX_REVISION_ATTEMPTS, sourceAttempt + 1);
+let failedAttemptUpdate = supabase
 .from("chapter_generation_outputs")
 .update({ generation_attempt: failedAttemptNumber, updated_at: new Date().toISOString() })
 .eq("id", outputId)
-.eq("generation_status", "needs_revision")
-.eq("generation_attempt", Number(originalOutput.generation_attempt || 1))
+.eq("generation_status", "needs_revision");
+// Legacy rows may have a NULL attempt counter; match NULL explicitly rather
+// than silently failing the compare-and-set and leaving the backlog stuck.
+if (originalOutput.generation_attempt === null || originalOutput.generation_attempt === undefined) {
+  failedAttemptUpdate = failedAttemptUpdate.is("generation_attempt", null);
+} else {
+  failedAttemptUpdate = failedAttemptUpdate.eq("generation_attempt", sourceAttempt);
+}
+const { data: failedAttemptState, error: failedAttemptStateError } = await failedAttemptUpdate
 .select("id")
 .maybeSingle();
 if (failedAttemptStateError || !failedAttemptState) {
