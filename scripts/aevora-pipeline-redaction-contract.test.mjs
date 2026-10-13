@@ -60,11 +60,11 @@ test("chapter generation does not return raw governance or database exception de
 
 test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
   const functions = [
-    ["arc-planner", "arc-planner-v9-temporary-overload-cooldown"],
-    ["blueprint-planner", "blueprint-planner-v11-temporary-overload-cooldown"],
-    ["character-continuity", "character-continuity-v8-temporary-overload-cooldown"],
-    ["story-dna-planner", "story-dna-planner-v7-temporary-overload-cooldown"],
-    ["world-continuity", "world-continuity-v11-temporary-overload-cooldown"],
+    ["arc-planner", "arc-planner-v10-fail-closed-cooldown-state"],
+    ["blueprint-planner", "blueprint-planner-v12-fail-closed-cooldown-state"],
+    ["character-continuity", "character-continuity-v9-fail-closed-cooldown-state"],
+    ["story-dna-planner", "story-dna-planner-v8-fail-closed-cooldown-state"],
+    ["world-continuity", "world-continuity-v12-fail-closed-cooldown-state"],
   ];
   for (const [name, version] of functions) {
     const s = await source("supabase/functions/" + name + "/index.ts");
@@ -74,7 +74,8 @@ test("Gemini planner and continuity workers redact failures and persist quota co
     assert.ok(s.includes('const isTemporaryOverload = message.includes("Gemini HTTP 503")'), name + " must persist temporary overloads");
     assert.ok(s.includes("const cooldownHours = isTemporaryOverload ? 1 :"), name + " must use a shorter cooldown for overloads");
     assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), name + " must read the existing cooldown before updating it");
-    assert.ok(s.includes("Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)"), name + " must never shorten an existing cooldown");
+    assert.ok(s.includes("Math.max(proposedUntil, existingUntil)"), name + " must never shorten an existing cooldown");
+    assert.ok(s.includes("Existing Gemini cooldown timestamp is malformed; existing state was preserved."), name + " must preserve malformed existing cooldown state");
     assert.equal(s.includes("await resp.text()"), false, name + " must not echo provider error bodies");
     assert.equal(s.includes("error:e instanceof Error?e.message:String(e)"), false, name + " must not return raw exception details");
     assert.ok(s.includes("reason:quotaFailure?\"provider_quota_blocked\""), name + " must preserve a safe quota reason");
