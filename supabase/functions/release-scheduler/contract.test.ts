@@ -818,7 +818,6 @@ Deno.test("publication sync processor authenticates before privileged work and v
   assert(source.includes('.lt("attempts",8)'), "events at the retry ceiling must not be auto-claimed indefinitely");
   assert((source.match(/\.eq\("id",event\.id\)\.eq\("status","processing"\)\.eq\("locked_at",now\)\.select\("id"\)\.maybeSingle\(\)/g) ?? []).length === 2,
     "completion and retry writes must be fenced to the exact claimed processing lease and verify an affected row");
-    "completion and retry writes must be fenced to the claimed processing row and verify an affected row");
   assert(source.includes('status: attempts >= 8 ? "failed" : "pending"'), "retry ceiling must retain the schema-supported terminal failed status");
   assert(source.includes('status:attempts >= 8 ? "failed_terminal" : "retry_scheduled"'),
     "response must distinguish terminal failures from scheduled retries");
