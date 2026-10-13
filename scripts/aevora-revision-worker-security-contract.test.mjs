@@ -14,6 +14,11 @@ async function source(path) {
 test("revision worker redacts provider, governance, handoff, and exception details", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
   assert.ok(s.includes("revision-v12-redacted-fail-closed-cooldown"));
+  assert.ok(s.includes('import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";'));
+  assert.ok(s.includes('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey'));
+  assert.ok(s.includes('Caller must authenticate with a configured server-side Supabase API key.'));
+  assert.ok(s.includes('Request body must be valid JSON.'));
+  assert.ok(s.includes('success: false,\\n\\nmode:\\n"chapter-revision",\\n\\nstatus:\\n"revision_failed_validation"'));
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
   assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'));
