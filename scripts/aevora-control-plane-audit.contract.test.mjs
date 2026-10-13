@@ -67,3 +67,9 @@ test("tracked audit Edge Function is GET-only and requires the scoped bearer tok
   assert.match(edgeSource, /readTable\("taleforge_ai_provider_state"/);
   assert.doesNotMatch(edgeSource, /\.insert\s*\(|\.update\s*\(|\.delete\s*\(|\.upsert\s*\(/);
 });
+
+test("audit endpoint strips a standard Bearer prefix using whitespace matching", () => {
+  assert.match(edgeSource, /replace\(\/\^Bearer\\\\s\+\/i, ""\)/);
+  assert.doesNotMatch(edgeSource, /replace\(\/\^Bearer\\\\\\\\s\+\/i, ""\)/,
+    "the regex must not look for a literal backslash before s");
+});
