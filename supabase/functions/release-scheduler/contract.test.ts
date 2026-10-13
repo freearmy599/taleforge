@@ -150,6 +150,18 @@ Deno.test("generation orchestrator success updates also preserve newer blueprint
   assert(source.includes(successUpdate), "successful generation must only transition a blueprint still claimed as generating");
 });
 
+Deno.test("generation orchestrator fails closed when published chapter history cannot be read", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  assert(source.includes('const{data:pub,error:publishedHistoryError}=await supabase.from("chapters").select("chapter_number").eq("series_id",schedule.series_id).eq("status","published")'),
+    "latest published chapter lookup must retain database errors");
+  assert(source.includes('if(publishedHistoryError){results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"published_history_unavailable",blocked:true,retryable:true'),
+    "a published-history read failure must block generation for the affected schedule");
+  assert(source.includes('reason:"Could not verify the latest published chapter; generation stopped to avoid acting on an unsafe chapter boundary."'),
+    "the blocked result must explain the safe-stop reason");
+  assert(!source.includes('const{data:pub}=await supabase.from("chapters").select("chapter_number")'),
+    "published-history errors must not be silently converted to chapter number zero");
+});
+
 Deno.test("generation buffer counts only the latest output state per chapter", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   assert(source.includes('const latestAfterValues=[...latestAfter.values()];const backlog=latestAfterValues.some((o)=>o.generation_status==="needs_revision")'),
