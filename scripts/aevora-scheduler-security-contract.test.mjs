@@ -36,3 +36,24 @@ test("scheduler keeps lease ownership and publication confirmation checks", () =
   assert.ok(source.includes("d.success===true && d.published===true"));
   assert.ok(source.includes('confirmedChapter.status!=="published"'));
 });
+
+test("lease renewal is checked before each publisher invocation", () => {
+  const renew = source.indexOf('supabase.rpc("aevora_renew_release_scheduler_lease"');
+  const publisher = source.indexOf('url+"/functions/v1/release-publisher"');
+  assert.ok(renew >= 0 && publisher > renew, "the lease must be renewed before publication");
+  assert.ok(source.indexOf('if(renewed.error || renewed.data!==true)') < publisher,
+    "failed lease renewal must stop before invoking the publisher");
+});
+
+test("schedule advancement requires every selected publication to be confirmed", () => {
+  assert.ok(source.includes('const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0'));
+  assert.ok(source.includes('attemptedCount===publishCount && published.length===publishCount'));
+  assert.ok(source.includes('&& !publicationFailed && !leaseLost;'));
+  assert.ok(source.includes('if(!dryRun && nextRelease && allSelectedConfirmed)'));
+  assert.ok(source.includes('aevora_advance_release_schedule_if_lease_owned'));
+});
+
+test("lifecycle activation is blocked after publication or lease failure", () => {
+  assert.ok(source.includes('lifecycleStatus==="preparing" && !publicationFailed && !leaseLost'));
+  assert.ok(source.includes('action:"lifecycle_transition_failed"'));
+});
