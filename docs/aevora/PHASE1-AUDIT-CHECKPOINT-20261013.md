@@ -116,3 +116,13 @@ Default EXECUTE grants for future functions are also present under `postgres` an
 - The earlier failing run was caused by a test's stale revision-version assertion after the worker version bump; the contract was updated and the subsequent run passed.
 
 This remains a branch-only fix. No production deployment, migration, schedule mutation, chapter generation/publication, or billable Supabase branch was initiated.
+
+### Orchestration cooldown fallback — 2026-10-13 continuation
+
+- A follow-up source audit found that the generation orchestrator's overload/quota cooldown recorder existed but had no call sites. Wired it as a fallback for explicit provider quota/temporary-overload responses from both chapter generation and revision.
+- The fallback now leaves an already-active cooldown untouched, preventing the orchestrator from double-counting a downstream worker's successfully persisted cooldown. Malformed state still fails closed, and provider-state lookup failures are not misclassified as provider overload.
+- Added contract assertions for both fallback call sites and the no-double-count behavior.
+- Latest successful branch validation: [workflow run 38431920592](https://github.com/freearmy599/taleforge/actions/runs/38431920592), commit `b623d2e287f74d57b6edf37985740540fdfa08aa`. All configured Edge Function type checks and source-contract suites passed, including pipeline redaction, review error-redaction, scheduler/publisher security, revision worker security/idempotency, provider-state grants, and internal worker authorization.
+- This remains a repository-only hardening step. The separate live/production drift, pending migrations, deployment gates, and table-by-table RLS/grant review remain open.
+
+**Safety boundary unchanged:** no production deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was performed.
