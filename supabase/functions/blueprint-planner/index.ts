@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION = "blueprint-planner-v7-arc-injected";
+const VERSION = "blueprint-planner-v8-redacted-quota-guard";
 const jsonHeaders = { "Content-Type": "application/json" };
 
 function cleanJson(text:string) {
@@ -12,6 +12,36 @@ function cleanJson(text:string) {
     return JSON.parse(s.slice(a,b+1).replace(/,\\s*([}\\]])/g,"$1"));
   }
   return JSON.parse(s.replace(/,\\s*([}\\]])/g,"$1"));
+}
+
+async function recordGeminiQuotaCooldown(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error: stateError } = await db.from("taleforge_ai_provider_state")
+      .select("consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
+    if (stateError || !data) {
+      console.error("[quota-guard] Gemini cooldown state could not be verified; persistence skipped.");
+      return;
+    }
+    const previousCount = Number(data.consecutive_throttle_count ?? 0);
+    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
+    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const now = new Date();
+    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
+      provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
+      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    }, { onConflict: "provider" });
+    if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
+  } catch {
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
+  }
 }
 
 Deno.serve(async (req:Request) => {
@@ -103,7 +133,7 @@ Use arrays for the six list/object fields where appropriate. target_word_count m
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.8,maxOutputTokens:3000,responseMimeType:"application/json"}})
     });
-    if(!resp.ok) throw new Error(`Gemini planner HTTP ${resp.status}: ${await resp.text()}`);
+    if(!resp.ok) throw new Error(`Gemini HTTP ${resp.status}${resp.status===429?" RESOURCE_EXHAUSTED":""}`);
     const gd=await resp.json();
     const text=gd?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text??"").join("")??"";
     const bp=cleanJson(text);
@@ -121,6 +151,7 @@ Use arrays for the six list/object fields where appropriate. target_word_count m
     if(insertError) throw insertError;
     return new Response(JSON.stringify({success:true,version:VERSION,action:"blueprint_created",blueprint:inserted}),{headers:jsonHeaders});
   } catch(e) {
-    return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:jsonHeaders});
+    await recordGeminiQuotaCooldown(e);
+    return new Response(JSON.stringify({success:false,version:VERSION,error:"Blueprint planning failed; internal diagnostics were withheld."}),{status:500,headers:jsonHeaders});
   }
 });
