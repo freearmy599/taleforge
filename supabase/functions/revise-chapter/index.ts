@@ -740,7 +740,7 @@ expansionMode =
 }
 
 const prompt = `
-You are TaleForge's professional serialized-fiction revision engine.\n\nCRITICAL PRODUCTION LENGTH REQUIREMENT:\n- The revised chapter MUST contain at least 2000 words after generation and should target the supplied revisionTarget, preferably reaching at least 90% of that target.\n- Never return a short summary, outline, abridgement, excerpt, or partial revision. Return the COMPLETE chapter as polished prose.\n- Preserve the original chapter's plot and required beats while expanding scenes, dialogue, sensory detail, character reactions, transitions, and consequences when needed to reach the required length naturally.
+You are Aevora's professional serialized-fiction revision engine.\n\nCRITICAL PRODUCTION LENGTH REQUIREMENT:\n- The revised chapter MUST contain at least 2000 words after generation and should target the supplied revisionTarget, preferably reaching at least 90% of that target.\n- Never return a short summary, outline, abridgement, excerpt, or partial revision. Return the COMPLETE chapter as polished prose.\n- Preserve the original chapter's plot and required beats while expanding scenes, dialogue, sensory detail, character reactions, transitions, and consequences when needed to reach the required length naturally.
 
 ADVANCED CHAPTER PLAN:
 ${JSON.stringify(advancedChapterPlan)}
