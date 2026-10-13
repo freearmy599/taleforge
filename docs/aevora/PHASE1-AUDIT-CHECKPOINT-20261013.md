@@ -48,3 +48,8 @@ Do **not** change those schema-wide default privileges as part of an automatic p
 The policy catalog also showed unrestricted public SELECT policies on internal continuity state, reconciliation evidence, narrative-memory snapshots, narrative-thread state/events, novelty evaluations, and system dependency/health/registry tables. Several expose `before_state`, `after_state`, evidence JSON, candidate payloads, or memory payloads; these are engine internals rather than reader-facing chapter content.
 
 A second branch-only candidate migration, `supabase/migrations/20261013103000_lock_internal_narrative_intelligence_tables.sql`, drops the specifically observed public-read policies and revokes `anon`/`authenticated` table privileges for those 13 internal tables. It creates no replacement client policies. **Not applied to production.** Before any rollout, verify that no public-facing UI intentionally consumes these internals; if a legitimate use exists, expose a narrowly scoped safe view instead of restoring broad table reads.
+
+
+## Latest validation after RLS migration contracts
+
+The source-contract suite now also checks both server-only grant revocation and internal narrative-table policy lockdown. Latest successful run: [38343684766](https://github.com/freearmy599/taleforge/actions/runs/38343684766), commit `c38d76b00fd520118ece1f15d918b0073148c9f6`, **61 passed / 0 failed**; configured Edge Function type checks passed. The latest subsequent commit only updates this audit document.
