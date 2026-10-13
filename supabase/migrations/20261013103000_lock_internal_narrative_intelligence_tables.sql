@@ -30,4 +30,4 @@ REVOKE ALL PRIVILEGES ON TABLE
   public.taleforge_system_dependencies,
   public.taleforge_system_health,
   public.taleforge_system_registry
-FROM anon, authenticated;
+FROM PUBLIC, anon, authenticated;
