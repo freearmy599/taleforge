@@ -71,3 +71,9 @@ test("generation orchestrator exhausts revision backlog using a database-allowed
   assert.ok(s.includes("revision_exhausted_outputs:revisionExhaustedOutputs"));
   assert.equal(s.includes('generation_status:"revision_exhausted"'), false);
 });
+
+test("generation orchestrator writes only allowed chapter-blueprint statuses", async () => {
+  const s = await source("supabase/functions/generation-orchestrator/index.ts");
+  assert.ok(s.includes('.from("chapter_blueprints").update({generation_status:"generated",updated_at:new Date().toISOString()})'));
+  assert.equal(s.includes('generation_status:no.generation_status==="needs_revision"?"needs_revision":"generated"'), false);
+});
