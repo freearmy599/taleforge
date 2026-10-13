@@ -329,15 +329,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    const hasReviewFailures = results.some((result: any) =>
+      result.blocked === true || result.action === "error"
+    );
+
     return json({
-      success: true,
+      success: !hasReviewFailures,
+      partial_success: results.some((result: any) => result.action === "reviewed") && hasReviewFailures,
       mode: "review-orchestrator",
       orchestrator_version: VERSION,
       checked_at: new Date().toISOString(),
       outputs_checked: outputs?.length ?? 0,
       results,
-      note: "The orchestrator runs quality, continuity, originality, revision regression when applicable, safety, then publication review. It never publishes directly.",
-    });
+      note: "The orchestrator runs quality, continuity, originality, revision regression when applicable, safety, then publication review. It never publishes directly. Any blocked or errored output makes the overall result unsuccessful.",
+    }, hasReviewFailures ? 207 : 200);
   } catch (error) {
     return json({
       success: false,
