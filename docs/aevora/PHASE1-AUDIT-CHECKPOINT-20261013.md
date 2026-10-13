@@ -143,3 +143,9 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 
 - Extended the pipeline contract so all five planner/continuity workers are checked for missing provider-state fail-closed behavior, malformed cooldown rejection, and active-cooldown blocking—not just the subset previously covered.
 - Validation passed on [workflow run 38434779941](https://github.com/freearmy599/taleforge/actions/runs/38434779941), commit `482ec83ded7e411d9de7c66d9f9388f8b7149477`: configured Edge Function type checks passed, Deno source-contract suite **72/72**, and Node contract suites **42/42** (**114 total, 0 failures**).
+
+### Revision successor NULL-status edge case — 2026-10-13
+
+- Tightened the prepared idempotency migration so rows with a NULL `generation_status` are included in duplicate reconciliation and in the partial unique index (`IS DISTINCT FROM` predicates). The worker's preflight now checks all direct successors and ignores only explicitly `rejected` rows; PostgREST `neq` would otherwise omit NULL statuses.
+- Added contract coverage for both the migration predicates and worker behavior. The migration remains prepared only and has not been applied.
+- Latest successful validation: [workflow run 38435465968](https://github.com/freearmy599/taleforge/actions/runs/38435465968), commit `36006197138fc7638f249755b05b33e026651312`: configured Edge Function type checks passed; Deno source-contract tests **72/72** and Node contract tests **42/42** (**114 total, 0 failures**).
