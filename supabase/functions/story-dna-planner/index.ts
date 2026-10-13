@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="story-dna-planner-v5-fail-closed-cooldown";
+const VERSION="story-dna-planner-v6-aevora-brand";
 function clean(t:string){const s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");return JSON.parse(a>=0?s.slice(a,b+1):s)}
 async function recordGeminiQuotaCooldown(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -52,7 +52,7 @@ Deno.serve(async(req)=>{
   if(dna.error)throw new Error("Unable to read existing story DNA.");
   if(arc.error)throw new Error("Unable to read the story arc plan.");
   if(chapters.error)throw new Error("Unable to read recent published chapters.");
-  const prompt=`You are TaleForge's genre-neutral Story DNA architect. Create a durable story bible for a serialized fiction series. Preserve continuity and make it useful for future chapter planning. The story's genre, subgenre, setting, technology, magic, science, social systems, and narrative conventions must come from the supplied series and its existing material. NEVER import mechanics, terminology, character archetypes, power systems, tropes, or assumptions from another genre merely because they are common in training data. For example, a science-fiction story must not receive cultivation realms, mana, sects, spell systems, or fantasy power progression unless the supplied story explicitly establishes them. A romance must not receive sci-fi technology; a mystery must not receive fantasy magic; a historical story must not receive modern technology unless explicitly established. When genre information is incomplete, infer conservatively from the story itself rather than inventing cross-genre mechanics. Do not copy existing fiction.
+  const prompt=`You are Aevora's genre-neutral Story DNA architect. Create a durable story bible for a serialized fiction series. Preserve continuity and make it useful for future chapter planning. The story's genre, subgenre, setting, technology, magic, science, social systems, and narrative conventions must come from the supplied series and its existing material. NEVER import mechanics, terminology, character archetypes, power systems, tropes, or assumptions from another genre merely because they are common in training data. For example, a science-fiction story must not receive cultivation realms, mana, sects, spell systems, or fantasy power progression unless the supplied story explicitly establishes them. A romance must not receive sci-fi technology; a mystery must not receive fantasy magic; a historical story must not receive modern technology unless explicitly established. When genre information is incomplete, infer conservatively from the story itself rather than inventing cross-genre mechanics. Do not copy existing fiction.
 
 SERIES:
 ${JSON.stringify(series)}
