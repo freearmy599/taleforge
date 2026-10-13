@@ -850,3 +850,18 @@ Deno.test("character and world continuity workers authenticate before body parsi
       name + " must require the explicit secret-key allowlist");
   }
 });
+
+Deno.test("planning handlers require trusted server-side callers", async () => {
+  const cases = [
+    ["blueprint-planner", new URL("../blueprint-planner/index.ts", import.meta.url), "req.json()", "createClient(supabaseUrl, serviceKey)"],
+    ["story-dna-planner", new URL("../story-dna-planner/index.ts", import.meta.url), "req.json()", "createClient(url,key)"],
+  ] as const;
+  for (const [name, url, bodyMarker, clientMarker] of cases) {
+    const source = await Deno.readTextFile(url);
+    const guard = source.indexOf("isTrustedInternalApiKey(");
+    assert(source.includes("POST"), name + " must enforce a POST-only method policy");
+    assert(guard >= 0 && source.indexOf(bodyMarker) > guard && source.indexOf(clientMarker) > guard,
+      name + " must authenticate before parsing requests or creating a privileged client");
+    assert(source.includes("AEVORA_INTERNAL_API_KEY_NAMES"), name + " must use the explicit internal-key allowlist");
+  }
+});
