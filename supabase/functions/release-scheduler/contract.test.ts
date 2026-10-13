@@ -22,6 +22,8 @@ const publisherIdempotencyUrl = new URL("../release-publisher/publisher-idempote
 const publisherOutputStatusUrl = new URL("../release-publisher/publisher-output-status.ts", import.meta.url);
 const generationOrchestratorUrl = new URL("../generation-orchestrator/index.ts", import.meta.url);
 const reviewOrchestratorUrl = new URL("../review-orchestrator/index.ts", import.meta.url);
+const publicationSyncProcessorUrl = new URL("../publication-sync-processor/index.ts", import.meta.url);
+const postPublicationCanonSyncUrl = new URL("../post-publication-canon-sync/index.ts", import.meta.url);
 
 Deno.test("scheduler only inspects disabled schedules for a targeted dry run", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -782,4 +784,34 @@ Deno.test("publisher first-publication timestamp repair is conditional and surfa
   }
   assert(source.split("Series first-publication timestamp sync failed:").length - 1 === 3,
     "all three publisher paths must report timestamp synchronization failures consistently");
+});
+
+
+Deno.test("publication sync processor authenticates before privileged work and verifies outbox state writes", async () => {
+  const source = await Deno.readTextFile(publicationSyncProcessorUrl);
+  const auth = source.indexOf("isTrustedInternalApiKey(");
+  const client = source.indexOf("createClient(url,key");
+  assert(auth >= 0 && client > auth, "worker must validate the server-side API key before creating a privileged client");
+  assert(source.includes('if (req.method !== "POST")'), "worker must reject non-POST requests");
+  assert(source.includes("if (staleRecovery.error) throw new Error("), "stale event recovery errors must not be silently ignored");
+  assert(source.includes('.lt("attempts",8)'), "events at the retry ceiling must not be auto-claimed indefinitely");
+  assert(source.includes('.eq("id",event.id).eq("status","processing").select("id").maybeSingle()'),
+    "completion and retry writes must be fenced to the claimed processing row and verify an affected row");
+  assert(source.includes('status: attempts >= 8 ? "failed" : "pending"'), "retry ceiling must retain the schema-supported terminal failed status");
+  assert(source.includes('status:attempts >= 8 ? "failed_terminal" : "retry_scheduled"'),
+    "response must distinguish terminal failures from scheduled retries");
+});
+
+Deno.test("post-publication canon sync authenticates and verifies publication before downstream calls", async () => {
+  const source = await Deno.readTextFile(postPublicationCanonSyncUrl);
+  const auth = source.indexOf("isTrustedInternalApiKey(");
+  const body = source.indexOf("const body=await req.json()");
+  const publishedCheck = source.indexOf('if(chapter.status!=="published")');
+  const downstreamCalls = source.indexOf('for(const name of ["character-continuity","world-continuity"])');
+  assert(auth >= 0 && body > auth, "canon sync must authenticate before parsing and acting on a request");
+  assert(source.includes('if(req.method!=="POST")'), "canon sync must reject non-POST requests");
+  assert(source.includes('typeof body.chapter_id==="string"?body.chapter_id.trim():""'),
+    "chapter_id must be a non-empty string rather than arbitrary truthy input");
+  assert(publishedCheck >= 0 && downstreamCalls > publishedCheck,
+    "published chapter status must be verified before invoking continuity workers");
 });
