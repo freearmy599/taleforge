@@ -916,3 +916,14 @@ Deno.test("semantic continuity extraction blocks malformed provider cooldown bef
   assert(invalidTimestamp >= 0 && queueClaim > invalidTimestamp,
     "malformed non-empty provider cooldown state must block before claiming queued work");
 });
+
+
+Deno.test("semantic continuity dry-run never claims or resets a queue item", async () => {
+  const source = await Deno.readTextFile(new URL("../semantic-continuity-extraction/index.ts", import.meta.url));
+  const dryRun = source.indexOf('if(!execute) return new Response(JSON.stringify({success:true,version:VERSION,status:"dry_run",queue_mutated:false})');
+  const claim = source.indexOf('db.rpc("taleforge_claim_continuity_queue"');
+  assert(dryRun >= 0 && claim > dryRun,
+    "dry-run must return before the queue-claim RPC");
+  assert(!source.includes('.update({status:"pending",locked_at:null,updated_at:new Date().toISOString()})'),
+    "dry-run must not claim a job and then mutate it back to pending");
+});
