@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const CONTINUITY_VERSION = "continuity-v7-retryable-provider-errors";
+const CONTINUITY_VERSION = "continuity-v8-monotonic-cooldown";
 
 const MIN_SCORE = 85;
 
