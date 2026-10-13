@@ -218,7 +218,8 @@ if(statusError||!statusRow){
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
 }catch(e){
 const message=e instanceof Error?e.message:String(e);
-if(db && (message.includes("Gemini HTTP 429") || message.includes("RESOURCE_EXHAUSTED"))){
+const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
+if(db && providerQuotaFailure){
  try{
   const {data}=await db.from("taleforge_ai_provider_state").select("consecutive_throttle_count").eq("provider","gemini").maybeSingle();
   const count=Number(data?.consecutive_throttle_count??0)+1;
@@ -230,6 +231,6 @@ if(db && (message.includes("Gemini HTTP 429") || message.includes("RESOURCE_EXHA
  }catch(cooldownException){console.error("[generate-chapter] cooldown recording exception",String(cooldownException));}
 }
 console.error("[generate-chapter] request failed",JSON.stringify({request_id:req.headers.get("x-request-id")||req.headers.get("sb-request-id")||null,error_name:e instanceof Error?e.name:"UnknownError",error_message:message.slice(0,1200)}));
-return reply({success:false,error:message},500);
+return reply({success:false,retryable:providerQuotaFailure,reason:providerQuotaFailure?"provider_quota_blocked":"generation_failed",error:providerQuotaFailure?"Gemini quota or rate limit was reached; retry after provider cooldown.":"Generation request failed; internal diagnostics were withheld."},providerQuotaFailure?429:500);
 }
 });
