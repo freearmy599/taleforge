@@ -1,11 +1,11 @@
-# TaleForge Story Opportunity Intelligence
+# Aevora Story Opportunity Intelligence
 
 Story Opportunity Intelligence identifies promising narrative spaces before story concept generation.
 
 It evaluates:
 - compatibility
 - novelty
-- distance from the TaleForge catalog
+- distance from the Aevora catalog
 - long-serial sustainability
 - payoff potential
 - inversion opportunities
