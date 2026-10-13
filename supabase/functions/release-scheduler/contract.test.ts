@@ -1148,8 +1148,8 @@ Deno.test("internal API-key validation fails closed and only trusts explicitly a
     "an empty allowlist must not trust project secrets");
   assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1"}', "   , "),
     "an allowlist containing only whitespace must not trust project secrets");
-  assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1"}', "aevora_internal,missing_name"),
-    "allowlisted names must still resolve to configured string values");
+  assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1"}', "missing_name"),
+    "an allowlisted name with no configured value must not authenticate a caller");
   assert(!isTrustedInternalApiKey("secret-1", null, '["secret-1"]', "0"),
     "a JSON array must not be treated as a named secret-key map");
   assert(!isTrustedInternalApiKey("secret-1", null, 'not-json', "aevora_internal"),
