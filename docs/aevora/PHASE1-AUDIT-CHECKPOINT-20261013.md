@@ -148,4 +148,10 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 
 - Tightened the prepared idempotency migration so rows with a NULL `generation_status` are included in duplicate reconciliation and in the partial unique index (`IS DISTINCT FROM` predicates). The worker's preflight now checks all direct successors and ignores only explicitly `rejected` rows; PostgREST `neq` would otherwise omit NULL statuses.
 - Added contract coverage for both the migration predicates and worker behavior. The migration remains prepared only and has not been applied.
-- Latest successful validation: [workflow run 38435465968](https://github.com/freearmy599/taleforge/actions/runs/38435465968), commit `36006197138fc7638f249755b05b33e026651312`: configured Edge Function type checks passed; Deno source-contract tests **72/72** and Node contract tests **42/42** (**114 total, 0 failures**).
+- Validation for the NULL-status change: [workflow run 38435465968](https://github.com/freearmy599/taleforge/actions/runs/38435465968), commit `36006197138fc7638f249755b05b33e026651312`: configured Edge Function type checks passed; Deno source-contract tests **72/72** and Node contract tests **42/42** (**114 total, 0 failures**).
+
+### Approved-successor migration preflight — latest validation
+
+- The idempotency migration now aborts before any reconciliation/index write if a source has multiple approved successors, as well as if it has multiple published successors. This avoids choosing between two approved chapter candidates based only on recency.
+- The read-only audit found a source with two approved successors, so the migration intentionally remains blocked until a human reviews and reconciles those candidates. No production rows were changed.
+- The updated migration contract passed in [workflow run 38436555300](https://github.com/freearmy599/taleforge/actions/runs/38436555300). Configured Edge Function type checks and all source/Node contracts passed.
