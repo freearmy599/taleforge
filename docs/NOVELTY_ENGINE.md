@@ -1,11 +1,11 @@
-# TaleForge Novelty Engine
+# Aevora Novelty Engine
 
 The Novelty Engine evaluates whether a validated hybrid recipe is sufficiently differentiated to proceed toward concept design.
 
 ## Dimensions
-- Familiarity: how common the exact component signature is within TaleForge.
+- Familiarity: how common the exact component signature is within Aevora.
 - Structural novelty: whether multiple narrative grammars create a distinct structural arrangement.
-- Catalog distance: distance from combinations already encountered by TaleForge.
+- Catalog distance: distance from combinations already encountered by Aevora.
 - Sustainability: whether the combination can support long-form serialization.
 - Payoff potential: whether the structure can support meaningful delayed consequences and resolutions.
 - Overall novelty: weighted decision score.
