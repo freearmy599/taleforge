@@ -961,9 +961,17 @@ Math.max(900, remaining + 250) +
 revisionMinimum +
 " words.\\n\\nCURRENT CHAPTER:\\n" +
 revisedContent;
-const continuation = cleanGeminiOutput(
-await callGemini(geminiApiKey, continuationPrompt, 0.36)
-);
+let continuation: string;
+try {
+continuation = cleanGeminiOutput(await callGemini(geminiApiKey, continuationPrompt, 0.36));
+} catch (providerError) {
+const cooldown = await recordGeminiThrottle(supabase, providerError);
+const providerMessage = providerError instanceof Error ? providerError.message : "";
+if (providerMessage.includes("Gemini HTTP 429") || providerMessage.includes("RESOURCE_EXHAUSTED")) {
+return jsonResponse({ success: false, blocked: true, retryable: true, reason: "provider_quota_blocked", cooldown_until: cooldown?.cooldown_until ?? providerStateResult.data.cooldown_until ?? null, error: "Revision paused because Gemini quota or rate limits were reached." }, 429);
+}
+throw providerError;
+}
 if (!continuation || normalizeText(continuation) === normalizeText(revisedContent)) break;
 revisedContent = revisedContent.trim() + "\\n\\n" + continuation.trim();
 }
