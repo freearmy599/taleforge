@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const ORIGINALITY_VERSION = "originality-v5-aevora-brand";
+const ORIGINALITY_VERSION = "originality-v6-temporary-overload-cooldown";
 const MIN_SCORE = 85;
 
 function jsonResponse(body: unknown, status = 200) {
@@ -185,7 +185,8 @@ ${JSON.stringify(series.world_rules || {}, null, 2)}
 
 async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise<void> {
   const message = error instanceof Error ? error.message : String(error);
-  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  const isTemporaryOverload = message.includes("Gemini HTTP 503");
+  if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
 
   try {
     const { data, error: stateError } = await supabase
@@ -200,7 +201,7 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
 
     const previousCount = Number(data?.consecutive_throttle_count ?? 0);
     const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
-    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
     const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
     const existingUntil = data?.cooldown_until ? Date.parse(data.cooldown_until) : 0;
@@ -216,7 +217,7 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
         provider: "gemini",
         cooldown_until: until,
         consecutive_throttle_count: count,
-        last_error: "Gemini HTTP 429 RESOURCE_EXHAUSTED",
+        last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini HTTP 429 RESOURCE_EXHAUSTED",
         last_error_at: now.toISOString(),
         updated_at: now.toISOString(),
       }, { onConflict: "provider" });
