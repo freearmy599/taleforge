@@ -42,7 +42,7 @@ test("publication outbox and attachment metrics remain server-side only", () => 
     assert.ok(metricsOutboxMigration.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM PUBLIC, anon, authenticated`), `${table} must revoke all client and PUBLIC table privileges`);
   }
   assert.equal(/CREATE POLICY/i.test(metricsOutboxMigration), false, "server-only telemetry and outbox tables must not gain client policies");
-  assert.equal(/GRANT\\s+.+\\s+TO\\s+(anon|authenticated)/i.test(metricsOutboxMigration), false, "server-only tables must not re-grant client access");
+  assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(metricsOutboxMigration), false, "server-only tables must not re-grant client access");
 });
 
 test("internal policyless intelligence tables are server-side only", () => {
