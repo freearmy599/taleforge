@@ -151,8 +151,8 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
       .select("consecutive_throttle_count")
       .eq("provider", "gemini")
       .maybeSingle();
-    if (stateError) {
-      console.error("[quota-guard] Gemini cooldown count could not be read; review remains blocked for this request.");
+    if (stateError || !data) {
+      console.error("[quota-guard] Gemini cooldown count could not be verified; cooldown persistence was skipped.");
       return;
     }
 
