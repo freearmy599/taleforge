@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
           locked_at:null,
           last_error:null,
           updated_at:new Date().toISOString()
-        }).eq("id",event.id).eq("status","processing").select("id").maybeSingle();
+        }).eq("id",event.id).eq("status","processing").eq("locked_at",now).select("id").maybeSingle();
         if (completion.error || !completion.data) {
           throw new Error("Outbox completion write was not confirmed: " + (completion.error?.message ?? "event row no longer processing"));
         }
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           next_attempt_at:new Date(Date.now()+delayMinutes*60*1000).toISOString(),
           locked_at:null,
           updated_at:new Date().toISOString()
-        }).eq("id",event.id).eq("status","processing").select("id").maybeSingle();
+        }).eq("id",event.id).eq("status","processing").eq("locked_at",now).select("id").maybeSingle();
         if (retryWrite.error || !retryWrite.data) {
           results.push({id:event.id,chapter_id:event.chapter_id,status:"retry_state_update_failed",attempts,details:retryWrite.error?.message ?? "event row no longer processing"});
         } else {
