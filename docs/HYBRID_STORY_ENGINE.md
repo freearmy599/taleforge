@@ -1,4 +1,4 @@
-# TaleForge Hybrid Story Engine
+# Aevora Hybrid Story Engine
 
 The Hybrid Story Engine is a structural reasoning layer, not a prose generator.
 
