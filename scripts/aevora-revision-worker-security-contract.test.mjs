@@ -18,7 +18,7 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey'));
   assert.ok(s.includes('Caller must authenticate with a configured server-side Supabase API key.'));
   assert.ok(s.includes('Request body must be valid JSON.'));
-  assert.ok(s.includes('success: false,\\n\\nmode:\\n"chapter-revision",\\n\\nstatus:\\n"revision_failed_validation"'));
+  assert.ok(s.includes('success: false,\n\nmode:\n"chapter-revision",\n\nstatus:\n"revision_failed_validation"'));
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
   assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'));
