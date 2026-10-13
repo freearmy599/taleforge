@@ -3,6 +3,7 @@
 ## Read-only production findings
 
 - A read-only query of `information_schema.role_table_grants` confirmed that both `anon` and `authenticated` currently have broad table-level privileges (including SELECT, INSERT, UPDATE, and DELETE) on `public.publication_sync_outbox` and `public.story_attachment_metrics`.
+- A separate read-only catalog query confirmed RLS is enabled and there are zero policies on both tables. That is good row-policy posture, but the unnecessary table grants should still be revoked so these tables are not directly exposed to client roles.
 - The `publication_sync_outbox` snapshot previously contained 40 events, all `succeeded`; the active `taleforge-publication-sync` cron runs every five minutes. Cron header values were not retrieved.
 - A read-only query of `supabase_migrations.schema_migrations` returned no rows for migration versions `20261013090000` or `20261013100000`. Therefore this branch migration has not been recorded as applied under those versions. The production grants query is the direct evidence that client-role privileges remain.
 
@@ -16,7 +17,7 @@ A duplicate follow-up migration was removed from the repair branch; the contract
 
 ## Validation
 
-The most recent successful CI run before this cleanup was [run 38342939683](https://github.com/freearmy599/taleforge/actions/runs/38342939683), with **59 source-contract tests passed and 0 failed** on commit `53fe999d38de6e300a7b479e4d0459582c28d9ba`. The latest cleanup commit requires a fresh run before it can be considered validated.
+The latest successful CI run [38344611237](https://github.com/freearmy599/taleforge/actions/runs/38344611237) passed **62 source-contract tests, 0 failed**, with all configured Edge Function type checks successful on commit `9b15088e52e3b9658d0fc9c62dc87579990d1393`.
 
 Source-contract tests do not replace a staging integration check. Phase 1 remains open.
 
