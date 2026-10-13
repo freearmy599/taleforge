@@ -389,12 +389,19 @@ Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time"
 
 Deno.test("weekly release after a batch never schedules a second batch at today's later slot", () => {
   const reservedSlot = new Date("2026-10-11T03:30:00.000Z"); // Sunday 09:00 Asia/Kolkata
-  const completedBeforeSlot = new Date("2026-10-10T13:00:00.000Z");
+  const completedBeforeSameDaySlot = new Date("2026-10-11T02:00:00.000Z");
   const afterReservedSlot = nextWeeklyReleaseAfterBatch(
-    completedBeforeSlot, reservedSlot, 0, "09:00", "Asia/Kolkata",
+    completedBeforeSameDaySlot, reservedSlot, 0, "09:00", "Asia/Kolkata",
   );
   assert(afterReservedSlot.toISOString() === "2026-10-18T03:30:00.000Z",
-    "a batch completed before this week's reserved slot must schedule the following week, not later today");
+    "a batch completed before today's reserved slot must schedule the following week, not a second batch later today");
+
+  const completedOnPreviousDay = new Date("2026-10-10T13:00:00.000Z");
+  const preserveNextDaySlot = nextWeeklyReleaseAfterBatch(
+    completedOnPreviousDay, reservedSlot, 0, "09:00", "Asia/Kolkata",
+  );
+  assert(preserveNextDaySlot.toISOString() === reservedSlot.toISOString(),
+    "a future weekly slot on a later day must remain eligible");
 
   const completedAfterSlot = new Date("2026-10-11T04:00:00.000Z");
   const afterLongBatch = nextWeeklyReleaseAfterBatch(
