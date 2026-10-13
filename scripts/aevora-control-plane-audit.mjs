@@ -64,7 +64,7 @@ if (missing.length) {
   if (repo && token) await report(title, body);
   console.error(body);
   process.exitCode = 1;
-}
+} else {
 
 const findings = [];
 const evidence = [];
@@ -218,4 +218,6 @@ try {
   await report(title, body);
   console.error(body);
   process.exitCode = 1;
+}
+
 }
