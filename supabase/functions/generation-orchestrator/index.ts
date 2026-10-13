@@ -1,13 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const VERSION="generation-orchestrator-v15-truthful-failure-aggregation";
+const VERSION="generation-orchestrator-v16-redacted-diagnostics";
 const MAX_GENERATION_SERIES_PER_RUN=6, MAX_NEW_GENERATIONS_PER_SERIES_PER_RUN=1, MAX_REVISION_WORK_PER_RUN=1;
 const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 function response(body:unknown,status=200){return new Response(JSON.stringify(body,null,2),{status,headers:{...corsHeaders,"Content-Type":"application/json"}})}
-function errorMessage(error:unknown){return error instanceof Error?error.message:String(error)}
+function errorMessage(_error:unknown){return "Internal orchestration diagnostics were withheld."}
 function hasPipelineFailure(value:unknown):boolean{if(Array.isArray(value))return value.some(hasPipelineFailure);if(!value||typeof value!=="object")return false;const record=value as Record<string,unknown>;if(record.blocked===true||record.success===false||record.ok===false)return true;if(typeof record.action==="string"&&/(failed|error|blocked|unavailable|cooldown)$/.test(record.action))return true;return Object.values(record).some(hasPipelineFailure)}
-async function invokeFunction(url:string,key:string,name:string,body:unknown){const r=await fetch(url+"/functions/v1/"+name,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key,apikey:key},body:JSON.stringify(body)});const t=await r.text();let d:any;try{d=JSON.parse(t)}catch{d=null}if(!r.ok){const safe:any={error:"Downstream function failed; internal response details were withheld."};if(d&&typeof d==="object"&&!Array.isArray(d)){for(const k of ["reason","retryable","blocked","success"]){const v=d[k];if(["retryable","blocked","success"].includes(k)&&typeof v==="boolean")safe[k]=v;else if(k==="reason"&&typeof v==="string"&&/^[a-z0-9_]{1,80}$/.test(v))safe[k]=v;}}d=safe}else if(d===null){d={error:"Downstream function returned an invalid response."}}return{ok:r.ok,status:r.status,data:d}}
+async function invokeFunction(url:string,key:string,name:string,body:unknown){const r=await fetch(url+"/functions/v1/"+name,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key,apikey:key},body:JSON.stringify(body)});const t=await r.text();let d:any;try{d=JSON.parse(t)}catch{d=null}if(!r.ok||d?.success===false){const safe:any={error:"Downstream function failed; internal response details were withheld."};if(d&&typeof d==="object"&&!Array.isArray(d)){for(const k of ["reason","retryable","blocked","success"]){const v=d[k];if(["retryable","blocked","success"].includes(k)&&typeof v==="boolean")safe[k]=v;else if(k==="reason"&&typeof v==="string"&&/^[a-z0-9_]{1,80}$/.test(v))safe[k]=v;}}d=safe}else if(d===null){d={error:"Downstream function returned an invalid response."}}return{ok:r.ok,status:r.status,data:d}}
 async function refreshDeterministicIntelligence(supabase:any){
  const report:any={gemini_used:false,content_generation_performed:false,series:[]};
  const {data:allSeries,error:seriesError}=await supabase.from("series").select("id,title").neq("title","TaleForge Autonomous Pipeline Test");
@@ -38,7 +38,7 @@ async function recordGeminiThrottle(supabase:any,message:string) {
  const count=Number(data?.consecutive_throttle_count??0)+1;
  const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
  const until=new Date(Date.now()+cooldownHours*60*60*1000).toISOString();
- await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:String(message).slice(0,2000),last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
+ await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:"Gemini quota or rate-limit response",last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
  return {cooldown_until:until,cooldown_hours:cooldownHours,consecutive_throttle_count:count};
 }
 Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});if(req.method!=="POST")return response({success:false,error:"Method not allowed"},405);try{
