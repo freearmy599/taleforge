@@ -24,7 +24,7 @@ Deno.serve(async(req)=>{
     const chRes=await fetch(api+"chapters?id=eq."+encodeURIComponent(chapterId)+"&select=id,series_id,status,published_at",{
       headers:{"Authorization":"Bearer "+key,"apikey":key}
     });
-    if(!chRes.ok) throw new Error("Unable to load published chapter: "+await chRes.text());
+    if(!chRes.ok) throw new Error("Unable to load published chapter: HTTP "+chRes.status);
     const chapter=(await chRes.json())?.[0];
     if(!chapter) throw new Error("Published chapter not found.");
     if(chapter.status!=="published") throw new Error("Post-publication sync received a chapter that is not published.");
@@ -40,13 +40,13 @@ Deno.serve(async(req)=>{
     const intelligenceRes=await fetch(api+"story_intelligence?series_id=eq."+encodeURIComponent(chapter.series_id)+"&select=series_id,title,chapter_count,published_chapters,latest_chapter_at,recent_chapters_7d,days_since_update,trending_score,intelligence_status",{
       headers:{"Authorization":"Bearer "+key,"apikey":key}
     });
-    if(!intelligenceRes.ok) throw new Error("Unable to read story intelligence view: "+await intelligenceRes.text());
+    if(!intelligenceRes.ok) throw new Error("Unable to read story intelligence view: HTTP "+intelligenceRes.status);
     const intelligence=(await intelligenceRes.json())?.[0]||null;
 
     const trendingRes=await fetch(api+"story_trending_scores?series_id=eq."+encodeURIComponent(chapter.series_id)+"&select=series_id,trending_score,opens,completions,follows,bookmarks,latest_activity",{
       headers:{"Authorization":"Bearer "+key,"apikey":key}
     });
-    if(!trendingRes.ok) throw new Error("Unable to read story trending view: "+await trendingRes.text());
+    if(!trendingRes.ok) throw new Error("Unable to read story trending view: HTTP "+trendingRes.status);
     const trending=(await trendingRes.json())?.[0]||null;
 
     const failed=Object.values(results).some((x:any)=>!x.ok);
