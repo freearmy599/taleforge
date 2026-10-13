@@ -1016,3 +1016,23 @@ Deno.test("scheduler aggregate response fails when any schedule reports a safety
   assert(source.includes('partial_success:results.some((result:any)=>result.action==="published")&&hasScheduleFailures'),
     "partial publication plus any safety failure must be reported distinctly");
 });
+
+
+Deno.test("review orchestrator fails closed and reports blocked batches as unsuccessful", async () => {
+  const source = await Deno.readTextFile(reviewOrchestratorUrl);
+  const providerLookup = source.indexOf('.from("taleforge_ai_provider_state")');
+  const unavailableGuard = source.indexOf('reason: "provider_state_unavailable"', providerLookup);
+  const requestBody = source.indexOf("body = await req.json()", providerLookup);
+  assert(providerLookup >= 0 && unavailableGuard > providerLookup,
+    "provider-state lookup failure must return a blocked response");
+  assert(requestBody > unavailableGuard,
+    "provider state must be verified before request processing and any review calls");
+  assert(source.includes("const hasReviewFailures = results.some((result: any) =>"),
+    "blocked and errored per-output results must be aggregated");
+  assert(source.includes("success: !hasReviewFailures"),
+    "the overall review response must not claim success when any output is blocked or errored");
+  assert(source.includes("partial_success: results.some((result: any) => result.action === \"reviewed\") && hasReviewFailures"),
+    "mixed reviewed and blocked batches must be explicitly identified as partial success");
+  assert(source.includes("}, hasReviewFailures ? 207 : 200);"),
+    "blocked or errored review batches must return a non-success HTTP status");
+});
