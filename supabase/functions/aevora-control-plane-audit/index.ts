@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     console.error("[aevora-control-plane-audit] AEVORA_AUDIT_TOKEN is not configured");
     return json({ error: "audit_auth_not_configured" }, 503);
   }
-  const supplied = (req.headers.get("authorization") ?? "").replace(/^Bearer\\s+/i, "");
+  const supplied = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!constantTimeEqual(supplied, AUDIT_TOKEN)) return json({ error: "unauthorized" }, 401);
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     console.error("[aevora-control-plane-audit] Supabase runtime configuration missing");
