@@ -3,7 +3,7 @@ import { nextWeeklyRelease } from "./weekly-schedule.ts";
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
-const VERSION = "release-scheduler-v14-complete-failure-aggregation";
+const VERSION = "release-scheduler-v15-redacted-diagnostics";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -15,7 +15,7 @@ function response(body: unknown, status=200) {
     status, headers:{...corsHeaders,"Content-Type":"application/json"}
   });
 }
-function message(e: unknown){ return e instanceof Error ? e.message : String(e); }
+function message(_e: unknown){ return "Internal scheduler diagnostics were withheld."; }
 
 Deno.serve(async (req)=>{
   if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders});
@@ -333,7 +333,7 @@ Deno.serve(async (req)=>{
           if(!responseConfirmed){
             publicationFailed=true;
             results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"publish_unconfirmed",
-              chapter_number:candidate.chapter_number,http_status:r.status,details:d});
+              chapter_number:candidate.chapter_number,http_status:r.status,details:"Publisher response body was withheld."});
             break;
           }
           const {data:confirmedChapter,error:confirmError}=await supabase.from("chapters")
