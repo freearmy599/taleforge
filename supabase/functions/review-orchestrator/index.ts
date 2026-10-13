@@ -20,6 +20,45 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+// Only return decision fields the orchestrator needs. Downstream diagnostics,
+// provider payloads, raw text, and arbitrary nested fields stay server-side.
+function sanitizeReviewResult(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { response_shape: "invalid" };
+  }
+  const result = value as Record<string, unknown>;
+  const safe: Record<string, unknown> = {};
+  for (const key of ["success", "decision", "score", "generation_status", "eligible", "retryable", "reason"] as const) {
+    const field = result[key];
+    if (typeof field === "string" || typeof field === "boolean" ||
+        (key === "score" && typeof field === "number" && Number.isFinite(field))) {
+      safe[key] = field;
+    }
+  }
+  const gates = result.review_gates;
+  if (gates && typeof gates === "object" && !Array.isArray(gates)) {
+    const source = gates as Record<string, unknown>;
+    const sanitizedGates: Record<string, { passed: boolean }> = {};
+    for (const name of ["quality", "continuity", "originality", "safety"] as const) {
+      const gate = source[name];
+      if (gate && typeof gate === "object" && !Array.isArray(gate)) {
+        sanitizedGates[name] = { passed: (gate as Record<string, unknown>).passed === true };
+      }
+    }
+    safe.review_gates = sanitizedGates;
+  }
+  return safe;
+}
+
+function sanitizeRegressionResult(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { response_shape: "invalid" };
+  }
+  const result = value as Record<string, unknown>;
+  const status = result.status;
+  return typeof status === "string" ? { status } : { response_shape: "invalid" };
+}
+
 async function callFunction(baseUrl: string, serviceKey: string, functionName: string, outputId: string) {
   const res = await fetch(baseUrl + "/functions/v1/" + functionName, {
     method: "POST",
@@ -262,7 +301,7 @@ Deno.serve(async (req) => {
             "taleforge_evaluate_revision_regression",
             { p_revised_output_id: output.id }
           );
-          steps.push({ review: "revision_regression", action: "evaluated", status: regressionError ? "error" : (regression?.status ?? null), result: regressionError ? { error: errorMessage(regressionError) } : regression });
+          steps.push({ review: "revision_regression", action: "evaluated", status: regressionError ? "error" : (regression?.status ?? null), result: regressionError ? { error: "Revision regression evaluation failed." } : sanitizeRegressionResult(regression) });
           if (regressionError || !["improved", "neutral"].includes(regression?.status)) { blocked = true; break; }
         }
 
@@ -283,7 +322,7 @@ Deno.serve(async (req) => {
           function: step.functionName,
           http_status: call.status,
           ok: call.ok,
-          result: call.data,
+          result: sanitizeReviewResult(call.data),
         });
 
         if (!call.ok) {
