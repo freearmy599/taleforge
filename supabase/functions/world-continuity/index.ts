@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="world-continuity-v8-stable-idempotent-events";const H={"Content-Type":"application/json"};
+const VERSION="world-continuity-v9-redacted-quota-guard";const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{
  let s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();
  const a=s.indexOf("{"),b=s.lastIndexOf("}"); if(a>=0&&b>=a)s=s.slice(a,b+1);
@@ -14,6 +14,36 @@ const clean=(t:string)=>{
  for(const candidate of attempts){try{return JSON.parse(candidate)}catch{}}
  throw new Error("World continuity returned invalid JSON after safe normalization");
 };
+async function recordGeminiQuotaCooldown(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error: stateError } = await db.from("taleforge_ai_provider_state")
+      .select("consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
+    if (stateError || !data) {
+      console.error("[quota-guard] Gemini cooldown state could not be verified; persistence skipped.");
+      return;
+    }
+    const previousCount = Number(data.consecutive_throttle_count ?? 0);
+    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
+    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const now = new Date();
+    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
+      provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
+      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    }, { onConflict: "provider" });
+    if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
+  } catch {
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
+  }
+}
+
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS") return new Response("ok",{headers:H});
  if(req.method!=="POST") return new Response(JSON.stringify({success:false,error:"Method not allowed"}),{status:405,headers:H});
@@ -57,12 +87,12 @@ Element types may include location, organization, faction, technology, magic_sys
  const cooldownUntil=cooldownValue ? Date.parse(cooldownValue) : 0;
  if(cooldownValue && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
  if(cooldownUntil && cooldownUntil>Date.now()) return new Response(JSON.stringify({success:false,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:{"Content-Type":"application/json"}});
- const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(gemini)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.2,maxOutputTokens:7000,responseMimeType:"application/json"}})});if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}: ${await resp.text()}`);
+ const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(gemini)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.2,maxOutputTokens:7000,responseMimeType:"application/json"}})});if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}${resp.status===429?" RESOURCE_EXHAUSTED":""}`);
  const gd=await resp.json(),txt=gd?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text??"").join("")??"";const x=clean(txt);if(!Array.isArray(x.elements)||!Array.isArray(x.events))throw new Error("Invalid world continuity result.");
  const existing=await db.from("story_world_elements").select("*").eq("series_id",sid).eq("status","active");if(existing.error)throw new Error("Unable to reload world canon: "+existing.error.message);const map=new Map((existing.data??[]).map((e:any)=>[`${e.element_type}::${e.name.toLowerCase()}`,e]));
  for(const item of x.elements){if(typeof item.name!=="string"||typeof item.element_type!=="string")continue;const old:any=map.get(`${item.element_type}::${item.name.toLowerCase()}`);const row={series_id:sid,name:item.name.trim(),element_type:item.element_type,description:item.description??old?.description??null,properties:item.properties??old?.properties??{},rules:item.rules??old?.rules??[],dependencies:item.dependencies??old?.dependencies??[],known_by_characters:item.known_by_characters??old?.known_by_characters??[],first_appearance_chapter:old?.first_appearance_chapter??ch.chapter_number,last_referenced_chapter:ch.chapter_number,status:item.status??"active",version:Number(old?.version??0)+1,updated_at:new Date().toISOString()};if(old){const write=await db.from("story_world_elements").update(row).eq("id",old.id);if(write.error)throw new Error("Unable to update world canon: "+write.error.message)}else{const write=await db.from("story_world_elements").insert(row);if(write.error)throw new Error("Unable to insert world canon: "+write.error.message)}}
  const latest=await db.from("story_world_elements").select("id,name,element_type").eq("series_id",sid);if(latest.error)throw new Error("Unable to reload world canon IDs: "+latest.error.message);const ids=new Map((latest.data??[]).map((x:any)=>[`${x.element_type}::${x.name.toLowerCase()}`,x.id]));
  const priorEvents=await db.from("world_continuity_events").select("event_type,world_element_id,before_state,after_state,evidence").eq("chapter_id",ch.id);if(priorEvents.error)throw new Error("Unable to check existing world continuity events: "+priorEvents.error.message);const canonical=(v:any):any=>Array.isArray(v)?v.map(canonical):v&&typeof v==="object"?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;const eventKey=(v:any)=>JSON.stringify([v.event_type,v.world_element_id??null,canonical(v.before_state??{}),canonical(v.after_state??{}),v.evidence??""]);const seenEvents=new Set((priorEvents.data??[]).map((v:any)=>eventKey(v)));let eventsRecorded=0,eventsSkippedAsDuplicates=0,eventsSkippedUnmapped=0;for(const e of x.events){const name=String(e.element_name??"").trim().toLowerCase();const id=Array.from(ids.entries()).find(([k])=>k.endsWith(`::${name}`))?.[1];if(!id){eventsSkippedUnmapped++;continue;}const row={series_id:sid,chapter_id:ch.id,chapter_number:ch.chapter_number,event_type:String(e.event_type??"canon_change"),world_element_id:id,before_state:e.before_state??{},after_state:e.after_state??{},evidence:String(e.evidence??"")};const signature=eventKey(row);if(seenEvents.has(signature)){eventsSkippedAsDuplicates++;continue;}const ins=await db.from("world_continuity_events").insert(row);if(ins.error)throw new Error("Unable to record world continuity event: "+ins.error.message);seenEvents.add(signature);eventsRecorded++;}
  return new Response(JSON.stringify({success:true,version:VERSION,action:"world_continuity_updated",series_id:sid,chapter_number:ch.chapter_number,elements_updated:x.elements.length,events_recorded:eventsRecorded,events_skipped_as_duplicates:eventsSkippedAsDuplicates,events_skipped_unmapped:eventsSkippedUnmapped,contradictions:x.contradictions??[]}),{headers:H});
-}catch(e){return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:H})}
+}catch(e){await recordGeminiQuotaCooldown(e);return new Response(JSON.stringify({success:false,version:VERSION,error:"World continuity failed; internal diagnostics were withheld."}),{status:500,headers:H})}
 });
