@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { isPublishableGenerationStatus } from "./publisher-output-status.ts"; import { matchesPublishedOutput } from "./publisher-idempotency.ts"; import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts"; const RELEASE_VERSION = "release-publisher-v8-outbox-required-for-success"; const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", }; function jsonResponse(body: unknown, status = 200) { return new Response(JSON.stringify(body, null, 2), { status, headers: { ...corsHeaders, "Content-Type": "application/json", }, }); } function getErrorMessage(error: unknown): string { if (error instanceof Error) return error.message; if ( error && typeof error === "object" && "message" in error ) { return String( (error as { message?: unknown }).message ); } return String(error); } async function ensureCanonSyncOutboxEvent(supabase: any, chapterId: string) {
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { isPublishableGenerationStatus } from "./publisher-output-status.ts"; import { matchesPublishedOutput } from "./publisher-idempotency.ts"; import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts"; const RELEASE_VERSION = "release-publisher-v9-terminal-outbox-failure"; const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", }; function jsonResponse(body: unknown, status = 200) { return new Response(JSON.stringify(body, null, 2), { status, headers: { ...corsHeaders, "Content-Type": "application/json", }, }); } function getErrorMessage(error: unknown): string { if (error instanceof Error) return error.message; if ( error && typeof error === "object" && "message" in error ) { return String( (error as { message?: unknown }).message ); } return String(error); } async function ensureCanonSyncOutboxEvent(supabase: any, chapterId: string) {
   const eventType = "post_publication_canon_sync";
   const payload = { chapter_id: chapterId };
   const { error: enqueueError } = await supabase
@@ -23,6 +23,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { 
       status: "unconfirmed",
       reason: error ? getErrorMessage(error) : "Outbox row was not returned after idempotent enqueue.",
     };
+  }
+  const terminalFailure = data.status === "failed" && Number(data.attempts) >= 8;
+  if (terminalFailure) {
+    return { confirmed: false, queued: false, status: "failed_terminal", attempts: data.attempts, reason: "Canonical sync exhausted its retry limit; manual recovery is required." };
   }
   return { confirmed: true, queued: data.status !== "succeeded", status: data.status, attempts: data.attempts };
 }
