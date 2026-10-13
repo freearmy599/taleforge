@@ -117,7 +117,11 @@ if(reviewProviderStateError||!reviewProviderState){
 }
 
 const {data:out,error:oe}=await db.from("chapter_generation_outputs").select("*").eq("id",outputId).single();
-if(oe||!out)return reply({success:false,error:oe?.message||"Generation output not found."},404);
+if(oe){
+ console.error("[generate-chapter] quality-review output lookup failed",oe.message);
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Generation output could not be read; quality review was blocked."},503);
+}
+if(!out)return reply({success:false,error:"Generation output not found."},404);
 // Published output is immutable through the ordinary quality-review endpoint.
 if(out.generation_status==="published"){
  return reply({success:false,mode:"quality-review",retryable:false,reason:"output_already_published",error:"Published outputs cannot be reprocessed by the quality-review endpoint."},409);
@@ -145,11 +149,19 @@ if(count<minimum)issues.push(`Chapter is below the production minimum: ${count} 
 const hard={passed:issues.length===0,actualWordCount:count,targetWordCount:target,minimumWordCount:minimum,maximumWordCount:null,issues,warnings,repeatedPassages:[]};
 
 if(issues.length){
-const {data:review}=await db.from("chapter_reviews").upsert({
+const {data:review,error:reviewError}=await db.from("chapter_reviews").upsert({
 generation_output_id:outputId,review_type:"quality",status:"needs_revision",score:0,
 findings:{hard_validation:hard,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
 },{onConflict:"generation_output_id,review_type"}).select().single();
-await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId);
+if(reviewError){
+ console.error("[generate-chapter] deterministic quality-review write failed",reviewError.message);
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The deterministic review could not be saved; output state was not advanced."},503);
+}
+const {error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId);
+if(statusError){
+ console.error("[generate-chapter] deterministic review status update failed",statusError.message);
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",review_id:review?.id||null,error:"The review was saved but output status could not be updated; retry the guarded workflow."},503);
+}
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-failure",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision:"needs_revision",score:0,generation_status:"needs_revision",published:false,hard_validation:hard,next_step:"Run revise-chapter on this output."});
 }
 
@@ -175,7 +187,11 @@ generation_output_id:outputId,review_type:"quality",status:decision,score:Number
 findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
 },{onConflict:"generation_output_id,review_type"}).select().single();
 if(re)throw new Error(`Could not save quality review: ${re.message}`);
-await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId);
+const {error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId);
+if(statusError){
+ console.error("[generate-chapter] AI quality-review status update failed",statusError.message);
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",review_id:review?.id||null,error:"The quality review was saved but output status could not be updated; retry the guarded workflow."},503);
+}
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
 }catch(e){
 const message=e instanceof Error?e.message:String(e);
