@@ -165,9 +165,14 @@ try {
       }
     }
     if (provider.consecutive_throttle_count !== null && provider.consecutive_throttle_count !== undefined) {
-      const throttleCount = Number(provider.consecutive_throttle_count);
+      const rawThrottleCount = provider.consecutive_throttle_count;
+      const throttleCount = typeof rawThrottleCount === "number"
+        ? rawThrottleCount
+        : typeof rawThrottleCount === "string" && /^(0|[1-9][0-9]*)$/.test(rawThrottleCount)
+        ? Number(rawThrottleCount)
+        : Number.NaN;
       if (!Number.isSafeInteger(throttleCount) || throttleCount < 0) {
-        findings.push(`**Invalid AI provider throttle counter:** ${provider.provider}, consecutive_throttle_count=${provider.consecutive_throttle_count}`);
+        findings.push(`**Invalid AI provider throttle counter:** ${provider.provider}, consecutive_throttle_count=${rawThrottleCount}`);
       }
     }
     evidence.push(`- Provider ${provider.provider}: cooldown until ${provider.cooldown_until || "none"}; consecutive throttles=${provider.consecutive_throttle_count ?? "unknown"}`);
