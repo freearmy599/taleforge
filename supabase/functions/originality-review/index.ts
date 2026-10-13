@@ -659,7 +659,7 @@ genre conventions.
 
 ${candidateContext}
 
-EXISTING TALEFORGE CATALOGUE:
+EXISTING AEVORA CATALOGUE:
 ${catalogueContext || "(No existing catalogue entries.)"}
 
 Return ONLY valid JSON:
