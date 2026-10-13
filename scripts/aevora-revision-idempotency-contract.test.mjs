@@ -21,7 +21,7 @@ test("revision successor migration reconciles duplicates and installs a unique p
   assert.ok(migration.includes("SET generation_status = 'rejected'"));
   assert.ok(migration.includes("AND output.generation_status <> 'published'"));
   assert.ok(migration.includes("CREATE UNIQUE INDEX IF NOT EXISTS chapter_generation_outputs_revision_successor_unique"));
-  assert.ok(migration.includes("WHERE revision_of_output_id IS NOT NULL"));
+  assert.ok(migration.includes("WHERE revision_of_output_id IS NOT NULL\n    AND generation_status <> 'rejected'"), "rejected successors must not prevent a retry");
   assert.equal(/DELETE\s+FROM\s+public\.chapter_generation_outputs/i.test(migration), false, "revision history must not be deleted");
 });
 
