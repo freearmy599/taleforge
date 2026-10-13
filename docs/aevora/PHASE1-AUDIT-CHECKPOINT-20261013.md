@@ -106,3 +106,13 @@ Default EXECUTE grants for future functions are also present under `postgres` an
 - This validation is source/type checking only; it is not a live Supabase integration test. The revision-successor idempotency migration and the prepared server-only privilege migrations remain unapplied, and the hardened Edge Functions remain undeployed. Production drift and previously documented table-by-table RLS/grant triage remain open.
 
 **Safety boundary:** this continuation changed repository source/tests/docs only. No production function was deployed, no migration applied, no schedule changed, no chapter generated or published, and no billable Supabase branch created.
+
+
+### Revision attempt-limit follow-up — 2026-10-13
+
+- Added an independent attempt-limit check inside `revise-chapter`. Direct/internal callers can no longer bypass the orchestrator's `generation_attempt < 3` filter and spend additional Gemini quota on exhausted outputs.
+- Updated the revision contracts to cover the direct-call limit and safe `revision_attempt_limit_reached` response.
+- Latest successful validation: [workflow run 38427908258](https://github.com/freearmy599/taleforge/actions/runs/38427908258), commit `adc0a912fd192a463b5efe237a8d4d4c303134d7`. All configured Edge Function type checks passed, as did the 72 Deno source-contract tests and 38 Node contract tests (**110 total, 0 failures**).
+- The earlier failing run was caused by a test's stale revision-version assertion after the worker version bump; the contract was updated and the subsequent run passed.
+
+This remains a branch-only fix. No production deployment, migration, schedule mutation, chapter generation/publication, or billable Supabase branch was initiated.
