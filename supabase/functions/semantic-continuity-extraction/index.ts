@@ -72,9 +72,9 @@ Deno.serve(async(req)=>{
     for(const name of ["character-continuity","world-continuity"]){
       const r=await fetch(base+name,{method:"POST",headers,body:JSON.stringify({chapter_id:job.chapter_id})});
       const t=await r.text();
-      let data:any; try{data=JSON.parse(t)}catch{data={raw:t}};
-      results[name]={ok:r.ok,status:r.status,data};
-      if(!r.ok||data?.success===false) throw new Error(name+" failed: "+t.slice(0,1200));
+      let data:any; try{data=JSON.parse(t)}catch{data=null;}
+      results[name]={ok:r.ok,status:r.status,success:data?.success===true};
+      if(!r.ok||data?.success===false||data===null) throw new Error(name+" failed with HTTP "+r.status);
     }
 
     const {data:charEvents,error:charError}=await db.from("character_continuity_events")
