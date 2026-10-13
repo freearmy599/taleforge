@@ -158,6 +158,14 @@ Deno.serve(async (req) => {
       }, 500);
     }
 
+    if (requestedOutputId && (!outputs || outputs.length === 0)) {
+      return json({
+        success: false,
+        error: "The requested generation output was not found for the supplied filters.",
+        output_id: requestedOutputId,
+      }, 404);
+    }
+
     const results = [];
 
     for (const output of outputs ?? []) {
