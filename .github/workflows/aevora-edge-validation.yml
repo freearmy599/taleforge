@@ -28,6 +28,7 @@ name: Aevora Edge source validation
       - "supabase/functions/publication-review/**"
       - "supabase/functions/_shared/**"
       - "supabase/migrations/**"
+      - "scripts/aevora-*.mjs"
       - ".github/workflows/aevora-edge-validation.yml"
 
 permissions:
