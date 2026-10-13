@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const CONTINUITY_VERSION = "continuity-v2-fail-closed-provider-state";
+const CONTINUITY_VERSION = "continuity-v3-redacted-error-details";
 
 const MIN_SCORE = 85;
 
@@ -244,7 +244,7 @@ return jsonResponse(
 {
 success: false,
 error: "Generation output was not found.",
-details: outputError?.message || null,
+details: outputError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -290,7 +290,7 @@ return jsonResponse(
 {
 success: false,
 error: "Series was not found.",
-details: seriesError?.message || null,
+details: seriesError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -336,7 +336,7 @@ return jsonResponse(
 {
 success: false,
 error: "Could not load the story blueprint.",
-details: blueprintError.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -378,7 +378,7 @@ return jsonResponse(
 {
 success: false,
 error: "Could not load the chapter blueprint.",
-details: error.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -419,7 +419,7 @@ return jsonResponse(
 {
 success: false,
 error: "Could not load previous chapters.",
-details: error.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -741,8 +741,7 @@ return jsonResponse(
 {
 success: false,
 error: "Gemini continuity review failed.",
-details:
-error instanceof Error ? error.message : String(error),
+details: "Internal review diagnostics were withheld.",
 output_id: outputId,
 deterministic_validation: {
 passed: deterministicPassed,
@@ -838,7 +837,7 @@ return jsonResponse(
 {
 success: false,
 error: "Continuity review completed but could not be saved.",
-details: reviewError.message,
+details: "Internal review diagnostics were withheld.",
 output_id: outputId,
 decision: finalDecision,
 score: aiScore,
@@ -870,7 +869,7 @@ return jsonResponse(
 success: false,
 error:
 "Continuity review was saved, but the generation output could not be updated.",
-details: updateError.message,
+details: "Internal review diagnostics were withheld.",
 review_id: review.id,
 output_id: outputId,
 },
@@ -962,8 +961,7 @@ return jsonResponse(
 {
 success: false,
 error: "Unexpected continuity-review error.",
-details:
-error instanceof Error ? error.message : String(error),
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
