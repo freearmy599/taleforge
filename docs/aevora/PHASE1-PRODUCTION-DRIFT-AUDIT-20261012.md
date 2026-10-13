@@ -221,3 +221,12 @@ A fresh read-only retrieval of the active Supabase Edge Function metadata/source
 All five currently report `verify_jwt=true`, but none of the retrieved sources contains the shared `isTrustedInternalApiKey` handler guard. The cooldown paths in `revise-chapter` v40, `continuity-review` v10, `originality-review` v9, and `safety-review` v9 compare parsed dates without rejecting malformed non-empty timestamps. The revision helper also reads cooldown state without checking its query error or missing row. These are confirmed live-source findings, not assumptions about the prepared branch.
 
 The retrieved source payloads are heavily whitespace-corrupted and exceptionally large, so they are not safe to copy into the repository and patch with broad string substitutions: doing so could damage prompts or alter generation/review behavior. The safe next step is controlled, reviewable source recovery for each endpoint, with tests and type-checking, before any production rollout. No endpoint was deployed or changed in this audit; JWT settings were not changed.
+
+
+## Follow-up hardening on 2026-10-13
+
+- Fixed generation-buffer accounting in `supabase/functions/generation-orchestrator/index.ts`: the buffer now counts only the newest generation output for each chapter, rather than allowing a superseded older `generated`/`approved` output to keep that chapter counted as active after a newer output has moved to a non-active state.
+- The latest-output map is now shared by the revision-backlog check and active-buffer calculation, keeping those decisions consistent.
+- Added a source-contract regression test that checks the latest-output accounting and rejects the previous all-rows counting pattern.
+- Validation: [workflow run 38331745555](https://github.com/freearmy599/taleforge/actions/runs/38331745555) passed all prepared Edge Function type checks and the source-contract regression suite.
+- This is branch-only source hardening. No production deployment, migration, schedule mutation, chapter generation, publication, secret access, or billable Supabase branch was performed.
