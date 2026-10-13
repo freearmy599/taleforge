@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="world-continuity-v11-temporary-overload-cooldown";const H={"Content-Type":"application/json"};
+const VERSION = "world-continuity-v12-fail-closed-cooldown-state";const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{
  let s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();
  const a=s.indexOf("{"),b=s.lastIndexOf("}"); if(a>=0&&b>=a)s=s.slice(a,b+1);
@@ -35,7 +35,11 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     const now = new Date();
     const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
     const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
-    const until = new Date(Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)).toISOString();
+    if (data.cooldown_until && !Number.isFinite(existingUntil)) {
+      console.error("[quota-guard] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");
+      return;
+    }
+    const until = new Date(Math.max(proposedUntil, existingUntil)).toISOString();
     const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
       provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
       last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
