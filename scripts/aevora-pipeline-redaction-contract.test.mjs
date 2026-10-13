@@ -50,7 +50,7 @@ test("chapter generation does not return raw governance or database exception de
   assert.ok(s.includes("governance:{authorized:governance.data?.authorized===true}"));
   assert.ok(s.includes('details:governance.error?"Internal governance diagnostics were withheld.":null'));
   assert.ok(s.includes('if(contextError||!contextResult?.context)return reply({success:false,error:"Generation context could not be verified."},500);'));
-  assert.ok(s.includes('error:providerQuotaFailure?"Gemini quota or rate limit was reached; retry after provider cooldown.":"Generation request failed; internal diagnostics were withheld."'));
+  assert.ok(s.includes('const failureMessage=providerQuotaFailure?"Gemini quota or rate limit was reached; retry after provider cooldown.":providerTemporaryFailure?"Gemini is temporarily unavailable; retry after provider cooldown.":"Generation request failed; internal diagnostics were withheld."'));
   assert.equal(s.includes("error_message:message.slice(0,1200)"), false);
   assert.ok(s.indexOf('isTrustedInternalApiKey(req.headers.get("apikey")') < s.indexOf("const body=await req.json()"), "caller authentication must precede request-body parsing");
   assert.ok(s.indexOf("const body=await req.json()") < s.indexOf("db=createClient(url,key"), "request parsing must precede privileged client creation only after authentication");
