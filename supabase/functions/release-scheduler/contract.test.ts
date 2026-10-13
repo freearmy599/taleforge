@@ -907,3 +907,12 @@ Deno.test("all review workers require a trusted internal key before privileged c
       name + " must retain its POST-only request policy");
   }
 });
+
+
+Deno.test("semantic continuity extraction blocks malformed provider cooldown before queue claim", async () => {
+  const source = await Deno.readTextFile(new URL("../semantic-continuity-extraction/index.ts", import.meta.url));
+  const invalidTimestamp = source.indexOf("!Number.isFinite(cooldownUntil)");
+  const queueClaim = source.indexOf('db.rpc("taleforge_claim_continuity_queue"');
+  assert(invalidTimestamp >= 0 && queueClaim > invalidTimestamp,
+    "malformed non-empty provider cooldown state must block before claiming queued work");
+});
