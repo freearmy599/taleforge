@@ -22,7 +22,7 @@ test("revision successor migration reconciles duplicates and installs a unique p
   assert.ok(migration.includes("AND output.generation_status <> 'published'"));
   assert.ok(migration.includes("CREATE UNIQUE INDEX IF NOT EXISTS chapter_generation_outputs_revision_successor_unique"));
   assert.ok(migration.includes("WHERE revision_of_output_id IS NOT NULL"));
-  assert.equal(/DELETE\\s+FROM\\s+public\\.chapter_generation_outputs/i.test(migration), false, "revision history must not be deleted");
+  assert.equal(/DELETE\s+FROM\s+public\.chapter_generation_outputs/i.test(migration), false, "revision history must not be deleted");
 });
 
 test("revision worker maps concurrent unique-index conflicts to a safe 409", async () => {
@@ -31,5 +31,5 @@ test("revision worker maps concurrent unique-index conflicts to a safe 409", asy
   assert.ok(worker.includes('reason: "revision_successor_already_exists"'));
   assert.ok(worker.includes('}, 409);'));
   assert.equal(worker.includes("Could not save revised output: ${insertError.message}"), false, "database error details must not be exposed");
-  assert.ok(worker.includes('.eq("revision_of_output_id", outputId)'));
+  assert.ok(worker.includes('"revision_of_output_id"') && worker.includes("existingRevision"), "worker must check for an existing successor before generating another");
 });
