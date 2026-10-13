@@ -477,6 +477,23 @@ Deno.test("publisher verifies the inserted database row before reporting success
   assert(source.includes('code: "INSERTED_CHAPTER_STATUS_CONFLICT"'), "mismatched inserted row must return an explicit conflict");
 });
 
+Deno.test("publisher truthfully reports canonical sync as not enqueued until an enqueue is verified", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  assert(source.includes('queued:false,status:"not_enqueued"'), "publisher must not claim canonical sync was queued without a verified enqueue");
+  assert(source.includes("Canonical synchronization was not enqueued by this handler."), "success message must disclose that canonical sync was not enqueued");
+  assert(!source.includes("post-publication canon synchronization was attempted."), "success message must not claim an unverified synchronization attempt");
+});
+
+Deno.test("publisher synchronization writes are fenced and verify affected rows", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  const fencedOutputWrites = source.match(/\\.in\\("generation_status",\\s*\\["approved",\\s*"published"\\]\\)/g) ?? [];
+  assert(fencedOutputWrites.length === 3, "all three output-sync paths must restrict updates to approved/published states");
+  const checkedRows = source.match(/\\.select\\("id"\\)\\.maybeSingle\\(\\)/g) ?? [];
+  assert(checkedRows.length >= 6, "output and blueprint synchronization paths must verify affected rows");
+  assert(source.includes("generation_output: !racedOutputSyncError && !!racedOutputSyncRow"), "race path must not report output synchronization without an affected row");
+  assert(source.includes("blueprint: !racedBlueprintSyncError && !!racedBlueprintSyncRow"), "race path must not report blueprint synchronization without an affected row");
+});
+
 Deno.test("publisher idempotency only confirms the exact published chapter output", () => {
   const output = {
     series_id: "series-a",
