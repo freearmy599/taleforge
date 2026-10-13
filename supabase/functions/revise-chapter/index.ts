@@ -988,7 +988,7 @@ const continuationPrompt =
 Math.max(900, remaining + 250) +
 " words so the combined chapter reaches at least " +
 revisionMinimum +
-" words.\\n\\nCURRENT CHAPTER:\\n" +
+" words.\n\nCURRENT CHAPTER:\n" +
 revisedContent;
 let continuation: string;
 try {
@@ -1004,7 +1004,7 @@ return jsonResponse({ success: false, blocked: true, retryable: true, reason: qu
 throw providerError;
 }
 if (!continuation || normalizeText(continuation) === normalizeText(revisedContent)) break;
-revisedContent = revisedContent.trim() + "\\n\\n" + continuation.trim();
+revisedContent = revisedContent.trim() + "\n\n" + continuation.trim();
 }
 
 const validation =
