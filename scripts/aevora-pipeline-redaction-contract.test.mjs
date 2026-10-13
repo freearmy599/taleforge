@@ -95,3 +95,13 @@ test("core narrative prompts use the Aevora brand", async () => {
     assert.ok(worker.includes("Aevora"), name + " should identify the current product brand");
   }
 });
+
+test("chapter generator fences blueprint status writes and reports reconciliation", async () => {
+  const s = await source("supabase/functions/generate-chapter/index.ts");
+  assert.ok(s.includes('.eq("id",b.id).eq("generation_status","generating").select("id").maybeSingle()'),
+    "successful generation must not overwrite a blueprint whose claim has changed");
+  assert.ok(s.includes('const{error:rejectStatusError}=await db.from("chapter_blueprints").update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating")'),
+    "failed output insertion must only reject the blueprint still claimed by this generation");
+  assert.ok(s.includes("blueprint_status_synced:blueprintStatusSynced"));
+  assert.ok(s.includes("Chapter output was saved, but blueprint status needs safe reconciliation."));
+});
