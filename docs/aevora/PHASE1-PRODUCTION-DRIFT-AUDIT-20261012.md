@@ -234,3 +234,23 @@ The retrieved source payloads are heavily whitespace-corrupted and exceptionally
 - Additional 2026-10-13 fix: generation orchestration now checks database errors when marking revision attempts as exhausted. If any status write fails, that schedule is explicitly blocked and reported as retryable instead of silently continuing with stale revision state. A regression test covers the failure path. [Validation run 38331815087](https://github.com/freearmy599/taleforge/actions/runs/38331815087) passed all prepared Edge Function type checks and source-contract tests.
 
 - Additional 2026-10-13 fail-closed guard: if generation orchestration cannot read the latest published chapter number for a series, it now blocks that schedule with a retryable diagnostic instead of silently treating the published boundary as chapter zero. Added a regression test. [Validation run 38331893577](https://github.com/freearmy599/taleforge/actions/runs/38331893577) passed all prepared Edge Function type checks and source-contract tests.
+
+
+## Follow-up hardening and validation — 2026-10-13
+
+The prepared release publisher was further hardened after the prior audit notes above:
+
+- Revalidates the series lifecycle, blueprint identity, approved generation-output state, publication-review decision, and all four publication gates immediately before inserting a chapter.
+- Fences generation-output and blueprint synchronization updates by their eligible states and checks that the expected row was actually affected, including the concurrent duplicate-insert path.
+- Corrects the duplicate-race response so synchronization flags are true only when both the write succeeds and the target row is confirmed.
+- Stops claiming canonical synchronization was queued when this handler has not confirmed an outbox insert or worker invocation. The response now reports `queued: false` and `status: "not_enqueued"`, with an explicit warning. This is honest status reporting, **not a completed canonical-sync implementation**.
+
+A repository tree scan of the prepared branch and default branch did not identify a confirmed publication-sync worker or matching outbox migration. This search is not proof that no implementation exists in any external configuration or differently named component; no speculative worker/schema wiring was added. Canonical synchronization remains an open integration blocker and requires schema/consumer discovery before implementation.
+
+The publisher's first-publication timestamp update remains conditional on `published_at IS NULL`; write errors are surfaced as warnings, while a concurrent write that already set the timestamp is not treated as a failed publication. A regression contract now covers the three publisher paths.
+
+Validation evidence:
+- [Workflow run 38338532035](https://github.com/freearmy599/taleforge/actions/runs/38338532035) passed 48 source-contract tests and all configured Edge Function type checks on commit `a27e8c5ec75b080d5bcadbf42aaf518d5f281221`.
+- [Workflow run 38338886643](https://github.com/freearmy599/taleforge/actions/runs/38338886643) passed 49 source-contract tests and all configured Edge Function type checks on commit `d40b8d112701c16a80e51468b0e500981122a98f`, including the first-publication timestamp regression contract.
+
+These are prepared-branch type/source-contract checks, not production integration proof. Production remains unchanged: no deployment, migration, live schedule mutation, chapter generation/publication, secret access/rotation, or billable Supabase development branch was initiated. Phase 1 remains open.
