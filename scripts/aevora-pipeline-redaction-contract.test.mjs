@@ -42,6 +42,10 @@ test("generation orchestrator sanitizes downstream failures and provider diagnos
   assert.ok(s.includes("Math.max(proposedUntil,existingUntil)"), "orchestrator quota recorder must not shorten an existing cooldown");
   assert.ok(s.includes("if(stateError||!data)"), "orchestrator cooldown persistence must fail closed when state is unavailable");
   assert.ok(s.includes("Existing Gemini cooldown timestamp is malformed; existing state was preserved."), "malformed cooldown state must not be overwritten");
+  assert.ok(s.includes("if(existingUntil>Date.now()) return"), "fallback recorder must not double-count a cooldown already persisted by a downstream worker");
+  assert.ok(s.includes('await recordGeminiThrottle(supabase,revisionQuotaBlocked?"Gemini HTTP 429":"Gemini HTTP 503")'), "revision provider failures must invoke the orchestration cooldown fallback");
+  assert.ok(s.includes('await recordGeminiThrottle(supabase,providerQuotaBlocked?"Gemini HTTP 429":"Gemini HTTP 503")'), "generation provider failures must invoke the orchestration cooldown fallback");
+  assert.ok(s.includes('g.data?.reason==="provider_temporarily_unavailable"'), "provider-state lookup failures must not be mislabeled as Gemini overloads");
   assert.equal(s.includes("if(!r.ok){const safe:any="), false);
 });
 
