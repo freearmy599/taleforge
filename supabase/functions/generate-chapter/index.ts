@@ -50,7 +50,7 @@ if(governance.error||governance.data?.authorized!==true){
 if(blueprintId&&!outputId){
  const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
  if(providerStateError||!providerState){
-  console.error("[generate-chapter] provider cooldown lookup failed; failing closed",providerStateError?.message??"No Gemini provider-state row found");
+  console.error("[generate-chapter] provider cooldown lookup failed; failing closed.");
   return reply({success:false,retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state could not be verified; generation was blocked to protect quota."},503);
  }else if(providerState.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())){
   console.error("[generate-chapter] provider cooldown timestamp is invalid; failing closed",String(providerState.cooldown_until));
@@ -112,7 +112,7 @@ if(!outputId)return reply({success:false,error:"A blueprint_id is required for g
 
 const {data:out,error:oe}=await db.from("chapter_generation_outputs").select("*").eq("id",outputId).single();
 if(oe){
- console.error("[generate-chapter] quality-review output lookup failed",oe.message);
+ console.error("[generate-chapter] quality-review output lookup failed; internal diagnostics were withheld.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Generation output could not be read; quality review was blocked."},503);
 }
 if(!out)return reply({success:false,error:"Generation output not found."},404);
@@ -131,7 +131,7 @@ if(!qualityReviewEligibleStatuses.includes(out.generation_status)){
 }
 const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",out.chapter_blueprint_id).single();
 if(be||!b){
- console.error("[generate-chapter] quality-review blueprint lookup failed; failing closed",be?.message??"Chapter blueprint not found");
+ console.error("[generate-chapter] quality-review blueprint lookup failed; failing closed.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Required chapter blueprint context could not be verified; quality review was blocked."},503);
 }
 const reviewBounds=boundsForTarget(b.target_word_count);
@@ -139,7 +139,7 @@ const target=reviewBounds.target;
 const minimum=reviewBounds.minimum;
 const {data:s,error:se}=await db.from("series").select("title").eq("id",out.series_id).single();
 if(se||!s){
- console.error("[generate-chapter] quality-review series lookup failed; failing closed",se?.message??"Series not found");
+ console.error("[generate-chapter] quality-review series lookup failed; failing closed.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Required series context could not be verified; quality review was blocked."},503);
 }
 
@@ -157,12 +157,12 @@ generation_output_id:outputId,review_type:"quality",status:"needs_revision",scor
 findings:{hard_validation:hard,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
 },{onConflict:"generation_output_id,review_type"}).select().single();
 if(reviewError){
- console.error("[generate-chapter] deterministic quality-review write failed",reviewError.message);
+ console.error("[generate-chapter] deterministic quality-review write failed; internal diagnostics were withheld.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The deterministic review could not be saved; output state was not advanced."},503);
 }
 const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).neq("generation_status","published").select("id").maybeSingle();
 if(statusError||!statusRow){
- console.error("[generate-chapter] deterministic review status update failed or was fenced",statusError?.message??"Output was published or changed concurrently");
+ console.error("[generate-chapter] deterministic review status update failed or was fenced.");
  return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
 }
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-failure",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision:"needs_revision",score:0,generation_status:"needs_revision",published:false,hard_validation:hard,next_step:"Run revise-chapter on this output."});
@@ -173,7 +173,7 @@ let advancedPlan:any={};
 if(contextSnapshotId){
  const {data:cs,error:contextError}=await db.from("taleforge_generation_context_snapshots").select("payload").eq("id",contextSnapshotId).maybeSingle();
  if(contextError||!cs){
-  console.error("[generate-chapter] quality-review context snapshot unavailable; failing closed",contextError?.message??"Context snapshot not found");
+  console.error("[generate-chapter] quality-review context snapshot unavailable; failing closed.");
   return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"The required generation-context snapshot could not be verified; quality review was blocked."},503);
  }
  advancedPlan=cs.payload?.advanced_chapter_plan||{};
@@ -182,7 +182,7 @@ if(contextSnapshotId){
 // deterministic hard-validation failures can still be recorded during a cooldown.
 const {data:reviewProviderState,error:reviewProviderStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
 if(reviewProviderStateError||!reviewProviderState){
- console.error("[generate-chapter] quality-review provider cooldown lookup failed; failing closed",reviewProviderStateError?.message??"No Gemini provider-state row found");
+ console.error("[generate-chapter] quality-review provider cooldown lookup failed; failing closed.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state could not be verified; AI quality review was blocked."},503);
 }
 if(reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())){
@@ -218,7 +218,7 @@ findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic
 if(re)throw new Error(`Could not save quality review: ${re.message}`);
 const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).neq("generation_status","published").select("id").maybeSingle();
 if(statusError||!statusRow){
- console.error("[generate-chapter] AI quality-review status update failed or was fenced",statusError?.message??"Output was published or changed concurrently");
+ console.error("[generate-chapter] AI quality-review status update failed or was fenced.");
  return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
 }
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
