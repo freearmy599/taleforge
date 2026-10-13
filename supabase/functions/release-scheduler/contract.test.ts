@@ -880,3 +880,24 @@ Deno.test("continuity review requires trusted server-side authentication before 
   assert(source.includes('if (req.method !== "POST")'),
     "continuity review must retain the POST-only request policy");
 });
+
+
+Deno.test("all review workers require a trusted internal key before privileged clients", async () => {
+  const cases = [
+    ["continuity-review", continuityReviewUrl],
+    ["originality-review", originalityReviewUrl],
+    ["safety-review", safetyReviewUrl],
+    ["publication-review", publicationReviewUrl],
+  ] as const;
+  for (const [name, url] of cases) {
+    const source = await Deno.readTextFile(url);
+    const guard = source.indexOf("isTrustedInternalApiKey(req.headers.get(\"apikey\"), serviceRoleKey");
+    const client = source.indexOf("const supabase = createClient(");
+    assert(guard >= 0 && client > guard,
+      name + " must authenticate before creating a privileged database client");
+    assert(source.includes("AEVORA_INTERNAL_API_KEY_NAMES"),
+      name + " must require the explicit internal-key allowlist");
+    assert(source.includes('if (req.method !== "POST")'),
+      name + " must retain its POST-only request policy");
+  }
+});
