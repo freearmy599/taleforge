@@ -45,11 +45,11 @@ test("chapter generation does not return raw governance or database exception de
 
 test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
   const functions = [
-    ["arc-planner", "arc-planner-v7-fail-closed-cooldown"],
-    ["blueprint-planner", "blueprint-planner-v9-fail-closed-cooldown"],
-    ["character-continuity", "character-continuity-v6-redacted-quota-guard"],
-    ["story-dna-planner", "story-dna-planner-v5-fail-closed-cooldown"],
-    ["world-continuity", "world-continuity-v9-redacted-quota-guard"],
+    ["arc-planner", "arc-planner-v8-aevora-brand"],
+    ["blueprint-planner", "blueprint-planner-v10-aevora-brand"],
+    ["character-continuity", "character-continuity-v7-aevora-brand"],
+    ["story-dna-planner", "story-dna-planner-v6-aevora-brand"],
+    ["world-continuity", "world-continuity-v10-aevora-brand"],
   ];
   for (const [name, version] of functions) {
     const s = await source("supabase/functions/" + name + "/index.ts");
