@@ -1131,3 +1131,29 @@ Deno.test("control-plane audit reports malformed lease, decision, and provider-s
   assert(source.includes("**Invalid AI provider throttle counter:**"),
     "negative or non-integer throttle counters must be surfaced for repair");
 });
+
+
+Deno.test("internal API-key validation fails closed and only trusts explicitly allowlisted server keys", () => {
+  assert(!isTrustedInternalApiKey(null, "legacy-service-role", '{"aevora_internal":"secret-1"}', "aevora_internal"),
+    "missing presented keys must always be rejected");
+  assert(isTrustedInternalApiKey("legacy-service-role", "legacy-service-role", null, null),
+    "the configured legacy service-role key must remain supported");
+  assert(isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1","unrelated":"secret-2"}', "aevora_internal"),
+    "an explicitly allowlisted project secret must be accepted");
+  assert(!isTrustedInternalApiKey("secret-2", null, '{"aevora_internal":"secret-1","unrelated":"secret-2"}', "aevora_internal"),
+    "a valid but non-allowlisted project secret must be rejected");
+  assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1"}', ""),
+    "an empty allowlist must not trust project secrets");
+  assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1"}', "   , "),
+    "an allowlist containing only whitespace must not trust project secrets");
+  assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":"secret-1"}', "aevora_internal,missing_name"),
+    "allowlisted names must still resolve to configured string values");
+  assert(!isTrustedInternalApiKey("secret-1", null, '["secret-1"]', "0"),
+    "a JSON array must not be treated as a named secret-key map");
+  assert(!isTrustedInternalApiKey("secret-1", null, 'not-json', "aevora_internal"),
+    "malformed secret configuration must fail closed without throwing");
+  assert(!isTrustedInternalApiKey("secret-1", null, '{"aevora_internal":1}', "aevora_internal"),
+    "non-string secret values must not authenticate callers");
+  assert(!isTrustedInternalApiKey(" secret-1", null, '{"aevora_internal":"secret-1"}', "aevora_internal"),
+    "presented credentials must match exactly rather than being silently normalized");
+});
