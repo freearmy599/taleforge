@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const CONTINUITY_VERSION = "continuity-v4-redacted-provider-errors";
+const CONTINUITY_VERSION = "continuity-v5-aevora-brand";
 
 const MIN_SCORE = 85;
 
@@ -684,7 +684,7 @@ ${chapterBlueprint.ending_hook || ""}
 // ------------------------------------------------------------
 
 const prompt = `
-You are TaleForge's continuity-control engine.
+You are Aevora's continuity-control engine.
 
 Your task is to determine whether ONE generated web-novel chapter is consistent
 with the established series, story bible, chapter blueprint, and previous chapters.
