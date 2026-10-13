@@ -1001,7 +1001,7 @@ Deno.test("internal narrative intelligence tables are not exposed by public read
     assert(migration.includes("public." + table), table + " must be included in internal-table hardening");
   }
   assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "client table grants must be revoked");
-  assert(migration.includes("FROM anon, authenticated"), "both client roles must be restricted");
+  assert(migration.includes("FROM PUBLIC, anon, authenticated"), "PUBLIC and both client roles must be restricted from internal table access");
   assert(!/CREATE\s+POLICY/i.test(migration), "migration must not add broad client policies");
 });
 
