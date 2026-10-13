@@ -175,6 +175,18 @@ Deno.test("generation orchestrator rejects malformed scope and mode inputs befor
   assert(scheduleQuery > objectGuard, "schedule queries must follow request validation");
 });
 
+Deno.test("generation orchestrator stops a schedule when revision-exhaustion persistence fails", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  assert(source.includes('const exhaustionUpdateFailures:any[]=[];if(!dryRun)for(const o of [...latest.values()].filter((o)=>o.generation_status==="needs_revision"&&Number(o.generation_attempt??1)>=3))'),
+    "revision exhaustion updates must be checked instead of silently ignored");
+  assert(source.includes('if(exhaustionError)exhaustionUpdateFailures.push({output_id:o.id,chapter_number:o.chapter_number,error:errorMessage(exhaustionError)})'),
+    "failed exhaustion writes must preserve diagnostic context");
+  assert(source.includes('if(exhaustionUpdateFailures.length){results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"revision_exhaustion_update_failed",blocked:true,retryable:true'),
+    "a failed exhaustion write must block further processing for that schedule");
+  assert(source.includes('reason:"Could not persist revision exhaustion state; schedule processing stopped to avoid continuing with stale revision state."'),
+    "the blocked result must explain why processing stopped");
+});
+
 Deno.test("generation orchestrator dry-run avoids known database mutations", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   assert(source.includes('const intelligenceRefresh=dryRun?{ok:true,report:{gemini_used:false,content_generation_performed:false,skipped:"dry_run_read_only"}}:await refreshDeterministicIntelligence(supabase);'),
