@@ -34,13 +34,20 @@ async function getGeminiCooldown(supabase:any) {
  }
  return {active:!!until&&until.getTime()>Date.now(),cooldown_until:data.cooldown_until??null,consecutive_throttle_count:Number(data.consecutive_throttle_count??0)};
 }
-async function recordGeminiThrottle(supabase:any,message:string) {
- const {data}=await supabase.from("taleforge_ai_provider_state").select("consecutive_throttle_count").eq("provider","gemini").maybeSingle();
- const count=Number(data?.consecutive_throttle_count??0)+1;
+async function recordGeminiThrottle(supabase:any,_message:string) {
+ const {data,error:stateError}=await supabase.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
+ if(stateError||!data){console.error("[generation-orchestrator] Gemini cooldown state unavailable; persistence was skipped.");return null;}
+ const prior=Number(data.consecutive_throttle_count??0);
+ const count=(Number.isFinite(prior)&&prior>=0?Math.floor(prior):0)+1;
  const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
- const until=new Date(Date.now()+cooldownHours*60*60*1000).toISOString();
- await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:"Gemini quota or rate-limit response",last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
- return {cooldown_until:until,cooldown_hours:cooldownHours,consecutive_throttle_count:count};
+ const now=Date.now();
+ const proposedUntil=now+cooldownHours*60*60*1000;
+ const existingUntil=data.cooldown_until?Date.parse(data.cooldown_until):0;
+ if(data.cooldown_until&&!Number.isFinite(existingUntil)){console.error("[generation-orchestrator] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");return null;}
+ const until=new Date(Math.max(proposedUntil,existingUntil)).toISOString();
+ const {error:writeError}=await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:"Gemini quota or rate-limit response",last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
+ if(writeError){console.error("[generation-orchestrator] Gemini cooldown could not be persisted.");return null;}
+ return {cooldown_until:until,cooldown_hours:Math.max(0,(Date.parse(until)-now)/3600000),consecutive_throttle_count:count};
 }
 Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});if(req.method!=="POST")return response({success:false,error:"Method not allowed"},405);try{
 const supabaseUrl=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(!supabaseUrl||!key)return response({success:false,error:"Missing Supabase environment configuration."},500);
