@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION = "publication-sync-processor-v1";
+const VERSION = "publication-sync-processor-v2-report-partial-failures";
 const H = {"Content-Type":"application/json"};
 
 Deno.serve(async (req) => {
@@ -100,7 +100,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({success:true,version:VERSION,processed:results.length,results}),{status:200,headers:H});
+    const batchSucceeded=results.every((result:any)=>result.status==="succeeded");
+    return new Response(JSON.stringify({success:batchSucceeded,version:VERSION,processed:results.length,results}),{status:200,headers:H});
   } catch (e) {
     return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:H});
   }
