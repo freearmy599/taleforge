@@ -1067,3 +1067,19 @@ Deno.test("all dedicated review workers support standard and legacy service-role
       workerPath + " must resolve the key before internal caller authentication");
   }
 });
+
+Deno.test("generation orchestrator reports nested failures instead of unconditional success", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  assert(source.includes("function hasPipelineFailure(value:unknown):boolean"),
+    "generation orchestrator must recursively inspect nested pipeline outcomes");
+  assert(source.includes("const hasFailures=hasPipelineFailure(results)||hasPipelineFailure(intelligenceRefresh.report)"),
+    "generation and deterministic-intelligence failures must affect the aggregate outcome");
+  assert(source.includes("success:!hasFailures"),
+    "overall success must be derived from actual pipeline outcomes");
+  assert(source.includes("},hasFailures?422:200)"),
+    "a failed or blocked generation run must return a non-2xx status");
+  assert(source.includes('action:"ai_cooldown",blocked:true,retryable:true'),
+    "a quota cooldown skip must be reported as a blocked, retryable result");
+  assert(source.includes("partial_success:hasFailures&&hasProcessed"),
+    "mixed processed and failed schedules must be identified as partial success");
+});
