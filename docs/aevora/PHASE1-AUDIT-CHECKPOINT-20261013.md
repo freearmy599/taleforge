@@ -16,7 +16,7 @@ Latest successful workflow observed: [run 38342939683](https://github.com/freear
 
 ## Remaining confirmed drift / rollout blockers
 
-- Live Supabase `revise-chapter` v40 is not present at the expected path in the repair branch, even though `generation-orchestrator` invokes it using the server key. The live handler has POST-only handling and provider-state lookup, but the audited source did not show a shared handler-level internal-key guard and did not reject malformed cooldown timestamps. It must be recovered into a manageable, normalized repository source file, patched, and type-checked before any rollout. Do not claim this path is fixed.
+- Live Supabase `revise-chapter` v40 has now been reconstructed into `supabase/functions/revise-chapter/index.ts` on the repair branch and hardened for internal-caller authorization, malformed cooldown timestamps, quota-state persistence, provider-error redaction, selected-strategy handoff, failed-attempt accounting, and revision commit conflicts. The live v40 still has no shared handler-level internal-key guard and does not reject malformed cooldown timestamps; it also retains legacy raw provider-error handling. This is a branch-only repair, not a production fix, until a separately authorized deployment is performed.
 - Live handlers still have gateway JWT verification enabled. Branch-level internal-key checks are defense in depth, not proof of production protection until deployed and caller paths are verified.
 - Safe end-to-end scheduler/publisher/outbox verification remains pending; do not invoke live jobs just to test.
 - The previously documented chapter-number gaps, approved generation outputs lacking publication-review rows, stale schedule, and table-by-table RLS/grant review remain open.
