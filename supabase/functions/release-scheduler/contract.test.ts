@@ -1130,6 +1130,8 @@ Deno.test("control-plane audit reports malformed lease, decision, and provider-s
     "malformed provider cooldown timestamps must be surfaced instead of appearing healthy");
   assert(source.includes("**Invalid AI provider throttle counter:**"),
     "negative or non-integer throttle counters must be surfaced for repair");
+  assert(source.includes('/^(0|[1-9][0-9]*)$/.test(rawThrottleCount)'),
+    "boolean, whitespace-padded, decimal, and otherwise malformed counter values must not coerce into plausible counts");
 });
 
 
