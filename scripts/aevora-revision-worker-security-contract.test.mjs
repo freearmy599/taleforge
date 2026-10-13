@@ -54,7 +54,8 @@ test("revision worker records quota cooldowns and preserves orchestrator output 
   const o = await source("supabase/functions/generation-orchestrator/index.ts");
   assert.ok(s.includes("recordGeminiThrottle(supabase, providerError)"));
   assert.equal((s.match(/recordGeminiThrottle\(supabase, providerError\)/g) || []).length, 2, "primary and continuation Gemini calls must both persist quota cooldowns");
-  assert.ok(s.includes('reason: "provider_quota_blocked"'));
+  assert.ok(s.includes('reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable"'));
+  assert.ok(s.includes('error: quotaBlocked ? "Revision paused because Gemini quota or rate limits were reached." : "Revision paused because Gemini is temporarily unavailable."'));
   assert.ok(s.includes("revision_of_output_id:"));
   assert.ok(s.includes("revised_output_id:"));
   assert.ok(s.includes("review_handoff: reviewHandoff"));
