@@ -852,6 +852,8 @@ Deno.test("character and world continuity workers authenticate before body parsi
       name + " must authenticate a configured server-side apikey before parsing requests or creating a privileged client");
     assert(source.includes('Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")'),
       name + " must require the explicit secret-key allowlist");
+    assert(source.includes("!Number.isFinite(cooldownUntil)"),
+      name + " must fail closed on a malformed non-empty provider cooldown timestamp");
   }
 });
 
