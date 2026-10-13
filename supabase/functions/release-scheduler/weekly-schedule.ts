@@ -39,6 +39,16 @@ function matchingWallTimeCandidates(year:number,month:number,day:number,hour:num
   }
   return matches.sort((a,b)=>a.getTime()-b.getTime());
 }
+function nextWeeklyReleaseAfterCurrentDay(completedAt:Date,weekday:number,time:string,timeZone:string):Date {
+  const candidate=nextWeeklyRelease(completedAt,weekday,time,timeZone);
+  const completedLocal=partsAt(completedAt,timeZone);
+  const candidateLocal=partsAt(candidate,timeZone);
+  if(completedLocal.year===candidateLocal.year && completedLocal.month===candidateLocal.month && completedLocal.day===candidateLocal.day) {
+    // Move beyond the whole local day; a DST fall-back can repeat the wall-clock slot.
+    return nextWeeklyRelease(new Date(candidate.getTime()+24*60*60*1000),weekday,time,timeZone);
+  }
+  return candidate;
+}
 /** Return the next weekly slot after a completed batch, never a second batch later on the same day. */
 export function nextWeeklyReleaseAfterBatch(
   completedAt: Date,
@@ -53,7 +63,7 @@ export function nextWeeklyReleaseAfterBatch(
   nextWeeklyRelease(completedAt, weekday, time, timeZone);
   const slotMs = reservedSlot instanceof Date ? reservedSlot.getTime() : Number.NaN;
   if (!Number.isFinite(slotMs) || slotMs <= completedMs) {
-    return nextWeeklyRelease(completedAt, weekday, time, timeZone);
+    return nextWeeklyReleaseAfterCurrentDay(completedAt, weekday, time, timeZone);
   }
 
   const local = partsAt(completedAt, timeZone);
@@ -69,7 +79,7 @@ export function nextWeeklyReleaseAfterBatch(
     if (existsToday) {
       // A batch completed before today's scheduled slot; skip that slot so the
       // same weekly schedule cannot publish a second batch later today.
-      return nextWeeklyRelease(new Date(slotMs + 1000), weekday, time, timeZone);
+      return nextWeeklyRelease(new Date(slotMs + 24 * 60 * 60 * 1000), weekday, time, timeZone);
     }
   }
 
