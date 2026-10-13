@@ -942,7 +942,7 @@ Deno.test("review workers reject malformed provider cooldown timestamps", async 
 
 
 Deno.test("server-only table grant migration revokes client privileges without adding policies", async () => {
-  const migration = await Deno.readTextFile(new URL("../../migrations/20261013041000_revoke_client_grants_server_only_tables.sql", import.meta.url));
+  const migration = await Deno.readTextFile(new URL("../../migrations/20261013100000_revoke_client_grants_server_only_tables.sql", import.meta.url));
   assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "migration must revoke all table privileges");
   assert(migration.includes("public.publication_sync_outbox"), "outbox must remain server-only");
   assert(migration.includes("public.story_attachment_metrics"), "attachment metrics must remain server-only");
