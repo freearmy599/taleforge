@@ -13,7 +13,7 @@ async function source(path) {
 
 test("revision worker redacts provider, governance, handoff, and exception details", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes("revision-v14-retryable-rejected-successor"));
+  assert.ok(s.includes("revision-v15-temporary-provider-cooldown"));
   assert.ok(s.includes('import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";'));
   assert.ok(s.includes('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey'));
   assert.ok(s.includes('Caller must authenticate with a configured server-side Supabase API key.'));
@@ -25,7 +25,9 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes('reason: "revision_attempt_state_unavailable"'), "failed attempt bookkeeping errors must fail closed");
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
-  assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'));
+  assert.ok(s.includes('last_error: "Gemini quota, rate-limit, or temporary overload response"'));
+  assert.ok(s.includes('!message.includes("Gemini HTTP 503")'), "temporary provider overloads must persist a cooldown");
+  assert.equal((s.match(/reason: quotaBlocked \? "provider_quota_blocked" : "provider_temporarily_unavailable"/g) || []).length, 2, "both model calls must distinguish quota blocks from temporary overloads");
   assert.equal(s.includes("last_error:message.slice(0,2000)"), false);
   assert.equal(s.includes("governance:governance.data??null"), false);
   assert.equal(s.includes("details:governance.error?.message??null"), false);
