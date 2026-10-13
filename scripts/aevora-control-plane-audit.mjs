@@ -63,7 +63,7 @@ if (missing.length) {
   ].join("\n");
   if (repo && token) await report(title, body);
   console.error(body);
-  process.exit(0);
+  process.exitCode = 1;
 }
 
 const findings = [];
@@ -83,8 +83,8 @@ try {
     cache: "no-store",
   });
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Audit endpoint returned ${response.status}: ${errorBody.slice(0, 180)}`);
+    // Do not echo endpoint response bodies into logs or GitHub issues; they may contain sensitive diagnostics.
+    throw new Error(`Audit endpoint returned HTTP ${response.status}`);
   }
   const snapshot = await response.json();
   const { jobs = [], providers = [], schedules = [], tasks = [], decisions = [] } = snapshot;
