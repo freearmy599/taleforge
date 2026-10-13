@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const SAFETY_VERSION = "safety-v4-redacted-provider-errors";
+const SAFETY_VERSION = "safety-v5-aevora-brand";
 
 function jsonResponse(body: unknown, status = 200) {
 return new Response(JSON.stringify(body, null, 2), {
@@ -390,7 +390,7 @@ const deterministicIssues =
 containsObviousUnsafePattern(content);
 
 const prompt = `
-You are TaleForge's Safety Review Engine.
+You are Aevora's Safety Review Engine.
 
 Review the supplied AI-generated web-novel chapter for publication
 safety.
