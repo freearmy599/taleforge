@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const REVISION_VERSION = "revision-v16-short-overload-cooldown";
+const REVISION_VERSION = "revision-v17-enforce-attempt-limit";
 
 
 const MAX_REVISION_ATTEMPTS = 3;
@@ -540,6 +540,16 @@ return jsonResponse({
 success: false,
 error: "Only outputs explicitly marked needs_revision can enter the revision workflow.",
 reason: "revision_source_state_invalid",
+}, 409);
+}
+
+const sourceAttempt = Number(originalOutput.generation_attempt ?? 1);
+if (!Number.isSafeInteger(sourceAttempt) || sourceAttempt < 1 || sourceAttempt >= MAX_REVISION_ATTEMPTS) {
+return jsonResponse({
+success: false,
+error: "The revision attempt limit has been reached for this output.",
+reason: "revision_attempt_limit_reached",
+retryable: false,
 }, 409);
 }
 
