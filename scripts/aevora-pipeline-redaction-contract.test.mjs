@@ -60,17 +60,19 @@ test("chapter generation does not return raw governance or database exception de
 
 test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
   const functions = [
-    ["arc-planner", "arc-planner-v8-aevora-brand"],
-    ["blueprint-planner", "blueprint-planner-v10-aevora-brand"],
-    ["character-continuity", "character-continuity-v7-aevora-brand"],
-    ["story-dna-planner", "story-dna-planner-v6-aevora-brand"],
-    ["world-continuity", "world-continuity-v10-aevora-brand"],
+    ["arc-planner", "arc-planner-v9-temporary-overload-cooldown"],
+    ["blueprint-planner", "blueprint-planner-v11-temporary-overload-cooldown"],
+    ["character-continuity", "character-continuity-v8-temporary-overload-cooldown"],
+    ["story-dna-planner", "story-dna-planner-v7-temporary-overload-cooldown"],
+    ["world-continuity", "world-continuity-v11-temporary-overload-cooldown"],
   ];
   for (const [name, version] of functions) {
     const s = await source("supabase/functions/" + name + "/index.ts");
     assert.ok(s.includes(version), name + " version marker missing");
     assert.ok(s.includes("async function recordGeminiQuotaCooldown("), name + " cooldown recorder missing");
-    assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'), name + " stored error is not sanitized");
+    assert.ok(s.includes('last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini quota or rate-limit response"'), name + " stored provider diagnostics must be sanitized");
+    assert.ok(s.includes('const isTemporaryOverload = message.includes("Gemini HTTP 503")'), name + " must persist temporary overloads");
+    assert.ok(s.includes("const cooldownHours = isTemporaryOverload ? 1 :"), name + " must use a shorter cooldown for overloads");
     assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), name + " must read the existing cooldown before updating it");
     assert.ok(s.includes("Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)"), name + " must never shorten an existing cooldown");
     assert.equal(s.includes("await resp.text()"), false, name + " must not echo provider error bodies");
