@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const ORIGINALITY_VERSION = "originality-v4-redacted-provider-errors";
+const ORIGINALITY_VERSION = "originality-v5-aevora-brand";
 const MIN_SCORE = 85;
 
 function jsonResponse(body: unknown, status = 200) {
@@ -451,7 +451,7 @@ if (existingError) {
 return jsonResponse(
 {
 success: false,
-error: "Could not load the TaleForge catalogue.",
+error: "Could not load the Aevora catalogue.",
 details: "Internal review diagnostics were withheld.",
 },
 500
@@ -585,10 +585,10 @@ ${cleanText(output.content).slice(0, 18000)}
 `;
 
 const prompt = `
-You are TaleForge's originality and similarity-control engine.
+You are Aevora's originality and similarity-control engine.
 
 Your job is to determine whether a proposed AI-generated web-novel
-series/chapter is sufficiently distinct from the existing TaleForge
+series/chapter is sufficiently distinct from the existing Aevora
 catalogue.
 
 IMPORTANT:
@@ -598,7 +598,7 @@ This is NOT a worldwide copyright or plagiarism determination.
 You must NOT claim that a story is globally unique.
 
 You are checking for meaningful internal duplication and suspicious
-conceptual similarity inside TaleForge.
+conceptual similarity inside Aevora.
 
 Analyze:
 
@@ -650,7 +650,7 @@ HIGH:
 Major premise/world/character/conflict overlap.
 
 CRITICAL:
-The candidate appears to reproduce an existing TaleForge concept
+The candidate appears to reproduce an existing Aevora concept
 with only superficial changes.
 
 The goal is to encourage DIFFERENT stories, not eliminate normal
@@ -693,7 +693,7 @@ Return ONLY valid JSON:
 Scoring:
 
 90-100:
-Strongly distinct from the TaleForge catalogue.
+Strongly distinct from the Aevora catalogue.
 
 85-89:
 Acceptably distinct.
@@ -702,7 +702,7 @@ Acceptably distinct.
 Meaningful similarity exists and revision is recommended.
 
 Below 70:
-Too similar to existing TaleForge content.
+Too similar to existing Aevora content.
 
 A high or critical similarity match should normally result in
 "needs_revision" or "failed".
@@ -986,7 +986,7 @@ finalDecision === "passed"
 ? "Run safety review next. Do not publish yet."
 : finalDecision === "needs_revision"
 ? "Revise the chapter or series concept using the originality instructions, then run originality review again."
-: "Do not publish. The candidate is too similar to existing TaleForge content and requires redesign.",
+: "Do not publish. The candidate is too similar to existing Aevora content and requires redesign.",
 });
 } catch (error) {
 return jsonResponse(
