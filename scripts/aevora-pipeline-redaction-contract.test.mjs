@@ -31,10 +31,12 @@ test("semantic continuity dry-run returns before queue-claim mutation", async ()
 
 test("generation orchestrator sanitizes downstream failures and provider diagnostics", async () => {
   const s = await source("supabase/functions/generation-orchestrator/index.ts");
-  assert.ok(s.includes("generation-orchestrator-v20-monotonic-quota-cooldown"));
+  assert.ok(s.includes("generation-orchestrator-v21-retryable-provider-overload"));
   assert.ok((s.match(/\.order\("created_at",\{ascending:false\}\)\.order\("generation_attempt",\{ascending:false\}\)\.order\("id",\{ascending:false\}\)/g) || []).length === 3, "all latest-output lookups must deterministically break revision timestamp ties");
   assert.ok(s.includes('function errorMessage(_error:unknown){return "Internal orchestration diagnostics were withheld."}'));
   assert.ok(s.includes("if(!r.ok||d?.success===false){const safe:any="));
+  assert.ok(s.includes('const providerTemporarilyUnavailable=g.status===503'), "temporary provider outages must be recognized as retryable");
+  assert.ok(s.includes('action:providerQuotaBlocked?"provider_quota_blocked":"provider_temporarily_unavailable"'), "temporary provider outages must return claimed blueprints to ready instead of rejecting them");
   assert.ok(s.includes('const lastError=providerQuotaFailure?"Gemini quota or rate-limit response":"Gemini temporary overload response"'));
   assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), "orchestrator quota recorder must read the existing cooldown");
   assert.ok(s.includes("Math.max(proposedUntil,existingUntil)"), "orchestrator quota recorder must not shorten an existing cooldown");
