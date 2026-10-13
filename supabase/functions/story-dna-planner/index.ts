@@ -49,6 +49,9 @@ Deno.serve(async(req)=>{
   const dna=await db.from("story_dna").select("*").eq("series_id",series.id).eq("status","active").order("version",{ascending:false}).limit(1);
   const arc=await db.from("story_arc_plan").select("*").eq("series_id",series.id).order("version",{ascending:false}).limit(1);
   const chapters=await db.from("chapters").select("chapter_number,title,summary,content").eq("series_id",series.id).eq("status","published").order("chapter_number",{ascending:false}).limit(5);
+  if(dna.error)throw new Error("Unable to read existing story DNA.");
+  if(arc.error)throw new Error("Unable to read the story arc plan.");
+  if(chapters.error)throw new Error("Unable to read recent published chapters.");
   const prompt=`You are TaleForge's genre-neutral Story DNA architect. Create a durable story bible for a serialized fiction series. Preserve continuity and make it useful for future chapter planning. The story's genre, subgenre, setting, technology, magic, science, social systems, and narrative conventions must come from the supplied series and its existing material. NEVER import mechanics, terminology, character archetypes, power systems, tropes, or assumptions from another genre merely because they are common in training data. For example, a science-fiction story must not receive cultivation realms, mana, sects, spell systems, or fantasy power progression unless the supplied story explicitly establishes them. A romance must not receive sci-fi technology; a mystery must not receive fantasy magic; a historical story must not receive modern technology unless explicitly established. When genre information is incomplete, infer conservatively from the story itself rather than inventing cross-genre mechanics. Do not copy existing fiction.
 
 SERIES:
