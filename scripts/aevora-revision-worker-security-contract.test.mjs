@@ -74,6 +74,9 @@ test("generation orchestrator exhausts revision backlog using a database-allowed
   assert.ok(s.includes('action:"revision_exhausted",stored_status:"rejected"'));
   assert.ok(s.includes("revision_exhausted_outputs:revisionExhaustedOutputs"));
   assert.ok(s.includes('action:"would_mark_revision_exhausted",stored_status:o.generation_status'), "dry-run must report exhausted revisions without mutating them");
+  assert.ok(s.includes('.from("chapter_blueprints").update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",o.blueprint_id).in("generation_status",["planned","ready","generated","quality_check","approved","rejected"]).neq("release_status","released")'), "exhaustion must release the blueprint for regeneration without overwriting released content");
+  assert.ok(s.indexOf("blueprintRejected") < s.indexOf('const{data:exhausted,error:exhaustionError}'), "blueprint state must be reconciled before removing the exhausted output from the backlog");
+  assert.ok(s.includes('blueprint_status:"rejected"'), "the result must confirm both output and blueprint terminal states");
   assert.ok(s.includes("if(dryRun){for(const o of exhaustedCandidates)revisionExhaustedOutputs.push"), "dry-run exhaustion reporting must be separate from real state writes");
   assert.equal(s.includes('generation_status:"revision_exhausted"'), false);
 });
