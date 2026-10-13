@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION = "blueprint-planner-v10-aevora-brand";
+const VERSION = "blueprint-planner-v11-temporary-overload-cooldown";
 const jsonHeaders = { "Content-Type": "application/json" };
 
 function cleanJson(text:string) {
@@ -16,7 +16,8 @@ function cleanJson(text:string) {
 
 async function recordGeminiQuotaCooldown(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  const isTemporaryOverload = message.includes("Gemini HTTP 503");
+  if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
@@ -30,14 +31,14 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     }
     const previousCount = Number(data.consecutive_throttle_count ?? 0);
     const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
-    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
     const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
     const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
     const until = new Date(Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)).toISOString();
     const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
       provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
-      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
       updated_at: now.toISOString(),
     }, { onConflict: "provider" });
     if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
@@ -155,7 +156,7 @@ Use arrays for the six list/object fields where appropriate. target_word_count m
     return new Response(JSON.stringify({success:true,version:VERSION,action:"blueprint_created",blueprint:inserted}),{headers:jsonHeaders});
   } catch(e) {
     await recordGeminiQuotaCooldown(e);
-    const quotaFailure=(e instanceof Error?e.message:String(e)).includes("Gemini HTTP 429")||(e instanceof Error?e.message:String(e)).includes("RESOURCE_EXHAUSTED");
-    return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure,reason:quotaFailure?"provider_quota_blocked":"blueprint_planning_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":"Blueprint planning failed; internal diagnostics were withheld."}),{status:quotaFailure?429:500,headers:jsonHeaders});
+    const providerMessage=e instanceof Error?e.message:String(e);const quotaFailure=providerMessage.includes("Gemini HTTP 429")||providerMessage.includes("RESOURCE_EXHAUSTED");const providerOverloaded=providerMessage.includes("Gemini HTTP 503");
+    return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure||providerOverloaded,reason:quotaFailure?"provider_quota_blocked":providerOverloaded?"provider_temporarily_unavailable":"blueprint_planning_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":providerOverloaded?"Gemini is temporarily unavailable; retry after cooldown.":"Blueprint planning failed; internal diagnostics were withheld."}),{status:quotaFailure?429:providerOverloaded?503:500,headers:jsonHeaders});
   }
 });
