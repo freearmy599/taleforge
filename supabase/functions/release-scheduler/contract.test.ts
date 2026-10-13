@@ -1196,7 +1196,7 @@ Deno.test("publication sync processor never persists downstream response bodies 
     "untrusted downstream response bodies must not enter retry errors or outbox last_error");
   assert(source.includes("function safeRetryErrorMessage(error: unknown): string"),
     "retry diagnostics must be normalized before persistence");
-  assert(source.includes("message.match(/^Canon sync failed: HTTP (\\\\d{3})$/)"),
+  assert(source.includes("message.match(/^Canon sync failed: HTTP (" + String.raw`\d{3}` + ")$/)"),
     "safe HTTP status normalization must recognize exactly three decimal digits");
   assert(source.includes("last_error: safeRetryErrorMessage(e),"),
     "retry state should persist only normalized internal errors");
