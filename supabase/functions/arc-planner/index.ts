@@ -13,7 +13,7 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     if (!url || !key) return;
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error: stateError } = await db.from("taleforge_ai_provider_state")
-      .select("consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
+      .select("cooldown_until,consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
     if (stateError || !data) {
       console.error("[quota-guard] Gemini cooldown state could not be verified; persistence skipped.");
       return;
@@ -22,7 +22,9 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
     const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
-    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
+    const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
+    const until = new Date(Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)).toISOString();
     const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
       provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
       last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
