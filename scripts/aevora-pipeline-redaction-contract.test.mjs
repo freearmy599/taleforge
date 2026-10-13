@@ -37,3 +37,21 @@ test("chapter generation does not return raw governance or database exception de
   assert.ok(s.includes('last_error:providerQuotaFailure?"Gemini quota or rate-limit response":"Generation failure; internal diagnostics withheld"'));
   assert.equal(s.includes("error_message:message.slice(0,1200)"), false);
 });
+
+test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
+  const functions = [
+    ["arc-planner", "arc-planner-v6-redacted-quota-guard"],
+    ["blueprint-planner", "blueprint-planner-v8-redacted-quota-guard"],
+    ["character-continuity", "character-continuity-v6-redacted-quota-guard"],
+    ["story-dna-planner", "story-dna-planner-v4-redacted-quota-guard"],
+    ["world-continuity", "world-continuity-v9-redacted-quota-guard"],
+  ];
+  for (const [name, version] of functions) {
+    const s = await source("supabase/functions/" + name + "/index.ts");
+    assert.ok(s.includes(version), name + " version marker missing");
+    assert.ok(s.includes("async function recordGeminiQuotaCooldown("), name + " cooldown recorder missing");
+    assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'), name + " stored error is not sanitized");
+    assert.equal(s.includes("await resp.text()"), false, name + " must not echo provider error bodies");
+    assert.equal(s.includes("error:e instanceof Error?e.message:String(e)"), false, name + " must not return raw exception details");
+  }
+});
