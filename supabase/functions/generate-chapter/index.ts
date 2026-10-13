@@ -221,14 +221,26 @@ const message=e instanceof Error?e.message:String(e);
 const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
 if(db && providerQuotaFailure){
  try{
-  const {data}=await db.from("taleforge_ai_provider_state").select("consecutive_throttle_count").eq("provider","gemini").maybeSingle();
-  const count=Number(data?.consecutive_throttle_count??0)+1;
-  const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
-  const until=new Date(Date.now()+cooldownHours*60*60*1000).toISOString();
-  const {error:cooldownError}=await db.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:providerQuotaFailure?"Gemini quota or rate-limit response":"Generation failure; internal diagnostics withheld",last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
-  if(cooldownError)console.error("[generate-chapter] failed to record Gemini cooldown",cooldownError.message);
-  else console.warn("[generate-chapter] Gemini cooldown recorded",JSON.stringify({cooldown_until:until,cooldown_hours:cooldownHours,consecutive_throttle_count:count}));
- }catch(cooldownException){console.error("[generate-chapter] cooldown recording exception",String(cooldownException));}
+  const {data,stateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
+  if(stateError){
+   console.error("[generate-chapter] Gemini cooldown state could not be read; existing state preserved.");
+  }else{
+   const rawCount=Number(data?.consecutive_throttle_count??0);
+   const previousCount=Number.isSafeInteger(rawCount)&&rawCount>=0?rawCount:0;
+   const count=previousCount+1;
+   const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
+   const now=Date.now();
+   const proposedUntil=now+cooldownHours*60*60*1000;
+   const existingUntil=data?.cooldown_until?Date.parse(data.cooldown_until):0;
+   // A concurrent throttle must never shorten an already-recorded cooldown.
+   const until=new Date(Math.max(proposedUntil,Number.isFinite(existingUntil)?existingUntil:0)).toISOString();
+   const {error:cooldownError}=await db.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:"Gemini quota or rate-limit response",last_error_at:new Date(now).toISOString(),updated_at:new Date(now).toISOString()},{onConflict:"provider"});
+   if(cooldownError)console.error("[generate-chapter] failed to record Gemini cooldown; provider remains blocked for this request.");
+   else console.warn("[generate-chapter] Gemini cooldown recorded",JSON.stringify({cooldown_until:until,cooldown_hours:Math.max(0,(Date.parse(until)-now)/3600000),consecutive_throttle_count:count}));
+  }
+ }catch{
+  console.error("[generate-chapter] cooldown recording failed unexpectedly; provider remains blocked for this request.");
+ }
 }
 console.error("[generate-chapter] request failed",JSON.stringify({request_id:req.headers.get("x-request-id")||req.headers.get("sb-request-id")||null,error_name:e instanceof Error?e.name:"UnknownError",reason:providerQuotaFailure?"provider_quota_blocked":"generation_failed"}));
 return reply({success:false,retryable:providerQuotaFailure,reason:providerQuotaFailure?"provider_quota_blocked":"generation_failed",error:providerQuotaFailure?"Gemini quota or rate limit was reached; retry after provider cooldown.":"Generation request failed; internal diagnostics were withheld."},providerQuotaFailure?429:500);
