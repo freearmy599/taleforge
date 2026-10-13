@@ -93,6 +93,14 @@ try {
     if (typeof value !== "string" || value.trim() === "") return NaN;
     return Date.parse(value);
   };
+  const snapshotTime = parseTimestamp(snapshot.generated_at);
+  if (!Number.isFinite(snapshotTime)) {
+    findings.push(`**Malformed control-plane snapshot timestamp:** generated_at=${snapshot.generated_at ?? "missing"}`);
+  } else if (snapshotTime > now + 5 * 60_000) {
+    findings.push(`**Control-plane snapshot timestamp is in the future:** generated_at=${snapshot.generated_at}`);
+  } else if (now - snapshotTime > 45 * 60_000) {
+    findings.push(`**Stale control-plane snapshot:** generated_at=${snapshot.generated_at}; snapshot is older than 45 minutes`);
+  }
   const expectedMinutes = (cron) => {
     if (cron === "*/5 * * * *") return 20;
     if (cron === "*/15 * * * *") return 45;
