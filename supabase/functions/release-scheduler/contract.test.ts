@@ -426,6 +426,27 @@ Deno.test("weekly release after a batch never schedules a second batch at today'
   assert(preserveDstSlot.toISOString() === nextValidDstSlot.toISOString(),
     "a DST-gap week must not cause the next valid weekly slot to be skipped");
 
+  const missingReservedSlot = nextWeeklyReleaseAfterBatch(
+    completedBeforeSameDaySlot, null, 0, "09:00", "Asia/Kolkata",
+  );
+  assert(missingReservedSlot.toISOString() === "2026-10-18T03:30:00.000Z",
+    "a missing reserved slot must not permit a second batch later on the same local day");
+
+  const foldFirstSlot = new Date("2026-11-01T05:30:00.000Z");
+  const beforeFoldSlot = new Date("2026-11-01T05:00:00.000Z");
+  const skipRepeatedFoldSlot = nextWeeklyReleaseAfterBatch(
+    beforeFoldSlot, foldFirstSlot, 0, "01:30", "America/New_York",
+  );
+  assert(skipRepeatedFoldSlot.toISOString() === "2026-11-08T06:30:00.000Z",
+    "a completed batch must skip both repeated wall-clock occurrences on a DST fall-back day");
+
+  const betweenFoldSlots = new Date("2026-11-01T05:45:00.000Z");
+  const staleReservedFoldSlot = nextWeeklyReleaseAfterBatch(
+    betweenFoldSlots, foldFirstSlot, 0, "01:30", "America/New_York",
+  );
+  assert(staleReservedFoldSlot.toISOString() === "2026-11-08T06:30:00.000Z",
+    "a stale reserved slot must not reselect the second DST-fold occurrence on the same day");
+
   let invalidCompletionRejected = false;
   try {
     nextWeeklyReleaseAfterBatch(new Date(Number.NaN), reservedSlot, 0, "09:00", "Asia/Kolkata");
