@@ -1050,3 +1050,13 @@ Deno.test("review orchestrator fails closed and reports blocked batches as unsuc
   assert(source.includes("}, hasReviewFailures ? 422 : 200);"),
     "blocked or errored review batches must return a non-success HTTP status");
 });
+
+Deno.test("originality review supports the standard Supabase service-role environment with legacy fallback", async () => {
+  const source = await Deno.readTextFile(new URL("../originality-review/index.ts", import.meta.url));
+  assert(source.includes('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get('),
+    "originality review must prefer the standard Supabase service-role key");
+  assert(source.includes('"TALEFORGE_SERVICE_ROLE_KEY"'),
+    "originality review must preserve the legacy environment fallback");
+  assert(source.indexOf('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")') < source.indexOf('isTrustedInternalApiKey('),
+    "the service-role key must be resolved before internal caller authentication");
+});
