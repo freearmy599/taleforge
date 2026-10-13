@@ -85,7 +85,7 @@ test("Gemini planner and continuity workers redact failures and persist quota co
 
 test("chapter-generation quota handling never shortens an existing Gemini cooldown", async () => {
   const s = await source("supabase/functions/generate-chapter/index.ts");
-  assert.ok(s.includes('const QUALITY_VERSION="quality-v7-temporary-provider-cooldown"'));
+  assert.ok(s.includes('const QUALITY_VERSION="quality-v8-short-overload-cooldown"'));
   assert.ok(s.includes('const providerTemporaryFailure=message.includes("Gemini HTTP 503")'));
   assert.ok(s.includes('const providerCooldownFailure=providerQuotaFailure||providerTemporaryFailure'));
   assert.ok(s.includes('reason:failureReason,error:failureMessage},providerQuotaFailure?429:providerTemporaryFailure?503:500'));
