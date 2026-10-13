@@ -15,6 +15,7 @@ const reviewQualifiedOutputsUrl = new URL("./review-qualified-outputs.ts", impor
 const schedulerUrl = new URL("./index.ts", import.meta.url);
 const leaseFencingMigrationUrl = new URL("../../migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", import.meta.url);
 const leaseFoundationMigrationUrl = new URL("../../migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql", import.meta.url);
+const serverOnlyGrantsMigrationUrl = new URL("../../migrations/20261013090000_aevora_server_only_metrics_outbox_grants.sql", import.meta.url);
 const weeklyScheduleUrl = new URL("./weekly-schedule.ts", import.meta.url);
 const publisherUrl = new URL("../release-publisher/index.ts", import.meta.url);
 const generateChapterUrl = new URL("../generate-chapter/index.ts", import.meta.url);
@@ -814,4 +815,18 @@ Deno.test("post-publication canon sync authenticates and verifies publication be
     "chapter_id must be a non-empty string rather than arbitrary truthy input");
   assert(publishedCheck >= 0 && downstreamCalls > publishedCheck,
     "published chapter status must be verified before invoking continuity workers");
+});
+
+
+Deno.test("internal metrics and publication outbox remain server-only without client policies", async () => {
+  const sql = await Deno.readTextFile(serverOnlyGrantsMigrationUrl);
+  for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
+    assert(sql.includes("ALTER TABLE public." + table + " ENABLE ROW LEVEL SECURITY"),
+      table + " must have row-level security enabled");
+    assert(sql.includes("REVOKE ALL PRIVILEGES ON TABLE public." + table + " FROM PUBLIC, anon, authenticated"),
+      table + " must revoke all table privileges from public and ordinary client roles");
+  }
+  assert(!/CREATE\\s+POLICY/i.test(sql), "server-only internal tables must not receive client-facing policies");
+  assert(!/GRANT\\s+.+\\s+TO\\s+(PUBLIC|anon|authenticated)/i.test(sql),
+    "server-only migration must not grant table privileges to ordinary client roles");
 });
