@@ -49,15 +49,38 @@ export function nextWeeklyReleaseAfterBatch(
 ): Date {
   const completedMs = completedAt instanceof Date ? completedAt.getTime() : Number.NaN;
   if (!Number.isFinite(completedMs)) throw new Error("Invalid weekly batch completion timestamp");
+  // Validate the schedule independently of which branch below returns.
+  nextWeeklyRelease(completedAt, weekday, time, timeZone);
   const slotMs = reservedSlot instanceof Date ? reservedSlot.getTime() : Number.NaN;
-  // If this batch finishes before the upcoming scheduled wall-clock slot (for
-  // example, a first release with next_release_at=NULL), reserve that slot as
-  // the current week's cadence boundary and advance beyond it. Otherwise,
-  // recompute from completion so long-running batches cannot save a stale slot.
-  const base = Number.isFinite(slotMs) && slotMs > completedMs
-    ? new Date(slotMs + 1000)
-    : completedAt;
-  return nextWeeklyRelease(base, weekday, time, timeZone);
+  if (!Number.isFinite(slotMs) || slotMs <= completedMs) {
+    return nextWeeklyRelease(completedAt, weekday, time, timeZone);
+  }
+
+  const local = partsAt(completedAt, timeZone);
+  const localWeekday = new Date(Date.UTC(local.year, local.month - 1, local.day)).getUTCDay();
+  const [hour, minute, second = 0] = time.split(":").map(Number);
+  let slotIsStillAheadThisWeek = weekday > localWeekday;
+  if (weekday === localWeekday) {
+    const currentSeconds = local.hour * 3600 + local.minute * 60 + local.second;
+    const targetSeconds = hour * 3600 + minute * 60 + second;
+    slotIsStillAheadThisWeek = currentSeconds < targetSeconds;
+  }
+
+  if (slotIsStillAheadThisWeek) {
+    const targetDate = addLocalDays(local.year, local.month, local.day, weekday - localWeekday);
+    const existsThisWeek = matchingWallTimeCandidates(
+      targetDate.year, targetDate.month, targetDate.day, hour, minute, second, timeZone,
+    ).length > 0;
+    if (existsThisWeek) {
+      // A release happened before this week's planned slot; skip that slot so
+      // the same weekly schedule cannot publish a second batch later today/week.
+      return nextWeeklyRelease(new Date(slotMs + 1000), weekday, time, timeZone);
+    }
+  }
+
+  // The current week's slot has already passed, or was a DST gap. The reserved
+  // slot is therefore the correct next occurrence; do not skip an extra week.
+  return reservedSlot as Date;
 }
 
 /** Return the next future wall-clock weekly occurrence in the schedule's IANA timezone. */
