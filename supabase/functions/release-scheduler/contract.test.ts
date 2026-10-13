@@ -824,6 +824,19 @@ Deno.test("publication sync processor authenticates before privileged work and v
   assert(source.includes('status: attempts >= 8 ? "failed" : "pending"'), "retry ceiling must retain the schema-supported terminal failed status");
   assert(source.includes('status:attempts >= 8 ? "failed_terminal" : "retry_scheduled"'),
     "response must distinguish terminal failures from scheduled retries");
+  assert(source.includes('.eq("status","processing")\n      .or("locked_at.is.null,locked_at.lt."'),
+    "stale recovery must target only processing rows with a missing or expired lock");
+  assert(source.includes('new Date(Date.now()-10*60*1000).toISOString()'),
+    "stale processing recovery must use a bounded age threshold rather than reclaiming fresh work");
+  assert(source.includes('const delayMinutes = Math.min(60, Math.pow(2,Math.max(0,attempts-1))*5)'),
+    "retry delay must grow exponentially but remain capped");
+  assert(source.includes('const batchSucceeded=results.every((result:any)=>result.status==="succeeded")'),
+    "an empty or fully successful claimed batch may succeed, but any reported failure must make the batch unsuccessful");
+  assert(source.includes('if (completion.error || !completion.data)') &&
+      source.includes('if (retryWrite.error || !retryWrite.data)'),
+    "database errors and zero-row lease-fenced writes must be surfaced as unsuccessful outcomes");
+  assert(source.includes('status:"retry_state_update_failed"'),
+    "a lost lease or failed retry-state write must not be reported as a successful retry");
 });
 
 Deno.test("post-publication canon sync authenticates and verifies publication before downstream calls", async () => {
