@@ -51,6 +51,8 @@ test("Gemini planner and continuity workers redact failures and persist quota co
     assert.ok(s.includes(version), name + " version marker missing");
     assert.ok(s.includes("async function recordGeminiQuotaCooldown("), name + " cooldown recorder missing");
     assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'), name + " stored error is not sanitized");
+    assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), name + " must read the existing cooldown before updating it");
+    assert.ok(s.includes("Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)"), name + " must never shorten an existing cooldown");
     assert.equal(s.includes("await resp.text()"), false, name + " must not echo provider error bodies");
     assert.equal(s.includes("error:e instanceof Error?e.message:String(e)"), false, name + " must not return raw exception details");
     assert.ok(s.includes("reason:quotaFailure?\"provider_quota_blocked\""), name + " must preserve a safe quota reason");
