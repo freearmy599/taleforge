@@ -33,6 +33,8 @@ test("GitHub API failures do not copy response bodies into logs or issue reports
 
 test("audit failure remains bounded when GitHub issue reporting also fails", () => {
   assert.match(source, /try\s*\{\s*await report\(title, body\);\s*\}\s*catch \(reportError\)/);
-  assert.match(source, /Audit failure report could not be delivered:/);
+  assert.match(source, /Audit failure report could not be delivered\./);
+  assert.doesNotMatch(source, /String\(reportError\?\.message\s*\|\|\s*reportError\)/,
+    "secondary GitHub/API failures must not leak response details or secret-bearing URLs into logs");
   assert.match(source, /process\.exitCode\s*=\s*1;/);
 });
