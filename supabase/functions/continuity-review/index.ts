@@ -183,7 +183,12 @@ note: "Gemini review blocked because provider cooldown state could not be verifi
 }, 503);
 }
 
-if (providerState.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now()) {
+const cooldownTimestamp = providerState.cooldown_until ? new Date(providerState.cooldown_until).getTime() : null;
+if (providerState.cooldown_until && (cooldownTimestamp === null || !Number.isFinite(cooldownTimestamp))) {
+return jsonResponse({ success: false, blocked: true, retryable: true, reason: "provider_state_unavailable", note: "Gemini review blocked because provider cooldown state is malformed; no model call was made." }, 503);
+}
+
+if (cooldownTimestamp !== null && cooldownTimestamp > Date.now()) {
 return jsonResponse({
 success: false,
 blocked: true,
