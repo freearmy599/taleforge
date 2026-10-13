@@ -62,3 +62,12 @@ test("revision worker records quota cooldowns and preserves orchestrator output 
   assert.ok(o.includes("revision_priority"));
   assert.ok(o.includes("revision_targets"));
 });
+
+test("generation orchestrator exhausts revision backlog using a database-allowed status", async () => {
+  const s = await source("supabase/functions/generation-orchestrator/index.ts");
+  assert.ok(s.includes('update({generation_status:"rejected",updated_at:new Date().toISOString()})'));
+  assert.ok(s.includes('.gte("generation_attempt",3)'));
+  assert.ok(s.includes('action:"revision_exhausted",stored_status:"rejected"'));
+  assert.ok(s.includes("revision_exhausted_outputs:revisionExhaustedOutputs"));
+  assert.equal(s.includes('generation_status:"revision_exhausted"'), false);
+});
