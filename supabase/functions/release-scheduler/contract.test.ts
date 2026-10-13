@@ -837,6 +837,15 @@ Deno.test("publication sync processor authenticates before privileged work and v
     "database errors and zero-row lease-fenced writes must be surfaced as unsuccessful outcomes");
   assert(source.includes('status:"retry_state_update_failed"'),
     "a lost lease or failed retry-state write must not be reported as a successful retry");
+  assert(source.includes('results.push({id:event.id,chapter_id:event.chapter_id,status:"claim_failed"})'),
+    "claim failures must not echo raw database diagnostics into the response");
+  assert(source.includes('results.push({id:event.id,chapter_id:event.chapter_id,status:"retry_state_update_failed",attempts})'),
+    "retry-state failures must not echo raw database diagnostics into the response");
+  assert(source.includes('error:"Publication sync processor failed."'),
+    "unexpected processor failures must use a bounded public error");
+  assert(!source.includes("claim.error.message") && !source.includes("retryWrite.error?.message") &&
+      !source.includes("staleRecovery.error.message") && !source.includes("throw error;"),
+    "raw database error details must not enter API responses or persisted retry diagnostics");
 });
 
 Deno.test("post-publication canon sync authenticates and verifies publication before downstream calls", async () => {
