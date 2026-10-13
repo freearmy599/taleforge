@@ -20,13 +20,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  audit:
+  contract:
+    name: Validate audit contracts
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Test audit failure and redaction contracts
         run: node --test scripts/aevora-control-plane-audit.contract.test.mjs
+
+  audit:
+    name: Run live read-only audit
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
       - name: Run read-only control-plane audit
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
