@@ -1194,6 +1194,6 @@ Deno.test("publication sync processor never persists downstream response bodies 
     "downstream sync failures must use a bounded status-only error");
   assert(!source.includes('throw new Error("Canon sync failed: HTTP "+response.status+" "+text'),
     "untrusted downstream response bodies must not enter retry errors or outbox last_error");
-  assert(source.includes('last_error: e instanceof Error ? e.message : String(e)'),
-    "retry state should retain the sanitized internal error for diagnosis");
+  assert(source.includes('last_error: e instanceof Error ? e.message : "Publication sync attempt failed."'),
+    "retry state should retain only a bounded internal error message");
 });
