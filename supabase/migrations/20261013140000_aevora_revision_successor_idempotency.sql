@@ -48,9 +48,9 @@ SET generation_status = 'rejected',
 FROM ranked_successors AS ranked
 WHERE output.id = ranked.id
   AND ranked.successor_rank > 1
-  AND output.generation_status <> 'published';
+  AND output.generation_status IS DISTINCT FROM 'published';
 
 CREATE UNIQUE INDEX IF NOT EXISTS chapter_generation_outputs_revision_successor_unique
   ON public.chapter_generation_outputs (revision_of_output_id)
   WHERE revision_of_output_id IS NOT NULL
-    AND generation_status <> 'rejected';
+    AND generation_status IS DISTINCT FROM 'rejected';
