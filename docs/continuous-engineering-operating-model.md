@@ -110,3 +110,10 @@ A task is complete only when the result is verified and recorded. The worker sho
 - In the last 24 hours, `net._http_response` contained 186 HTTP 200 responses and 60 HTTP 429 responses. All 60 of the 429 response bodies matched the cooldown category, consistent with the active Gemini cooldown and the newly added audit finding. No response bodies or credentials were copied into GitHub.
 - The control-plane monitor now flags an active provider cooldown instead of reporting an unqualified “no findings” result. The remaining audit gap is per-job correlation of downstream HTTP outcomes; current cron SQL does not persist each `net.http_post` request ID alongside its job name. Close this gap through a reviewed, read-only aggregate and correlation design before claiming scheduled downstream outcomes are fully verified.
 - The engineering task `Audit scheduled job outcomes` is stale in the database: status `in_progress`, no claimant/claim timestamp/heartbeat/lease, and last update `2026-10-10 08:53:29Z`. It was not changed during this audit because production queue state was left untouched.
+
+
+## Audit endpoint authentication defect found (2026-10-14)
+
+- Source inspection found the tracked Edge Function's Authorization-header parser was double-escaped: it searched for a literal backslash followed by `s`, rather than whitespace. A standard `Authorization: Bearer <token>` header would therefore fail token extraction.
+- Corrected the branch source to use the whitespace matcher and added a regression contract that rejects the double-escaped form.
+- Important: the connected Supabase function was observed earlier at deployed version 4. The branch fix is **not deployed**, so this source repair must not be treated as a live endpoint fix. The next safe verification is a passing branch contract-test workflow and a separately authorized deployment followed by a read-only authenticated smoke test. No deployment or production configuration was changed.
