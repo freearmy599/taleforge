@@ -3,7 +3,7 @@ import { nextWeeklyRelease, nextWeeklyReleaseAfterBatch } from "./weekly-schedul
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
-const VERSION = "release-scheduler-v15-redacted-diagnostics";
+const VERSION = "release-scheduler-v16-dst-fold-cadence";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
