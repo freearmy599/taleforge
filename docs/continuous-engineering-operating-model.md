@@ -65,7 +65,7 @@ A task is complete only when the result is verified and recorded. The worker sho
 - Added private-by-default Supabase ledgers: `aevora_engineering_tasks`, `aevora_engineering_decisions`, and `aevora_engineering_events`. RLS is enabled; `anon` and `authenticated` have no table privileges; `service_role` is the intended runtime role.
 - Seeded four zero-budget tasks covering provider cooldown verification, scheduled-job outcome auditing, publication-safeguard verification, and worker-contract design.
 - Added `scripts/aevora-control-plane-audit.mjs` and `.github/workflows/aevora-control-plane-audit.yml`. The workflow is scheduled every 15 minutes and can also be run manually. It is read-only against Supabase and reports findings in one GitHub issue.
-- The audit requires the repository secret `SUPABASE_SERVICE_ROLE_KEY`. If it is not configured, the workflow reports the missing configuration in the same issue; do not paste the key into source code, issues, or chat.
+- The GitHub workflow uses the scoped repository secret `AEVORA_AUDIT_TOKEN`; the Supabase service-role key remains server-side in the Edge Function and is never passed to GitHub Actions. Never paste either secret into source code, issues, or chat.
 - This is monitoring, not yet an autonomous code-writing worker. The worker remains disabled until its atomic task-claim path, narrow executor, tests, credential model, and owner-approved boundaries are in place.
 - Deployment to GitHub is verified by commit SHA; successful scheduled runtime execution and alert delivery are not yet verified.
 
@@ -94,3 +94,10 @@ A task is complete only when the result is verified and recorded. The worker sho
 - Added a pre-review cooldown check to `review-orchestrator` v7 so the review pipeline skips model calls while the shared Gemini cooldown is active.
 - The underlying failure was confirmed in Supabase function logs: Gemini returned HTTP 429 / RESOURCE_EXHAUSTED for the free-tier input-token quota; the same run recorded a 24-hour cooldown. A `continuity-review` invocation returned HTTP 502 during that failure window.
 - No new generation was triggered. Runtime verification of the guards remains pending until the cooldown expires at `2026-10-11T08:00:35.441Z`.
+
+
+## Audit source-of-truth repair (2026-10-13)
+
+- Read-only inspection of the connected Supabase project confirmed `aevora-control-plane-audit` is ACTIVE at version 4 with custom bearer-token authentication and `verify_jwt=false`.
+- The deployed Edge Function implementation was missing from the hardening branch, so the retrieved deployed source was added at `supabase/functions/aevora-control-plane-audit/index.ts` to make future review and deployment reproducible. This was a GitHub branch change only; the live function was not deployed or changed.
+- The workflow's live runtime result and whether `AEVORA_AUDIT_TOKEN` is currently configured remain unverified in this audit. Do not treat source tracking as proof of successful authenticated runtime auditing.
