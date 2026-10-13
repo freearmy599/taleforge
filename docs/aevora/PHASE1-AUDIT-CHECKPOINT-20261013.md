@@ -126,3 +126,15 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 - This remains a repository-only hardening step. The separate live/production drift, pending migrations, deployment gates, and table-by-table RLS/grant review remain open.
 
 **Safety boundary unchanged:** no production deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was performed.
+
+### Latest continuation — 2026-10-13, CI-confirmed
+
+- Rechecked the current branch and confirmed `revise-chapter` is present as `revision-v18-null-safe-attempt-state`; the prior missing-worker finding is no longer current.
+- Fixed failed-revision attempt bookkeeping for legacy rows whose `generation_attempt` is NULL. The compare-and-set now explicitly matches NULL rows while retaining stale-state fencing for non-NULL counters. Added regression assertions and aligned the revision version markers.
+- Made Gemini cooldown recording monotonic in continuity/originality/safety review workers: an existing longer cooldown is not shortened, malformed existing expiry values are preserved, and temporary overload uses the safe short-cooldown path.
+- Redacted raw database exception details from chapter-generation and review-worker provider-state logs; added source-contract checks for this behavior.
+- Corrected a stale Deno contract assertion that still expected the old raw “no provider-state row” diagnostic after logs were sanitized.
+- Latest successful validation: [workflow run 38433979510](https://github.com/freearmy599/taleforge/actions/runs/38433979510), commit `7d14e6b107066fa8edb440176155627911d574bb`. Edge Function type checks passed; Deno source-contract suite passed **72/72**; Node contract suites passed **42/42** (**114 total, 0 failures**).
+- Validation is branch CI only, not a live Supabase integration test. The revision-successor idempotency migration, server-only privilege migrations, and hardened Edge Function deployments remain unapplied/undeployed. The known production drift, chapter/review reconciliation, stale schedule, and table-by-table RLS/grant triage remain open.
+
+**Safety boundary unchanged:** no production deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was performed.
