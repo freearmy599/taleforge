@@ -53,5 +53,7 @@ test("Gemini planner and continuity workers redact failures and persist quota co
     assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'), name + " stored error is not sanitized");
     assert.equal(s.includes("await resp.text()"), false, name + " must not echo provider error bodies");
     assert.equal(s.includes("error:e instanceof Error?e.message:String(e)"), false, name + " must not return raw exception details");
+    assert.ok(s.includes("reason:quotaFailure?\"provider_quota_blocked\""), name + " must preserve a safe quota reason");
+    if (["arc-planner", "blueprint-planner", "story-dna-planner"].includes(name)) assert.ok(s.includes("invalid_cooldown_timestamp"), name + " must fail closed on malformed cooldown state");
   }
 });
