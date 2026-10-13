@@ -471,16 +471,21 @@ return jsonResponse({ success: false, blocked: true, retryable: true, reason: "p
 }
 
 
-let body: any = {};
-
+let body: any;
 try {
 body = await req.json();
-const governance = await supabase.rpc("taleforge_ceo_execution_gate",{p_action_scope:"revision"});
-if(governance.error || governance.data?.authorized !== true){
-return jsonResponse({success:false,error:"Revision blocked by Clara Aurel governance gate.",governance:{authorized:governance.data?.authorized===true},details:governance.error?"Internal governance diagnostics were withheld.":null},423);
-}
 } catch {
-body = {};
+return jsonResponse({ success: false, error: "Request body must be valid JSON." }, 400);
+}
+
+const governance = await supabase.rpc("taleforge_ceo_execution_gate", { p_action_scope: "revision" });
+if (governance.error || governance.data?.authorized !== true) {
+return jsonResponse({
+success: false,
+error: "Revision blocked by Clara Aurel governance gate.",
+governance: { authorized: governance.data?.authorized === true },
+details: governance.error ? "Internal governance diagnostics were withheld." : null,
+}, 423);
 }
 
 const outputId = body?.output_id;
