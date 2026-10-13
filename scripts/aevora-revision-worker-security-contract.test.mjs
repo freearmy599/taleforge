@@ -13,7 +13,7 @@ async function source(path) {
 
 test("revision worker redacts provider, governance, handoff, and exception details", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes("revision-v16-short-overload-cooldown"));
+  assert.ok(s.includes("revision-v17-enforce-attempt-limit"));
   assert.ok(s.includes('import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";'));
   assert.ok(s.includes('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey'));
   assert.ok(s.includes('Caller must authenticate with a configured server-side Supabase API key.'));
@@ -21,6 +21,8 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes('success: false,\n\nmode:\n"chapter-revision",\n\nstatus:\n"revision_failed_validation"'));
   assert.ok(s.includes('failed deterministic validation.",\n}, 422);'));
   assert.ok(s.includes("failedAttemptNumber = Math.min(MAX_REVISION_ATTEMPTS"), "failed revision cycles must advance the existing attempt limit");
+  assert.ok(s.includes("sourceAttempt >= MAX_REVISION_ATTEMPTS"), "the endpoint must enforce the attempt limit independently of orchestration");
+  assert.ok(s.includes('reason: "revision_attempt_limit_reached"'), "exhausted revision requests must be rejected safely");
   assert.ok(s.includes('.eq("generation_attempt", Number(originalOutput.generation_attempt || 1))'), "failed revision attempt updates must be fenced against stale state");
   assert.ok(s.includes('reason: "revision_attempt_state_unavailable"'), "failed attempt bookkeeping errors must fail closed");
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
