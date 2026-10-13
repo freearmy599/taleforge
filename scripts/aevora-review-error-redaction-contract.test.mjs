@@ -8,9 +8,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const functions = [
-  ["continuity-review", "continuity-v4-redacted-provider-errors"],
-  ["originality-review", "originality-v4-redacted-provider-errors"],
-  ["safety-review", "safety-v4-redacted-provider-errors"],
+  ["continuity-review", "continuity-v5-aevora-brand"],
+  ["originality-review", "originality-v5-aevora-brand"],
+  ["safety-review", "safety-v5-aevora-brand"],
   ["publication-review", "publication-v2-redacted-error-details"],
 ];
 
