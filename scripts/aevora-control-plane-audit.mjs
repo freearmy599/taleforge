@@ -89,6 +89,10 @@ try {
   const snapshot = await response.json();
   const { jobs = [], providers = [], schedules = [], tasks = [], decisions = [] } = snapshot;
   const now = Date.now();
+  const parseTimestamp = (value) => {
+    if (typeof value !== "string" || value.trim() === "") return NaN;
+    return Date.parse(value);
+  };
   const expectedMinutes = (cron) => {
     if (cron === "*/5 * * * *") return 20;
     if (cron === "*/15 * * * *") return 45;
@@ -119,8 +123,13 @@ try {
   }
 
   for (const task of tasks) {
-    if (["claimed", "in_progress"].includes(task.status) && task.lease_until && Date.parse(task.lease_until) < now) {
-      findings.push(`**Expired engineering task lease:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+    if (["claimed", "in_progress"].includes(task.status) && task.lease_until) {
+      const leaseUntil = parseTimestamp(task.lease_until);
+      if (!Number.isFinite(leaseUntil)) {
+        findings.push(`**Malformed engineering task lease timestamp:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+      } else if (leaseUntil < now) {
+        findings.push(`**Expired engineering task lease:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+      }
     }
     if (task.status === "failed") findings.push(`**Failed engineering task:** ${task.title} (${task.id}); ${task.blocked_reason || "no failure reason recorded"}`);
   }
@@ -129,8 +138,13 @@ try {
     if (decision.status === "awaiting_decision" && ["high", "critical"].includes(decision.urgency)) {
       findings.push(`**Owner decision required (${decision.urgency}):** ${decision.title} (${decision.id})`);
     }
-    if (decision.status === "awaiting_decision" && decision.expires_at && Date.parse(decision.expires_at) < now) {
-      findings.push(`**Expired decision request:** ${decision.title} (${decision.id})`);
+    if (decision.status === "awaiting_decision" && decision.expires_at) {
+      const expiresAt = parseTimestamp(decision.expires_at);
+      if (!Number.isFinite(expiresAt)) {
+        findings.push(`**Malformed decision expiry timestamp:** ${decision.title} (${decision.id}), expires_at=${decision.expires_at}`);
+      } else if (expiresAt < now) {
+        findings.push(`**Expired decision request:** ${decision.title} (${decision.id})`);
+      }
     }
   }
 
