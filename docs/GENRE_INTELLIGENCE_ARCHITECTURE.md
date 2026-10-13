@@ -1,6 +1,6 @@
-# TaleForge Genre Intelligence Architecture
+# Aevora Genre Intelligence Architecture
 
-TaleForge separates narrative concerns so no single genre system becomes a catch-all.
+Aevora separates narrative concerns so no single genre system becomes a catch-all.
 
 ## Layers
 
