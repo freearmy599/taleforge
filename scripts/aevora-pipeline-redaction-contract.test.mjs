@@ -132,6 +132,7 @@ test("core narrative prompts use the Aevora brand", async () => {
   for (const name of promptWorkers) {
     const worker = await source("supabase/functions/" + name + "/index.ts");
     assert.equal(worker.includes("TaleForge"), false, name + " must not use the retired product brand in prompts or messages");
+    assert.equal(/EXISTING\\s+TALEFORGE\\s+CATALOGUE/i.test(worker), false, name + " must not use the retired brand in catalogue prompts");
     assert.ok(worker.includes("Aevora"), name + " should identify the current product brand");
   }
 });
