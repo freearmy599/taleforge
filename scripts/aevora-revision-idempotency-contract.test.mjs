@@ -19,7 +19,7 @@ test("revision successor migration reconciles duplicates and installs a unique p
   assert.ok(migration.includes("WHEN 'published' THEN 0"));
   assert.ok(migration.includes("WHEN 'approved' THEN 1"));
   assert.ok(migration.includes("SET generation_status = 'rejected'"));
-  assert.ok(migration.includes("AND output.generation_status <> 'published'"));
+  assert.ok(migration.includes("AND output.generation_status IS DISTINCT FROM 'published'"));
   assert.ok(migration.includes("CREATE UNIQUE INDEX IF NOT EXISTS chapter_generation_outputs_revision_successor_unique"));
   assert.ok(migration.includes("WHERE revision_of_output_id IS NOT NULL\n    AND generation_status IS DISTINCT FROM 'rejected'"), "rejected successors must not prevent a retry and NULL statuses must remain protected");
   assert.ok(migration.includes("AND output.generation_status IS DISTINCT FROM 'published'"), "duplicate NULL-status successors must be reconciled without changing published rows");
