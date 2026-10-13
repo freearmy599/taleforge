@@ -153,6 +153,7 @@ Use arrays for the six list/object fields where appropriate. target_word_count m
     return new Response(JSON.stringify({success:true,version:VERSION,action:"blueprint_created",blueprint:inserted}),{headers:jsonHeaders});
   } catch(e) {
     await recordGeminiQuotaCooldown(e);
-    return new Response(JSON.stringify({success:false,version:VERSION,error:"Blueprint planning failed; internal diagnostics were withheld."}),{status:500,headers:jsonHeaders});
+    const quotaFailure=(e instanceof Error?e.message:String(e)).includes("Gemini HTTP 429")||(e instanceof Error?e.message:String(e)).includes("RESOURCE_EXHAUSTED");
+    return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure,reason:quotaFailure?"provider_quota_blocked":"blueprint_planning_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":"Blueprint planning failed; internal diagnostics were withheld."}),{status:quotaFailure?429:500,headers:jsonHeaders});
   }
 });
