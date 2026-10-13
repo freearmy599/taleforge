@@ -134,7 +134,7 @@ test("chapter generator fences blueprint status writes and reports reconciliatio
 
 test("chapter revision is authenticated, quota-guarded, and state-fenced", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes('revision-v16-short-overload-cooldown'), "revision version marker must be present");
+  assert.ok(s.includes('revision-v17-enforce-attempt-limit'), "revision version marker must be present");
   const auth = s.indexOf('isTrustedInternalApiKey(req.headers.get("apikey")');
   const body = s.indexOf("body = await req.json()");
   const governance = s.indexOf('supabase.rpc("taleforge_ceo_execution_gate"');
@@ -151,6 +151,8 @@ test("chapter revision is authenticated, quota-guarded, and state-fenced", async
   assert.ok(s.includes('message.includes("Gemini HTTP 503")'), "temporary Gemini overloads must trigger cooldown persistence");
   assert.ok(s.includes('reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable"'), "revision quota and overload failures must have stable safe reasons");
   assert.ok(s.includes('if (originalOutput.generation_status !== "needs_revision")'), "only outputs in needs_revision state may be revised");
+  assert.ok(s.includes("sourceAttempt >= MAX_REVISION_ATTEMPTS"), "revision worker must enforce the attempt limit even when called directly");
+  assert.ok(s.includes('reason: "revision_attempt_limit_reached"'), "exhausted outputs must not spend more provider quota");
   assert.ok(s.includes(".eq(\"revision_of_output_id\", outputId)"), "revision must check for an existing successor");
   assert.ok(s.includes("revision_of_output_id:\noutputId"), "new revision must link to its predecessor");
   assert.ok(s.includes('.eq("id", outputId)\n.eq("generation_status", "needs_revision")'), "source transition must be fenced by its expected status");
