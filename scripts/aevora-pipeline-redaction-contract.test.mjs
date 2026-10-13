@@ -57,3 +57,14 @@ test("Gemini planner and continuity workers redact failures and persist quota co
     if (["arc-planner", "blueprint-planner", "story-dna-planner"].includes(name)) assert.ok(s.includes("invalid_cooldown_timestamp"), name + " must fail closed on malformed cooldown state");
   }
 });
+
+test("chapter-generation quota handling never shortens an existing Gemini cooldown", async () => {
+  const s = await source("supabase/functions/generate-chapter/index.ts");
+  assert.ok(s.includes('select("cooldown_until,consecutive_throttle_count")'));
+  assert.ok(s.includes('if(stateError){'));
+  assert.ok(s.includes('const until=new Date(Math.max(proposedUntil,Number.isFinite(existingUntil)?existingUntil:0)).toISOString()'));
+  assert.ok(s.includes('last_error:"Gemini quota or rate-limit response"'));
+  assert.ok(s.includes('failed to record Gemini cooldown; provider remains blocked for this request.'));
+  assert.equal(s.includes('console.error("[generate-chapter] failed to record Gemini cooldown",cooldownError.message)'), false);
+  assert.equal(s.includes('console.error("[generate-chapter] cooldown recording exception",String(cooldownException))'), false);
+});
