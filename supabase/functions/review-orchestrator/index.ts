@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
       outputs_checked: outputs?.length ?? 0,
       results,
       note: "The orchestrator runs quality, continuity, originality, revision regression when applicable, safety, then publication review. It never publishes directly. Any blocked or errored output makes the overall result unsuccessful.",
-    }, hasReviewFailures ? 207 : 200);
+    }, hasReviewFailures ? 422 : 200);
   } catch (error) {
     return json({
       success: false,
