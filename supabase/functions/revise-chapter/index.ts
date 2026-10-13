@@ -1024,6 +1024,7 @@ const { data: failedAttemptState, error: failedAttemptStateError } = await supab
 .update({ generation_attempt: failedAttemptNumber, updated_at: new Date().toISOString() })
 .eq("id", outputId)
 .eq("generation_status", "needs_revision")
+.eq("generation_attempt", Number(originalOutput.generation_attempt || 1))
 .select("id")
 .maybeSingle();
 if (failedAttemptStateError || !failedAttemptState) {
