@@ -31,6 +31,8 @@ const continuityReviewUrl = new URL("../continuity-review/index.ts", import.meta
 const originalityReviewUrl = new URL("../originality-review/index.ts", import.meta.url);
 const safetyReviewUrl = new URL("../safety-review/index.ts", import.meta.url);
 const publicationReviewUrl = new URL("../publication-review/index.ts", import.meta.url);
+const controlPlaneAuditScriptUrl = new URL("../../../scripts/aevora-control-plane-audit.mjs", import.meta.url);
+
 
 Deno.test("scheduler only inspects disabled schedules for a targeted dry run", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -1105,4 +1107,18 @@ Deno.test("generation orchestrator reports nested failures instead of unconditio
     "a quota cooldown skip must be reported as a blocked, retryable result");
   assert(source.includes("partial_success:hasFailures&&hasProcessed"),
     "mixed processed and failed schedules must be identified as partial success");
+});
+
+Deno.test("control-plane audit reports malformed lease and decision timestamps", async () => {
+  const source = await Deno.readTextFile(controlPlaneAuditScriptUrl);
+  assert(source.includes("const parseTimestamp = (value) =>"),
+    "audit timestamp parsing must be explicit and reusable");
+  assert(source.includes("Malformed engineering task lease timestamp"),
+    "malformed active-task lease timestamps must be surfaced as findings");
+  assert(source.includes("Malformed decision expiry timestamp"),
+    "malformed pending-decision expiry timestamps must be surfaced as findings");
+  assert(source.includes("**Expired engineering task lease:**"),
+    "valid but expired task leases must remain detectable");
+  assert(source.includes("**Expired decision request:**"),
+    "valid but expired decision requests must remain detectable");
 });
