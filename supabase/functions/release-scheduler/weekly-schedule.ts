@@ -39,6 +39,27 @@ function matchingWallTimeCandidates(year:number,month:number,day:number,hour:num
   }
   return matches.sort((a,b)=>a.getTime()-b.getTime());
 }
+/** Return the next weekly slot after a completed batch, never a second batch at a later time today. */
+export function nextWeeklyReleaseAfterBatch(
+  completedAt: Date,
+  reservedSlot: Date | null,
+  weekday: number,
+  time: string,
+  timeZone: string,
+): Date {
+  const completedMs = completedAt instanceof Date ? completedAt.getTime() : Number.NaN;
+  if (!Number.isFinite(completedMs)) throw new Error("Invalid weekly batch completion timestamp");
+  const slotMs = reservedSlot instanceof Date ? reservedSlot.getTime() : Number.NaN;
+  // If this batch finishes before the upcoming scheduled wall-clock slot (for
+  // example, a first release with next_release_at=NULL), reserve that slot as
+  // the current week's cadence boundary and advance beyond it. Otherwise,
+  // recompute from completion so long-running batches cannot save a stale slot.
+  const base = Number.isFinite(slotMs) && slotMs > completedMs
+    ? new Date(slotMs + 1000)
+    : completedAt;
+  return nextWeeklyRelease(base, weekday, time, timeZone);
+}
+
 /** Return the next future wall-clock weekly occurrence in the schedule's IANA timezone. */
 export function nextWeeklyRelease(now:Date, weekday:number, time:string, timeZone:string):Date {
   if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) throw new Error("Invalid preferred weekday");
