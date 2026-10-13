@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const REVISION_VERSION = "revision-v14-retryable-rejected-successor";
+const REVISION_VERSION = "revision-v15-temporary-provider-cooldown";
 
 
 const MAX_REVISION_ATTEMPTS = 3;
@@ -354,7 +354,7 @@ return generatedText;
 
 async function recordGeminiThrottle(supabase: any, error: unknown) {
 const message = error instanceof Error ? error.message : String(error);
-if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return null;
+if (!message.includes("Gemini HTTP 429") && !message.includes("Gemini HTTP 503") && !message.includes("RESOURCE_EXHAUSTED")) return null;
 try {
 const { data, error: stateError } = await supabase.from("taleforge_ai_provider_state")
 .select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
@@ -375,7 +375,7 @@ return null;
 const until = new Date(Math.max(proposedUntil, existingUntil)).toISOString();
 const { error: writeError } = await supabase.from("taleforge_ai_provider_state").upsert({
 provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
-last_error: "Gemini quota or rate-limit response", last_error_at: new Date().toISOString(), updated_at: new Date().toISOString()
+last_error: "Gemini quota, rate-limit, or temporary overload response", last_error_at: new Date().toISOString(), updated_at: new Date().toISOString()
 }, { onConflict: "provider" });
 if (writeError) {
 console.error("[revise-chapter] Gemini cooldown could not be persisted.");
@@ -947,8 +947,10 @@ rawResponse = await callGemini(geminiApiKey, prompt, attempt === 1 ? 0.42 : 0.38
 } catch (providerError) {
 const cooldown = await recordGeminiThrottle(supabase, providerError);
 const providerMessage = providerError instanceof Error ? providerError.message : "";
-if (providerMessage.includes("Gemini HTTP 429") || providerMessage.includes("RESOURCE_EXHAUSTED")) {
-return jsonResponse({ success: false, blocked: true, retryable: true, reason: "provider_quota_blocked", cooldown_until: cooldown?.cooldown_until ?? providerStateResult.data.cooldown_until ?? null, error: "Revision paused because Gemini quota or rate limits were reached." }, 429);
+const quotaBlocked = providerMessage.includes("Gemini HTTP 429") || providerMessage.includes("RESOURCE_EXHAUSTED");
+const providerOverloaded = providerMessage.includes("Gemini HTTP 503");
+if (quotaBlocked || providerOverloaded) {
+return jsonResponse({ success: false, blocked: true, retryable: true, reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable", cooldown_until: cooldown?.cooldown_until ?? providerStateResult.data.cooldown_until ?? null, error: quotaBlocked ? "Revision paused because Gemini quota or rate limits were reached." : "Revision paused because Gemini is temporarily unavailable." }, quotaBlocked ? 429 : 503);
 }
 throw providerError;
 }
@@ -994,8 +996,10 @@ continuation = cleanGeminiOutput(await callGemini(geminiApiKey, continuationProm
 } catch (providerError) {
 const cooldown = await recordGeminiThrottle(supabase, providerError);
 const providerMessage = providerError instanceof Error ? providerError.message : "";
-if (providerMessage.includes("Gemini HTTP 429") || providerMessage.includes("RESOURCE_EXHAUSTED")) {
-return jsonResponse({ success: false, blocked: true, retryable: true, reason: "provider_quota_blocked", cooldown_until: cooldown?.cooldown_until ?? providerStateResult.data.cooldown_until ?? null, error: "Revision paused because Gemini quota or rate limits were reached." }, 429);
+const quotaBlocked = providerMessage.includes("Gemini HTTP 429") || providerMessage.includes("RESOURCE_EXHAUSTED");
+const providerOverloaded = providerMessage.includes("Gemini HTTP 503");
+if (quotaBlocked || providerOverloaded) {
+return jsonResponse({ success: false, blocked: true, retryable: true, reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable", cooldown_until: cooldown?.cooldown_until ?? providerStateResult.data.cooldown_until ?? null, error: quotaBlocked ? "Revision paused because Gemini quota or rate limits were reached." : "Revision paused because Gemini is temporarily unavailable." }, quotaBlocked ? 429 : 503);
 }
 throw providerError;
 }
