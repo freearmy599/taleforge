@@ -1110,7 +1110,7 @@ Deno.test("generation orchestrator reports nested failures instead of unconditio
     "mixed processed and failed schedules must be identified as partial success");
 });
 
-Deno.test("control-plane audit reports malformed lease and decision timestamps", async () => {
+Deno.test("control-plane audit reports malformed lease, decision, and provider-state values", async () => {
   const source = await Deno.readTextFile(controlPlaneAuditScriptUrl);
   assert(source.includes("const parseTimestamp = (value) =>"),
     "audit timestamp parsing must be explicit and reusable");
@@ -1124,4 +1124,10 @@ Deno.test("control-plane audit reports malformed lease and decision timestamps",
     "valid but expired task leases must remain detectable");
   assert(source.includes("**Expired decision request:**"),
     "valid but expired decision requests must remain detectable");
+  assert(source.includes("**Missing Gemini provider state:**"),
+    "a missing Gemini provider row must be visible because generation fails closed without it");
+  assert(source.includes("**Malformed AI provider cooldown timestamp:**"),
+    "malformed provider cooldown timestamps must be surfaced instead of appearing healthy");
+  assert(source.includes("**Invalid AI provider throttle counter:**"),
+    "negative or non-integer throttle counters must be surfaced for repair");
 });
