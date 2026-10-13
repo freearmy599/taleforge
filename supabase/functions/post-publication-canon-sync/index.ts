@@ -33,7 +33,8 @@ Deno.serve(async(req)=>{
       const r=await fetch(base+name,{method:"POST",headers,body:JSON.stringify({chapter_id:chapterId})});
       const t=await r.text(); let data:any; try{data=JSON.parse(t)}catch{data={raw:t}};
       // A 2xx response is not sufficient if the downstream function explicitly reports failure.
-      results[name]={ok:r.ok && data?.success===true,status:r.status,data};
+      // Never echo downstream response bodies: they may contain sensitive diagnostics or unbounded data.
+      results[name]={ok:r.ok && data?.success===true,status:r.status};
     }
 
 
