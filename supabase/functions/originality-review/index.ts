@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const ORIGINALITY_VERSION = "originality-v6-temporary-overload-cooldown";
+const ORIGINALITY_VERSION = "originality-v7-retryable-provider-errors";
 const MIN_SCORE = 85;
 
 function jsonResponse(body: unknown, status = 200) {
@@ -720,14 +720,18 @@ prompt
 );
 } catch (error) {
 await recordGeminiQuotaCooldown(supabase, error);
+const providerMessage = error instanceof Error ? error.message : String(error);
+const quotaFailure = providerMessage.includes("Gemini HTTP 429") || providerMessage.includes("RESOURCE_EXHAUSTED");
+const providerOverloaded = providerMessage.includes("Gemini HTTP 503");
 return jsonResponse(
 {
 success: false,
-error: "Gemini originality review failed.",
-details: "Internal review diagnostics were withheld.",
+retryable: quotaFailure || providerOverloaded,
+reason: quotaFailure ? "provider_quota_blocked" : providerOverloaded ? "provider_temporarily_unavailable" : "review_failed",
+error: quotaFailure ? "Gemini quota or rate limit was reached; retry after cooldown." : providerOverloaded ? "Gemini is temporarily unavailable; retry after cooldown." : "Gemini review failed; internal diagnostics were withheld.",
 output_id: outputId,
 },
-502
+quotaFailure ? 429 : providerOverloaded ? 503 : 502
 );
 }
 
