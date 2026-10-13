@@ -946,7 +946,7 @@ Deno.test("server-only table grant migration revokes client privileges without a
   assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "migration must revoke all table privileges");
   assert(migration.includes("public.publication_sync_outbox"), "outbox must remain server-only");
   assert(migration.includes("public.story_attachment_metrics"), "attachment metrics must remain server-only");
-  assert(migration.includes("FROM anon, authenticated"), "both client roles must lose direct grants");
+  assert(migration.includes("anon, authenticated"), "both client roles must lose direct grants, alongside PUBLIC");
   assert(!/CREATE\s+POLICY/i.test(migration), "migration must not create client-facing policies");
 });
 
