@@ -900,6 +900,9 @@ null,
 2
 )}
 
+SELECTED REVISION STRATEGY CONTEXT:
+${strategyContext}
+
 PREVIOUS HARD VALIDATION:
 ${JSON.stringify(
 hardValidation,
