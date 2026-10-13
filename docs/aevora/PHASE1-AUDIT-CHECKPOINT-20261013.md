@@ -70,3 +70,17 @@ Default EXECUTE grants for future functions are also present under `postgres` an
 - A read-only migration-history query found no rows for migration versions `20261013090000` or `20261013100000`. No migration was applied in this work session.
 - The canonical branch migration revokes `PUBLIC`, `anon`, and `authenticated` privileges only on the two confirmed server-only tables. The other 37 no-policy tables with client grants remain table-by-table triage; reader-facing tables such as bookmarks/comments/profiles must not be bulk-revoked without checking intended access paths.
 - Current latest follow-up documentation commit is pending CI; do not call Phase 1 complete until that run passes and remaining production drift is addressed under explicit authorization.
+
+
+### Continued hardening — 2026-10-13
+
+- Recovered and added the missing revise-chapter worker to the repair branch, then hardened its quota cooldown handling, selected-strategy prompt handoff, deterministic validation failure status, attempt-limit bookkeeping, and revision-commit conflict handling.
+- Hardened generation-orchestrator so blueprint transitions are checked and compare-and-set fenced, exhausted revision states use database-allowed statuses, unresolved revision selection fails closed, dry-run reports planned exhaustion without writes, and latest outputs are selected deterministically.
+- Added regression coverage for these state transitions and expanded the Edge validation workflow to run the new contract tests and trigger when Aevora regression scripts change.
+- Prepared migration 20261013120000_lock_ai_provider_state_table.sql: it enables RLS, revokes all client-role table privileges from PUBLIC, anon, and authenticated, and sanitizes legacy raw Gemini quota diagnostics while retaining cooldown metadata. This migration is NOT applied.
+- Replaced remaining user-facing TaleForge branding with Aevora in the core narrative-planner/review prompts and narrative-engine documentation. The pipeline contract now guards against regression.
+- Successful source validation confirmed at https://github.com/freearmy599/taleforge/actions/runs/38415697519 (Edge type checks and provider-state grants/redaction contract) and https://github.com/freearmy599/taleforge/actions/runs/38416351255 (Aevora prompt-brand contract). Documentation-only validation also passed at https://github.com/freearmy599/taleforge/actions/runs/38416539858.
+- Live database remains unchanged. At the last read-only check, the Gemini provider cooldown was still active until 2026-10-14 09:15:26 UTC; last_error still contained a legacy raw quota response in production, which the prepared migration will sanitize only when separately authorized and applied.
+- A broader security catalog audit still reports 91 RLS-enabled public tables without policies, including 39 with client-role grants. This work deliberately addresses the clearly internal provider-state table only; the remaining tables need table-by-table caller/access review rather than a blanket revoke.
+
+**Rollout boundary remains unchanged:** no production Edge Function deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Phase 1 remains open.
