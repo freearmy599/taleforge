@@ -20,6 +20,8 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes('Request body must be valid JSON.'));
   assert.ok(s.includes('success: false,\n\nmode:\n"chapter-revision",\n\nstatus:\n"revision_failed_validation"'));
   assert.ok(s.includes('failed deterministic validation.",\n}, 422);'));
+  assert.ok(s.includes("failedAttemptNumber = Math.min(MAX_REVISION_ATTEMPTS"), "failed revision cycles must advance the existing attempt limit");
+  assert.ok(s.includes('reason: "revision_attempt_state_unavailable"'), "failed attempt bookkeeping errors must fail closed");
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
   assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'));
