@@ -13,6 +13,7 @@ name: Aevora Edge source validation
       - "supabase/functions/review-orchestrator/**"
       - "supabase/functions/release-publisher/**"
       - "supabase/functions/generate-chapter/**"
+      - "supabase/functions/revise-chapter/**"
       - "supabase/functions/publication-sync-processor/**"
       - "supabase/functions/post-publication-canon-sync/**"
       - "supabase/functions/character-continuity/**"
@@ -50,6 +51,8 @@ jobs:
         run: deno check supabase/functions/release-publisher/index.ts
       - name: Type-check chapter generator
         run: deno check supabase/functions/generate-chapter/index.ts
+      - name: Type-check revision worker
+        run: deno check supabase/functions/revise-chapter/index.ts
       - name: Type-check generation orchestrator
         run: deno check supabase/functions/generation-orchestrator/index.ts
       - name: Type-check review orchestrator
@@ -84,3 +87,11 @@ jobs:
         run: node --test scripts/aevora-review-error-redaction-contract.test.mjs
       - name: Run Story DNA planner contract tests
         run: node --test scripts/aevora-story-dna-planner-contract.test.mjs
+      - name: Run pipeline redaction contract tests
+        run: node --test scripts/aevora-pipeline-redaction-contract.test.mjs
+      - name: Run scheduler security contract tests
+        run: node --test scripts/aevora-scheduler-security-contract.test.mjs
+      - name: Run publisher security contract tests
+        run: node --test scripts/aevora-publisher-security-contract.test.mjs
+      - name: Run revision worker security contract tests
+        run: node --test scripts/aevora-revision-worker-security-contract.test.mjs
