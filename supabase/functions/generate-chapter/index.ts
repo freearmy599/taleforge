@@ -187,6 +187,21 @@ if(contextSnapshotId){
  }
  advancedPlan=cs.payload?.advanced_chapter_plan||{};
 }
+// Quality review also calls Gemini. Keep this guard beside the provider call so
+// deterministic hard-validation failures can still be recorded during a cooldown.
+const {data:reviewProviderState,error:reviewProviderStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
+if(reviewProviderStateError||!reviewProviderState){
+ console.error("[generate-chapter] quality-review provider cooldown lookup failed; failing closed",reviewProviderStateError?.message??"No Gemini provider-state row found");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state could not be verified; AI quality review was blocked."},503);
+}
+if(reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())){
+ console.error("[generate-chapter] quality-review provider cooldown timestamp is invalid; failing closed");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state is malformed; AI quality review was blocked."},503);
+}
+if(reviewProviderState.cooldown_until && new Date(reviewProviderState.cooldown_until).getTime()>Date.now()){
+ console.warn("[generate-chapter] AI quality review skipped due to active provider cooldown",JSON.stringify({cooldown_until:reviewProviderState.cooldown_until,consecutive_throttle_count:reviewProviderState.consecutive_throttle_count}));
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"provider_cooldown",error:"Gemini provider cooldown is active; AI quality review was skipped to protect quota.",cooldown_until:reviewProviderState.cooldown_until},429);
+}
 const reviewPrompt=`Review this serialized-fiction chapter. Return ONLY valid JSON.
 Evaluate coherence, character consistency, plot logic, blueprint alignment, worldbuilding, prose, dialogue, pacing, repetition and ending hook. Do not rewrite or invent problems.
 Also perform a semantic execution audit against the Advanced Chapter Plan. Judge whether the prose meaningfully executes its causal objective, character/relationship/world/thread objectives, dependency chain, escalation requirements, payoff progression, ending awareness, hook strategy, and anti-padding constraints. Do not require literal wording; evaluate narrative function and evidence.
