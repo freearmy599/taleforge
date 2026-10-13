@@ -66,7 +66,8 @@ test("revision worker records quota cooldowns and preserves orchestrator output 
   assert.ok(s.includes("review_handoff: reviewHandoff"));
   assert.ok(s.includes('reason: "revision_source_state_invalid"'), "only needs_revision outputs may enter the revision worker");
   assert.ok(s.includes('.eq("revision_of_output_id", outputId)'), "sequential retries must detect an existing successor before spending provider quota");
-  assert.ok(s.includes('.neq("generation_status", "rejected")'), "rejected successors must not permanently block retrying the source output");
+  assert.ok(s.includes('const existingRevision = (existingRevisions ?? []).find((candidate: any) => candidate.generation_status !== "rejected")'), "only explicitly rejected successors may be ignored; NULL statuses must block duplicate generation");
+  assert.equal(s.includes('.neq("generation_status", "rejected")'), false, "PostgREST neq must not silently omit NULL-status successors");
   assert.ok(s.includes('reason: "revision_successor_already_exists"'), "the worker must reject duplicate revisions of the same source output");
   assert.ok(s.includes('.update({ generation_status: "rejected", updated_at: new Date().toISOString() })\n.eq("id", outputId)\n.eq("generation_status", "needs_revision")'), "successful revision must atomically move its source out of the revision backlog");
   assert.ok(s.includes('currentSource?.generation_status !== "rejected"'), "a concurrent revision winner must be distinguished from unrelated source-state changes");
