@@ -486,11 +486,21 @@ Deno.test("publisher verifies the inserted database row before reporting success
   assert(source.includes('code: "INSERTED_CHAPTER_STATUS_CONFLICT"'), "mismatched inserted row must return an explicit conflict");
 });
 
-Deno.test("publisher truthfully reports canonical sync as not enqueued until an enqueue is verified", async () => {
+Deno.test("publisher confirms canonical sync enqueue before reporting publication success", async () => {
   const source = await Deno.readTextFile(publisherUrl);
-  assert(source.includes('queued:false,status:"not_enqueued"'), "publisher must not claim canonical sync was queued without a verified enqueue");
-  assert(source.includes("Canonical synchronization was not enqueued by this handler."), "success message must disclose that canonical sync was not enqueued");
-  assert(!source.includes("post-publication canon synchronization was attempted."), "success message must not claim an unverified synchronization attempt");
+  const helperStart = source.indexOf("async function ensureCanonSyncOutboxEvent(");
+  const helperEnd = source.indexOf("\nDeno.serve", helperStart);
+  const helper = source.slice(helperStart, helperEnd);
+  const enqueue = helper.indexOf('.from("publication_sync_outbox")');
+  const verify = helper.indexOf('.select("id,status,attempts")');
+  assert(helperStart >= 0 && helperEnd > helperStart && enqueue >= 0 && verify > enqueue,
+    "canonical sync enqueue must be followed by a database confirmation read");
+  assert(helper.includes("if (enqueueError)"), "enqueue errors must be reported instead of treated as success");
+  assert(helper.includes("if (error || !data)"), "missing or unreadable outbox rows must remain unconfirmed");
+  assert(helper.includes('queued: data.status !== "succeeded"'), "queued state must be derived from the verified outbox row");
+  assert(source.includes("success: canonSyncResult.confirmed"), "publication response success must require confirmed canonical sync state");
+  assert(source.includes("Canonical synchronization enqueue could not be confirmed:"), "response warnings must disclose an unconfirmed enqueue");
+  assert(!source.includes("post-publication canon synchronization was attempted."), "response must not claim an unverified synchronization attempt");
 });
 
 Deno.test("publisher synchronization writes are fenced and verify affected rows", async () => {
@@ -806,7 +816,8 @@ Deno.test("publication sync processor authenticates before privileged work and v
   assert(source.includes('if (req.method !== "POST")'), "worker must reject non-POST requests");
   assert(source.includes("if (staleRecovery.error) throw new Error("), "stale event recovery errors must not be silently ignored");
   assert(source.includes('.lt("attempts",8)'), "events at the retry ceiling must not be auto-claimed indefinitely");
-  assert(source.includes('.eq("id",event.id).eq("status","processing").select("id").maybeSingle()'),
+  assert((source.match(/\.eq\("id",event\.id\)\.eq\("status","processing"\)\.eq\("locked_at",now\)\.select\("id"\)\.maybeSingle\(\)/g) ?? []).length === 2,
+    "completion and retry writes must be fenced to the exact claimed processing lease and verify an affected row");
     "completion and retry writes must be fenced to the claimed processing row and verify an affected row");
   assert(source.includes('status: attempts >= 8 ? "failed" : "pending"'), "retry ceiling must retain the schema-supported terminal failed status");
   assert(source.includes('status:attempts >= 8 ? "failed_terminal" : "retry_scheduled"'),
@@ -1045,7 +1056,9 @@ Deno.test("review orchestrator fails closed and reports blocked batches as unsuc
     "the overall review response must not claim success when any output is blocked or errored");
   assert(source.includes('if (step.name !== "quality" && result?.success !== true)'),
     "dedicated review workers must explicitly affirm success before their decisions are trusted");
-  assert(source.includes("The dedicated continuity, originality, safety, and publication workers must"),
+  assert(source.includes("exposes decision/score without a top-level success flag") &&
+      source.includes("continuity, originality, safety, and publication workers must explicitly"),
+    "the quality worker's legacy response contract and dedicated-worker success requirements must remain documented");
     "the quality worker's legacy response contract must remain explicitly documented");
   for (const workerPath of [
     "../continuity-review/index.ts",
