@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("./aevora-control-plane-audit.mjs", import.meta.url), "utf8");
+const edgeSource = await readFile(new URL("../supabase/functions/aevora-control-plane-audit/index.ts", import.meta.url), "utf8");
 
 test("missing audit configuration fails the workflow instead of looking healthy", () => {
   assert.match(source, /process\.exitCode\s*=\s*1;/);
@@ -52,4 +53,17 @@ test("audit text sanitizer bounds emitted Markdown-escaped characters", () => {
   assert.match(source, /output \+= safeCharacter/);
   assert.doesNotMatch(source, /escaped\.length >= maxLength/,
     "input character count must not stand in for escaped output length");
+});
+
+test("active AI provider cooldowns are reported as operational findings", () => {
+  assert.match(source, /else if \(cooldownUntil > now\)/);
+  assert.match(source, /Active AI provider cooldown/);
+  assert.match(source, /model calls are expected to remain blocked until it expires/);
+});
+
+test("tracked audit Edge Function is GET-only and requires the scoped bearer token", () => {
+  assert.match(edgeSource, /req\.method !== "GET"/);
+  assert.match(edgeSource, /constantTimeEqual\(supplied, AUDIT_TOKEN\)/);
+  assert.match(edgeSource, /readTable\("taleforge_ai_provider_state"/);
+  assert.doesNotMatch(edgeSource, /\.insert\s*\(|\.update\s*\(|\.delete\s*\(|\.upsert\s*\(/);
 });
