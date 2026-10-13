@@ -69,7 +69,7 @@ test("tracked audit Edge Function is GET-only and requires the scoped bearer tok
 });
 
 test("audit endpoint strips a standard Bearer prefix using whitespace matching", () => {
-  assert.ok(edgeSource.includes(String.raw`replace(/^Bearer\s+/i, "")`));
-  assert.equal(edgeSource.includes(String.raw`replace(/^Bearer\\s+/i, "")`), false,
+  assert.ok(edgeSource.includes('replace(/^Bearer\\s+/i, "")'));
+  assert.equal(edgeSource.includes('replace(/^Bearer\\\\s+/i, "")'), false,
     "the regex must not look for a literal backslash before s");
 });
