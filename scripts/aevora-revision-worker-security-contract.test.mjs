@@ -27,6 +27,7 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
   assert.ok(s.includes('last_error: "Gemini quota, rate-limit, or temporary overload response"'));
   assert.ok(s.includes('const isTemporaryOverload = message.includes("Gemini HTTP 503")'), "temporary provider overloads must persist a cooldown");
+  assert.ok(s.includes("const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)))"), "temporary overloads must use a shorter cooldown than quota exhaustion");
   assert.equal((s.match(/reason: quotaBlocked \? "provider_quota_blocked" : "provider_temporarily_unavailable"/g) || []).length, 2, "both model calls must distinguish quota blocks from temporary overloads");
   assert.equal(s.includes("last_error:message.slice(0,2000)"), false);
   assert.equal(s.includes("governance:governance.data??null"), false);
