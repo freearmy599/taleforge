@@ -46,3 +46,10 @@ test("audit issue reports stay below GitHub's body-size limit on every reporting
   assert.match(source, /body: JSON\.stringify\(\{ title, body: boundedBody \}\)/);
   assert.match(source, /audit report truncated to stay within the GitHub issue body limit/);
 });
+
+test("audit text sanitizer bounds emitted Markdown-escaped characters", () => {
+  assert.match(source, /output\.length \+ safeCharacter\.length > maxLength/);
+  assert.match(source, /output \+= safeCharacter/);
+  assert.doesNotMatch(source, /escaped\.length >= maxLength/,
+    "input character count must not stand in for escaped output length");
+});
