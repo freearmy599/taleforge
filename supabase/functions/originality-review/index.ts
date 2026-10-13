@@ -250,6 +250,8 @@ note: "Gemini review blocked because provider cooldown state could not be verifi
 }, 503);
 }
 
+if (providerState.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())) return jsonResponse({success:false,reason:"provider_state_unavailable"},503);
+
 if (providerState.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now()) {
 return jsonResponse({
 success: false,
