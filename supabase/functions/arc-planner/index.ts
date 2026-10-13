@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="arc-planner-v7-fail-closed-cooldown"; const H={"Content-Type":"application/json"};
+const VERSION="arc-planner-v8-aevora-brand"; const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{let s=t.trim().replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)throw new Error("No JSON object found in model response");s=s.slice(a,b+1).replace(/,\s*([}\]])/g,"$1");return JSON.parse(s);};
 const errText=(e:any)=>e instanceof Error?e.message:(e&&typeof e==="object"?JSON.stringify(e):String(e));
 async function recordGeminiQuotaCooldown(error: unknown) {
@@ -50,7 +50,7 @@ Deno.serve(async(req)=>{
   const dna=await db.from("story_dna").select("*").eq("series_id",series.id).eq("status","active").order("version",{ascending:false}).limit(1).maybeSingle(); if(dna.error)throw {stage:"story_dna_lookup",error:dna.error}; if(!dna.data)return new Response(JSON.stringify({success:true,version:VERSION,action:"waiting_for_story_dna",series_id:series.id}),{headers:H});
   const existing=await db.from("story_arc_plan").select("*").eq("series_id",series.id).order("version",{ascending:false}).limit(1).maybeSingle(); if(existing.error)throw {stage:"arc_lookup",error:existing.error};
   const published=await db.from("chapters").select("chapter_number,title,summary").eq("series_id",series.id).eq("status","published").order("chapter_number",{ascending:false}).limit(8); if(published.error)throw {stage:"published_lookup",error:published.error};
-  const prompt=`You are TaleForge's long-range story architect. Build a durable arc plan for ONE serialized fiction series. The supplied Story DNA is authoritative. Respect its genre profile and never import mechanics or conventions from another genre. The plan must create meaningful progression, escalating stakes, character change, revelations and satisfying eventual payoff without padding.
+  const prompt=`You are Aevora's long-range story architect. Build a durable arc plan for ONE serialized fiction series. The supplied Story DNA is authoritative. Respect its genre profile and never import mechanics or conventions from another genre. The plan must create meaningful progression, escalating stakes, character change, revelations and satisfying eventual payoff without padding.
 SERIES:
 ${JSON.stringify(series)}
 STORY DNA:
