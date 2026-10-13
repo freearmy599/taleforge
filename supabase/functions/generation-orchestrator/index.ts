@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const VERSION="generation-orchestrator-v17-verified-blueprint-transitions";
+const VERSION="generation-orchestrator-v18-revision-exhaustion-recovery";
 const MAX_GENERATION_SERIES_PER_RUN=6, MAX_NEW_GENERATIONS_PER_SERIES_PER_RUN=1, MAX_REVISION_WORK_PER_RUN=1;
 const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 function response(body:unknown,status=200){return new Response(JSON.stringify(body,null,2),{status,headers:{...corsHeaders,"Content-Type":"application/json"}})}
