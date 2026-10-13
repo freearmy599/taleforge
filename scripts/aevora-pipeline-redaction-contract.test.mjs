@@ -75,3 +75,23 @@ test("chapter-generation quota handling never shortens an existing Gemini cooldo
   assert.equal(s.includes('console.error("[generate-chapter] failed to record Gemini cooldown",cooldownError.message)'), false);
   assert.equal(s.includes('console.error("[generate-chapter] cooldown recording exception",String(cooldownException))'), false);
 });
+
+test("core narrative prompts use the Aevora brand", async () => {
+  const promptWorkers = [
+    "arc-planner",
+    "blueprint-planner",
+    "character-continuity",
+    "continuity-review",
+    "originality-review",
+    "safety-review",
+    "story-dna-planner",
+    "world-continuity",
+    "revise-chapter",
+    "generate-chapter",
+  ];
+  for (const name of promptWorkers) {
+    const worker = await source("supabase/functions/" + name + "/index.ts");
+    assert.equal(worker.includes("TaleForge"), false, name + " must not use the retired product brand in prompts or messages");
+    assert.ok(worker.includes("Aevora"), name + " should identify the current product brand");
+  }
+});
