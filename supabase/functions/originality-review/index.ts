@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const ORIGINALITY_VERSION = "originality-v7-retryable-provider-errors";
+const ORIGINALITY_VERSION = "originality-v8-monotonic-cooldown";
 const MIN_SCORE = 85;
 
 function jsonResponse(body: unknown, status = 200) {
