@@ -23,7 +23,9 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes("failedAttemptNumber = Math.min(MAX_REVISION_ATTEMPTS"), "failed revision cycles must advance the existing attempt limit");
   assert.ok(s.includes("sourceAttempt >= MAX_REVISION_ATTEMPTS"), "the endpoint must enforce the attempt limit independently of orchestration");
   assert.ok(s.includes('reason: "revision_attempt_limit_reached"'), "exhausted revision requests must be rejected safely");
-  assert.ok(s.includes('.eq("generation_attempt", Number(originalOutput.generation_attempt || 1))'), "failed revision attempt updates must be fenced against stale state");
+  assert.ok(s.includes('originalOutput.generation_attempt === null || originalOutput.generation_attempt === undefined'), "legacy NULL attempt counters must be matched explicitly");
+  assert.ok(s.includes('failedAttemptUpdate = failedAttemptUpdate.is("generation_attempt", null)'), "failed revision attempts must advance safely for NULL counters");
+  assert.ok(s.includes('failedAttemptUpdate = failedAttemptUpdate.eq("generation_attempt", sourceAttempt)'), "non-NULL attempt counters must retain compare-and-set fencing");
   assert.ok(s.includes('reason: "revision_attempt_state_unavailable"'), "failed attempt bookkeeping errors must fail closed");
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
