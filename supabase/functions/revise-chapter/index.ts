@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const REVISION_VERSION = "revision-v17-enforce-attempt-limit";
+const REVISION_VERSION = "revision-v18-null-safe-attempt-state";
 
 
 const MAX_REVISION_ATTEMPTS = 3;
