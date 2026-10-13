@@ -141,6 +141,50 @@ issues.push(item.issue);
 return issues;
 }
 
+async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+
+  try {
+    const { data, error: stateError } = await supabase
+      .from("taleforge_ai_provider_state")
+      .select("consecutive_throttle_count")
+      .eq("provider", "gemini")
+      .maybeSingle();
+    if (stateError) {
+      console.error("[quota-guard] Gemini cooldown count could not be read; review remains blocked for this request.");
+      return;
+    }
+
+    const count = Number(data?.consecutive_throttle_count ?? 0) + 1;
+    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const now = new Date();
+    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const { error: writeError } = await supabase
+      .from("taleforge_ai_provider_state")
+      .upsert({
+        provider: "gemini",
+        cooldown_until: until,
+        consecutive_throttle_count: count,
+        last_error: "Gemini HTTP 429 RESOURCE_EXHAUSTED",
+        last_error_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      }, { onConflict: "provider" });
+
+    if (writeError) {
+      console.error("[quota-guard] Gemini cooldown could not be persisted.");
+    } else {
+      console.warn("[quota-guard] Gemini quota cooldown persisted.", JSON.stringify({
+        cooldown_until: until,
+        cooldown_hours: cooldownHours,
+        consecutive_throttle_count: count,
+      }));
+    }
+  } catch {
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
+  }
+}
+
 Deno.serve(async (req) => {
 if (req.method === "OPTIONS") {
 return new Response("ok", {
@@ -510,6 +554,7 @@ geminiApiKey,
 prompt
 );
 } catch (error) {
+await recordGeminiQuotaCooldown(supabase, error);
 return jsonResponse(
 {
 success: false,
