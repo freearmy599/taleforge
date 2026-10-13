@@ -855,6 +855,8 @@ Deno.test("planning handlers require trusted server-side callers", async () => {
   const cases = [
     ["blueprint-planner", new URL("../blueprint-planner/index.ts", import.meta.url), "req.json()", "createClient(supabaseUrl, serviceKey)"],
     ["story-dna-planner", new URL("../story-dna-planner/index.ts", import.meta.url), "req.json()", "createClient(url,key)"],
+    ["arc-planner", new URL("../arc-planner/index.ts", import.meta.url), "req.json()", "createClient(url,key)"],
+    ["semantic-continuity-extraction", new URL("../semantic-continuity-extraction/index.ts", import.meta.url), "req.json()", "createClient(url,key)"],
   ] as const;
   for (const [name, url, bodyMarker, clientMarker] of cases) {
     const source = await Deno.readTextFile(url);
