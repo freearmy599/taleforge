@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION = "blueprint-planner-v9-fail-closed-cooldown";
+const VERSION = "blueprint-planner-v10-aevora-brand";
 const jsonHeaders = { "Content-Type": "application/json" };
 
 function cleanJson(text:string) {
@@ -90,7 +90,7 @@ Deno.serve(async (req:Request) => {
     const {data:published}=await db.from("chapters").select("chapter_number,title,content").eq("series_id",c.series_id).order("chapter_number",{ascending:false}).limit(2);
     const next=Math.max(Number(latest?.[0]?.chapter_number??0),Number(published?.[0]?.chapter_number??0))+1;
 
-    const prompt = `You are TaleForge's genre-neutral serialized-fiction blueprint planner. Create ONE original next-chapter blueprint for an existing series. Preserve continuity and advance the story; do not copy existing fiction. Follow the Story DNA and established genre. Never introduce mechanics, terminology, tropes, power systems, technology, magic, cultivation, or other genre assumptions that are not established by the supplied Story DNA or story material.
+    const prompt = `You are Aevora's genre-neutral serialized-fiction blueprint planner. Create ONE original next-chapter blueprint for an existing series. Preserve continuity and advance the story; do not copy existing fiction. Follow the Story DNA and established genre. Never introduce mechanics, terminology, tropes, power systems, technology, magic, cultivation, or other genre assumptions that are not established by the supplied Story DNA or story material.
 
 SERIES:
 Title: ${series.title}
