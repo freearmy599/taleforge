@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const ORIGINALITY_VERSION = "originality-v2-fail-closed-provider-state";
+const ORIGINALITY_VERSION = "originality-v3-redacted-error-details";
 const MIN_SCORE = 85;
 
 function jsonResponse(body: unknown, status = 200) {
@@ -301,7 +301,7 @@ return jsonResponse(
 {
 success: false,
 error: "Generation output was not found.",
-details: outputError?.message || null,
+details: outputError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -329,7 +329,7 @@ return jsonResponse(
 {
 success: false,
 error: "Candidate series was not found.",
-details: seriesError?.message || null,
+details: seriesError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -367,7 +367,7 @@ return jsonResponse(
 {
 success: false,
 error: "Could not load candidate Story DNA.",
-details: blueprintError.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -400,7 +400,7 @@ return jsonResponse(
 {
 success: false,
 error: "Could not load the TaleForge catalogue.",
-details: existingError.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -670,10 +670,7 @@ return jsonResponse(
 {
 success: false,
 error: "Gemini originality review failed.",
-details:
-error instanceof Error
-? error.message
-: String(error),
+details: "Internal review diagnostics were withheld.",
 output_id: outputId,
 },
 502
@@ -787,7 +784,7 @@ return jsonResponse(
 success: false,
 error:
 "Originality review completed but could not be saved.",
-details: reviewError.message,
+details: "Internal review diagnostics were withheld.",
 output_id: outputId,
 decision: finalDecision,
 score: aiScore,
@@ -811,7 +808,7 @@ return jsonResponse(
 success: false,
 error:
 "Originality review was saved, but the generation output could not be updated.",
-details: updateError.message,
+details: "Internal review diagnostics were withheld.",
 review_id: review.id,
 output_id: outputId,
 },
@@ -944,10 +941,7 @@ return jsonResponse(
 success: false,
 error:
 "Unexpected originality-review error.",
-details:
-error instanceof Error
-? error.message
-: String(error),
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
