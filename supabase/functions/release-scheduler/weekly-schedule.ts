@@ -67,20 +67,16 @@ export function nextWeeklyReleaseAfterBatch(
   }
 
   const local = partsAt(completedAt, timeZone);
-  const localWeekday = new Date(Date.UTC(local.year, local.month - 1, local.day)).getUTCDay();
-  const [hour, minute, second = 0] = time.split(":").map(Number);
-  const currentSeconds = local.hour * 3600 + local.minute * 60 + local.second;
-  const targetSeconds = hour * 3600 + minute * 60 + second;
-  const slotIsLaterToday = weekday === localWeekday && currentSeconds < targetSeconds;
-  if (slotIsLaterToday) {
-    const existsToday = matchingWallTimeCandidates(
-      local.year, local.month, local.day, hour, minute, second, timeZone,
-    ).length > 0;
-    if (existsToday) {
-      // A batch completed before today's scheduled slot; skip that slot so the
-      // same weekly schedule cannot publish a second batch later today.
-      return nextWeeklyRelease(new Date(slotMs + 24 * 60 * 60 * 1000), weekday, time, timeZone);
-    }
+  const slotLocal = partsAt(reservedSlot as Date, timeZone);
+  const reservedSlotIsSameLocalDay =
+    local.year === slotLocal.year &&
+    local.month === slotLocal.month &&
+    local.day === slotLocal.day;
+  if (reservedSlotIsSameLocalDay) {
+    // Compare local dates, not wall-clock times: during a DST fall-back the
+    // second 01:30 can be a future instant even after the first 01:30 passed.
+    // A completed batch consumes the entire local day, including both folds.
+    return nextWeeklyRelease(new Date(slotMs + 24 * 60 * 60 * 1000), weekday, time, timeZone);
   }
 
   // Preserve a future slot on a later day or next week. In particular, do not
