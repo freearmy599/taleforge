@@ -30,3 +30,9 @@ test("GitHub API failures do not copy response bodies into logs or issue reports
   assert.match(source, /GitHub API returned HTTP \$\{response\.status\}/);
   assert.doesNotMatch(source, /GitHub API \$\{response\.status\}: \$\{\(await response\.text\(\)\)/);
 });
+
+test("audit failure remains bounded when GitHub issue reporting also fails", () => {
+  assert.match(source, /try\s*\{\s*await report\(title, body\);\s*\}\s*catch \(reportError\)/);
+  assert.match(source, /Audit failure report could not be delivered:/);
+  assert.match(source, /process\.exitCode\s*=\s*1;/);
+});
