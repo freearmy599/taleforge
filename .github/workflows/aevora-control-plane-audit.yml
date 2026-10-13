@@ -8,6 +8,7 @@ on:
     paths:
       - "scripts/aevora-control-plane-audit.mjs"
       - "scripts/aevora-control-plane-audit.contract.test.mjs"
+      - "supabase/functions/aevora-control-plane-audit/index.ts"
       - ".github/workflows/aevora-control-plane-audit.yml"
 
 permissions:
