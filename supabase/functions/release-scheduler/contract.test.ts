@@ -939,3 +939,13 @@ Deno.test("review workers reject malformed provider cooldown timestamps", async 
     assert(source.includes("provider_state_unavailable"), path + " must fail closed on malformed provider state");
   }
 });
+
+
+Deno.test("server-only table grant migration revokes client privileges without adding policies", async () => {
+  const migration = await Deno.readTextFile(new URL("../../migrations/20261013041000_revoke_client_grants_server_only_tables.sql", import.meta.url));
+  assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "migration must revoke all table privileges");
+  assert(migration.includes("public.publication_sync_outbox"), "outbox must remain server-only");
+  assert(migration.includes("public.story_attachment_metrics"), "attachment metrics must remain server-only");
+  assert(migration.includes("FROM anon, authenticated"), "both client roles must lose direct grants");
+  assert(!/CREATE\s+POLICY/i.test(migration), "migration must not create client-facing policies");
+});
