@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
 const MODEL="gemini-3.5-flash-lite";
-const QUALITY_VERSION="quality-v7-temporary-provider-cooldown";
+const QUALITY_VERSION="quality-v8-short-overload-cooldown";
 const TARGET=3000, MINIMUM=2000;
 function boundsForTarget(target:number){const advisory=Math.max(2000,Math.round(Number(target)||TARGET));return {target:advisory,minimum:2000};}
 const headers={
@@ -236,7 +236,7 @@ if(db && providerCooldownFailure){
    const rawCount=Number(data.consecutive_throttle_count??0);
    const previousCount=Number.isSafeInteger(rawCount)&&rawCount>=0?rawCount:0;
    const count=previousCount+1;
-   const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
+   const cooldownHours=providerTemporaryFailure?1:Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
    const now=Date.now();
    const proposedUntil=now+cooldownHours*60*60*1000;
    const existingUntil=data.cooldown_until?Date.parse(data.cooldown_until):0;
