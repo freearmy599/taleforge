@@ -135,7 +135,8 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
       return;
     }
 
-    const count = Number(data?.consecutive_throttle_count ?? 0) + 1;
+    const previousCount = Number(data?.consecutive_throttle_count ?? 0);
+    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
     const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
     const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
