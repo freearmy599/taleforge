@@ -13,7 +13,7 @@ async function source(path) {
 
 test("revision worker redacts provider, governance, handoff, and exception details", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes("revision-v17-enforce-attempt-limit"));
+  assert.ok(s.includes("revision-v18-null-safe-attempt-state"));
   assert.ok(s.includes('import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";'));
   assert.ok(s.includes('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey'));
   assert.ok(s.includes('Caller must authenticate with a configured server-side Supabase API key.'));
