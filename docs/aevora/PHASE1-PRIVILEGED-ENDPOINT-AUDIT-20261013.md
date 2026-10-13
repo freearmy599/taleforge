@@ -24,3 +24,9 @@ These handlers use the service-role key and perform privileged database work; se
 The live `aevora-control-plane-audit` function has `verify_jwt=false`, but its source does require the separately configured `AEVORA_AUDIT_TOKEN` Bearer token before any reads; the token value was not retrieved. This is a different authentication design and should not be mistaken for an unguarded endpoint.
 
 No production configuration, function, data, or schedule was changed during this inspection.
+
+## Branch remediation follow-up — 2026-10-13
+
+The source finding above describes the pre-remediation state. On the current repair branch, all six listed handlers now use the shared `isTrustedInternalApiKey` guard before privileged work, and the regression suite covers the caller-authentication contract. The latest branch validation also type-checks the Edge Functions.
+
+This does **not** change the production finding: the deployed handlers remain untouched until an explicitly authorized rollout. Before deployment, verify that each legitimate internal caller supplies the intended server-side key and that `AEVORA_INTERNAL_API_KEY_NAMES` contains only the confirmed configured key names. Do not disable gateway JWT verification as part of this source-only repair.
