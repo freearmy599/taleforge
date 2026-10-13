@@ -38,3 +38,11 @@ test("audit failure remains bounded when GitHub issue reporting also fails", () 
     "secondary GitHub/API failures must not leak response details or secret-bearing URLs into logs");
   assert.match(source, /process\.exitCode\s*=\s*1;/);
 });
+
+test("audit issue reports stay below GitHub's body-size limit on every reporting path", () => {
+  assert.match(source, /const maxBodyLength = 60_000;/);
+  assert.match(source, /body\.slice\(0, maxBodyLength - 80\)/);
+  assert.match(source, /body: JSON\.stringify\(\{ body: boundedBody \}\)/);
+  assert.match(source, /body: JSON\.stringify\(\{ title, body: boundedBody \}\)/);
+  assert.match(source, /audit report truncated to stay within the GitHub issue body limit/);
+});
