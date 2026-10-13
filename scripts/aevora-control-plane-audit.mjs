@@ -128,11 +128,11 @@ try {
         findings.push(`**Missing engineering task lease timestamp:** ${task.title} (${task.id}), active status=${task.status}`);
       } else {
         const leaseUntil = parseTimestamp(task.lease_until);
-      if (!Number.isFinite(leaseUntil)) {
-        findings.push(`**Malformed engineering task lease timestamp:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
-      } else if (leaseUntil < now) {
-        findings.push(`**Expired engineering task lease:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
-      }
+        if (!Number.isFinite(leaseUntil)) {
+          findings.push(`**Malformed engineering task lease timestamp:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+        } else if (leaseUntil < now) {
+          findings.push(`**Expired engineering task lease:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+        }
       }
     }
     if (task.status === "failed") findings.push(`**Failed engineering task:** ${task.title} (${task.id}); ${task.blocked_reason || "no failure reason recorded"}`);
@@ -152,7 +152,24 @@ try {
     }
   }
 
+  const geminiProvider = providers.find((provider) => String(provider.provider || "").toLowerCase() === "gemini");
+  if (!geminiProvider) {
+    findings.push("**Missing Gemini provider state:** no Gemini row was returned by the control-plane snapshot; generation is expected to fail closed until provider state is restored.");
+  }
+
   for (const provider of providers) {
+    if (provider.cooldown_until) {
+      const cooldownUntil = parseTimestamp(provider.cooldown_until);
+      if (!Number.isFinite(cooldownUntil)) {
+        findings.push(`**Malformed AI provider cooldown timestamp:** ${provider.provider}, cooldown_until=${provider.cooldown_until}`);
+      }
+    }
+    if (provider.consecutive_throttle_count !== null && provider.consecutive_throttle_count !== undefined) {
+      const throttleCount = Number(provider.consecutive_throttle_count);
+      if (!Number.isSafeInteger(throttleCount) || throttleCount < 0) {
+        findings.push(`**Invalid AI provider throttle counter:** ${provider.provider}, consecutive_throttle_count=${provider.consecutive_throttle_count}`);
+      }
+    }
     evidence.push(`- Provider ${provider.provider}: cooldown until ${provider.cooldown_until || "none"}; consecutive throttles=${provider.consecutive_throttle_count ?? "unknown"}`);
   }
   evidence.push(`- Snapshot generated at: ${snapshot.generated_at || "unknown"}`);
