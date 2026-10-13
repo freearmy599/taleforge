@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const REVISION_VERSION = "revision-v15-temporary-provider-cooldown";
+const REVISION_VERSION = "revision-v16-short-overload-cooldown";
 
 
 const MAX_REVISION_ATTEMPTS = 3;
@@ -354,7 +354,8 @@ return generatedText;
 
 async function recordGeminiThrottle(supabase: any, error: unknown) {
 const message = error instanceof Error ? error.message : String(error);
-if (!message.includes("Gemini HTTP 429") && !message.includes("Gemini HTTP 503") && !message.includes("RESOURCE_EXHAUSTED")) return null;
+const isTemporaryOverload = message.includes("Gemini HTTP 503");
+if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return null;
 try {
 const { data, error: stateError } = await supabase.from("taleforge_ai_provider_state")
 .select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
@@ -364,7 +365,7 @@ return null;
 }
 const priorCount = Number(data.consecutive_throttle_count ?? 0);
 const count = (Number.isFinite(priorCount) && priorCount >= 0 ? Math.floor(priorCount) : 0) + 1;
-const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
 const now = Date.now();
 const proposedUntil = now + cooldownHours * 60 * 60 * 1000;
 const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
