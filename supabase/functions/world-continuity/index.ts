@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="world-continuity-v9-redacted-quota-guard";const H={"Content-Type":"application/json"};
+const VERSION="world-continuity-v10-aevora-brand";const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{
  let s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();
  const a=s.indexOf("{"),b=s.lastIndexOf("}"); if(a>=0&&b>=a)s=s.slice(a,b+1);
@@ -60,7 +60,7 @@ try{
  const dna=await db.from("story_dna").select("genre_profile,core_premise,world_rules,story_constraints").eq("series_id",sid).eq("status","active").order("version",{ascending:false}).limit(1).maybeSingle();if(dna.error)throw new Error("Unable to read story DNA: "+dna.error.message);
  const world=await db.from("story_world_elements").select("*").eq("series_id",sid).eq("status","active");if(world.error)throw new Error("Unable to read world canon: "+world.error.message);
  const prior=await db.from("chapters").select("chapter_number,title,summary,content").eq("series_id",sid).eq("status","published").lt("chapter_number",ch.chapter_number).order("chapter_number",{ascending:false}).limit(3);if(prior.error)throw new Error("Unable to read prior published chapters: "+prior.error.message);
- const prompt=`You are TaleForge's world-continuity analyst. Extract and maintain the established canon of ONE fictional universe. Respect the supplied genre profile. Never import magic, cultivation, technology, physics, political systems, terminology, or other mechanics from another genre. Only record facts supported by the story. Distinguish newly established facts from changes to existing canon.
+ const prompt=`You are Aevora's world-continuity analyst. Extract and maintain the established canon of ONE fictional universe. Respect the supplied genre profile. Never import magic, cultivation, technology, physics, political systems, terminology, or other mechanics from another genre. Only record facts supported by the story. Distinguish newly established facts from changes to existing canon.
 
 STORY DNA:
 ${JSON.stringify(dna.data??null)}
