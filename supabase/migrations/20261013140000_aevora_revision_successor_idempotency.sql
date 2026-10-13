@@ -18,6 +18,17 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Multiple published revision successors exist; reconcile them manually before applying the unique index';
   END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.chapter_generation_outputs
+    WHERE revision_of_output_id IS NOT NULL
+      AND generation_status = 'approved'
+    GROUP BY revision_of_output_id
+    HAVING count(*) > 1
+  ) THEN
+    RAISE EXCEPTION 'Multiple approved revision successors exist; reconcile them manually before applying the unique index';
+  END IF;
 END
 $$;
 
