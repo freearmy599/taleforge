@@ -56,6 +56,10 @@ test("revision worker records quota cooldowns and preserves orchestrator output 
   assert.ok(s.includes("revision_of_output_id:"));
   assert.ok(s.includes("revised_output_id:"));
   assert.ok(s.includes("review_handoff: reviewHandoff"));
+  assert.ok(s.includes('reason: "revision_source_state_invalid"'), "only needs_revision outputs may enter the revision worker");
+  assert.ok(s.includes('reason: "revision_blueprint_already_published"'), "released blueprints must not be revised");
+  assert.ok(s.includes('.eq("generation_status", "needs_revision")\n.select("id")\n.maybeSingle()'), "revision commit must be fenced against concurrent source-state changes");
+  assert.ok(!s.includes('.from(\n"chapter_blueprints"\n)\n.update({\ngeneration_status:\n"generated",'), "revision must not unconditionally regress blueprint publication state");
   assert.ok(s.includes("SELECTED REVISION STRATEGY CONTEXT:") && s.includes("${strategyContext}"), "selected revision strategy must reach the actual model prompt");
   assert.ok(o.includes('"revise-chapter"'));
   assert.ok(o.includes("revision_strategy"));
