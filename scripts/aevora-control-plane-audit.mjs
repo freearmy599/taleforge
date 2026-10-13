@@ -220,7 +220,7 @@ try {
   } catch (reportError) {
     // Reporting can fail for the same GitHub/API outage that caused the audit failure.
     // Keep this fallback bounded and avoid an unhandled second failure.
-    console.error(`Audit failure report could not be delivered: ${String(reportError?.message || reportError)}`);
+    console.error("Audit failure report could not be delivered.");
   }
   console.error(body);
   process.exitCode = 1;
