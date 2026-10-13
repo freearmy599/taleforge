@@ -62,6 +62,15 @@ test("chapter generation does not return raw governance or database exception de
   assert.ok(s.includes("reason:\"provider_cooldown\""), "quality-review Gemini path must honor active cooldown");
   assert.ok(s.includes("reviewProviderStateError||!reviewProviderState"), "quality-review provider-state lookup must fail closed");
   assert.ok(s.includes("reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())"), "quality-review must reject malformed cooldown timestamps");
+  for (const rawDiagnostic of ["providerStateError?.message", "reviewProviderStateError?.message", "oe.message", "be?.message", "se?.message", "reviewError.message", "contextError?.message"]) {
+    assert.equal(s.includes(rawDiagnostic), false, "chapter-generation logs must not expose raw database diagnostics: " + rawDiagnostic);
+  }
+});
+
+test("review orchestrator withholds provider-state database details from logs", async () => {
+  const s = await source("supabase/functions/review-orchestrator/index.ts");
+  assert.ok(s.includes('console.error("[review-orchestrator] provider cooldown state unavailable; failing closed.")'));
+  assert.equal(s.includes("providerStateError?.message"), false);
 });
 
 test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
