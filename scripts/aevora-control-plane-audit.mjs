@@ -15,10 +15,10 @@ function safeAuditText(value, maxLength = 160) {
   const escaped = [];
   const markdown = new Set(["\\", String.fromCharCode(96), "*", "_", "{", "}", "[", "]", "(", ")", "<", ">", "#", "+", "-", ".", "!", "|"]);
   for (const character of text) {
+    if (escaped.length >= maxLength) break;
     const code = character.charCodeAt(0);
     if (code < 32 || code === 127) { escaped.push(" "); continue; }
     escaped.push(markdown.has(character) ? "\\" + character : character);
-    if (escaped.length >= maxLength) break;
   }
   return escaped.join("");
 }
