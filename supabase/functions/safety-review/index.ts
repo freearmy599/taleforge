@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const SAFETY_VERSION = "safety-v7-retryable-provider-errors";
+const SAFETY_VERSION = "safety-v8-monotonic-cooldown";
 
 function jsonResponse(body: unknown, status = 200) {
 return new Response(JSON.stringify(body, null, 2), {
