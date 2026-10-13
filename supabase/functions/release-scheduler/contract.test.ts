@@ -486,9 +486,9 @@ Deno.test("publisher truthfully reports canonical sync as not enqueued until an 
 
 Deno.test("publisher synchronization writes are fenced and verify affected rows", async () => {
   const source = await Deno.readTextFile(publisherUrl);
-  const fencedOutputWrites = source.match(/\\.in\\("generation_status",\\s*\\["approved",\\s*"published"\\]\\)/g) ?? [];
+  const fencedOutputWrites = source.match(/\.in\("generation_status",\s*\["approved",\s*"published"\]\)/g) ?? [];
   assert(fencedOutputWrites.length === 3, "all three output-sync paths must restrict updates to approved/published states");
-  const checkedRows = source.match(/\\.select\\("id"\\)\\.maybeSingle\\(\\)/g) ?? [];
+  const checkedRows = source.match(/\.select\("id"\)\.maybeSingle\(\)/g) ?? [];
   assert(checkedRows.length >= 6, "output and blueprint synchronization paths must verify affected rows");
   assert(source.includes("generation_output: !racedOutputSyncError && !!racedOutputSyncRow"), "race path must not report output synchronization without an affected row");
   assert(source.includes("blueprint: !racedBlueprintSyncError && !!racedBlueprintSyncRow"), "race path must not report blueprint synchronization without an affected row");
