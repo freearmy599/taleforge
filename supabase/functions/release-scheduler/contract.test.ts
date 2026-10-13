@@ -447,6 +447,13 @@ Deno.test("weekly release after a batch never schedules a second batch at today'
   assert(staleReservedFoldSlot.toISOString() === "2026-11-08T06:30:00.000Z",
     "a stale reserved slot must not reselect the second DST-fold occurrence on the same day");
 
+  const foldSecondSlot = new Date("2026-11-01T06:30:00.000Z");
+  const preserveNoSecondFoldBatch = nextWeeklyReleaseAfterBatch(
+    betweenFoldSlots, foldSecondSlot, 0, "01:30", "America/New_York",
+  );
+  assert(preserveNoSecondFoldBatch.toISOString() === "2026-11-08T06:30:00.000Z",
+    "a future second-fold slot must not allow a second batch after the first wall-clock occurrence was consumed");
+
   let invalidCompletionRejected = false;
   try {
     nextWeeklyReleaseAfterBatch(new Date(Number.NaN), reservedSlot, 0, "09:00", "Asia/Kolkata");
