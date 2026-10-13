@@ -17,6 +17,8 @@ name: Aevora Edge source validation
       - "supabase/functions/post-publication-canon-sync/**"
       - "supabase/functions/character-continuity/**"
       - "supabase/functions/world-continuity/**"
+      - "supabase/functions/blueprint-planner/**"
+      - "supabase/functions/story-dna-planner/**"
       - "supabase/functions/_shared/**"
       - "supabase/migrations/**"
       - ".github/workflows/aevora-edge-validation.yml"
@@ -54,5 +56,9 @@ jobs:
         run: deno check supabase/functions/character-continuity/index.ts
       - name: Type-check world continuity
         run: deno check supabase/functions/world-continuity/index.ts
+      - name: Type-check blueprint planner
+        run: deno check supabase/functions/blueprint-planner/index.ts
+      - name: Type-check Story DNA planner
+        run: deno check supabase/functions/story-dna-planner/index.ts
       - name: Run source-contract regression tests
-        run: deno test --allow-read=supabase/functions/review-orchestrator/index.ts,supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/generate-chapter/index.ts,supabase/functions/_shared/internal-api-key.ts,supabase/functions/publication-sync-processor/index.ts,supabase/functions/post-publication-canon-sync/index.ts,supabase/functions/character-continuity/index.ts,supabase/functions/world-continuity/index.ts,supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql,supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql,supabase/migrations/20261013090000_aevora_server_only_metrics_outbox_grants.sql supabase/functions/release-scheduler/contract.test.ts
+        run: deno test --allow-read=supabase/functions/review-orchestrator/index.ts,supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/generate-chapter/index.ts,supabase/functions/_shared/internal-api-key.ts,supabase/functions/publication-sync-processor/index.ts,supabase/functions/post-publication-canon-sync/index.ts,supabase/functions/character-continuity/index.ts,supabase/functions/world-continuity/index.ts,supabase/functions/blueprint-planner/index.ts,supabase/functions/story-dna-planner/index.ts,supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql,supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql,supabase/migrations/20261013090000_aevora_server_only_metrics_outbox_grants.sql supabase/functions/release-scheduler/contract.test.ts
