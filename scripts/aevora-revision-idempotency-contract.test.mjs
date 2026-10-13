@@ -15,6 +15,7 @@ test("revision successor migration reconciles duplicates and installs a unique p
   const migration = await source("supabase/migrations/20261013140000_aevora_revision_successor_idempotency.sql");
   assert.ok(migration.includes("HAVING count(*) > 1"));
   assert.ok(migration.includes("Multiple published revision successors exist; reconcile them manually before applying the unique index"));
+  assert.ok(migration.includes("Multiple approved revision successors exist; reconcile them manually before applying the unique index"), "multiple approved successors require manual reconciliation rather than a recency-only winner");
   assert.ok(migration.includes("row_number() OVER"));
   assert.ok(migration.includes("WHEN 'published' THEN 0"));
   assert.ok(migration.includes("WHEN 'approved' THEN 1"));
