@@ -60,7 +60,7 @@ error: "Only POST requests are supported.",
 try {
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 
-const serviceRoleKey = Deno.env.get(
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get(
 "TALEFORGE_SERVICE_ROLE_KEY"
 );
 
