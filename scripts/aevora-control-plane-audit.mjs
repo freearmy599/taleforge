@@ -38,20 +38,26 @@ async function github(path, options = {}) {
 }
 
 async function report(title, body) {
+  // GitHub issue bodies have a hard size limit. Bound every report path,
+  // including snapshots with unexpectedly large arrays or error details.
+  const maxBodyLength = 60_000;
+  const boundedBody = body.length > maxBodyLength
+    ? body.slice(0, maxBodyLength - 80) + "\n\n... audit report truncated to stay within the GitHub issue body limit. ..."
+    : body;
   const existing = await github("issues?state=open&per_page=100");
   const issue = existing.find((item) => !item.pull_request && item.title === title);
   if (issue) {
     await github(`issues/${issue.number}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body: boundedBody }),
     });
     console.log(`Updated audit issue #${issue.number}`);
   } else {
     const created = await github("issues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
+      body: JSON.stringify({ title, body: boundedBody }),
     });
     console.log(`Created audit issue #${created.number}`);
   }
