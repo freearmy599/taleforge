@@ -1,4 +1,4 @@
-# TaleForge Narrative Intelligence Roadmap
+# Aevora Narrative Intelligence Roadmap
 
 The architecture is intentionally modular.
 
