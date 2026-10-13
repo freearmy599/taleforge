@@ -39,7 +39,7 @@ function matchingWallTimeCandidates(year:number,month:number,day:number,hour:num
   }
   return matches.sort((a,b)=>a.getTime()-b.getTime());
 }
-/** Return the next weekly slot after a completed batch, never a second batch at a later time today. */
+/** Return the next weekly slot after a completed batch, never a second batch later on the same day. */
 export function nextWeeklyReleaseAfterBatch(
   completedAt: Date,
   reservedSlot: Date | null,
@@ -59,27 +59,22 @@ export function nextWeeklyReleaseAfterBatch(
   const local = partsAt(completedAt, timeZone);
   const localWeekday = new Date(Date.UTC(local.year, local.month - 1, local.day)).getUTCDay();
   const [hour, minute, second = 0] = time.split(":").map(Number);
-  let slotIsStillAheadThisWeek = weekday > localWeekday;
-  if (weekday === localWeekday) {
-    const currentSeconds = local.hour * 3600 + local.minute * 60 + local.second;
-    const targetSeconds = hour * 3600 + minute * 60 + second;
-    slotIsStillAheadThisWeek = currentSeconds < targetSeconds;
-  }
-
-  if (slotIsStillAheadThisWeek) {
-    const targetDate = addLocalDays(local.year, local.month, local.day, weekday - localWeekday);
-    const existsThisWeek = matchingWallTimeCandidates(
-      targetDate.year, targetDate.month, targetDate.day, hour, minute, second, timeZone,
+  const currentSeconds = local.hour * 3600 + local.minute * 60 + local.second;
+  const targetSeconds = hour * 3600 + minute * 60 + second;
+  const slotIsLaterToday = weekday === localWeekday && currentSeconds < targetSeconds;
+  if (slotIsLaterToday) {
+    const existsToday = matchingWallTimeCandidates(
+      local.year, local.month, local.day, hour, minute, second, timeZone,
     ).length > 0;
-    if (existsThisWeek) {
-      // A release happened before this week's planned slot; skip that slot so
-      // the same weekly schedule cannot publish a second batch later today/week.
+    if (existsToday) {
+      // A batch completed before today's scheduled slot; skip that slot so the
+      // same weekly schedule cannot publish a second batch later today.
       return nextWeeklyRelease(new Date(slotMs + 1000), weekday, time, timeZone);
     }
   }
 
-  // The current week's slot has already passed, or was a DST gap. The reserved
-  // slot is therefore the correct next occurrence; do not skip an extra week.
+  // Preserve a future slot on a later day or next week. In particular, do not
+  // skip an already-reserved next-week slot merely because today's slot passed.
   return reservedSlot as Date;
 }
 
