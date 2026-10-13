@@ -20,7 +20,10 @@ contents:[{parts:[{text:prompt}]}],
 generationConfig:{temperature:json?.2:.8,maxOutputTokens:json?8000:9000,...(json?{responseMimeType:"application/json"}:{})}
 })});
 const raw=await r.text();
-if(!r.ok)throw new Error(`Gemini HTTP ${r.status}: ${raw.slice(0,1200)}`);
+if(!r.ok){
+ // Provider bodies can contain request metadata; retain only status for safe diagnostics.
+ throw new Error(`Gemini HTTP ${r.status}${r.status===429?" RESOURCE_EXHAUSTED":""}`);
+}
 const d=JSON.parse(raw),t=d?.candidates?.[0]?.content?.parts?.map((p:any)=>p?.text||"").join("").trim();
 if(!t)throw new Error("Gemini returned no text.");
 return t;
