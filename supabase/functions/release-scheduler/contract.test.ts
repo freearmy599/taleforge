@@ -403,6 +403,22 @@ Deno.test("weekly release after a batch never schedules a second batch at today'
   assert(afterLongBatch.toISOString() === "2026-10-18T03:30:00.000Z",
     "a batch that completes after its reserved slot must also schedule the next weekly occurrence");
 
+  const nextWeekSlot = new Date("2026-10-18T03:30:00.000Z");
+  const completedAfterThisWeeksSlot = new Date("2026-10-11T04:00:00.000Z");
+  const preserveNextWeekSlot = nextWeeklyReleaseAfterBatch(
+    completedAfterThisWeeksSlot, nextWeekSlot, 0, "09:00", "Asia/Kolkata",
+  );
+  assert(preserveNextWeekSlot.toISOString() === nextWeekSlot.toISOString(),
+    "when this week's slot has already passed, the reserved next-week slot must not be skipped");
+
+  const afterSpringGap = new Date("2026-03-08T07:00:00.000Z");
+  const nextValidDstSlot = new Date("2026-03-15T06:30:00.000Z");
+  const preserveDstSlot = nextWeeklyReleaseAfterBatch(
+    afterSpringGap, nextValidDstSlot, 0, "02:30", "America/New_York",
+  );
+  assert(preserveDstSlot.toISOString() === nextValidDstSlot.toISOString(),
+    "a DST-gap week must not cause the next valid weekly slot to be skipped");
+
   let invalidCompletionRejected = false;
   try {
     nextWeeklyReleaseAfterBatch(new Date(Number.NaN), reservedSlot, 0, "09:00", "Asia/Kolkata");
