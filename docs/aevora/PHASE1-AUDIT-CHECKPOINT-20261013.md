@@ -94,3 +94,15 @@ Default EXECUTE grants for future functions are also present under `postgres` an
 - Added `scripts/aevora-revision-idempotency-contract.test.mjs` and wired it into the branch validation workflow. The latest run for this change, [38420691074](https://github.com/freearmy599/taleforge/actions/runs/38420691074), passed the configured Edge type checks and source-contract tests, including revision idempotency and internal-worker authorization contracts.
 - The migration remains unapplied. No production rows were modified, no function deployed, and no chapter generated or published.
 
+
+
+### Retryable Gemini overload hardening — 2026-10-13 continuation
+
+- Extended the generation, revision, planner, continuity, and review workers to distinguish Gemini quota exhaustion (HTTP 429) from temporary provider overload (HTTP 503). Temporary overloads use a shorter one-hour cooldown; quota exhaustion retains the escalating cooldown policy.
+- Cooldown persistence now preserves a longer existing expiry and fails closed rather than overwriting malformed stored cooldown timestamps. Outward provider failures use stable retryable reasons and sanitized diagnostics.
+- Fixed chapter-revision continuation formatting so continuation prompts and joined prose use actual newline escapes rather than literal backslash sequences.
+- Updated the source-contract suite to cover these behaviors and keep version assertions aligned with the current worker revisions.
+- Latest successful branch validation: [workflow run 38427289152](https://github.com/freearmy599/taleforge/actions/runs/38427289152), commit `59166bf0d1cb3fdac41a96a964d5108a613545e8`. All configured Edge Function type checks passed; the Deno source-contract run passed 72 tests and the Node contract suites passed 38 tests (**110 total, 0 failures**).
+- This validation is source/type checking only; it is not a live Supabase integration test. The revision-successor idempotency migration and the prepared server-only privilege migrations remain unapplied, and the hardened Edge Functions remain undeployed. Production drift and previously documented table-by-table RLS/grant triage remain open.
+
+**Safety boundary:** this continuation changed repository source/tests/docs only. No production function was deployed, no migration applied, no schedule changed, no chapter generated or published, and no billable Supabase branch created.
