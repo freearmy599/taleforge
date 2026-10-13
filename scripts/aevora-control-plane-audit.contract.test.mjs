@@ -7,6 +7,8 @@ const source = await readFile(new URL("./aevora-control-plane-audit.mjs", import
 test("missing audit configuration fails the workflow instead of looking healthy", () => {
   assert.match(source, /process\.exitCode\s*=\s*1;/);
   assert.doesNotMatch(source, /process\.exit\(0\);/);
+  assert.match(source, /process\.exitCode\s*=\s*1;\s*\}\s*else\s*\{\s*\n\s*const findings/,
+    "the audit request must not run after missing configuration has already been reported");
 });
 
 test("HTTP audit failures do not copy response bodies into logs or issue reports", () => {
