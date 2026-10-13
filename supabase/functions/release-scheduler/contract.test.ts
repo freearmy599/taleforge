@@ -949,3 +949,28 @@ Deno.test("server-only table grant migration revokes client privileges without a
   assert(migration.includes("FROM anon, authenticated"), "both client roles must lose direct grants");
   assert(!/CREATE\s+POLICY/i.test(migration), "migration must not create client-facing policies");
 });
+
+
+Deno.test("internal narrative intelligence tables are not exposed by public read policies", async () => {
+  const migration = await Deno.readTextFile(new URL("../../migrations/20261013103000_lock_internal_narrative_intelligence_tables.sql", import.meta.url));
+  for (const table of [
+    "character_continuity_events",
+    "world_continuity_events",
+    "taleforge_continuity_reconciliation_findings",
+    "taleforge_continuity_reconciliation_runs",
+    "taleforge_narrative_depth_plans",
+    "taleforge_narrative_memory_snapshots",
+    "taleforge_narrative_thread_events",
+    "taleforge_narrative_thread_progression",
+    "taleforge_narrative_threads",
+    "taleforge_novelty_evaluations",
+    "taleforge_system_dependencies",
+    "taleforge_system_health",
+    "taleforge_system_registry",
+  ]) {
+    assert(migration.includes("public." + table), table + " must be included in internal-table hardening");
+  }
+  assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "client table grants must be revoked");
+  assert(migration.includes("FROM anon, authenticated"), "both client roles must be restricted");
+  assert(!/CREATE\s+POLICY/i.test(migration), "migration must not add broad client policies");
+});
