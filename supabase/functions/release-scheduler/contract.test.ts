@@ -150,9 +150,11 @@ Deno.test("generation orchestrator distinguishes mid-run provider-state failure 
 Deno.test("generation orchestrator failure updates cannot overwrite a blueprint reclaimed by another worker", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   const unguardedRejectedUpdate = 'update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id);';
-  const guardedRejectedUpdate = 'update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");';
   assert(!source.includes(unguardedRejectedUpdate), "failure and exception paths must not overwrite a blueprint whose status changed after this worker claimed it");
-  assert(source.split(guardedRejectedUpdate).length - 1 >= 2, "both generation failure and pipeline exception paths must fence status updates to this worker's generating claim");
+  assert(source.includes('async function transitionBlueprintStatus(supabase:any,id:string,nextStatus:string,expectedStatus:string)'), "status transitions must use the shared compare-and-set helper");
+  assert(source.includes('.eq("id",id).eq("generation_status",expectedStatus).select("id").maybeSingle()'), "the helper must fence updates to the expected current status and verify affected rows");
+  assert(source.includes('transitionBlueprintStatus(supabase,b.id,"rejected","generating")'), "generation failures must transition only a blueprint still claimed as generating");
+  assert(source.includes('.eq("id",b.id).eq("generation_status","generating")'), "pipeline exception recovery must also be fenced to this worker's claim");
   const claim = source.indexOf('.update({generation_status:"generating",updated_at:new Date().toISOString()}).eq("id",b.id).in("generation_status",["planned","ready","rejected"])');
   assert(claim >= 0, "the fenced failure paths must be paired with the existing atomic blueprint claim");
 });
