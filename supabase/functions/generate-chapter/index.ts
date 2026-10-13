@@ -35,11 +35,11 @@ if(req.method==="OPTIONS")return new Response("ok",{headers});
 if(req.method!=="POST")return reply({success:false,error:"Only POST requests are supported."},405);
 let db:any=null;
 try{
-const body=await req.json().catch(()=>({}));
-const blueprintId=body?.blueprint_id,outputId=body?.output_id;
 const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY"),gkey=Deno.env.get("GEMINI_API_KEY");
 if(!url||!key||!gkey){console.error("[generate-chapter] configuration missing",JSON.stringify({missing:[...(!url?["SUPABASE_URL"]:[]),...(!key?["SUPABASE_SERVICE_ROLE_KEY or TALEFORGE_SERVICE_ROLE_KEY"]:[]),...(!gkey?["GEMINI_API_KEY"]:[])]}));return reply({success:false,error:"Required server configuration is missing."},500);}
 if(!isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")))return reply({success:false,error:"Caller must authenticate with a configured server-side Supabase API key."},401);
+const body=await req.json().catch(()=>({}));
+const blueprintId=body?.blueprint_id,outputId=body?.output_id;
 db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 
 const governance=await db.rpc("taleforge_ceo_execution_gate",{p_action_scope:"generation"});
