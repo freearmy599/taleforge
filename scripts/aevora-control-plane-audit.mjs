@@ -10,6 +10,14 @@ const token = process.env.GITHUB_TOKEN;
 const auditUrl = process.env.AEVORA_AUDIT_URL;
 const auditToken = process.env.AEVORA_AUDIT_TOKEN;
 
+function safeAuditText(value, maxLength = 160) {
+  const text = value == null ? "unknown" : String(value);
+  return text
+    .replace(/[\\u0000-\\u001F\\u007F]/g, " ")
+    .replace(/[\\\\`*_{}\\[\\]()<>#+.!|]/g, "\\\\async function github(path, options = {}) {")
+    .slice(0, maxLength);
+}
+
 async function github(path, options = {}) {
   const response = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
     ...options,
@@ -95,9 +103,9 @@ try {
   };
   const snapshotTime = parseTimestamp(snapshot.generated_at);
   if (!Number.isFinite(snapshotTime)) {
-    findings.push(`**Malformed control-plane snapshot timestamp:** generated_at=${snapshot.generated_at ?? "missing"}`);
+    findings.push(`**Malformed control-plane snapshot timestamp:** generated_at=${safeAuditText(snapshot.generated_at ?? "missing", 80)}`);
   } else if (snapshotTime > now + 5 * 60_000) {
-    findings.push(`**Control-plane snapshot timestamp is in the future:** generated_at=${snapshot.generated_at}`);
+    findings.push(`**Control-plane snapshot timestamp is in the future:** generated_at=${safeAuditText(snapshot.generated_at, 80)}`);
   } else if (now - snapshotTime > 45 * 60_000) {
     findings.push(`**Stale control-plane snapshot:** generated_at=${snapshot.generated_at}; snapshot is older than 45 minutes`);
   }
@@ -112,50 +120,50 @@ try {
 
   for (const job of jobs) {
     if (!job.active) {
-      findings.push(`**Inactive scheduled job:** ${job.jobname} (schedule ${job.schedule})`);
+      findings.push(`**Inactive scheduled job:** ${safeAuditText(job.jobname)} (schedule ${safeAuditText(job.schedule, 80)})`);
       continue;
     }
     if (job.last_status && job.last_status !== "succeeded") {
-      findings.push(`**Scheduled job failure:** ${job.jobname} status=${job.last_status}`);
+      findings.push(`**Scheduled job failure:** ${safeAuditText(job.jobname)} status=${safeAuditText(job.last_status, 80)}`);
     }
     const finished = job.last_finished_at ? Date.parse(job.last_finished_at) : NaN;
     if (!Number.isFinite(finished) || now - finished > expectedMinutes(job.schedule) * 60_000) {
-      findings.push(`**Stale scheduled job:** ${job.jobname} schedule=${job.schedule}; last_finished_at=${job.last_finished_at || "never"}`);
+      findings.push(`**Stale scheduled job:** ${safeAuditText(job.jobname)} schedule=${safeAuditText(job.schedule, 80)}; last_finished_at=${safeAuditText(job.last_finished_at || "never", 80)}`);
     }
   }
 
   for (const schedule of schedules) {
     if (schedule.enabled && schedule.auto_publish) {
-      findings.push(`**Publication safeguard requires review:** release schedule ${schedule.id} (series ${schedule.series_id}) has auto_publish=true. This monitor will not change it.`);
+      findings.push(`**Publication safeguard requires review:** release schedule ${safeAuditText(schedule.id, 80)} (series ${safeAuditText(schedule.series_id, 80)}) has auto_publish=true. This monitor will not change it.`);
     }
   }
 
   for (const task of tasks) {
     if (["claimed", "in_progress"].includes(task.status)) {
       if (!task.lease_until) {
-        findings.push(`**Missing engineering task lease timestamp:** ${task.title} (${task.id}), active status=${task.status}`);
+        findings.push(`**Missing engineering task lease timestamp:** ${safeAuditText(task.title)} (${safeAuditText(task.id, 80)}), active status=${safeAuditText(task.status, 40)}`);
       } else {
         const leaseUntil = parseTimestamp(task.lease_until);
         if (!Number.isFinite(leaseUntil)) {
-          findings.push(`**Malformed engineering task lease timestamp:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+          findings.push(`**Malformed engineering task lease timestamp:** ${safeAuditText(task.title)} (${safeAuditText(task.id, 80)}), lease_until=${safeAuditText(task.lease_until, 80)}`);
         } else if (leaseUntil < now) {
-          findings.push(`**Expired engineering task lease:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+          findings.push(`**Expired engineering task lease:** ${safeAuditText(task.title)} (${safeAuditText(task.id, 80)}), lease_until=${safeAuditText(task.lease_until, 80)}`);
         }
       }
     }
-    if (task.status === "failed") findings.push(`**Failed engineering task:** ${task.title} (${task.id}); ${task.blocked_reason || "no failure reason recorded"}`);
+    if (task.status === "failed") findings.push(`**Failed engineering task:** ${safeAuditText(task.title)} (${safeAuditText(task.id, 80)}); ${safeAuditText(task.blocked_reason || "no failure reason recorded")}`);
   }
 
   for (const decision of decisions) {
     if (decision.status === "awaiting_decision" && ["high", "critical"].includes(decision.urgency)) {
-      findings.push(`**Owner decision required (${decision.urgency}):** ${decision.title} (${decision.id})`);
+      findings.push(`**Owner decision required (${decision.urgency}):** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)})`);
     }
     if (decision.status === "awaiting_decision" && decision.expires_at) {
       const expiresAt = parseTimestamp(decision.expires_at);
       if (!Number.isFinite(expiresAt)) {
-        findings.push(`**Malformed decision expiry timestamp:** ${decision.title} (${decision.id}), expires_at=${decision.expires_at}`);
+        findings.push(`**Malformed decision expiry timestamp:** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)}), expires_at=${decision.expires_at}`);
       } else if (expiresAt < now) {
-        findings.push(`**Expired decision request:** ${decision.title} (${decision.id})`);
+        findings.push(`**Expired decision request:** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)})`);
       }
     }
   }
@@ -169,7 +177,7 @@ try {
     if (provider.cooldown_until) {
       const cooldownUntil = parseTimestamp(provider.cooldown_until);
       if (!Number.isFinite(cooldownUntil)) {
-        findings.push(`**Malformed AI provider cooldown timestamp:** ${provider.provider}, cooldown_until=${provider.cooldown_until}`);
+        findings.push(`**Malformed AI provider cooldown timestamp:** ${safeAuditText(provider.provider, 80)}, cooldown_until=${safeAuditText(provider.cooldown_until, 80)}`);
       }
     }
     if (provider.consecutive_throttle_count !== null && provider.consecutive_throttle_count !== undefined) {
@@ -180,10 +188,10 @@ try {
         ? Number(rawThrottleCount)
         : Number.NaN;
       if (!Number.isSafeInteger(throttleCount) || throttleCount < 0) {
-        findings.push(`**Invalid AI provider throttle counter:** ${provider.provider}, consecutive_throttle_count=${rawThrottleCount}`);
+        findings.push(`**Invalid AI provider throttle counter:** ${safeAuditText(provider.provider, 80)}, consecutive_throttle_count=${safeAuditText(rawThrottleCount, 40)}`);
       }
     }
-    evidence.push(`- Provider ${provider.provider}: cooldown until ${provider.cooldown_until || "none"}; consecutive throttles=${provider.consecutive_throttle_count ?? "unknown"}`);
+    evidence.push(`- Provider ${safeAuditText(provider.provider, 80)}: cooldown until ${safeAuditText(provider.cooldown_until || "none", 80)}; consecutive throttles=${safeAuditText(provider.consecutive_throttle_count ?? "unknown", 40)}`);
   }
   evidence.push(`- Snapshot generated at: ${snapshot.generated_at || "unknown"}`);
   evidence.push(`- Scheduled jobs checked: ${jobs.length}`);
@@ -209,7 +217,7 @@ try {
   const body = [
     "## Aevora control-plane audit failed",
     "",
-    `Error: ${String(error?.message || error)}`,
+    `Error: ${safeAuditText(error?.message || error, 240)}`,
     "",
     "No remediation was attempted. Verify the scoped audit token, endpoint configuration, and schema before enabling any write-capable worker.",
     "",
