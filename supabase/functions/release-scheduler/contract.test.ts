@@ -869,6 +869,9 @@ Deno.test("post-publication canon sync authenticates and verifies publication be
     assert(source.includes(`HTTP "+${variable}.status`), label + " errors must report status without echoing upstream response bodies");
     assert(!source.includes("await "+variable+".text()"), label + " error handling must not expose upstream response bodies");
   }
+  assert(source.includes('post-publication-canon-sync-v5-redacted-errors'), "canon sync version must identify generic error handling");
+  assert(source.includes('error:"Post-publication synchronization failed."'), "uncaught errors must return a generic public message");
+  assert(!source.includes("error:e instanceof Error?e.message:String(e)"), "raw exception messages must not be returned to callers");
 });
 
 
