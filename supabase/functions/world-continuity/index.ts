@@ -53,7 +53,9 @@ Element types may include location, organization, faction, technology, magic_sys
  // Fail closed before any Gemini request if provider state is unavailable or cooling down.
  const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("provider,consecutive_throttle_count,cooldown_until").eq("provider","gemini").maybeSingle();
  if(providerStateError || !providerState) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable"}),{status:503,headers:{"Content-Type":"application/json"}});
- const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
+ const cooldownValue=providerState.cooldown_until;
+ const cooldownUntil=cooldownValue ? Date.parse(cooldownValue) : 0;
+ if(cooldownValue && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
  if(cooldownUntil && cooldownUntil>Date.now()) return new Response(JSON.stringify({success:false,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:{"Content-Type":"application/json"}});
  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(gemini)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.2,maxOutputTokens:7000,responseMimeType:"application/json"}})});if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}: ${await resp.text()}`);
  const gd=await resp.json(),txt=gd?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text??"").join("")??"";const x=clean(txt);if(!Array.isArray(x.elements)||!Array.isArray(x.events))throw new Error("Invalid world continuity result.");
