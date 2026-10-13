@@ -90,7 +90,7 @@ test("chapter-generation quota handling never shortens an existing Gemini cooldo
   assert.ok(s.includes('select("cooldown_until,consecutive_throttle_count")'));
   assert.ok(s.includes('if(stateError||!data){'));
   assert.ok(s.includes('const until=new Date(Math.max(proposedUntil,existingUntil)).toISOString()'));
-  assert.ok(s.includes('last_error:"Gemini quota or rate-limit response"'));
+  assert.ok(s.includes('const lastError=providerQuotaFailure?"Gemini quota or rate-limit response":"Gemini temporary overload response"'));
   assert.ok(s.includes('failed to record Gemini cooldown; provider remains blocked for this request.'));
   assert.equal(s.includes('console.error("[generate-chapter] failed to record Gemini cooldown",cooldownError.message)'), false);
   assert.equal(s.includes('console.error("[generate-chapter] cooldown recording exception",String(cooldownException))'), false);
