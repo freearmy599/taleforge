@@ -124,7 +124,7 @@ test("chapter generator fences blueprint status writes and reports reconciliatio
 
 test("chapter revision is authenticated, quota-guarded, and state-fenced", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes('revision-v14-retryable-rejected-successor'), "revision version marker must be present");
+  assert.ok(s.includes('revision-v15-temporary-provider-cooldown'), "revision version marker must be present");
   const auth = s.indexOf('isTrustedInternalApiKey(req.headers.get("apikey")');
   const body = s.indexOf("body = await req.json()");
   const governance = s.indexOf('supabase.rpc("taleforge_ceo_execution_gate"');
@@ -145,4 +145,6 @@ test("chapter revision is authenticated, quota-guarded, and state-fenced", async
   assert.ok(s.includes('error: "Revision failed; internal diagnostics were withheld."'), "unexpected failures must not expose raw exception details");
   assert.ok(s.includes('reviewHandoff.result = { success: parsedHandoff?.success === true }'), "review handoff must not return downstream response bodies");
   assert.equal(s.includes('throw new Error(`Gemini HTTP ${response.status}: ${responseText}`)'), false, "provider response bodies must not enter thrown errors");
+  assert.ok(s.includes('words.\\n\\nCURRENT CHAPTER:\\n'), "continuation prompts must contain proper line-break escapes");
+  assert.ok(s.includes('revisedContent.trim() + "\\n\\n" + continuation.trim()'), "continuation prose must be joined with actual newlines, not literal backslash sequences");
 });
