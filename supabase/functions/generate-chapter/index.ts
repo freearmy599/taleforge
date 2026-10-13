@@ -122,9 +122,18 @@ if(oe){
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Generation output could not be read; quality review was blocked."},503);
 }
 if(!out)return reply({success:false,error:"Generation output not found."},404);
-// Published output is immutable through the ordinary quality-review endpoint.
-if(out.generation_status==="published"){
- return reply({success:false,mode:"quality-review",retryable:false,reason:"output_already_published",error:"Published outputs cannot be reprocessed by the quality-review endpoint."},409);
+// Only in-progress quality states may be reviewed. Approved outputs are already
+// past quality review, and published outputs must remain immutable here.
+const qualityReviewEligibleStatuses=["generated","needs_revision","quality_check"];
+if(!qualityReviewEligibleStatuses.includes(out.generation_status)){
+ const alreadyPublished=out.generation_status==="published";
+ return reply({success:false,mode:"quality-review",retryable:false,
+  reason:alreadyPublished?"output_already_published":"output_status_not_reviewable",
+  generation_status:out.generation_status??null,
+  error:alreadyPublished
+   ?"Published outputs cannot be reprocessed by the quality-review endpoint."
+   :"Output is not in an eligible quality-review state; approved or otherwise finalized outputs cannot be reprocessed."
+ },409);
 }
 const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",out.chapter_blueprint_id).single();
 if(be||!b){
