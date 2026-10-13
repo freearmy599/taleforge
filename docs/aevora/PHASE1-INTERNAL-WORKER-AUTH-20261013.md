@@ -28,8 +28,8 @@ The guards run before request-body parsing and before privileged Supabase client
 
 [GitHub Actions run 38340469548](https://github.com/freearmy599/taleforge/actions/runs/38340469548) passed **54 source-contract tests, 0 failures**, and all **13 configured Edge Function type checks** on commit `2b998b154bc954584cc5866f0eca44f40469144a`.
 
-## Remaining issue
+## Follow-up correction on the repair branch
 
-The prepared `semantic-continuity-extraction` dry-run path still calls the queue-claim RPC and then attempts to reset the claimed row to pending. That makes dry-run operationally mutating and can race with another worker. A branch-only correction is still needed so dry-run selects a pending row read-only while only `execute=true` claims work. This change has not been made or validated yet.
+The dry-run defect described in the earlier checkpoint has been corrected in the current branch. `semantic-continuity-extraction` now returns `status:"dry_run"` with `queue_mutated:false` before calling `taleforge_claim_continuity_queue`; provider-state preflight is limited to `execute=true`. A dedicated source-contract test now asserts that ordering. This is a source-level contract, not a substitute for a runtime/integration test.
 
 No production deployment, migration, queue execution, chapter generation/publication, schedule mutation, secret access/rotation, or billable Supabase branch was initiated. Phase 1 remains open.
