@@ -138,3 +138,8 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 - Validation is branch CI only, not a live Supabase integration test. The revision-successor idempotency migration, server-only privilege migrations, and hardened Edge Function deployments remain unapplied/undeployed. The known production drift, chapter/review reconciliation, stale schedule, and table-by-table RLS/grant triage remain open.
 
 **Safety boundary unchanged:** no production deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was performed.
+
+### Planner cooldown guard coverage — latest revalidation
+
+- Extended the pipeline contract so all five planner/continuity workers are checked for missing provider-state fail-closed behavior, malformed cooldown rejection, and active-cooldown blocking—not just the subset previously covered.
+- Validation passed on [workflow run 38434779941](https://github.com/freearmy599/taleforge/actions/runs/38434779941), commit `482ec83ded7e411d9de7c66d9f9388f8b7149477`: configured Edge Function type checks passed, Deno source-contract suite **72/72**, and Node contract suites **42/42** (**114 total, 0 failures**).
