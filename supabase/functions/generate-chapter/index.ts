@@ -118,11 +118,23 @@ if(reviewProviderStateError||!reviewProviderState){
 
 const {data:out,error:oe}=await db.from("chapter_generation_outputs").select("*").eq("id",outputId).single();
 if(oe||!out)return reply({success:false,error:oe?.message||"Generation output not found."},404);
-const {data:b}=await db.from("chapter_blueprints").select("*").eq("id",out.chapter_blueprint_id).single();
-const reviewBounds=boundsForTarget(b?.target_word_count);
+// Published output is immutable through the ordinary quality-review endpoint.
+if(out.generation_status==="published"){
+ return reply({success:false,mode:"quality-review",retryable:false,reason:"output_already_published",error:"Published outputs cannot be reprocessed by the quality-review endpoint."},409);
+}
+const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",out.chapter_blueprint_id).single();
+if(be||!b){
+ console.error("[generate-chapter] quality-review blueprint lookup failed; failing closed",be?.message??"Chapter blueprint not found");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Required chapter blueprint context could not be verified; quality review was blocked."},503);
+}
+const reviewBounds=boundsForTarget(b.target_word_count);
 const target=reviewBounds.target;
 const minimum=reviewBounds.minimum;
-const {data:s}=await db.from("series").select("title").eq("id",out.series_id).single();
+const {data:s,error:se}=await db.from("series").select("title").eq("id",out.series_id).single();
+if(se||!s){
+ console.error("[generate-chapter] quality-review series lookup failed; failing closed",se?.message??"Series not found");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Required series context could not be verified; quality review was blocked."},503);
+}
 
 const count=words(out.content||""),issues:string[]=[],warnings:string[]=[];
 if(!out.content?.trim())issues.push("Chapter content is empty.");
