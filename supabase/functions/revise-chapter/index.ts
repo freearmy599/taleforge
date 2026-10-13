@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const REVISION_VERSION = "revision-v13-idempotent-source-commit";
+const REVISION_VERSION = "revision-v14-retryable-rejected-successor";
 
 
 const MAX_REVISION_ATTEMPTS = 3;
