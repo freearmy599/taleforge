@@ -225,12 +225,12 @@ if(db && providerQuotaFailure){
   const count=Number(data?.consecutive_throttle_count??0)+1;
   const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
   const until=new Date(Date.now()+cooldownHours*60*60*1000).toISOString();
-  const {error:cooldownError}=await db.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:message.slice(0,2000),last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
+  const {error:cooldownError}=await db.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:providerQuotaFailure?"Gemini quota or rate-limit response":"Generation failure; internal diagnostics withheld",last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
   if(cooldownError)console.error("[generate-chapter] failed to record Gemini cooldown",cooldownError.message);
   else console.warn("[generate-chapter] Gemini cooldown recorded",JSON.stringify({cooldown_until:until,cooldown_hours:cooldownHours,consecutive_throttle_count:count}));
  }catch(cooldownException){console.error("[generate-chapter] cooldown recording exception",String(cooldownException));}
 }
-console.error("[generate-chapter] request failed",JSON.stringify({request_id:req.headers.get("x-request-id")||req.headers.get("sb-request-id")||null,error_name:e instanceof Error?e.name:"UnknownError",error_message:message.slice(0,1200)}));
+console.error("[generate-chapter] request failed",JSON.stringify({request_id:req.headers.get("x-request-id")||req.headers.get("sb-request-id")||null,error_name:e instanceof Error?e.name:"UnknownError",reason:providerQuotaFailure?"provider_quota_blocked":"generation_failed"}));
 return reply({success:false,retryable:providerQuotaFailure,reason:providerQuotaFailure?"provider_quota_blocked":"generation_failed",error:providerQuotaFailure?"Gemini quota or rate limit was reached; retry after provider cooldown.":"Generation request failed; internal diagnostics were withheld."},providerQuotaFailure?429:500);
 }
 });
