@@ -1,4 +1,4 @@
--- Enforce at most one direct revision successor for each generation output.
+-- Enforce at most one non-rejected revision successor for each generation output.
 -- This migration preserves history: duplicate non-winning successors are marked
 -- rejected rather than deleted. It aborts if a source has multiple published
 -- successors, because choosing between published outputs requires manual review.
@@ -52,4 +52,5 @@ WHERE output.id = ranked.id
 
 CREATE UNIQUE INDEX IF NOT EXISTS chapter_generation_outputs_revision_successor_unique
   ON public.chapter_generation_outputs (revision_of_output_id)
-  WHERE revision_of_output_id IS NOT NULL;
+  WHERE revision_of_output_id IS NOT NULL
+    AND generation_status <> 'rejected';
