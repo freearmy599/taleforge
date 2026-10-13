@@ -215,7 +215,13 @@ try {
     "",
     `Last checked: ${new Date().toISOString()}`,
   ].join("\n");
-  await report(title, body);
+  try {
+    await report(title, body);
+  } catch (reportError) {
+    // Reporting can fail for the same GitHub/API outage that caused the audit failure.
+    // Keep this fallback bounded and avoid an unhandled second failure.
+    console.error(`Audit failure report could not be delivered: ${String(reportError?.message || reportError)}`);
+  }
   console.error(body);
   process.exitCode = 1;
 }
