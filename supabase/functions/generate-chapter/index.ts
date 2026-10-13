@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
 const MODEL="gemini-3.5-flash-lite";
-const QUALITY_VERSION="quality-v6";
+const QUALITY_VERSION="quality-v7-temporary-provider-cooldown";
 const TARGET=3000, MINIMUM=2000;
 function boundsForTarget(target:number){const advisory=Math.max(2000,Math.round(Number(target)||TARGET));return {target:advisory,minimum:2000};}
 const headers={
