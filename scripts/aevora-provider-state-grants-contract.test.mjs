@@ -50,5 +50,5 @@ test("internal policyless intelligence tables are server-side only", () => {
   assert.ok(internalTablesMigration.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"));
   assert.ok(internalTablesMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"));
   assert.equal(/CREATE POLICY/i.test(internalTablesMigration), false, "internal tables must not gain client policies");
-  assert.equal(/GRANT\\s+.+\\s+TO\\s+(anon|authenticated)/i.test(internalTablesMigration), false, "migration must not re-grant client access");
+  assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(internalTablesMigration), false, "migration must not re-grant client access");
 });
