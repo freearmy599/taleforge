@@ -159,7 +159,7 @@ Deno.test("generation orchestrator failure updates cannot overwrite a blueprint 
 
 Deno.test("generation orchestrator success updates also preserve newer blueprint states", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
-  const successUpdate = 'update({generation_status:no.generation_status==="needs_revision"?"needs_revision":"generated",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");';
+  const successUpdate = 'update({generation_status:"generated",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");';
   assert(source.includes(successUpdate), "successful generation must only transition a blueprint still claimed as generating");
 });
 
