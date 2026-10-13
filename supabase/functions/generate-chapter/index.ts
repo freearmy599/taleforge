@@ -44,7 +44,7 @@ db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 
 const governance=await db.rpc("taleforge_ceo_execution_gate",{p_action_scope:"generation"});
 if(governance.error||governance.data?.authorized!==true){
- return reply({success:false,error:"Generation blocked by Clara Aurel governance gate.",governance:governance.data??null,details:governance.error?.message??null},423);
+ return reply({success:false,error:"Generation blocked by Clara Aurel governance gate.",governance:{authorized:governance.data?.authorized===true},details:governance.error?"Internal governance diagnostics were withheld.":null},423);
 }
 
 if(blueprintId&&!outputId){
@@ -63,11 +63,11 @@ if(blueprintId&&!outputId){
 
 if(blueprintId&&!outputId){
 const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",blueprintId).single();
-if(be||!b)return reply({success:false,error:be?.message||"Blueprint not found."},404);
+if(be||!b)return reply({success:false,error:"Blueprint could not be loaded."},404);
 const {data:s,error:se}=await db.from("series").select("id,title,subtitle,description,mood,intensity,age_rating,status").eq("id",b.series_id).single();
-if(se||!s)return reply({success:false,error:se?.message||"Series not found."},404);
+if(se||!s)return reply({success:false,error:"Series could not be loaded."},404);
 const {data:contextResult,error:contextError}=await db.rpc("taleforge_build_generation_context",{p_blueprint_id:b.id});
-if(contextError||!contextResult?.context)return reply({success:false,error:contextError?.message||"Generation Context Engine returned no context."},500);
+if(contextError||!contextResult?.context)return reply({success:false,error:"Generation context could not be verified."},500);
 const generationContext=contextResult.context;
 const contextSnapshotId=contextResult.snapshot_id;
 const contextHash=contextResult.context_hash;
@@ -99,7 +99,7 @@ generation_attempt:attempt,generation_status:"generated",quality_report:{generat
 }).select("id,series_id,chapter_blueprint_id,chapter_number,title,word_count,generation_model,generation_prompt_version,generation_attempt,generation_status,created_at").single();
 if(oe||!out){
 await db.from("chapter_blueprints").update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id);
-throw new Error(`Could not create generation output: ${oe?.message||"unknown error"}`);
+throw new Error("Could not create generation output; internal database diagnostics were withheld.");
 }
 await db.from("chapter_blueprints").update({generation_status:"generated",updated_at:new Date().toISOString()}).eq("id",b.id);
 return reply({success:true,mode:"generation",generator_version:"generation-v5-semantic-chapter-execution",already_generated:false,blueprint_id:b.id,output_id:out.id,chapter_number:out.chapter_number,chapter_title:out.title,word_count:out.word_count,generation_status:out.generation_status,generation_attempt:out.generation_attempt});
