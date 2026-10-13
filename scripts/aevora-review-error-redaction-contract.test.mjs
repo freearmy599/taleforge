@@ -33,6 +33,7 @@ for (const [name, version] of functions) {
       assert.ok(source.includes("await recordGeminiQuotaCooldown(supabase, error);"), "provider failures must record quota cooldown");
       assert.ok(source.includes('last_error: "Gemini HTTP 429 RESOURCE_EXHAUSTED"'), "stored provider diagnostics must be sanitized");
       assert.ok(source.includes('.upsert({'), "provider cooldown state must be persisted");
+      assert.ok(source.includes("if (stateError || !data)"), "cooldown persistence must fail closed if prior state is unavailable");
     }
   });
 }
