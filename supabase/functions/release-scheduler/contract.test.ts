@@ -1173,3 +1173,14 @@ Deno.test("internal API-key validation fails closed and only trusts explicitly a
   assert(!isTrustedInternalApiKey(" secret-1", null, '{"aevora_internal":"secret-1"}', "aevora_internal"),
     "presented credentials must match exactly rather than being silently normalized");
 });
+
+
+Deno.test("publication sync processor never persists downstream response bodies in error details", async () => {
+  const source = await Deno.readTextFile(publicationSyncProcessorUrl);
+  assert(source.includes('throw new Error("Canon sync failed: HTTP "+response.status);'),
+    "downstream sync failures must use a bounded status-only error");
+  assert(!source.includes('throw new Error("Canon sync failed: HTTP "+response.status+" "+text'),
+    "untrusted downstream response bodies must not enter retry errors or outbox last_error");
+  assert(source.includes('last_error: e instanceof Error ? e.message : String(e)'),
+    "retry state should retain the sanitized internal error for diagnosis");
+});
