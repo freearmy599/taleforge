@@ -28,5 +28,11 @@ for (const [name, version] of functions) {
     assert.equal(/details:\s*\w+Error\.message/.test(source), false);
     assert.equal(/details:\s*error\.message/.test(source), false);
     assert.equal(/details:\s*error instanceof Error[\s\S]{0,100}error\.message/.test(source), false);
+    if (name !== "publication-review") {
+      assert.ok(source.includes("async function recordGeminiQuotaCooldown("), "quota cooldown recorder must exist");
+      assert.ok(source.includes("await recordGeminiQuotaCooldown(supabase, error);"), "provider failures must record quota cooldown");
+      assert.ok(source.includes('last_error: "Gemini HTTP 429 RESOURCE_EXHAUSTED"'), "stored provider diagnostics must be sanitized");
+      assert.ok(source.includes('.upsert({'), "provider cooldown state must be persisted");
+    }
   });
 }
