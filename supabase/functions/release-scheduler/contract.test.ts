@@ -150,6 +150,16 @@ Deno.test("generation orchestrator success updates also preserve newer blueprint
   assert(source.includes(successUpdate), "successful generation must only transition a blueprint still claimed as generating");
 });
 
+Deno.test("generation buffer counts only the latest output state per chapter", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  assert(source.includes('const latestAfterValues=[...latestAfter.values()];const backlog=latestAfterValues.some((o)=>o.generation_status==="needs_revision")'),
+    "backlog and buffer accounting must share the latest output per chapter");
+  assert(source.includes('for(const o of latestAfterValues)if(activeStatuses.has(o.generation_status))activeNums.add(o.chapter_number)'),
+    "only each chapter's latest output may count toward the active generation buffer");
+  assert(!source.includes('for(const o of refreshed??[])if(activeStatuses.has(o.generation_status))activeNums.add(o.chapter_number)'),
+    "superseded generated/approved outputs must not keep a chapter falsely counted as active");
+});
+
 Deno.test("generation orchestrator rejects malformed scope and mode inputs before schedule queries", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   const initialLookup = source.indexOf("geminiCooldown=await getGeminiCooldown(supabase)");
