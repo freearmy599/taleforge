@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         let data:any; try { data = JSON.parse(text); } catch { data = {raw:text}; }
 
         if (!response.ok || data?.success !== true) {
-          throw new Error("Canon sync failed: HTTP "+response.status+" "+text.slice(0,1000));
+          throw new Error("Canon sync failed: HTTP "+response.status);
         }
 
         const completion = await supabase.from("publication_sync_outbox").update({
