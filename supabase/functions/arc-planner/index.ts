@@ -1,9 +1,39 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="arc-planner-v5-dna-gated"; const H={"Content-Type":"application/json"};
+const VERSION="arc-planner-v6-redacted-quota-guard"; const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{let s=t.trim().replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)throw new Error("No JSON object found in model response");s=s.slice(a,b+1).replace(/,\\s*([}\\]])/g,"$1");return JSON.parse(s);};
 const errText=(e:any)=>e instanceof Error?e.message:(e&&typeof e==="object"?JSON.stringify(e):String(e));
+async function recordGeminiQuotaCooldown(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error: stateError } = await db.from("taleforge_ai_provider_state")
+      .select("consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
+    if (stateError || !data) {
+      console.error("[quota-guard] Gemini cooldown state could not be verified; persistence skipped.");
+      return;
+    }
+    const previousCount = Number(data.consecutive_throttle_count ?? 0);
+    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
+    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const now = new Date();
+    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
+      provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
+      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    }, { onConflict: "provider" });
+    if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
+  } catch {
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
+  }
+}
+
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS") return new Response("ok",{headers:H});
  if(req.method!=="POST") return new Response(JSON.stringify({success:false,error:"Method not allowed"}),{status:405,headers:H});
@@ -52,8 +82,8 @@ The ending chapter is a planning target, not a rigid promise. Allow controlled f
   const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
   if(cooldownUntil && cooldownUntil>Date.now()) return new Response(JSON.stringify({success:false,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:{"Content-Type":"application/json"}});
   const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(gemini)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.55,maxOutputTokens:6500,responseMimeType:"application/json"}})});
-  if(!resp.ok)throw {stage:"gemini_request",status:resp.status,body:await resp.text()};
-  const gd=await resp.json(),txt=gd?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text??"").join("")??"";let x:any;try{x=clean(txt)}catch(e){throw {stage:"gemini_json_parse",error:errText(e),raw:txt.slice(0,4000)}}
+  if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}${resp.status===429?" RESOURCE_EXHAUSTED":""}`);
+  const gd=await resp.json(),txt=gd?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text??"").join("")??"";let x:any;try{x=clean(txt)}catch{throw new Error("Gemini planner response was not valid JSON.");}
   if(!Number.isFinite(Number(x.target_ending_chapter))||Number(x.target_ending_chapter)<Math.max(6,Number(series.chapter_count??0)))throw {stage:"arc_validation",error:"Invalid ending target.",target:x.target_ending_chapter,chapter_count:series.chapter_count};
   if(typeof x.central_promise!=="string"||typeof x.central_conflict!=="string")throw {stage:"arc_validation",error:"Invalid arc plan fields."};
   const version=Number(existing.data?.version??0)+1;
@@ -61,5 +91,5 @@ The ending chapter is a planning target, not a rigid promise. Allow controlled f
   const {error}=await db.from("story_arc_plan").insert({series_id:series.id,version,target_ending_chapter:Number(x.target_ending_chapter),flexibility_min_chapter:Number(x.flexibility_min_chapter)||Math.max(1,Number(x.target_ending_chapter)-5),flexibility_max_chapter:Number(x.flexibility_max_chapter)||Number(x.target_ending_chapter)+8,central_promise:x.central_promise,central_conflict:x.central_conflict,final_question:x.final_question??"",final_answer:x.final_answer??"",arcs:Array.isArray(x.arcs)?x.arcs:[],character_arcs:Array.isArray(x.character_arcs)?x.character_arcs:[],major_revelations:Array.isArray(x.major_revelations)?x.major_revelations:[],required_payoffs:Array.isArray(x.required_payoffs)?x.required_payoffs:[],ending_requirements:Array.isArray(x.ending_requirements)?x.ending_requirements:[],forbidden_padding:Array.isArray(x.forbidden_padding)?x.forbidden_padding:[],completion_definition:x.completion_definition&&typeof x.completion_definition==="object"?x.completion_definition:{},status:"active"});
   if(error)throw {stage:"arc_insert",error};
   return new Response(JSON.stringify({success:true,version:VERSION,action:"arc_created",arc_plan:{series_id:series.id,version,target_ending_chapter:Number(x.target_ending_chapter),status:"active"}}),{headers:H});
- }catch(e){console.error("arc-planner failure",e);return new Response(JSON.stringify({success:false,version:VERSION,error:errText(e)}),{status:500,headers:H})}
+ }catch(e){await recordGeminiQuotaCooldown(e);console.error("arc-planner request failed; internal diagnostics withheld.");return new Response(JSON.stringify({success:false,version:VERSION,error:"Arc planning failed; internal diagnostics were withheld."}),{status:500,headers:H})}
 });
