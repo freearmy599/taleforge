@@ -161,6 +161,9 @@ Deno.test("generation orchestrator success updates also preserve newer blueprint
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   const successUpdate = 'update({generation_status:"generated",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");';
   assert(source.includes(successUpdate), "successful generation must only transition a blueprint still claimed as generating");
+  assert(source.includes("blueprintUpdateError||!blueprintUpdated"), "blueprint status writes must be checked instead of silently ignored");
+  assert(source.includes("blueprint_status_sync_failed"), "unreconciled blueprint state must block further processing");
+  assert(source.includes("Blueprint status update or verification failed; internal diagnostics were withheld."), "blueprint reconciliation errors must not expose raw database diagnostics");
 });
 
 Deno.test("generation orchestrator fails closed when published chapter history cannot be read", async () => {
