@@ -1,6 +1,6 @@
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { safeRetryErrorMessage } from "../publication-sync-processor/retry-error.ts";
-import { nextWeeklyRelease } from "./weekly-schedule.ts";
+import { nextWeeklyRelease, nextWeeklyReleaseAfterBatch } from "./weekly-schedule.ts";
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { inspectPublishedChapterHistory } from "./published-history.ts";
 import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts";
@@ -383,8 +383,33 @@ Deno.test("weekly schedule uses validated IANA timezone and DST-aware wall time"
   assert(helper.includes("matchingWallTimeCandidates"), "DST fold/gap resolver missing");
   assert(source.indexOf("Validate scheduling configuration before any publication side effect.") < source.indexOf('from("story_lifecycle")'), "schedule preflight must precede publication setup");
   assert(!source.includes("nextRelease=now;"), "activation must not trigger an immediate extra release batch");
-  assert(source.includes("nextRelease=nextWeeklyRelease(processingCompletedAt,Number(schedule.preferred_weekday)"),
-    "weekly next-release deadline must be recomputed after processing so a long batch cannot persist an already-expired slot");
+  assert(source.includes("nextRelease=nextWeeklyReleaseAfterBatch(processingCompletedAt,weeklyReleaseAt,"),
+    "weekly next-release deadline must respect the reserved slot and completion time to prevent a second same-day batch");
+});
+
+Deno.test("weekly release after a batch never schedules a second batch at today's later slot", () => {
+  const reservedSlot = new Date("2026-10-11T03:30:00.000Z"); // Sunday 09:00 Asia/Kolkata
+  const completedBeforeSlot = new Date("2026-10-10T13:00:00.000Z");
+  const afterReservedSlot = nextWeeklyReleaseAfterBatch(
+    completedBeforeSlot, reservedSlot, 0, "09:00", "Asia/Kolkata",
+  );
+  assert(afterReservedSlot.toISOString() === "2026-10-18T03:30:00.000Z",
+    "a batch completed before this week's reserved slot must schedule the following week, not later today");
+
+  const completedAfterSlot = new Date("2026-10-11T04:00:00.000Z");
+  const afterLongBatch = nextWeeklyReleaseAfterBatch(
+    completedAfterSlot, reservedSlot, 0, "09:00", "Asia/Kolkata",
+  );
+  assert(afterLongBatch.toISOString() === "2026-10-18T03:30:00.000Z",
+    "a batch that completes after its reserved slot must also schedule the next weekly occurrence");
+
+  let invalidCompletionRejected = false;
+  try {
+    nextWeeklyReleaseAfterBatch(new Date(Number.NaN), reservedSlot, 0, "09:00", "Asia/Kolkata");
+  } catch {
+    invalidCompletionRejected = true;
+  }
+  assert(invalidCompletionRejected, "invalid completion timestamps must fail closed");
 });
 
 Deno.test("weekly resolver handles normal timezone conversion, DST gaps, and both sides of DST folds", () => {
