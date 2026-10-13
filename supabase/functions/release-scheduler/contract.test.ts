@@ -852,7 +852,7 @@ Deno.test("post-publication canon sync authenticates and verifies publication be
   assert(publishedCheck >= 0 && downstreamCalls > publishedCheck,
     "published chapter status must be verified before invoking continuity workers");
   for (const [variable, label] of [["chRes", "published chapter"], ["intelligenceRes", "story intelligence view"], ["trendingRes", "story trending view"]] as const) {
-    assert(source.includes('HTTP "+'+variable+'.status'), label + " errors must report status without echoing upstream response bodies");
+    assert(source.includes(`HTTP "+${variable}.status`), label + " errors must report status without echoing upstream response bodies");
     assert(!source.includes("await "+variable+".text()"), label + " error handling must not expose upstream response bodies");
   }
 });
