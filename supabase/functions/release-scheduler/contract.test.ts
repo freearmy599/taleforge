@@ -279,7 +279,7 @@ Deno.test("chapter generation and quality review fail closed on missing or malfo
     "quality review must reject malformed cooldown timestamps before active-cooldown comparison");
   assert(source.includes("Gemini cooldown state is malformed; generation was blocked to protect quota."),
     "generation malformed state must fail closed with retryable provider-state error");
-  assert(source.includes("Gemini cooldown state is malformed; quality review was blocked to protect quota."),
+  assert(source.includes("Gemini cooldown state is malformed; AI quality review was blocked."),
     "quality-review malformed state must fail closed with retryable provider-state error");
 });
 
