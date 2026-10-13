@@ -1,4 +1,4 @@
-# TaleForge Genre Inversion Engine
+# Aevora Genre Inversion Engine
 
 The Inversion Engine transforms genre expectations into alternative structural rules.
 
