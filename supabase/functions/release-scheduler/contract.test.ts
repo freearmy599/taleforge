@@ -499,7 +499,7 @@ Deno.test("publisher confirms canonical sync enqueue before reporting publicatio
   assert(helper.includes("if (error || !data)"), "missing or unreadable outbox rows must remain unconfirmed");
   assert(helper.includes('queued: data.status !== "succeeded"'), "queued state must be derived from the verified outbox row");
   assert(source.includes("success: canonSyncResult.confirmed"), "publication response success must require confirmed canonical sync state");
-  assert(source.includes("Canonical synchronization enqueue could not be confirmed:"), "response warnings must disclose an unconfirmed enqueue");
+  assert(source.includes("Canonical publication sync enqueue could not be confirmed:"), "response warnings must disclose an unconfirmed enqueue");
   assert(!source.includes("post-publication canon synchronization was attempted."), "response must not claim an unverified synchronization attempt");
 });
 
