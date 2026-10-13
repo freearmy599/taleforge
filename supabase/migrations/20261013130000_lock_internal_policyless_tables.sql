@@ -7,6 +7,17 @@ DECLARE
   table_name text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
+    'automation_config',
+    'chapter_blueprints',
+    'chapter_generation_outputs',
+    'chapter_publication_reviews',
+    'chapter_reviews',
+    'generation_jobs',
+    'generation_settings',
+    'release_schedules',
+    'story_blueprints',
+    'story_versions',
+
     'taleforge_ceo_daily_operations',
     'taleforge_ceo_incidents',
     'taleforge_ceo_repair_plans',
