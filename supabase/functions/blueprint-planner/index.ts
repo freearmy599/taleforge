@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION = "blueprint-planner-v8-redacted-quota-guard";
+const VERSION = "blueprint-planner-v9-fail-closed-cooldown";
 const jsonHeaders = { "Content-Type": "application/json" };
 
 function cleanJson(text:string) {
@@ -125,7 +125,8 @@ Use arrays for the six list/object fields where appropriate. target_word_count m
       return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_state_unavailable"}),{status:503,headers:jsonHeaders});
     }
     const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
-    if(cooldownUntil && cooldownUntil > Date.now()) {
+    if(providerState.cooldown_until && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
+  if(cooldownUntil && cooldownUntil > Date.now()) {
       return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:jsonHeaders});
     }
 
