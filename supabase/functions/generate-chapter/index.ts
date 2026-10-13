@@ -34,8 +34,8 @@ let db:any=null;
 try{
 const body=await req.json().catch(()=>({}));
 const blueprintId=body?.blueprint_id,outputId=body?.output_id;
-const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY"),gkey=Deno.env.get("GEMINI_API_KEY");
-if(!url||!key||!gkey){console.error("[generate-chapter] configuration missing",JSON.stringify({missing:[...(!url?["SUPABASE_URL"]:[]),...(!key?["TALEFORGE_SERVICE_ROLE_KEY"]:[]),...(!gkey?["GEMINI_API_KEY"]:[])]}));return reply({success:false,error:"Required server configuration is missing."},500);}
+const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY"),gkey=Deno.env.get("GEMINI_API_KEY");
+if(!url||!key||!gkey){console.error("[generate-chapter] configuration missing",JSON.stringify({missing:[...(!url?["SUPABASE_URL"]:[]),...(!key?["SUPABASE_SERVICE_ROLE_KEY or TALEFORGE_SERVICE_ROLE_KEY"]:[]),...(!gkey?["GEMINI_API_KEY"]:[])]}));return reply({success:false,error:"Required server configuration is missing."},500);}
 if(!isTrustedInternalApiKey(req.headers.get("apikey"),key,Deno.env.get("SUPABASE_SECRET_KEYS"),Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")))return reply({success:false,error:"Caller must authenticate with a configured server-side Supabase API key."},401);
 db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 
@@ -69,7 +69,7 @@ const generationContext=contextResult.context;
 const contextSnapshotId=contextResult.snapshot_id;
 const contextHash=contextResult.context_hash;
 const bounds=boundsForTarget(b.target_word_count||TARGET); const target=bounds.target; const minimum=bounds.minimum;
-const prompt=`Write an original serialized-fiction chapter for TaleForge. Do not imitate or reproduce any existing copyrighted story, author, or franchise. Treat the supplied Generation Context as canonical story state. Do not contradict it. Do not invent established facts that conflict with it. Never import mechanics, terminology, power systems, technology, magic, cultivation, or other genre assumptions from another genre unless explicitly established by this story.
+const prompt=`Write an original serialized-fiction chapter for Aevora. Do not imitate or reproduce any existing copyrighted story, author, or franchise. Treat the supplied Generation Context as canonical story state. Do not contradict it. Do not invent established facts that conflict with it. Never import mechanics, terminology, power systems, technology, magic, cultivation, or other genre assumptions from another genre unless explicitly established by this story.
 
 GENERATION CONTEXT
 ${JSON.stringify(generationContext)}
