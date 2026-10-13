@@ -229,8 +229,8 @@ Deno.test("generation orchestrator dry-run avoids known database mutations", asy
     "dry-run must skip deterministic intelligence refresh RPCs that write state");
   assert(source.includes('const advancedPlanBuildResult=dryRun?{data:null,error:null}:await supabase.rpc("taleforge_build_advanced_chapter_plans"'),
     "dry-run must not build or upsert advanced chapter plans");
-  assert(source.includes('if(dryRun){for(const o of exhaustedCandidates)revisionExhaustedOutputs.push') && source.includes('else for(const o of exhaustedCandidates){const{data:exhausted,error:exhaustionError}'),
-    "dry-run must not mutate exhausted revision statuses");
+  assert(source.includes('if(dryRun){for(const o of exhaustedCandidates)revisionExhaustedOutputs.push') && source.includes('else for(const o of exhaustedCandidates){const{data:blueprintRejected,error:blueprintRejectError}'),
+    "dry-run must report exhausted revisions without mutating either blueprint or output statuses");
   assert(source.includes('if(!dryRun){for(const c of candidates){const sel=await supabase.rpc("taleforge_select_revision_strategy"'),
     "dry-run must not invoke the revision-selection RPC that inserts or updates selections");
   assert(source.includes('else if(candidates.length){const{data:storedSelections,error:storedSelectionsError}=await supabase.from("taleforge_revision_selections").select('),
