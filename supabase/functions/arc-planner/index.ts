@@ -1,12 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="arc-planner-v8-aevora-brand"; const H={"Content-Type":"application/json"};
+const VERSION="arc-planner-v9-temporary-overload-cooldown"; const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{let s=t.trim().replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)throw new Error("No JSON object found in model response");s=s.slice(a,b+1).replace(/,\s*([}\]])/g,"$1");return JSON.parse(s);};
 const errText=(e:any)=>e instanceof Error?e.message:(e&&typeof e==="object"?JSON.stringify(e):String(e));
 async function recordGeminiQuotaCooldown(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  const isTemporaryOverload = message.includes("Gemini HTTP 503");
+  if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
@@ -20,14 +21,14 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     }
     const previousCount = Number(data.consecutive_throttle_count ?? 0);
     const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
-    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
     const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
     const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
     const until = new Date(Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)).toISOString();
     const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
       provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
-      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
       updated_at: now.toISOString(),
     }, { onConflict: "provider" });
     if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
@@ -94,5 +95,5 @@ The ending chapter is a planning target, not a rigid promise. Allow controlled f
   const {error}=await db.from("story_arc_plan").insert({series_id:series.id,version,target_ending_chapter:Number(x.target_ending_chapter),flexibility_min_chapter:Number(x.flexibility_min_chapter)||Math.max(1,Number(x.target_ending_chapter)-5),flexibility_max_chapter:Number(x.flexibility_max_chapter)||Number(x.target_ending_chapter)+8,central_promise:x.central_promise,central_conflict:x.central_conflict,final_question:x.final_question??"",final_answer:x.final_answer??"",arcs:Array.isArray(x.arcs)?x.arcs:[],character_arcs:Array.isArray(x.character_arcs)?x.character_arcs:[],major_revelations:Array.isArray(x.major_revelations)?x.major_revelations:[],required_payoffs:Array.isArray(x.required_payoffs)?x.required_payoffs:[],ending_requirements:Array.isArray(x.ending_requirements)?x.ending_requirements:[],forbidden_padding:Array.isArray(x.forbidden_padding)?x.forbidden_padding:[],completion_definition:x.completion_definition&&typeof x.completion_definition==="object"?x.completion_definition:{},status:"active"});
   if(error)throw {stage:"arc_insert",error};
   return new Response(JSON.stringify({success:true,version:VERSION,action:"arc_created",arc_plan:{series_id:series.id,version,target_ending_chapter:Number(x.target_ending_chapter),status:"active"}}),{headers:H});
- }catch(e){await recordGeminiQuotaCooldown(e);const quotaFailure=(e instanceof Error?e.message:String(e)).includes("Gemini HTTP 429")||(e instanceof Error?e.message:String(e)).includes("RESOURCE_EXHAUSTED");console.error("arc-planner request failed; internal diagnostics withheld.");return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure,reason:quotaFailure?"provider_quota_blocked":"arc_planning_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":"Arc planning failed; internal diagnostics were withheld."}),{status:quotaFailure?429:500,headers:H})}
+ }catch(e){await recordGeminiQuotaCooldown(e);const providerMessage=e instanceof Error?e.message:String(e);const quotaFailure=providerMessage.includes("Gemini HTTP 429")||providerMessage.includes("RESOURCE_EXHAUSTED");const providerOverloaded=providerMessage.includes("Gemini HTTP 503");console.error("arc-planner request failed; internal diagnostics withheld.");return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure||providerOverloaded,reason:quotaFailure?"provider_quota_blocked":providerOverloaded?"provider_temporarily_unavailable":"arc_planning_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":providerOverloaded?"Gemini is temporarily unavailable; retry after cooldown.":"Arc planning failed; internal diagnostics were withheld."}),{status:quotaFailure?429:providerOverloaded?503:500,headers:H})}
 });
