@@ -28,6 +28,7 @@ const publicationSyncProcessorUrl = new URL("../publication-sync-processor/index
 const postPublicationCanonSyncUrl = new URL("../post-publication-canon-sync/index.ts", import.meta.url);
 const characterContinuityUrl = new URL("../character-continuity/index.ts", import.meta.url);
 const worldContinuityUrl = new URL("../world-continuity/index.ts", import.meta.url);
+const arcPlannerUrl = new URL("../arc-planner/index.ts", import.meta.url);
 const continuityReviewUrl = new URL("../continuity-review/index.ts", import.meta.url);
 const originalityReviewUrl = new URL("../originality-review/index.ts", import.meta.url);
 const safetyReviewUrl = new URL("../safety-review/index.ts", import.meta.url);
@@ -1216,4 +1217,13 @@ Deno.test("publication sync processor never persists downstream response bodies 
     "known internal completion failures should retain safe diagnostics");
   assert(source.includes("last_error: safeRetryErrorMessage(e),"),
     "retry state should persist only normalized internal errors");
+});
+
+
+Deno.test("arc planner correctly removes JSON trailing commas", async () => {
+  const source = await Deno.readTextFile(arcPlannerUrl);
+  assert(source.includes('replace(/,\\s*([}\\]])/g,"$1")'),
+    "arc planner normalization must match whitespace after a comma before a closing brace or bracket");
+  assert(!source.includes('replace(/,\\\\s*([}\\\\]])/g,"$1")'),
+    "escaped backslash-s must not match a literal backslash instead of whitespace");
 });
