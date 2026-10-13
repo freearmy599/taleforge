@@ -105,6 +105,7 @@ Deno.serve(async (req)=>{
         leaseClaimed=true;
       }
       let leaseLost=false;
+      let confirmedPublishedCount=0;
       try{
       const series=schedule.series;
       if(!series || ["draft","cancelled","hiatus"].includes(series.status)){
@@ -346,6 +347,7 @@ Deno.serve(async (req)=>{
             break;
           }
           published.push({...d,status:confirmedChapter.status});
+          confirmedPublishedCount++;
         }
       }
 
@@ -483,7 +485,7 @@ Deno.serve(async (req)=>{
         schedule_cooldown_until:scheduleCooldownUntil?.toISOString()??null,dry_run:dryRun
       });
       }catch(scheduleError){
-        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_error",
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"schedule_error",published_count:confirmedPublishedCount,
           reason:"Unexpected schedule processing error; no schedule advancement was assumed.",details:message(scheduleError)});
       }finally{
         if(leaseClaimed){
