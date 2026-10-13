@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Test audit failure and redaction contracts
+        run: node --test scripts/aevora-control-plane-audit.contract.test.mjs
       - name: Run read-only control-plane audit
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
