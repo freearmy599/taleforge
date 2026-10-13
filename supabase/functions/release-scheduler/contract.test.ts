@@ -1116,6 +1116,8 @@ Deno.test("control-plane audit reports malformed lease and decision timestamps",
     "audit timestamp parsing must be explicit and reusable");
   assert(source.includes("Malformed engineering task lease timestamp"),
     "malformed active-task lease timestamps must be surfaced as findings");
+  assert(source.includes("Missing engineering task lease timestamp"),
+    "active tasks without a lease expiry must be surfaced instead of silently skipped");
   assert(source.includes("Malformed decision expiry timestamp"),
     "malformed pending-decision expiry timestamps must be surfaced as findings");
   assert(source.includes("**Expired engineering task lease:**"),
