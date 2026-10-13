@@ -557,19 +557,20 @@ retryable: false,
 * Do not revise the same source output repeatedly. Every revision is a new
 * output whose revision_of_output_id points at its immediate predecessor.
 */
-const { data: existingRevision, error: existingRevisionError } = await supabase
+const { data: existingRevisions, error: existingRevisionError } = await supabase
 .from("chapter_generation_outputs")
 .select("id,generation_status,generation_attempt")
 .eq("revision_of_output_id", outputId)
-.neq("generation_status", "rejected")
 .order("created_at", { ascending: false })
-.order("id", { ascending: false })
-.limit(1)
-.maybeSingle();
+.order("id", { ascending: false });
 
 if (existingRevisionError) {
 throw new Error("Could not verify whether this output already has a revision successor.");
 }
+// PostgREST neq filters omit NULL statuses. Treat every successor except an
+// explicitly rejected row as active, so legacy NULL-status rows cannot bypass
+// the sequential idempotency guard.
+const existingRevision = (existingRevisions ?? []).find((candidate: any) => candidate.generation_status !== "rejected");
 if (existingRevision) {
 return jsonResponse({
 success: false,
