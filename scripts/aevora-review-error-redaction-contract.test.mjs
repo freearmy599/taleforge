@@ -8,9 +8,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const functions = [
-  ["continuity-review", "continuity-v6-temporary-overload-cooldown"],
-  ["originality-review", "originality-v6-temporary-overload-cooldown"],
-  ["safety-review", "safety-v6-temporary-overload-cooldown"],
+  ["continuity-review", "continuity-v7-retryable-provider-errors"],
+  ["originality-review", "originality-v7-retryable-provider-errors"],
+  ["safety-review", "safety-v7-retryable-provider-errors"],
   ["publication-review", "publication-v2-redacted-error-details"],
 ];
 
@@ -28,6 +28,11 @@ for (const [name, version] of functions) {
     assert.equal(/details:\s*\w+Error\.message/.test(source), false);
     assert.equal(/details:\s*error\.message/.test(source), false);
     assert.equal(/details:\s*error instanceof Error[\s\S]{0,100}error\.message/.test(source), false);
+    if (name !== "publication-review") {
+      assert.ok(source.includes('const providerOverloaded = providerMessage.includes("Gemini HTTP 503")'), "temporary provider overload must be classified safely");
+      assert.ok(source.includes('reason: quotaFailure ? "provider_quota_blocked" : providerOverloaded ? "provider_temporarily_unavailable" : "review_failed"'), "review errors must expose a stable safe retry reason");
+      assert.ok(source.includes('quotaFailure ? 429 : providerOverloaded ? 503 : 502'), "review endpoint must preserve provider retry status");
+    }
     if (name !== "publication-review") {
       assert.ok(source.includes("async function recordGeminiQuotaCooldown("), "quota cooldown recorder must exist");
       assert.ok(source.includes("await recordGeminiQuotaCooldown(supabase, error);"), "provider failures must record quota cooldown");
