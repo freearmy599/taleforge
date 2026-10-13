@@ -1,4 +1,5 @@
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
+import { safeRetryErrorMessage } from "../publication-sync-processor/retry-error.ts";
 import { nextWeeklyRelease } from "./weekly-schedule.ts";
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { inspectPublishedChapterHistory } from "./published-history.ts";
@@ -1194,10 +1195,18 @@ Deno.test("publication sync processor never persists downstream response bodies 
     "downstream sync failures must use a bounded status-only error");
   assert(!source.includes('throw new Error("Canon sync failed: HTTP "+response.status+" "+text'),
     "untrusted downstream response bodies must not enter retry errors or outbox last_error");
-  assert(source.includes("function safeRetryErrorMessage(error: unknown): string"),
-    "retry diagnostics must be normalized before persistence");
-  assert(source.includes("message.match(/^Canon sync failed: HTTP (" + String.raw`\d{3}` + ")$/)"),
-    "safe HTTP status normalization must recognize exactly three decimal digits");
+  assert(source.includes('import { safeRetryErrorMessage } from "./retry-error.ts";'),
+    "processor must use the shared tested retry normalizer");
+  assert(safeRetryErrorMessage(new Error("Canon sync failed: HTTP 503")) === "Canon sync failed: HTTP 503",
+    "three-digit downstream HTTP statuses should remain useful and bounded");
+  assert(safeRetryErrorMessage(new Error("Canon sync failed: HTTP 503 secret-response")) === "Publication sync attempt failed.",
+    "unexpected downstream details must be discarded");
+  assert(safeRetryErrorMessage(new Error("token=secret")) === "Publication sync attempt failed.",
+    "arbitrary errors must never be persisted verbatim");
+  assert(safeRetryErrorMessage("private response") === "Publication sync attempt failed.",
+    "non-Error thrown values must be normalized");
+  assert(safeRetryErrorMessage(new Error("Outbox completion write was not confirmed.")) === "Outbox completion write was not confirmed.",
+    "known internal completion failures should retain safe diagnostics");
   assert(source.includes("last_error: safeRetryErrorMessage(e),"),
     "retry state should persist only normalized internal errors");
   assert(source.includes('return "Publication sync attempt failed."'),
