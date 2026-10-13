@@ -3,7 +3,7 @@ import { nextWeeklyRelease } from "./weekly-schedule.ts";
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
-const VERSION = "release-scheduler-v13-complete-failure-aggregation";
+const VERSION = "release-scheduler-v14-complete-failure-aggregation";
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -504,7 +504,7 @@ Deno.serve(async (req)=>{
       }
     }
 
-    const failureActions=new Set(["error","schedule_error","lease_unavailable","lifecycle_config_invalid","publication_incomplete","publish_unconfirmed","schedule_advance_unconfirmed","schedule_config_invalid","published_chapter_gap","published_chapter_history_invalid","lease_release_warning"]);
+    const failureActions=new Set(["error","schedule_error","lease_unavailable","lease_lost","lifecycle_config_invalid","lifecycle_verification_failed","lifecycle_transition_failed","publication_incomplete","publish_unconfirmed","schedule_advance_unconfirmed","schedule_config_invalid","published_chapter_gap","published_chapter_history_invalid","lease_release_warning"]);
     const hasScheduleFailures=results.some((result:any)=>failureActions.has(result.action));
     return response({
       success:!hasScheduleFailures,partial_success:results.some((result:any)=>result.action==="published")&&hasScheduleFailures,mode:"release-scheduler",scheduler_version:VERSION,
