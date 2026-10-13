@@ -27,6 +27,10 @@ const publicationSyncProcessorUrl = new URL("../publication-sync-processor/index
 const postPublicationCanonSyncUrl = new URL("../post-publication-canon-sync/index.ts", import.meta.url);
 const characterContinuityUrl = new URL("../character-continuity/index.ts", import.meta.url);
 const worldContinuityUrl = new URL("../world-continuity/index.ts", import.meta.url);
+const continuityReviewUrl = new URL("../continuity-review/index.ts", import.meta.url);
+const originalityReviewUrl = new URL("../originality-review/index.ts", import.meta.url);
+const safetyReviewUrl = new URL("../safety-review/index.ts", import.meta.url);
+const publicationReviewUrl = new URL("../publication-review/index.ts", import.meta.url);
 
 Deno.test("scheduler only inspects disabled schedules for a targeted dry run", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
