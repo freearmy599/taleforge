@@ -36,6 +36,10 @@ test("chapter generation does not return raw governance or database exception de
   assert.ok(s.includes('if(contextError||!contextResult?.context)return reply({success:false,error:"Generation context could not be verified."},500);'));
   assert.ok(s.includes('last_error:providerQuotaFailure?"Gemini quota or rate-limit response":"Generation failure; internal diagnostics withheld"'));
   assert.equal(s.includes("error_message:message.slice(0,1200)"), false);
+  assert.ok(s.includes("AI quality review was blocked."), "quality-review Gemini path must fail closed when provider state is unavailable");
+  assert.ok(s.includes("reason:\"provider_cooldown\""), "quality-review Gemini path must honor active cooldown");
+  assert.ok(s.includes("reviewProviderStateError||!reviewProviderState"), "quality-review provider-state lookup must fail closed");
+  assert.ok(s.includes("reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())"), "quality-review must reject malformed cooldown timestamps");
 });
 
 test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
