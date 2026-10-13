@@ -12,15 +12,18 @@ const auditToken = process.env.AEVORA_AUDIT_TOKEN;
 
 function safeAuditText(value, maxLength = 160) {
   const text = value == null ? "unknown" : String(value);
-  const escaped = [];
+  let output = "";
   const markdown = new Set(["\\", String.fromCharCode(96), "*", "_", "{", "}", "[", "]", "(", ")", "<", ">", "#", "+", "-", ".", "!", "|"]);
   for (const character of text) {
-    if (escaped.length >= maxLength) break;
     const code = character.charCodeAt(0);
-    if (code < 32 || code === 127) { escaped.push(" "); continue; }
-    escaped.push(markdown.has(character) ? "\\" + character : character);
+    const safeCharacter = code < 32 || code === 127
+      ? " "
+      : markdown.has(character) ? "\\" + character : character;
+    // Measure emitted escaped text, not input characters: Markdown escaping can double length.
+    if (output.length + safeCharacter.length > maxLength) break;
+    output += safeCharacter;
   }
-  return escaped.join("");
+  return output;
 }
 
 async function github(path, options = {}) {
