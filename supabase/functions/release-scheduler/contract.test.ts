@@ -867,3 +867,16 @@ Deno.test("planning handlers require trusted server-side callers", async () => {
     assert(source.includes("AEVORA_INTERNAL_API_KEY_NAMES"), name + " must use the explicit internal-key allowlist");
   }
 });
+
+
+Deno.test("continuity review requires trusted server-side authentication before privileged client creation", async () => {
+  const source = await Deno.readTextFile(continuityReviewUrl);
+  const guard = source.indexOf("isTrustedInternalApiKey(req.headers.get(\"apikey\"), serviceRoleKey");
+  const client = source.indexOf("const supabase = createClient(");
+  assert(guard >= 0 && client > guard,
+    "continuity review must validate the configured server-side apikey before creating its privileged client");
+  assert(source.includes("AEVORA_INTERNAL_API_KEY_NAMES"),
+    "continuity review must require the explicit internal-key allowlist");
+  assert(source.includes('if (req.method !== "POST")'),
+    "continuity review must retain the POST-only request policy");
+});
