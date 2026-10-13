@@ -22,3 +22,9 @@ test("stale, malformed, or future control-plane snapshots are reported", () => {
   assert.match(source, /Stale control-plane snapshot/);
   assert.match(source, /45 \* 60_000/);
 });
+
+
+test("GitHub API failures do not copy response bodies into logs or issue reports", () => {
+  assert.match(source, /GitHub API returned HTTP \$\{response\.status\}/);
+  assert.doesNotMatch(source, /GitHub API \$\{response\.status\}: \$\{\(await response\.text\(\)\)/);
+});
