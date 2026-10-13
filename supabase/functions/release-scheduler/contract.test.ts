@@ -1058,7 +1058,6 @@ Deno.test("review orchestrator fails closed and reports blocked batches as unsuc
   assert(source.includes("exposes decision/score without a top-level success flag") &&
       source.includes("continuity, originality, safety, and publication workers must explicitly"),
     "the quality worker's legacy response contract and dedicated-worker success requirements must remain documented");
-    "the quality worker's legacy response contract must remain explicitly documented");
   for (const workerPath of [
     "../continuity-review/index.ts",
     "../originality-review/index.ts",
