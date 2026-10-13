@@ -500,7 +500,8 @@ Deno.test("publisher confirms canonical sync enqueue before reporting publicatio
   assert(helper.includes("if (enqueueError)"), "enqueue errors must be reported instead of treated as success");
   assert(helper.includes("if (error || !data)"), "missing or unreadable outbox rows must remain unconfirmed");
   assert(helper.includes('queued: data.status !== "succeeded"'), "queued state must be derived from the verified outbox row");
-  assert(source.includes("success: canonSyncResult.confirmed"), "publication response success must require confirmed canonical sync state");
+  assert(source.includes('success: canonSyncResult.confirmed && !synchronizationWarnings.some((warning) => warning.startsWith("Generation output") || warning.startsWith("Blueprint"))'), "normal and idempotent publication responses must fail success when output or blueprint synchronization is unconfirmed");
+  assert(source.includes('success: canonSyncResult.confirmed && !raceSynchronizationWarnings.some((warning) => warning.startsWith("Generation output") || warning.startsWith("Blueprint"))'), "concurrent duplicate publication response must fail success when output or blueprint synchronization is unconfirmed");
   assert(source.includes("Canonical publication sync enqueue could not be confirmed:"), "response warnings must disclose an unconfirmed enqueue");
   assert(!source.includes("post-publication canon synchronization was attempted."), "response must not claim an unverified synchronization attempt");
 });
@@ -1017,8 +1018,8 @@ Deno.test("publisher blocks success when canonical-sync outbox has exhausted ret
     "publisher must expose terminal synchronization failure for recovery");
   assert(source.includes("confirmed: false, queued: false, status: \"failed_terminal\""),
     "a terminal outbox row must not be reported as confirmed or queued");
-  assert(source.includes("success: canonSyncResult.confirmed"),
-    "publisher success must depend on confirmed canonical-sync outbox state");
+  assert(source.includes('success: canonSyncResult.confirmed && !synchronizationWarnings.some((warning) => warning.startsWith("Generation output") || warning.startsWith("Blueprint"))'),
+    "publisher success must require confirmed canonical sync plus output and blueprint synchronization");
 });
 
 Deno.test("scheduler aggregate response fails when any schedule reports a safety failure", async () => {
