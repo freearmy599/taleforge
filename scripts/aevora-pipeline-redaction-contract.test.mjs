@@ -40,10 +40,10 @@ test("chapter generation does not return raw governance or database exception de
 
 test("Gemini planner and continuity workers redact failures and persist quota cooldowns", async () => {
   const functions = [
-    ["arc-planner", "arc-planner-v6-redacted-quota-guard"],
-    ["blueprint-planner", "blueprint-planner-v8-redacted-quota-guard"],
+    ["arc-planner", "arc-planner-v7-fail-closed-cooldown"],
+    ["blueprint-planner", "blueprint-planner-v9-fail-closed-cooldown"],
     ["character-continuity", "character-continuity-v6-redacted-quota-guard"],
-    ["story-dna-planner", "story-dna-planner-v4-redacted-quota-guard"],
+    ["story-dna-planner", "story-dna-planner-v5-fail-closed-cooldown"],
     ["world-continuity", "world-continuity-v9-redacted-quota-guard"],
   ];
   for (const [name, version] of functions) {
