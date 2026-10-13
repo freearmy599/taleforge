@@ -120,3 +120,29 @@ test("chapter generator fences blueprint status writes and reports reconciliatio
   assert.ok(s.includes("blueprint_status_synced:blueprintStatusSynced"));
   assert.ok(s.includes("Chapter output was saved, but blueprint status needs safe reconciliation."));
 });
+
+
+test("chapter revision is authenticated, quota-guarded, and state-fenced", async () => {
+  const s = await source("supabase/functions/revise-chapter/index.ts");
+  assert.ok(s.includes('revision-v14-retryable-rejected-successor'), "revision version marker must be present");
+  const auth = s.indexOf('isTrustedInternalApiKey(req.headers.get("apikey")');
+  const body = s.indexOf("body = await req.json()");
+  const governance = s.indexOf('supabase.rpc("taleforge_ceo_execution_gate"');
+  const modelCall = s.indexOf("rawResponse = await callGemini");
+  assert.ok(auth >= 0 && auth < body, "caller authentication must precede request-body parsing");
+  assert.ok(body < governance && governance < modelCall, "governance must authorize the revision before any Gemini call");
+  assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), "revision must load shared Gemini provider state");
+  assert.ok(s.includes('reason: "provider_state_unavailable"'), "revision must fail closed when provider state cannot be read");
+  assert.ok(s.includes('reason: "invalid_cooldown_timestamp"'), "revision must fail closed on malformed cooldown timestamps");
+  assert.ok(s.includes('reason: "provider_cooldown"'), "revision must respect an active Gemini cooldown");
+  assert.ok(s.includes("Math.max(proposedUntil, existingUntil)"), "revision quota recorder must not shorten an existing cooldown");
+  assert.ok(s.includes('last_error: "Gemini quota or rate-limit response"'), "revision must store only sanitized quota diagnostics");
+  assert.ok(s.includes('reason: "provider_quota_blocked"'), "revision quota failures must have a stable safe reason");
+  assert.ok(s.includes('if (originalOutput.generation_status !== "needs_revision")'), "only outputs in needs_revision state may be revised");
+  assert.ok(s.includes(".eq(\"revision_of_output_id\", outputId)"), "revision must check for an existing successor");
+  assert.ok(s.includes("revision_of_output_id:\noutputId"), "new revision must link to its predecessor");
+  assert.ok(s.includes('.eq("id", outputId)\n.eq("generation_status", "needs_revision")'), "source transition must be fenced by its expected status");
+  assert.ok(s.includes('error: "Revision failed; internal diagnostics were withheld."'), "unexpected failures must not expose raw exception details");
+  assert.ok(s.includes('reviewHandoff.result = { success: parsedHandoff?.success === true }'), "review handoff must not return downstream response bodies");
+  assert.equal(s.includes('throw new Error(`Gemini HTTP ${response.status}: ${responseText}`)'), false, "provider response bodies must not enter thrown errors");
+});
