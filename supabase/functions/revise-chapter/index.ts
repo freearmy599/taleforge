@@ -1016,6 +1016,21 @@ if (
 !currentValidation.passed
 ) {
 
+// Persist one failed revision cycle so the orchestrator's existing attempt limit
+// can eventually exhaust this output instead of retrying it forever.
+const failedAttemptNumber = Math.min(MAX_REVISION_ATTEMPTS, Math.max(1, Number(originalOutput.generation_attempt || 1)) + 1);
+const { data: failedAttemptState, error: failedAttemptStateError } = await supabase
+.from("chapter_generation_outputs")
+.update({ generation_attempt: failedAttemptNumber, updated_at: new Date().toISOString() })
+.eq("id", outputId)
+.eq("generation_status", "needs_revision")
+.select("id")
+.maybeSingle();
+if (failedAttemptStateError || !failedAttemptState) {
+console.error("[revise-chapter] failed revision attempt could not be recorded; internal diagnostics were withheld.");
+return jsonResponse({ success: false, retryable: true, reason: "revision_attempt_state_unavailable", error: "Revision attempt state could not be recorded safely." }, 503);
+}
+
 return jsonResponse({
 success: false,
 
