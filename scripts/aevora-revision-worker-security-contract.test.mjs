@@ -13,7 +13,7 @@ async function source(path) {
 
 test("revision worker redacts provider, governance, handoff, and exception details", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes("revision-v12-redacted-fail-closed-cooldown"));
+  assert.ok(s.includes("revision-v13-idempotent-source-commit"));
   assert.ok(s.includes('import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";'));
   assert.ok(s.includes('isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey'));
   assert.ok(s.includes('Caller must authenticate with a configured server-side Supabase API key.'));
@@ -57,6 +57,11 @@ test("revision worker records quota cooldowns and preserves orchestrator output 
   assert.ok(s.includes("revised_output_id:"));
   assert.ok(s.includes("review_handoff: reviewHandoff"));
   assert.ok(s.includes('reason: "revision_source_state_invalid"'), "only needs_revision outputs may enter the revision worker");
+  assert.ok(s.includes('.eq("revision_of_output_id", outputId)'), "sequential retries must detect an existing successor before spending provider quota");
+  assert.ok(s.includes('reason: "revision_successor_already_exists"'), "the worker must reject duplicate revisions of the same source output");
+  assert.ok(s.includes('.update({ generation_status: "rejected", updated_at: new Date().toISOString() })\n.eq("id", outputId)\n.eq("generation_status", "needs_revision")'), "successful revision must atomically move its source out of the revision backlog");
+  assert.ok(s.includes('currentSource?.generation_status !== "rejected"'), "a concurrent revision winner must be distinguished from unrelated source-state changes");
+  assert.ok(s.includes('reason: "revision_source_state_changed"'), "unrelated concurrent state changes must reject the uncommitted successor");
   assert.ok(s.includes('reason: "revision_blueprint_already_published"'), "released blueprints must not be revised");
   assert.ok(s.includes('.eq("generation_status", "needs_revision")\n.select("id")\n.maybeSingle()'), "revision commit must be fenced against concurrent source-state changes");
   assert.ok(!s.includes('.from(\n"chapter_blueprints"\n)\n.update({\ngeneration_status:\n"generated",'), "revision must not unconditionally regress blueprint publication state");
