@@ -94,7 +94,9 @@ test("Gemini planner and continuity workers redact failures and persist quota co
     assert.equal(s.includes("await resp.text()"), false, name + " must not echo provider error bodies");
     assert.equal(s.includes("error:e instanceof Error?e.message:String(e)"), false, name + " must not return raw exception details");
     assert.ok(s.includes("reason:quotaFailure?\"provider_quota_blocked\""), name + " must preserve a safe quota reason");
-    if (["arc-planner", "blueprint-planner", "story-dna-planner"].includes(name)) assert.ok(s.includes("invalid_cooldown_timestamp"), name + " must fail closed on malformed cooldown state");
+    assert.ok(/providerStateError\s*\|\|\s*!providerState|providerStateError\|\|!providerState/.test(s), name + " must fail closed when provider state is missing or unreadable");
+    assert.ok(s.includes("invalid_cooldown_timestamp"), name + " must fail closed on malformed cooldown state");
+    assert.ok(s.includes("provider_cooldown"), name + " must block while a cooldown is active");
   }
 });
 
