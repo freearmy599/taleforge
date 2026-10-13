@@ -1236,3 +1236,14 @@ Deno.test("arc planner correctly removes JSON trailing commas", async () => {
   assert(!source.includes('replace(/,\\\\s*([}\\\\]])/g,"$1")'),
     "escaped backslash-s must not match a literal backslash instead of whitespace");
 });
+
+Deno.test("generation orchestrator verifies blueprint resets after blocked or failed generation", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  assert(source.includes("async function transitionBlueprintStatus"), "blueprint status transitions must have a checked helper");
+  assert(source.includes('if(error)return false;if(updated)return true;'), "status transition helper must check write errors and reconcile no-op writes");
+  assert(source.includes('action:"blueprint_state_transition_failed",blocked:true,retryable:true'), "failed reset transitions must block and report retryability");
+  assert.equal((source.match(/transitionBlueprintStatus\(supabase,b.id,"ready","generating"\)/g) || []).length, 2,
+    "governance and provider-quota blocks must safely return claimed blueprints to ready");
+  assert(source.includes('transitionBlueprintStatus(supabase,b.id,"rejected","generating")'),
+    "non-retryable generation failures must verify their terminal blueprint transition");
+});
