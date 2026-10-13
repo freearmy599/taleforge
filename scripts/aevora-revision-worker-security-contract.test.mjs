@@ -73,6 +73,8 @@ test("generation orchestrator exhausts revision backlog using a database-allowed
   assert.ok(s.includes('.gte("generation_attempt",3)'));
   assert.ok(s.includes('action:"revision_exhausted",stored_status:"rejected"'));
   assert.ok(s.includes("revision_exhausted_outputs:revisionExhaustedOutputs"));
+  assert.ok(s.includes('action:"would_mark_revision_exhausted",stored_status:o.generation_status'), "dry-run must report exhausted revisions without mutating them");
+  assert.ok(s.includes("if(dryRun){for(const o of exhaustedCandidates)revisionExhaustedOutputs.push"), "dry-run exhaustion reporting must be separate from real state writes");
   assert.equal(s.includes('generation_status:"revision_exhausted"'), false);
 });
 
