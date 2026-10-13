@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="post-publication-canon-sync-v4-fail-closed-subresults";
+const VERSION="post-publication-canon-sync-v5-redacted-errors";
 const H={"Content-Type":"application/json"};
 
 Deno.serve(async(req)=>{
@@ -57,7 +57,8 @@ Deno.serve(async(req)=>{
       trending:{source:"story_trending_scores view",data:trending},
       results
     }),{status:failed?502:200,headers:H});
-  }catch(e){
-    return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:H});
+  }catch{
+    // Exceptions can contain implementation details or request metadata; keep the public error generic.
+    return new Response(JSON.stringify({success:false,version:VERSION,error:"Post-publication synchronization failed."}),{status:500,headers:H});
   }
 });
