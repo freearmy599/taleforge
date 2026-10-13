@@ -112,7 +112,7 @@ try {
   } else if (snapshotTime > now + 5 * 60_000) {
     findings.push(`**Control-plane snapshot timestamp is in the future:** generated_at=${safeAuditText(snapshot.generated_at, 80)}`);
   } else if (now - snapshotTime > 45 * 60_000) {
-    findings.push(`**Stale control-plane snapshot:** generated_at=${snapshot.generated_at}; snapshot is older than 45 minutes`);
+    findings.push(`**Stale control-plane snapshot:** generated_at=${safeAuditText(snapshot.generated_at, 80)}; snapshot is older than 45 minutes`);
   }
   const expectedMinutes = (cron) => {
     if (cron === "*/5 * * * *") return 20;
@@ -161,12 +161,12 @@ try {
 
   for (const decision of decisions) {
     if (decision.status === "awaiting_decision" && ["high", "critical"].includes(decision.urgency)) {
-      findings.push(`**Owner decision required (${decision.urgency}):** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)})`);
+      findings.push(`**Owner decision required (${safeAuditText(decision.urgency, 40)}):** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)})`);
     }
     if (decision.status === "awaiting_decision" && decision.expires_at) {
       const expiresAt = parseTimestamp(decision.expires_at);
       if (!Number.isFinite(expiresAt)) {
-        findings.push(`**Malformed decision expiry timestamp:** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)}), expires_at=${decision.expires_at}`);
+        findings.push(`**Malformed decision expiry timestamp:** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)}), expires_at=${safeAuditText(decision.expires_at, 80)}`);
       } else if (expiresAt < now) {
         findings.push(`**Expired decision request:** ${safeAuditText(decision.title)} (${safeAuditText(decision.id, 80)})`);
       }
@@ -198,7 +198,7 @@ try {
     }
     evidence.push(`- Provider ${safeAuditText(provider.provider, 80)}: cooldown until ${safeAuditText(provider.cooldown_until || "none", 80)}; consecutive throttles=${safeAuditText(provider.consecutive_throttle_count ?? "unknown", 40)}`);
   }
-  evidence.push(`- Snapshot generated at: ${snapshot.generated_at || "unknown"}`);
+  evidence.push(`- Snapshot generated at: ${safeAuditText(snapshot.generated_at || "unknown", 80)}`);
   evidence.push(`- Scheduled jobs checked: ${jobs.length}`);
   evidence.push(`- Release schedules checked: ${schedules.length}`);
   evidence.push(`- Engineering tasks checked: ${tasks.length}`);
