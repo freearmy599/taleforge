@@ -20,6 +20,15 @@ test("semantic continuity extraction withholds downstream response bodies and er
   assert.equal(s.includes('throw new Error(name+" failed: "+t.slice(0,1200))'), false);
 });
 
+test("semantic continuity dry-run returns before queue-claim mutation", async () => {
+  const s = await source("supabase/functions/semantic-continuity-extraction/index.ts");
+  const dryRunReturn = s.indexOf('if(!execute) return new Response(JSON.stringify({success:true,version:VERSION,status:"dry_run",queue_mutated:false})');
+  const queueClaim = s.indexOf('await db.rpc("taleforge_claim_continuity_queue"');
+  assert.ok(dryRunReturn >= 0, "dry-run must explicitly report no queue mutation");
+  assert.ok(queueClaim > dryRunReturn, "queue claim must occur only after the dry-run early return");
+  assert.ok(s.includes("if(execute){"), "provider-state preflight must only gate execute mode");
+});
+
 test("generation orchestrator sanitizes downstream failures and provider diagnostics", async () => {
   const s = await source("supabase/functions/generation-orchestrator/index.ts");
   assert.ok(s.includes("generation-orchestrator-v20-monotonic-quota-cooldown"));
