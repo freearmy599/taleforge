@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (providerStateError || !providerState) {
-      console.error("[review-orchestrator] provider cooldown state unavailable; failing closed", providerStateError?.message ?? "No Gemini provider-state row found");
+      console.error("[review-orchestrator] provider cooldown state unavailable; failing closed.");
       return json({
         success: false,
         mode: "review-orchestrator",
