@@ -154,7 +154,7 @@ Deno.test("generation orchestrator failure updates cannot overwrite a blueprint 
   assert(source.includes('async function transitionBlueprintStatus(supabase:any,id:string,nextStatus:string,expectedStatus:string)'), "status transitions must use the shared compare-and-set helper");
   assert(source.includes('.eq("id",id).eq("generation_status",expectedStatus).select("id").maybeSingle()'), "the helper must fence updates to the expected current status and verify affected rows");
   assert(source.includes('transitionBlueprintStatus(supabase,b.id,"rejected","generating")'), "generation failures must transition only a blueprint still claimed as generating");
-  assert(source.includes('.eq("id",b.id).eq("generation_status","generating")'), "pipeline exception recovery must also be fenced to this worker's claim");
+  assert(source.split('transitionBlueprintStatus(supabase,b.id,"rejected","generating")').length - 1 >= 2, "generation failure and pipeline exception recovery must both use the fenced rejection helper");
   const claim = source.indexOf('.update({generation_status:"generating",updated_at:new Date().toISOString()}).eq("id",b.id).in("generation_status",["planned","ready","rejected"])');
   assert(claim >= 0, "the fenced failure paths must be paired with the existing atomic blueprint claim");
 });
