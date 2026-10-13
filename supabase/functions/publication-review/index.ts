@@ -8,7 +8,7 @@ const corsHeaders = {
 "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const PUBLICATION_VERSION = "publication-v1";
+const PUBLICATION_VERSION = "publication-v2-redacted-error-details";
 
 function jsonResponse(body: unknown, status = 200) {
 return new Response(JSON.stringify(body, null, 2), {
@@ -143,7 +143,7 @@ return jsonResponse(
 {
 success: false,
 error: "Generation output was not found.",
-details: outputError?.message || null,
+details: outputError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -400,8 +400,7 @@ return jsonResponse(
 success: false,
 error:
 "Could not load chapter reviews.",
-details:
-reviewsError.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -679,8 +678,7 @@ return jsonResponse(
 success: false,
 error:
 "Publication review could not be saved.",
-details:
-publicationError.message,
+details: "Internal review diagnostics were withheld.",
 output_id:
 outputId,
 },
@@ -723,8 +721,7 @@ return jsonResponse(
 success: false,
 error:
 "Publication review was saved, but the generation output status could not be updated.",
-details:
-outputUpdateError.message,
+details: "Internal review diagnostics were withheld.",
 publication_review_id:
 publicationReview.id,
 output_id:
@@ -802,10 +799,7 @@ return jsonResponse(
 success: false,
 error:
 "Unexpected publication-review error.",
-details:
-error instanceof Error
-? error.message
-: String(error),
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
