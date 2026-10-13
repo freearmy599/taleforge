@@ -192,6 +192,8 @@ try {
       const cooldownUntil = parseTimestamp(provider.cooldown_until);
       if (!Number.isFinite(cooldownUntil)) {
         findings.push(`**Malformed AI provider cooldown timestamp:** ${safeAuditText(provider.provider, 80)}, cooldown_until=${safeAuditText(provider.cooldown_until, 80)}`);
+      } else if (cooldownUntil > now) {
+        findings.push(`**Active AI provider cooldown:** ${safeAuditText(provider.provider, 80)}, cooldown_until=${safeAuditText(provider.cooldown_until, 80)}; model calls are expected to remain blocked until it expires.`);
       }
     }
     if (provider.consecutive_throttle_count !== null && provider.consecutive_throttle_count !== undefined) {
