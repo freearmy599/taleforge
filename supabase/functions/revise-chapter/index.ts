@@ -534,18 +534,12 @@ throw new Error(
 );
 }
 
-if (
-originalOutput.generation_status ===
-"published"
-) {
-return jsonResponse(
-{
+if (originalOutput.generation_status !== "needs_revision") {
+return jsonResponse({
 success: false,
-error:
-"Published outputs cannot be revised.",
-},
-400
-);
+error: "Only outputs explicitly marked needs_revision can enter the revision workflow.",
+reason: "revision_source_state_invalid",
+}, 409);
 }
 
 /*
@@ -568,6 +562,14 @@ originalOutput.chapter_blueprint_id
 
 if (blueprintError) {
 throw new Error(`Could not load chapter blueprint: ${blueprintError.message}`);
+}
+
+if (blueprint.generation_status === "published" || blueprint.release_status === "released") {
+return jsonResponse({
+success: false,
+error: "Published chapter blueprints cannot be revised.",
+reason: "revision_blueprint_already_published",
+}, 409);
 }
 
 const dynamicBounds = boundsForTarget(blueprint?.target_word_count);
@@ -1179,36 +1181,34 @@ throw new Error(
 }
 
 /*
-* Mark the previous output as needing revision.
+* Fence the revision commit against a concurrent status transition.
+* The original must still be in needs_revision when its successor is saved.
 */
-await supabase
-.from(
-"chapter_generation_outputs"
-)
-.update({
-generation_status:
-"needs_revision",
-})
-.eq(
-"id",
-outputId
-);
+const { data: originalStillRevisionable, error: originalStateError } = await supabase
+.from("chapter_generation_outputs")
+.update({ generation_status: "needs_revision", updated_at: new Date().toISOString() })
+.eq("id", outputId)
+.eq("generation_status", "needs_revision")
+.select("id")
+.maybeSingle();
+
+if (originalStateError || !originalStillRevisionable) {
+const { error: rejectError } = await supabase
+.from("chapter_generation_outputs")
+.update({ generation_status: "rejected", updated_at: new Date().toISOString() })
+.eq("id", revisedOutput.id)
+.eq("generation_status", "generated");
+if (rejectError) {
+return jsonResponse({ success: false, retryable: true, reason: "revision_conflict_cleanup_failed", error: "Revision state changed concurrently and cleanup could not be confirmed." }, 503);
+}
+return jsonResponse({ success: false, retryable: true, reason: "revision_source_state_changed", error: "Revision source changed during processing; the new output was rejected." }, 409);
+}
 
 /*
-* Keep blueprint out of published state.
+* Do not rewrite chapter_blueprints here. Its publication state belongs to
+* the publisher, and an unconditional "generated" write could regress a
+* concurrently published blueprint.
 */
-await supabase
-.from(
-"chapter_blueprints"
-)
-.update({
-generation_status:
-"generated",
-})
-.eq(
-"id",
-originalOutput.chapter_blueprint_id
-);
 
 
 const reviewHandoff = { attempted: true, ok: false, status: 0, result: null as unknown };
