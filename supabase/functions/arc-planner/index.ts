@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 const VERSION="arc-planner-v7-fail-closed-cooldown"; const H={"Content-Type":"application/json"};
-const clean=(t:string)=>{let s=t.trim().replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)throw new Error("No JSON object found in model response");s=s.slice(a,b+1).replace(/,\\s*([}\\]])/g,"$1");return JSON.parse(s);};
+const clean=(t:string)=>{let s=t.trim().replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)throw new Error("No JSON object found in model response");s=s.slice(a,b+1).replace(/,\s*([}\]])/g,"$1");return JSON.parse(s);};
 const errText=(e:any)=>e instanceof Error?e.message:(e&&typeof e==="object"?JSON.stringify(e):String(e));
 async function recordGeminiQuotaCooldown(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
