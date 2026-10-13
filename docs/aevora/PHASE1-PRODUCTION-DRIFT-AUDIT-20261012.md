@@ -230,3 +230,5 @@ The retrieved source payloads are heavily whitespace-corrupted and exceptionally
 - Added a source-contract regression test that checks the latest-output accounting and rejects the previous all-rows counting pattern.
 - Validation: [workflow run 38331745555](https://github.com/freearmy599/taleforge/actions/runs/38331745555) passed all prepared Edge Function type checks and the source-contract regression suite.
 - This is branch-only source hardening. No production deployment, migration, schedule mutation, chapter generation, publication, secret access, or billable Supabase branch was performed.
+
+- Additional 2026-10-13 fix: generation orchestration now checks database errors when marking revision attempts as exhausted. If any status write fails, that schedule is explicitly blocked and reported as retryable instead of silently continuing with stale revision state. A regression test covers the failure path. [Validation run 38331815087](https://github.com/freearmy599/taleforge/actions/runs/38331815087) passed all prepared Edge Function type checks and source-contract tests.
