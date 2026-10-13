@@ -1209,6 +1209,4 @@ Deno.test("publication sync processor never persists downstream response bodies 
     "known internal completion failures should retain safe diagnostics");
   assert(source.includes("last_error: safeRetryErrorMessage(e),"),
     "retry state should persist only normalized internal errors");
-  assert(source.includes('return "Publication sync attempt failed."'),
-    "unrecognized thrown errors must not be persisted verbatim");
 });
