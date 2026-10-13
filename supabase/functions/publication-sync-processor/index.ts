@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const staleRecovery = await supabase.from("publication_sync_outbox")
       .update({status:"failed",last_error:"Recovered stale processing event",next_attempt_at:new Date().toISOString(),updated_at:new Date().toISOString()})
       .eq("status","processing")
-      .lt("locked_at",new Date(Date.now()-10*60*1000).toISOString());
+      .or("locked_at.is.null,locked_at.lt."+new Date(Date.now()-10*60*1000).toISOString());
     if (staleRecovery.error) throw new Error("Unable to recover stale outbox events: " + staleRecovery.error.message);
 
     const {data: events,error} = await supabase
