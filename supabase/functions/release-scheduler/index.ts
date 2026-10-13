@@ -1,5 +1,5 @@
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-import { nextWeeklyRelease } from "./weekly-schedule.ts";
+import { nextWeeklyRelease, nextWeeklyReleaseAfterBatch } from "./weekly-schedule.ts";
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 
@@ -454,8 +454,8 @@ Deno.serve(async (req)=>{
         // Recompute at the end of processing. A long publication batch may cross
         // the preflight slot; persisting that stale slot would make the schedule
         // immediately due again on the next cron tick.
-        nextRelease=nextWeeklyRelease(processingCompletedAt,Number(schedule.preferred_weekday),
-          String(schedule.preferred_time),String(schedule.timezone??"UTC"));
+        nextRelease=nextWeeklyReleaseAfterBatch(processingCompletedAt,weeklyReleaseAt,
+          Number(schedule.preferred_weekday),String(schedule.preferred_time),String(schedule.timezone??"UTC"));
       }
 
       const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0
