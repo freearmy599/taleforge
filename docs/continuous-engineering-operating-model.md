@@ -101,3 +101,12 @@ A task is complete only when the result is verified and recorded. The worker sho
 - Read-only inspection of the connected Supabase project confirmed `aevora-control-plane-audit` is ACTIVE at version 4 with custom bearer-token authentication and `verify_jwt=false`.
 - The deployed Edge Function implementation was missing from the hardening branch, so the retrieved deployed source was added at `supabase/functions/aevora-control-plane-audit/index.ts` to make future review and deployment reproducible. This was a GitHub branch change only; the live function was not deployed or changed.
 - The workflow's live runtime result and whether `AEVORA_AUDIT_TOKEN` is currently configured remain unverified in this audit. Do not treat source tracking as proof of successful authenticated runtime auditing.
+
+
+## Scheduled outcome audit finding (2026-10-13)
+
+- Read-only SQL inspection found all 8 rows in `aevora_automation_job_status` marked active with their latest recorded status `succeeded`.
+- Cross-checking `cron.job_run_details` showed that a successful cron row means the SQL statement ran and dispatched an HTTP request; it does not prove that the invoked Edge Function completed successfully.
+- In the last 24 hours, `net._http_response` contained 186 HTTP 200 responses and 60 HTTP 429 responses. All 60 of the 429 response bodies matched the cooldown category, consistent with the active Gemini cooldown and the newly added audit finding. No response bodies or credentials were copied into GitHub.
+- The control-plane monitor now flags an active provider cooldown instead of reporting an unqualified “no findings” result. The remaining audit gap is per-job correlation of downstream HTTP outcomes; current cron SQL does not persist each `net.http_post` request ID alongside its job name. Close this gap through a reviewed, read-only aggregate and correlation design before claiming scheduled downstream outcomes are fully verified.
+- The engineering task `Audit scheduled job outcomes` is stale in the database: status `in_progress`, no claimant/claim timestamp/heartbeat/lease, and last update `2026-10-10 08:53:29Z`. It was not changed during this audit because production queue state was left untouched.
