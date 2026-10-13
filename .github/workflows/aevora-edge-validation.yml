@@ -96,3 +96,5 @@ jobs:
         run: node --test scripts/aevora-publisher-security-contract.test.mjs
       - name: Run revision worker security contract tests
         run: node --test scripts/aevora-revision-worker-security-contract.test.mjs
+      - name: Run provider-state grants contract tests
+        run: node --test scripts/aevora-provider-state-grants-contract.test.mjs
