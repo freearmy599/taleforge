@@ -1072,8 +1072,8 @@ Deno.test("generation orchestrator reports nested failures instead of unconditio
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   assert(source.includes("function hasPipelineFailure(value:unknown):boolean"),
     "generation orchestrator must recursively inspect nested pipeline outcomes");
-  assert(source.includes("const hasFailures=hasPipelineFailure(results)||hasPipelineFailure(intelligenceRefresh.report)"),
-    "generation and deterministic-intelligence failures must affect the aggregate outcome");
+  assert(source.includes("const hasFailures=hasPipelineFailure(results)||hasPipelineFailure(intelligenceRefresh)"),
+    "generation results and both intelligence-refresh envelope and nested report failures must affect the aggregate outcome");
   assert(source.includes("success:!hasFailures"),
     "overall success must be derived from actual pipeline outcomes");
   assert(source.includes("},hasFailures?422:200)"),
