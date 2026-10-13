@@ -31,7 +31,7 @@ This checkpoint and its source changes are repository-only. No production functi
 
 A fresh read-only catalog query found **169/169 public tables have RLS enabled**, **91 have no policies**, and **39 of those 91 still grant table privileges to `anon` and `authenticated`**. With RLS enabled and no applicable policies, those grants do not by themselves bypass row security; they are nevertheless unnecessary exposure and should be reviewed individually.
 
-The highest-priority confirmed mismatch is that both `publication_sync_outbox` and `story_attachment_metrics` have **all table privileges** (DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE) granted to `anon` and `authenticated`, despite the intended server-only contract. A branch-only migration was prepared at `supabase/migrations/20261013100000_revoke_client_grants_server_only_tables.sql` to revoke those client grants while retaining RLS and adding no client policies. It has **not** been applied to production.
+The highest-priority confirmed mismatch is that both `publication_sync_outbox` and `story_attachment_metrics` have **all table privileges** (DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE) granted to `anon` and `authenticated`, despite the intended server-only contract. A branch-only migration was prepared at `supabase/migrations/20261013090000_aevora_server_only_metrics_outbox_grants.sql` to revoke those client grants while retaining RLS and adding no client policies. It has **not** been applied to production.
 
 Next RLS step: classify the other 37 no-policy tables with client grants by intended audience and actual callers; do not bulk-revoke them without checking app/Edge Function dependencies, and do not add blanket policies.
 
@@ -52,7 +52,7 @@ A second branch-only candidate migration, `supabase/migrations/20261013103000_lo
 
 ## Latest validation after RLS migration contracts
 
-The source-contract suite now also checks both server-only grant revocation and internal narrative-table policy lockdown. Latest successful run: [38343684766](https://github.com/freearmy599/taleforge/actions/runs/38343684766), commit `c38d76b00fd520118ece1f15d918b0073148c9f6`, **61 passed / 0 failed**; configured Edge Function type checks passed. The latest subsequent commit only updates this audit document.
+The source-contract suite now also checks both server-only grant revocation and internal narrative-table policy lockdown. Latest successful source/test run: [38344611237](https://github.com/freearmy599/taleforge/actions/runs/38344611237), commit `9b15088e52e3b9658d0fc9c62dc87579990d1393`, **62 passed / 0 failed**; configured Edge Function type checks passed. The canonical server-only grant migration is `20261013090000_aevora_server_only_metrics_outbox_grants.sql`; a redundant duplicate migration was removed and the regression test now targets the canonical file. The subsequent documentation-only commit records that both target tables have RLS enabled and zero policies while broad client grants remain in production.
 
 
 ### Public RPC execution audit
@@ -62,3 +62,11 @@ A read-only catalog check found 134 `SECURITY DEFINER` functions in `public`; **
 The same audit found 12 non-definer functions executable by client roles. Seven planner/metrics functions were confirmed as internal-use RPCs; a branch-only migration `supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql` revokes client EXECUTE on those seven while preserving service-role access. A regression contract covers the list. This migration is not applied to production.
 
 Default EXECUTE grants for future functions are also present under `postgres` and `supabase_admin`, so global default-privilege changes remain a separate strategic task; current prepared changes are limited to the known internal functions.
+
+
+### Fresh follow-up — 2026-10-13
+
+- The live privilege query confirmed both `publication_sync_outbox` and `story_attachment_metrics` still grant broad table privileges to `anon` and `authenticated`; a separate catalog query confirmed RLS enabled and zero policies on each.
+- A read-only migration-history query found no rows for migration versions `20261013090000` or `20261013100000`. No migration was applied in this work session.
+- The canonical branch migration revokes `PUBLIC`, `anon`, and `authenticated` privileges only on the two confirmed server-only tables. The other 37 no-policy tables with client grants remain table-by-table triage; reader-facing tables such as bookmarks/comments/profiles must not be bulk-revoked without checking intended access paths.
+- Current latest follow-up documentation commit is pending CI; do not call Phase 1 complete until that run passes and remaining production drift is addressed under explicit authorization.
