@@ -77,3 +77,10 @@ test("generation orchestrator writes only allowed chapter-blueprint statuses", a
   assert.ok(s.includes('.from("chapter_blueprints").update({generation_status:"generated",updated_at:new Date().toISOString()})'));
   assert.equal(s.includes('generation_status:no.generation_status==="needs_revision"?"needs_revision":"generated"'), false);
 });
+
+test("generation orchestrator fails visibly when a revision candidate has no actionable strategy", async () => {
+  const s = await source("supabase/functions/generation-orchestrator/index.ts");
+  assert.ok(s.includes("const unresolvedCandidates=candidates.filter"));
+  assert.ok(s.includes('action:"revision_selection_unresolved",blocked:true,retryable:true'));
+  assert.ok(s.includes("A needs_revision output had no actionable revision strategy"));
+});
