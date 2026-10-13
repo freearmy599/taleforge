@@ -27,6 +27,10 @@ test("generation orchestrator sanitizes downstream failures and provider diagnos
   assert.ok(s.includes('function errorMessage(_error:unknown){return "Internal orchestration diagnostics were withheld."}'));
   assert.ok(s.includes("if(!r.ok||d?.success===false){const safe:any="));
   assert.ok(s.includes('last_error:"Gemini quota or rate-limit response"'));
+  assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), "orchestrator quota recorder must read the existing cooldown");
+  assert.ok(s.includes("Math.max(proposedUntil,existingUntil)"), "orchestrator quota recorder must not shorten an existing cooldown");
+  assert.ok(s.includes("if(stateError||!data)"), "orchestrator cooldown persistence must fail closed when state is unavailable");
+  assert.ok(s.includes("Existing Gemini cooldown timestamp is malformed; existing state was preserved."), "malformed cooldown state must not be overwritten");
   assert.equal(s.includes("if(!r.ok){const safe:any="), false);
 });
 
