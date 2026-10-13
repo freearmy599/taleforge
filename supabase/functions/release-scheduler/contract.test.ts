@@ -1013,8 +1013,12 @@ Deno.test("scheduler aggregate response fails when any schedule reports a safety
   assert(failureSet.includes('"schedule_advance_unconfirmed"'), "unconfirmed schedule advancement must fail the aggregate result");
   assert(failureSet.includes('"lease_release_warning"'), "unconfirmed lease release must be visible in aggregate failure status");
   assert(source.includes("success:!hasScheduleFailures"), "aggregate success must not be hard-coded true");
-  assert(source.includes('partial_success:results.some((result:any)=>result.action==="published")&&hasScheduleFailures'),
-    "partial publication plus any safety failure must be reported distinctly");
+  assert(source.includes("const hasPublishedSideEffects=results.some("),
+    "partial success must be derived from confirmed publication side effects even when the final action is a later failure");
+  assert(source.includes("Number(result.published_count)>0") && source.includes("Array.isArray(result.published)&&result.published.length>0"),
+    "partial success must recognize confirmed published counts and chapter lists");
+  assert(source.includes("partial_success:hasPublishedSideEffects&&hasScheduleFailures"),
+    "publication followed by lifecycle or schedule-advance failure must be reported as partial success");
 });
 
 
