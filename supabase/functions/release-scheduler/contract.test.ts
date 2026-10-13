@@ -1017,6 +1017,10 @@ Deno.test("scheduler aggregate response fails when any schedule reports a safety
     "partial success must be derived from confirmed publication side effects even when the final action is a later failure");
   assert(source.includes("Number(result.published_count)>0") && source.includes("Array.isArray(result.published)&&result.published.length>0"),
     "partial success must recognize confirmed published counts and chapter lists");
+  assert(source.includes("let confirmedPublishedCount=0;") && source.includes("confirmedPublishedCount++;"),
+    "confirmed publications must be counted outside the inner try so unexpected later errors cannot erase known side effects");
+  assert(source.includes('action:"schedule_error",published_count:confirmedPublishedCount'),
+    "unexpected per-schedule errors must preserve the count of chapters already confirmed published");
   assert(source.includes("partial_success:hasPublishedSideEffects&&hasScheduleFailures"),
     "publication followed by lifecycle or schedule-advance failure must be reported as partial success");
 });
