@@ -202,14 +202,20 @@ Deno.test("generation orchestrator rejects malformed scope and mode inputs befor
 
 Deno.test("generation orchestrator stops a schedule when revision-exhaustion persistence fails", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
-  assert(source.includes('const exhaustionUpdateFailures:any[]=[];if(!dryRun)for(const o of [...latest.values()].filter((o)=>o.generation_status==="needs_revision"&&Number(o.generation_attempt??1)>=3))'),
+  assert(source.includes('const exhaustionUpdateFailures:any[]=[];const revisionExhaustedOutputs:any[]=[];if(!dryRun)for(const o of [...latest.values()].filter((o)=>o.generation_status==="needs_revision"&&Number(o.generation_attempt??1)>=3))'),
     "revision exhaustion updates must be checked instead of silently ignored");
-  assert(source.includes('if(exhaustionError)exhaustionUpdateFailures.push({output_id:o.id,chapter_number:o.chapter_number,error:errorMessage(exhaustionError)})'),
-    "failed exhaustion writes must preserve diagnostic context");
+  assert(source.includes('if(exhaustionError||!exhausted)exhaustionUpdateFailures.push({output_id:o.id,chapter_number:o.chapter_number,error:exhaustionError?errorMessage(exhaustionError):"Revision state changed before exhaustion could be recorded."})'),
+    "failed or stale exhaustion writes must preserve diagnostic context");
+  assert(source.includes('update({generation_status:"rejected",updated_at:new Date().toISOString()})'),
+    "exhausted outputs must use a generation status allowed by the database constraint");
+  assert(!source.includes('generation_status:"revision_exhausted"'),
+    "revision_exhausted is an action label, not a permitted database status");
   assert(source.includes('if(exhaustionUpdateFailures.length){results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"revision_exhaustion_update_failed",blocked:true,retryable:true'),
     "a failed exhaustion write must block further processing for that schedule");
   assert(source.includes('reason:"Could not persist revision exhaustion state; schedule processing stopped to avoid continuing with stale revision state."'),
     "the blocked result must explain why processing stopped");
+  assert(source.includes("revision_exhausted_outputs:revisionExhaustedOutputs"),
+    "success and failure results must report which revisions were exhausted");
 });
 
 Deno.test("generation orchestrator dry-run avoids known database mutations", async () => {
