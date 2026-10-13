@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION="semantic-continuity-extraction-v6-cooldown-preclaim";
+const VERSION="semantic-continuity-extraction-v7-redacted-downstream-errors";
 const H={"Content-Type":"application/json"};
 
 Deno.serve(async(req)=>{
@@ -114,7 +114,7 @@ Deno.serve(async(req)=>{
 
     const {data:memoryResult,error:memoryError}=await db.rpc("taleforge_consolidate_narrative_memory",{p_series_id:job.series_id,p_chapter_number:job.chapter_number});
     if(memoryError) throw memoryError;
-    if(memoryResult?.status==="blocked") throw new Error("Narrative memory consolidation blocked: "+JSON.stringify(memoryResult));
+    if(memoryResult?.status==="blocked") throw new Error("Narrative memory consolidation was blocked.");
 
     const {data:progressionResult,error:progressionError}=await db.rpc("taleforge_refresh_thread_progression",{p_series_id:job.series_id});
     if(progressionError) throw progressionError;
@@ -136,7 +136,7 @@ Deno.serve(async(req)=>{
         if(url&&key){
           const db=createClient(url,key);
           const attempts=Number(job.attempts||1);
-          const message=e instanceof Error?e.message:String(e);
+          const message="Continuity extraction failed; internal diagnostics were withheld.";
           if(attempts<3){
             await db.from("taleforge_continuity_extraction_queue").update({
               status:"pending",locked_at:null,last_error:message.slice(0,2000),updated_at:new Date().toISOString()
@@ -147,6 +147,6 @@ Deno.serve(async(req)=>{
         }
       }catch(_){}
     }
-    return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:H});
+    return new Response(JSON.stringify({success:false,version:VERSION,error:"Continuity extraction failed; internal diagnostics were withheld."}),{status:500,headers:H});
   }
 });
