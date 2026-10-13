@@ -974,3 +974,20 @@ Deno.test("internal narrative intelligence tables are not exposed by public read
   assert(migration.includes("FROM anon, authenticated"), "both client roles must be restricted");
   assert(!/CREATE\s+POLICY/i.test(migration), "migration must not add broad client policies");
 });
+
+
+Deno.test("internal planner and metrics RPCs lose client EXECUTE grants", async () => {
+  const migration = await Deno.readTextFile(new URL("../../migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql", import.meta.url));
+  for (const signature of [
+    "apply_attachment_directives(uuid)",
+    "get_active_story_arc_plan(uuid)",
+    "get_production_buffer_plan()",
+    "get_story_narrative_destination(uuid)",
+    "prepare_next_chapter_blueprint(uuid)",
+    "refresh_story_attachment_metrics(uuid)",
+    "taleforge_get_long_term_architecture_context(uuid)",
+  ]) {
+    assert(migration.includes("public." + signature), signature + " must be restricted to trusted callers");
+  }
+  assert(migration.includes("FROM anon, authenticated"), "both client roles must lose direct EXECUTE grants");
+});
