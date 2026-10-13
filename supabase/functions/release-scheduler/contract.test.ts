@@ -826,7 +826,7 @@ Deno.test("internal metrics and publication outbox remain server-only without cl
     assert(sql.includes("REVOKE ALL PRIVILEGES ON TABLE public." + table + " FROM PUBLIC, anon, authenticated"),
       table + " must revoke all table privileges from public and ordinary client roles");
   }
-  assert(!/CREATE\\s+POLICY/i.test(sql), "server-only internal tables must not receive client-facing policies");
-  assert(!/GRANT\\s+.+\\s+TO\\s+(PUBLIC|anon|authenticated)/i.test(sql),
+  assert(!/CREATE\s+POLICY/i.test(sql), "server-only internal tables must not receive client-facing policies");
+  assert(!/GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i.test(sql),
     "server-only migration must not grant table privileges to ordinary client roles");
 });
