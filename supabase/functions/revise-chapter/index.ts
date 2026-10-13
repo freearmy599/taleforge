@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const REVISION_VERSION = "revision-v12-redacted-fail-closed-cooldown";
+const REVISION_VERSION = "revision-v13-idempotent-source-commit";
 
 
 const MAX_REVISION_ATTEMPTS = 3;
@@ -539,6 +539,30 @@ return jsonResponse({
 success: false,
 error: "Only outputs explicitly marked needs_revision can enter the revision workflow.",
 reason: "revision_source_state_invalid",
+}, 409);
+}
+
+/*
+* Do not revise the same source output repeatedly. Every revision is a new
+* output whose revision_of_output_id points at its immediate predecessor.
+*/
+const { data: existingRevision, error: existingRevisionError } = await supabase
+.from("chapter_generation_outputs")
+.select("id,generation_status,generation_attempt")
+.eq("revision_of_output_id", outputId)
+.order("created_at", { ascending: false })
+.order("id", { ascending: false })
+.limit(1)
+.maybeSingle();
+
+if (existingRevisionError) {
+throw new Error("Could not verify whether this output already has a revision successor.");
+}
+if (existingRevision) {
+return jsonResponse({
+success: false,
+error: "This output already has a revision successor; revise the latest output instead.",
+reason: "revision_successor_already_exists",
 }, 409);
 }
 
@@ -1181,18 +1205,28 @@ throw new Error(
 }
 
 /*
-* Fence the revision commit against a concurrent status transition.
-* The original must still be in needs_revision when its successor is saved.
+* Commit by transitioning the source out of needs_revision. This is the
+* compare-and-set fence that prevents later runs from revising the same
+* source again. If another worker won the race, its transition is the
+* durable signal that this generated successor may coexist as a valid
+* candidate; deterministic latest-output ordering selects one for review.
 */
-const { data: originalStillRevisionable, error: originalStateError } = await supabase
+const { data: originalCommitted, error: originalStateError } = await supabase
 .from("chapter_generation_outputs")
-.update({ generation_status: "needs_revision", updated_at: new Date().toISOString() })
+.update({ generation_status: "rejected", updated_at: new Date().toISOString() })
 .eq("id", outputId)
 .eq("generation_status", "needs_revision")
 .select("id")
 .maybeSingle();
 
-if (originalStateError || !originalStillRevisionable) {
+if (originalStateError || !originalCommitted) {
+const { data: currentSource, error: currentSourceError } = await supabase
+.from("chapter_generation_outputs")
+.select("generation_status")
+.eq("id", outputId)
+.maybeSingle();
+
+if (currentSourceError || currentSource?.generation_status !== "rejected") {
 const { error: rejectError } = await supabase
 .from("chapter_generation_outputs")
 .update({ generation_status: "rejected", updated_at: new Date().toISOString() })
@@ -1202,6 +1236,7 @@ if (rejectError) {
 return jsonResponse({ success: false, retryable: true, reason: "revision_conflict_cleanup_failed", error: "Revision state changed concurrently and cleanup could not be confirmed." }, 503);
 }
 return jsonResponse({ success: false, retryable: true, reason: "revision_source_state_changed", error: "Revision source changed during processing; the new output was rejected." }, 409);
+}
 }
 
 /*
