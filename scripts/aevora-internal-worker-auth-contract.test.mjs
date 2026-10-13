@@ -40,15 +40,15 @@ test("every privileged Edge worker authenticates before parsing input or creatin
     const handler = s.slice(serve);
     const guard = handler.indexOf("isTrustedInternalApiKey(");
     assert.ok(guard >= 0, name + " must call the shared internal API-key guard");
-    const bodyParse = handler.search(/(?:await\\s+)?(?:req|request)\\.json\\s*\\(/);
+    const bodyParse = handler.search(/(?:await\s+)?(?:req|request)\.json\s*\(/);
     if (bodyParse >= 0) {
       assert.ok(guard < bodyParse, name + " must authenticate before parsing request JSON");
     }
-    const clientInit = handler.search(/createClient\\s*\\(/);
+    const clientInit = handler.search(/createClient\s*\(/);
     if (clientInit >= 0) {
       assert.ok(guard < clientInit, name + " must authenticate before creating a privileged database client");
     }
-    assert.match(handler, /req\\.method\\s*!==?\\s*["']POST["']/, name + " must reject non-POST requests (apart from CORS preflight)");
+    assert.match(handler, /req\.method\s*!==?\s*["']POST["']/, name + " must reject non-POST requests (apart from CORS preflight)");
   }
 });
 
