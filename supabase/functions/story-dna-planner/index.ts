@@ -1,8 +1,38 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="story-dna-planner-v3-coverage";
+const VERSION="story-dna-planner-v4-redacted-quota-guard";
 function clean(t:string){const s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");return JSON.parse(a>=0?s.slice(a,b+1):s)}
+async function recordGeminiQuotaCooldown(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error: stateError } = await db.from("taleforge_ai_provider_state")
+      .select("consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
+    if (stateError || !data) {
+      console.error("[quota-guard] Gemini cooldown state could not be verified; persistence skipped.");
+      return;
+    }
+    const previousCount = Number(data.consecutive_throttle_count ?? 0);
+    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
+    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const now = new Date();
+    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
+      provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
+      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    }, { onConflict: "provider" });
+    if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
+  } catch {
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
+  }
+}
+
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS") return new Response("ok");
  if(req.method!=="POST") return new Response(JSON.stringify({success:false,error:"Method not allowed"}),{status:405,headers:{"Content-Type":"application/json"}});
@@ -40,12 +70,12 @@ Use arrays for the list fields. Make the DNA specific, internally consistent, an
   const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
   if(cooldownUntil && cooldownUntil>Date.now()) return new Response(JSON.stringify({success:false,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:{"Content-Type":"application/json"}});
   const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(gemini)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.65,maxOutputTokens:5000,responseMimeType:"application/json"}})});
-  if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}: ${await resp.text()}`);
+  if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}${resp.status===429?" RESOURCE_EXHAUSTED":""}`);
   const gd=await resp.json(),txt=gd?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text??"").join("")??""; const x=clean(txt);
   for(const k of ["core_premise","reader_promise","narrative_voice"])if(typeof x[k]!=="string"||!x[k].trim())throw new Error(`Invalid ${k}`);
   const version=Number(dna.data?.[0]?.version??0)+1;
   await db.from("story_dna").update({status:"superseded",updated_at:new Date().toISOString()}).eq("series_id",series.id).eq("status","active");
   const {data,error}=await db.from("story_dna").insert({series_id:series.id,version,status:"active",genre_profile:x.genre_profile??{primary_genre:"unspecified",subgenres:[],allowed_mechanics:[],forbidden_cross_genre_assumptions:[]},core_premise:x.core_premise,central_theme:x.central_theme??null,reader_promise:x.reader_promise,narrative_voice:x.narrative_voice,protagonist_profiles:Array.isArray(x.protagonist_profiles)?x.protagonist_profiles:[],relationship_map:Array.isArray(x.relationship_map)?x.relationship_map:[],world_rules:Array.isArray(x.world_rules)?x.world_rules:[],story_constraints:Array.isArray(x.story_constraints)?x.story_constraints:[],mystery_threads:Array.isArray(x.mystery_threads)?x.mystery_threads:[],payoff_targets:Array.isArray(x.payoff_targets)?x.payoff_targets:[],forbidden_patterns:Array.isArray(x.forbidden_patterns)?x.forbidden_patterns:[]}).select("id,series_id,version,status").single();
   if(error)throw error; return new Response(JSON.stringify({success:true,version:VERSION,action:"dna_created",story_dna:data}),{headers:{"Content-Type":"application/json"}});
- }catch(e){return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:{"Content-Type":"application/json"}})}
+ }catch(e){await recordGeminiQuotaCooldown(e);return new Response(JSON.stringify({success:false,version:VERSION,error:"Story DNA planning failed; internal diagnostics were withheld."}),{status:500,headers:{"Content-Type":"application/json"}})}
 });
