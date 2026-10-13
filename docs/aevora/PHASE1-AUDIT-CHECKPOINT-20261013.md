@@ -41,3 +41,10 @@ Next RLS step: classify the other 37 no-policy tables with client grants by inte
 The catalog audit also found default table ACL entries in schema `public` that grant every table privilege (including SELECT/INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER) to both `anon` and `authenticated`, recorded under both the `postgres` and `supabase_admin` grantors. This explains why many tables inherit broad client grants even when RLS is enabled.
 
 Do **not** change those schema-wide default privileges as part of an automatic patch: it can alter behavior for future tables and should be planned alongside an explicit per-table grant policy. The current branch migration only revokes grants on the two confirmed server-only tables. A separate strategic decision is needed before changing global defaults.
+
+
+### Public-read policy review — internal engine tables
+
+The policy catalog also showed unrestricted public SELECT policies on internal continuity state, reconciliation evidence, narrative-memory snapshots, narrative-thread state/events, novelty evaluations, and system dependency/health/registry tables. Several expose `before_state`, `after_state`, evidence JSON, candidate payloads, or memory payloads; these are engine internals rather than reader-facing chapter content.
+
+A second branch-only candidate migration, `supabase/migrations/20261013103000_lock_internal_narrative_intelligence_tables.sql`, drops the specifically observed public-read policies and revokes `anon`/`authenticated` table privileges for those 13 internal tables. It creates no replacement client policies. **Not applied to production.** Before any rollout, verify that no public-facing UI intentionally consumes these internals; if a legitimate use exists, expose a narrowly scoped safe view instead of restoring broad table reads.
