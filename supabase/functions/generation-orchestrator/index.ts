@@ -34,18 +34,22 @@ async function getGeminiCooldown(supabase:any) {
  }
  return {active:!!until&&until.getTime()>Date.now(),cooldown_until:data.cooldown_until??null,consecutive_throttle_count:Number(data.consecutive_throttle_count??0)};
 }
-async function recordGeminiThrottle(supabase:any,_message:string) {
+async function recordGeminiThrottle(supabase:any,message:string) {
+ const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
+ const providerTemporaryFailure=message.includes("Gemini HTTP 503");
+ if(!providerQuotaFailure&&!providerTemporaryFailure)return null;
  const {data,error:stateError}=await supabase.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
  if(stateError||!data){console.error("[generation-orchestrator] Gemini cooldown state unavailable; persistence was skipped.");return null;}
  const prior=Number(data.consecutive_throttle_count??0);
  const count=(Number.isFinite(prior)&&prior>=0?Math.floor(prior):0)+1;
- const cooldownHours=Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
+ const cooldownHours=providerTemporaryFailure?1:Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
  const now=Date.now();
  const proposedUntil=now+cooldownHours*60*60*1000;
  const existingUntil=data.cooldown_until?Date.parse(data.cooldown_until):0;
  if(data.cooldown_until&&!Number.isFinite(existingUntil)){console.error("[generation-orchestrator] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");return null;}
  const until=new Date(Math.max(proposedUntil,existingUntil)).toISOString();
- const {error:writeError}=await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:"Gemini quota or rate-limit response",last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
+ const lastError=providerQuotaFailure?"Gemini quota or rate-limit response":"Gemini temporary overload response";
+ const {error:writeError}=await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:lastError,last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
  if(writeError){console.error("[generation-orchestrator] Gemini cooldown could not be persisted.");return null;}
  return {cooldown_until:until,cooldown_hours:Math.max(0,(Date.parse(until)-now)/3600000),consecutive_throttle_count:count};
 }
