@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const ORIGINALITY_VERSION = "originality-v8-monotonic-cooldown";
+const ORIGINALITY_VERSION = "originality-v9-redacted-provider-state";
 const MIN_SCORE = 85;
 
 function jsonResponse(body: unknown, status = 200) {
@@ -293,7 +293,7 @@ const { data: providerState, error: providerStateError } = await supabase
 .maybeSingle();
 
 if (providerStateError || !providerState) {
-console.error("[quota-guard] Gemini provider state unavailable; failing closed", providerStateError?.message ?? "No Gemini provider-state row found");
+console.error("[quota-guard] Gemini provider state unavailable; failing closed.");
 return jsonResponse({
 success: false,
 blocked: true,
