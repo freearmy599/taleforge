@@ -123,12 +123,16 @@ try {
   }
 
   for (const task of tasks) {
-    if (["claimed", "in_progress"].includes(task.status) && task.lease_until) {
-      const leaseUntil = parseTimestamp(task.lease_until);
+    if (["claimed", "in_progress"].includes(task.status)) {
+      if (!task.lease_until) {
+        findings.push(`**Missing engineering task lease timestamp:** ${task.title} (${task.id}), active status=${task.status}`);
+      } else {
+        const leaseUntil = parseTimestamp(task.lease_until);
       if (!Number.isFinite(leaseUntil)) {
         findings.push(`**Malformed engineering task lease timestamp:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
       } else if (leaseUntil < now) {
         findings.push(`**Expired engineering task lease:** ${task.title} (${task.id}), lease_until=${task.lease_until}`);
+      }
       }
     }
     if (task.status === "failed") findings.push(`**Failed engineering task:** ${task.title} (${task.id}); ${task.blocked_reason || "no failure reason recorded"}`);
