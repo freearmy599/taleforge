@@ -8,9 +8,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const functions = [
-  ["continuity-review", "continuity-v5-aevora-brand"],
-  ["originality-review", "originality-v5-aevora-brand"],
-  ["safety-review", "safety-v5-aevora-brand"],
+  ["continuity-review", "continuity-v6-temporary-overload-cooldown"],
+  ["originality-review", "originality-v6-temporary-overload-cooldown"],
+  ["safety-review", "safety-v6-temporary-overload-cooldown"],
   ["publication-review", "publication-v2-redacted-error-details"],
 ];
 
@@ -31,7 +31,9 @@ for (const [name, version] of functions) {
     if (name !== "publication-review") {
       assert.ok(source.includes("async function recordGeminiQuotaCooldown("), "quota cooldown recorder must exist");
       assert.ok(source.includes("await recordGeminiQuotaCooldown(supabase, error);"), "provider failures must record quota cooldown");
-      assert.ok(source.includes('last_error: "Gemini HTTP 429 RESOURCE_EXHAUSTED"'), "stored provider diagnostics must be sanitized");
+      assert.ok(source.includes('last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini HTTP 429 RESOURCE_EXHAUSTED"'), "stored provider diagnostics must be sanitized");
+      assert.ok(source.includes('const isTemporaryOverload = message.includes("Gemini HTTP 503")'), "temporary overloads must persist cooldowns");
+      assert.ok(source.includes("const cooldownHours = isTemporaryOverload ? 1 :"), "temporary overload cooldown must be shorter than quota cooldown");
       assert.ok(source.includes('.upsert({'), "provider cooldown state must be persisted");
       assert.ok(source.includes("if (stateError || !data)"), "cooldown persistence must fail closed if prior state is unavailable");
       assert.ok(source.includes('.select("cooldown_until,consecutive_throttle_count")'), "cooldown recorder must read the existing expiry");
