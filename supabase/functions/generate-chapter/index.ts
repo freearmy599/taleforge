@@ -197,9 +197,11 @@ Return {"decision":"passed"|"needs_revision","score":0,"critical_issues":[],"rev
 A score of 85 or higher can pass only with no critical issues and semantic plan alignment of at least 75.`;
 let ai:any;
 try{ai=parseJson(await gemini(gkey,reviewPrompt,true));}catch(e){return reply({success:false,mode:"quality-review",error:`AI quality review failed: ${e instanceof Error?e.message:String(e)}`},502);}
-const score=Number(ai?.score),semanticScore=Number(ai?.semantic_plan_alignment?.score),critical=Array.isArray(ai?.critical_issues)?ai.critical_issues:[];
-// Fail closed: an omitted or malformed semantic score is not evidence that the plan was met.
-const semanticReady=Number.isFinite(semanticScore)&&semanticScore>=75,decision=ai?.decision==="passed"&&Number.isFinite(score)&&score>=85&&critical.length===0&&semanticReady?"passed":"needs_revision",status=decision==="passed"?"quality_check":"needs_revision";
+const score=Number(ai?.score),semanticScore=Number(ai?.semantic_plan_alignment?.score),critical=Array.isArray(ai?.critical_issues)?ai.critical_issues:null;
+// Fail closed: missing or malformed review fields are not evidence that the plan was met.
+const semanticReady=Number.isFinite(semanticScore)&&semanticScore>=75;
+const criticalIssuesClear=critical!==null&&critical.length===0;
+const decision=ai?.decision==="passed"&&Number.isFinite(score)&&score>=85&&criticalIssuesClear&&semanticReady?"passed":"needs_revision",status=decision==="passed"?"quality_check":"needs_revision";
 const {data:review,error:re}=await db.from("chapter_reviews").upsert({
 generation_output_id:outputId,review_type:"quality",status:decision,score:Number.isFinite(score)?score:0,
 findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
