@@ -43,19 +43,14 @@ Deno.serve(async(req)=>{
       }
     }
 
+    if(!execute) return new Response(JSON.stringify({success:true,version:VERSION,status:"dry_run",queue_mutated:false}),{headers:H});
+
     const {data:jobs,error:claimError}=await db.rpc("taleforge_claim_continuity_queue",{p_limit:1});
     if(claimError) throw claimError;
     job=jobs?.[0];
 
     if(!job)
       return new Response(JSON.stringify({success:true,version:VERSION,status:"empty"}),{headers:H});
-
-    if(!execute){
-      await db.from("taleforge_continuity_extraction_queue")
-        .update({status:"pending",locked_at:null,updated_at:new Date().toISOString()})
-        .eq("id",job.id);
-      return new Response(JSON.stringify({success:true,version:VERSION,status:"dry_run",job_id:job.id,chapter_id:job.chapter_id,series_id:job.series_id,chapter_number:job.chapter_number}),{headers:H});
-    }
 
     // Preflight: legacy/backfilled queue rows may exist without a continuity snapshot.
     // Do this BEFORE any Gemini-backed continuity workers so stale jobs cannot consume quota.
