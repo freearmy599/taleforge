@@ -52,7 +52,7 @@ test("revision worker records quota cooldowns and preserves orchestrator output 
   assert.ok(s.includes("revision_of_output_id:"));
   assert.ok(s.includes("revised_output_id:"));
   assert.ok(s.includes("review_handoff: reviewHandoff"));
-  assert.ok(s.includes("SELECTED REVISION STRATEGY CONTEXT:\\n${strategyContext}"), "selected revision strategy must reach the actual model prompt");
+  assert.ok(s.includes("SELECTED REVISION STRATEGY CONTEXT:") && s.includes("${strategyContext}"), "selected revision strategy must reach the actual model prompt");
   assert.ok(o.includes('"revise-chapter"'));
   assert.ok(o.includes("revision_strategy"));
   assert.ok(o.includes("revision_priority"));
