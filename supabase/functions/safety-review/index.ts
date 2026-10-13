@@ -148,7 +148,7 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
   try {
     const { data, error: stateError } = await supabase
       .from("taleforge_ai_provider_state")
-      .select("consecutive_throttle_count")
+      .select("cooldown_until,consecutive_throttle_count")
       .eq("provider", "gemini")
       .maybeSingle();
     if (stateError || !data) {
@@ -160,7 +160,14 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
     const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
     const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
-    const until = new Date(now.getTime() + cooldownHours * 60 * 60 * 1000).toISOString();
+    const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
+    const existingUntil = data?.cooldown_until ? Date.parse(data.cooldown_until) : 0;
+    if (data?.cooldown_until && !Number.isFinite(existingUntil)) {
+      console.error("[quota-guard] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");
+      return;
+    }
+    // Concurrent throttles must never shorten a previously recorded cooldown.
+    const until = new Date(Math.max(proposedUntil, existingUntil)).toISOString();
     const { error: writeError } = await supabase
       .from("taleforge_ai_provider_state")
       .upsert({
@@ -177,7 +184,7 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
     } else {
       console.warn("[quota-guard] Gemini quota cooldown persisted.", JSON.stringify({
         cooldown_until: until,
-        cooldown_hours: cooldownHours,
+        cooldown_hours: Math.max(0, (Date.parse(until) - now.getTime()) / 3600000),
         consecutive_throttle_count: count,
       }));
     }
