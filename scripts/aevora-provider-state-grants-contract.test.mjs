@@ -12,6 +12,11 @@ const migration = await readFile(
   "utf8",
 );
 
+const metricsOutboxMigration = await readFile(
+  new URL("../supabase/migrations/20261013090000_aevora_server_only_metrics_outbox_grants.sql", import.meta.url),
+  "utf8",
+);
+
 const internalTablesMigration = await readFile(
   new URL("../supabase/migrations/20261013130000_lock_internal_policyless_tables.sql", import.meta.url),
   "utf8",
@@ -29,6 +34,15 @@ test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("last_error ILIKE '%RESOURCE_EXHAUSTED%'"), "legacy quota payloads must be identified before redaction");
   assert.equal(/CREATE POLICY/i.test(migration), false, "internal provider state must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(migration), false, "migration must not re-grant client access");
+});
+
+test("publication outbox and attachment metrics remain server-side only", () => {
+  for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
+    assert.ok(metricsOutboxMigration.includes(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY`), `${table} must have RLS enabled`);
+    assert.ok(metricsOutboxMigration.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM PUBLIC, anon, authenticated`), `${table} must revoke all client and PUBLIC table privileges`);
+  }
+  assert.equal(/CREATE POLICY/i.test(metricsOutboxMigration), false, "server-only telemetry and outbox tables must not gain client policies");
+  assert.equal(/GRANT\\s+.+\\s+TO\\s+(anon|authenticated)/i.test(metricsOutboxMigration), false, "server-only tables must not re-grant client access");
 });
 
 test("internal policyless intelligence tables are server-side only", () => {
