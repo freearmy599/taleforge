@@ -766,3 +766,22 @@ Deno.test("internal API-key validation requires an explicit named-secret allowli
   assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,"not-json","internal"), "malformed secret-key config must not authenticate by itself");
   assert(!isTrustedInternalApiKey("sb_secret_internal_key",legacy,JSON.stringify(["sb_secret_internal_key"]),"0"), "array-shaped secret config must be rejected");
 });
+
+
+Deno.test("publisher first-publication timestamp repair is conditional and surfaces write errors", async () => {
+  const source = await Deno.readTextFile(publisherUrl);
+  const conditionalWrites = source.match(/\\.is\\("published_at", null\\)/g) ?? [];
+  assert(conditionalWrites.length === 3,
+    "existing-chapter, concurrent-insert-race, and normal-insert paths must only fill a missing first-publication timestamp");
+  const errorChecks = [
+    "if (seriesSyncError) synchronizationWarnings.push(",
+    "if (racedSeriesSyncError) raceSynchronizationWarnings.push(",
+  ];
+  for (const check of errorChecks) {
+    assert(source.includes(check), "series timestamp write errors must be surfaced as warnings: " + check);
+  }
+  assert(source.split("Series first-publication timestamp sync failed:").length - 1 === 3,
+    "all three publisher paths must report timestamp synchronization failures consistently");
+  assert(!source.includes('.update({ published_at:') || conditionalWrites.length === 3,
+    "timestamp repair must remain guarded against overwriting an already-set first-publication timestamp");
+});
