@@ -207,7 +207,7 @@ Deno.test("generation orchestrator rejects malformed scope and mode inputs befor
 
 Deno.test("generation orchestrator stops a schedule when revision-exhaustion persistence fails", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
-  assert(source.includes('const exhaustionUpdateFailures:any[]=[];const revisionExhaustedOutputs:any[]=[];if(!dryRun)for(const o of [...latest.values()].filter((o)=>o.generation_status==="needs_revision"&&Number(o.generation_attempt??1)>=3))'),
+  assert(source.includes('const exhaustionUpdateFailures:any[]=[];const revisionExhaustedOutputs:any[]=[];const exhaustedCandidates=[...latest.values()].filter((o)=>o.generation_status==="needs_revision"&&Number(o.generation_attempt??1)>=3);if(dryRun){for(const o of exhaustedCandidates)revisionExhaustedOutputs.push'),
     "revision exhaustion updates must be checked instead of silently ignored");
   assert(source.includes('if(exhaustionError||!exhausted)exhaustionUpdateFailures.push({output_id:o.id,chapter_number:o.chapter_number,error:exhaustionError?errorMessage(exhaustionError):"Revision state changed before exhaustion could be recorded."})'),
     "failed or stale exhaustion writes must preserve diagnostic context");
@@ -229,7 +229,7 @@ Deno.test("generation orchestrator dry-run avoids known database mutations", asy
     "dry-run must skip deterministic intelligence refresh RPCs that write state");
   assert(source.includes('const advancedPlanBuildResult=dryRun?{data:null,error:null}:await supabase.rpc("taleforge_build_advanced_chapter_plans"'),
     "dry-run must not build or upsert advanced chapter plans");
-  assert(source.includes('if(!dryRun)for(const o of [...latest.values()].filter((o)=>o.generation_status==="needs_revision"'),
+  assert(source.includes('if(dryRun){for(const o of exhaustedCandidates)revisionExhaustedOutputs.push') && source.includes('else for(const o of exhaustedCandidates){const{data:exhausted,error:exhaustionError}'),
     "dry-run must not mutate exhausted revision statuses");
   assert(source.includes('if(!dryRun){for(const c of candidates){const sel=await supabase.rpc("taleforge_select_revision_strategy"'),
     "dry-run must not invoke the revision-selection RPC that inserts or updates selections");
