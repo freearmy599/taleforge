@@ -30,8 +30,11 @@ const narrativeMigration = await readFile(
 test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("ALTER TABLE public.taleforge_ai_provider_state ENABLE ROW LEVEL SECURITY"));
   assert.ok(migration.includes("REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"));
-  assert.ok(migration.includes("SET last_error = 'Gemini quota or rate-limit response'"), "legacy raw provider error bodies must be sanitized when the migration is applied");
-  assert.ok(migration.includes("last_error ILIKE '%RESOURCE_EXHAUSTED%'"), "legacy quota payloads must be identified before redaction");
+  assert.ok(migration.includes("SET last_error = CASE"), "legacy Gemini diagnostics must be classified and redacted");
+  assert.ok(migration.includes("WHEN last_error ILIKE '%Gemini HTTP 503%'"), "legacy temporary-overload payloads must be sanitized");
+  assert.ok(migration.includes("WHEN last_error ILIKE '%Gemini HTTP 429%'"), "legacy quota payloads must be sanitized");
+  assert.ok(migration.includes("ELSE 'Gemini provider diagnostic redacted'"), "unknown legacy provider diagnostics must be redacted rather than retained");
+  assert.ok(migration.includes("AND last_error NOT IN ("), "already-safe diagnostics should avoid unnecessary rewrites");
   assert.equal(/CREATE POLICY/i.test(migration), false, "internal provider state must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(migration), false, "migration must not re-grant client access");
 });
