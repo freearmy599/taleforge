@@ -53,3 +53,12 @@ A second branch-only candidate migration, `supabase/migrations/20261013103000_lo
 ## Latest validation after RLS migration contracts
 
 The source-contract suite now also checks both server-only grant revocation and internal narrative-table policy lockdown. Latest successful run: [38343684766](https://github.com/freearmy599/taleforge/actions/runs/38343684766), commit `c38d76b00fd520118ece1f15d918b0073148c9f6`, **61 passed / 0 failed**; configured Edge Function type checks passed. The latest subsequent commit only updates this audit document.
+
+
+### Public RPC execution audit
+
+A read-only catalog check found 134 `SECURITY DEFINER` functions in `public`; **zero** are executable by `anon` or `authenticated`, and all checked privileged functions remain executable by `service_role`. That part of the existing hardening is holding.
+
+The same audit found 12 non-definer functions executable by client roles. Seven planner/metrics functions were confirmed as internal-use RPCs; a branch-only migration `supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql` revokes client EXECUTE on those seven while preserving service-role access. A regression contract covers the list. This migration is not applied to production.
+
+Default EXECUTE grants for future functions are also present under `postgres` and `supabase_admin`, so global default-privilege changes remain a separate strategic task; current prepared changes are limited to the known internal functions.
