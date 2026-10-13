@@ -25,6 +25,8 @@ const generationOrchestratorUrl = new URL("../generation-orchestrator/index.ts",
 const reviewOrchestratorUrl = new URL("../review-orchestrator/index.ts", import.meta.url);
 const publicationSyncProcessorUrl = new URL("../publication-sync-processor/index.ts", import.meta.url);
 const postPublicationCanonSyncUrl = new URL("../post-publication-canon-sync/index.ts", import.meta.url);
+const characterContinuityUrl = new URL("../character-continuity/index.ts", import.meta.url);
+const worldContinuityUrl = new URL("../world-continuity/index.ts", import.meta.url);
 
 Deno.test("scheduler only inspects disabled schedules for a targeted dry run", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
@@ -829,4 +831,22 @@ Deno.test("internal metrics and publication outbox remain server-only without cl
   assert(!/CREATE\s+POLICY/i.test(sql), "server-only internal tables must not receive client-facing policies");
   assert(!/GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i.test(sql),
     "server-only migration must not grant table privileges to ordinary client roles");
+});
+
+
+Deno.test("character and world continuity workers authenticate before body parsing or privileged clients", async () => {
+  for (const [name, url] of [
+    ["character-continuity", characterContinuityUrl],
+    ["world-continuity", worldContinuityUrl],
+  ] as const) {
+    const source = await Deno.readTextFile(url);
+    const guard = source.indexOf("isTrustedInternalApiKey(");
+    const body = source.indexOf("req.json()");
+    const client = source.indexOf("createClient(url,key)");
+    assert(source.includes('if(req.method!=="POST")'), name + " must reject non-POST requests");
+    assert(guard >= 0 && body > guard && client > guard,
+      name + " must authenticate a configured server-side apikey before parsing requests or creating a privileged client");
+    assert(source.includes('Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES")'),
+      name + " must require the explicit secret-key allowlist");
+  }
 });
