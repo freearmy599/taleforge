@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const SAFETY_VERSION = "safety-v3-redacted-error-details";
+const SAFETY_VERSION = "safety-v4-redacted-provider-errors";
 
 function jsonResponse(body: unknown, status = 200) {
 return new Response(JSON.stringify(body, null, 2), {
@@ -77,10 +77,10 @@ responseMimeType: "application/json",
 );
 
 if (!response.ok) {
-const errorText = await response.text();
+// Do not retain or propagate the provider response body; it may contain sensitive diagnostics.
 
 throw new Error(
-`Gemini request failed (${response.status}): ${errorText}`
+`Gemini HTTP ${response.status}${response.status === 429 ? " RESOURCE_EXHAUSTED" : ""}`
 );
 }
 
