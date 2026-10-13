@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="character-continuity-v6-redacted-quota-guard";const H={"Content-Type":"application/json"};
+const VERSION="character-continuity-v7-aevora-brand";const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{const s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");return JSON.parse(a>=0?s.slice(a,b+1):s)};
 async function recordGeminiQuotaCooldown(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -51,7 +51,7 @@ try{
  const chars=await db.from("story_characters").select("*").eq("series_id",sid).eq("status","active");if(chars.error)throw new Error("Unable to read character canon: "+chars.error.message);
  const rels=await db.from("character_relationships").select("*").eq("series_id",sid).eq("status","active");if(rels.error)throw new Error("Unable to read relationship canon: "+rels.error.message);
  const prior=await db.from("chapters").select("chapter_number,title,summary,content").eq("series_id",sid).eq("status","published").lt("chapter_number",ch.chapter_number).order("chapter_number",{ascending:false}).limit(3);if(prior.error)throw new Error("Unable to read prior published chapters: "+prior.error.message);
- const prompt=`You are TaleForge's character continuity analyst. Analyze one published chapter against the existing character state. Respect the story's established genre and world. Do not invent character systems or genre mechanics. Identify only changes supported by the chapter.
+ const prompt=`You are Aevora's character continuity analyst. Analyze one published chapter against the existing character state. Respect the story's established genre and world. Do not invent character systems or genre mechanics. Identify only changes supported by the chapter.
 
 STORY DNA:
 ${JSON.stringify(dna.data??null)}
