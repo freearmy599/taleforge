@@ -7,6 +7,7 @@ on:
   push:
     paths:
       - "scripts/aevora-control-plane-audit.mjs"
+      - "scripts/aevora-control-plane-audit.contract.test.mjs"
       - ".github/workflows/aevora-control-plane-audit.yml"
 
 permissions:
