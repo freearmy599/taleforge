@@ -20,7 +20,7 @@ async function github(path, options = {}) {
       ...(options.headers || {}),
     },
   });
-  if (!response.ok) throw new Error(`GitHub API ${response.status}: ${(await response.text()).slice(0, 400)}`);
+  if (!response.ok) throw new Error(`GitHub API returned HTTP ${response.status}`);
   return response.status === 204 ? null : response.json();
 }
 
