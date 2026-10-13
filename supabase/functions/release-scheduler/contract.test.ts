@@ -280,8 +280,8 @@ Deno.test("chapter generation and quality review fail closed on missing or malfo
   const reviewMissingState = source.indexOf("if(reviewProviderStateError||!reviewProviderState)");
   const reviewInvalidTimestamp = source.indexOf("!Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())");
   const reviewActiveCooldown = source.indexOf("new Date(reviewProviderState.cooldown_until).getTime()>Date.now()");
-  assert(generationMissingState >= 0 && source.includes('"No Gemini provider-state row found"'),
-    "generation must block when provider state is missing");
+  assert(generationMissingState >= 0 && source.includes('console.error("[generate-chapter] provider cooldown lookup failed; failing closed.")'),
+    "generation must block when provider state is missing without logging raw database diagnostics");
   assert(generationInvalidTimestamp > generationMissingState && generationActiveCooldown > generationInvalidTimestamp,
     "generation must reject malformed cooldown timestamps before active-cooldown comparison");
   assert(reviewMissingState >= 0 && source.includes('mode:"quality-review"'),
