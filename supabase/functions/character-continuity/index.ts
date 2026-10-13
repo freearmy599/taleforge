@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="character-continuity-v7-aevora-brand";const H={"Content-Type":"application/json"};
+const VERSION="character-continuity-v8-temporary-overload-cooldown";const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{const s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");return JSON.parse(a>=0?s.slice(a,b+1):s)};
 async function recordGeminiQuotaCooldown(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  if (!message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  const isTemporaryOverload = message.includes("Gemini HTTP 503");
+  if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
@@ -19,14 +20,14 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     }
     const previousCount = Number(data.consecutive_throttle_count ?? 0);
     const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
-    const cooldownHours = Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
+    const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
     const now = new Date();
     const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
     const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
     const until = new Date(Math.max(proposedUntil, Number.isFinite(existingUntil) ? existingUntil : 0)).toISOString();
     const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
       provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
-      last_error: "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
+      last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
       updated_at: now.toISOString(),
     }, { onConflict: "provider" });
     if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
@@ -98,5 +99,5 @@ Only include characters materially present or established by the chapter. Preser
  for(const rel of x.relationships){const a=ids.get(String(rel.character_a??"").toLowerCase()),b=ids.get(String(rel.character_b??"").toLowerCase());if(!a||!b||a===b)continue;const existing=await db.from("character_relationships").select("id,version,history").eq("series_id",sid).or(`and(character_a_id.eq.${a},character_b_id.eq.${b}),and(character_a_id.eq.${b},character_b_id.eq.${a})`).limit(1).maybeSingle();const history=Array.isArray(rel.history)?rel.history:(existing.data?.history??[]);const row={series_id:sid,character_a_id:a,character_b_id:b,relationship_type:String(rel.relationship_type??"relationship"),status:rel.status??"active",strength:rel.strength??null,details:rel.details??{},history,last_changed_chapter:ch.chapter_number,version:Number(existing.data?.version??0)+1,updated_at:new Date().toISOString()};if(existing.error)throw new Error("Unable to read existing relationship: "+existing.error.message);if(existing.data){const write=await db.from("character_relationships").update(row).eq("id",existing.data.id);if(write.error)throw new Error("Unable to update relationship canon: "+write.error.message)}else{const write=await db.from("character_relationships").insert(row);if(write.error)throw new Error("Unable to insert relationship canon: "+write.error.message)}}
  const priorEvents=await db.from("character_continuity_events").select("event_type,character_id,related_character_id,before_state,after_state,evidence").eq("chapter_id",ch.id);if(priorEvents.error)throw new Error("Unable to check existing character continuity events: "+priorEvents.error.message);const canonical=(v:any):any=>Array.isArray(v)?v.map(canonical):v&&typeof v==="object"?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;const eventKey=(v:any)=>JSON.stringify([v.event_type,v.character_id??null,v.related_character_id??null,canonical(v.before_state??{}),canonical(v.after_state??{}),v.evidence??""]);const seenEvents=new Set((priorEvents.data??[]).map((v:any)=>eventKey(v)));let eventsRecorded=0,eventsSkippedAsDuplicates=0,eventsSkippedUnmapped=0;for(const e of x.events){const a=ids.get(String(e.character_name??"").toLowerCase());const b=ids.get(String(e.related_character_name??"").toLowerCase())??null;if(!a)continue;const row={series_id:sid,chapter_id:ch.id,chapter_number:ch.chapter_number,event_type:String(e.event_type??"state_change"),character_id:a,related_character_id:b,before_state:e.before_state??{},after_state:e.after_state??{},evidence:e.evidence??""};const signature=eventKey(row);if(seenEvents.has(signature)){eventsSkippedAsDuplicates++;continue;}const write=await db.from("character_continuity_events").insert(row);if(write.error)throw new Error("Unable to record character continuity event: "+write.error.message);seenEvents.add(signature);eventsRecorded++;}
  return new Response(JSON.stringify({success:true,version:VERSION,action:"continuity_updated",series_id:sid,chapter_number:ch.chapter_number,characters_updated:x.characters.length,relationships_updated:x.relationships.length,events_recorded:eventsRecorded,events_skipped_as_duplicates:eventsSkippedAsDuplicates,events_skipped_unmapped:eventsSkippedUnmapped,contradictions:x.contradictions??[]}),{headers:H});
-}catch(e){await recordGeminiQuotaCooldown(e);const quotaFailure=(e instanceof Error?e.message:String(e)).includes("Gemini HTTP 429")||(e instanceof Error?e.message:String(e)).includes("RESOURCE_EXHAUSTED");return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure,reason:quotaFailure?"provider_quota_blocked":"character_continuity_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":"Character continuity failed; internal diagnostics were withheld."}),{status:quotaFailure?429:500,headers:H})}
+}catch(e){await recordGeminiQuotaCooldown(e);const providerMessage=e instanceof Error?e.message:String(e);const quotaFailure=providerMessage.includes("Gemini HTTP 429")||providerMessage.includes("RESOURCE_EXHAUSTED");const providerOverloaded=providerMessage.includes("Gemini HTTP 503");return new Response(JSON.stringify({success:false,version:VERSION,retryable:quotaFailure||providerOverloaded,reason:quotaFailure?"provider_quota_blocked":providerOverloaded?"provider_temporarily_unavailable":"character_continuity_failed",error:quotaFailure?"Gemini quota or rate limit was reached; retry after cooldown.":providerOverloaded?"Gemini is temporarily unavailable; retry after cooldown.":"Character continuity failed; internal diagnostics were withheld."}),{status:quotaFailure?429:providerOverloaded?503:500,headers:H})}
 });
