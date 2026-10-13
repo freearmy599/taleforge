@@ -5,6 +5,15 @@ import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 const VERSION = "publication-sync-processor-v2-report-partial-failures";
 const H = {"Content-Type":"application/json"};
 
+function safeRetryErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "Outbox completion write was not confirmed." ||
+      message === "Publication sync attempt failed.") return message;
+  const statusOnly = message.match(/^Canon sync failed: HTTP (\\d{3})$/);
+  if (statusOnly) return `Canon sync failed: HTTP ${statusOnly[1]}`;
+  return "Publication sync attempt failed.";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok",{headers:H});
   if (req.method !== "POST") return new Response(JSON.stringify({success:false,error:"Method not allowed"}),{status:405,headers:H});
@@ -87,7 +96,7 @@ Deno.serve(async (req) => {
         const delayMinutes = Math.min(60, Math.pow(2,Math.max(0,attempts-1))*5);
         const retryWrite = await supabase.from("publication_sync_outbox").update({
           status: attempts >= 8 ? "failed" : "pending",
-          last_error: e instanceof Error ? e.message : "Publication sync attempt failed.",
+          last_error: safeRetryErrorMessage(e),
           next_attempt_at:new Date(Date.now()+delayMinutes*60*1000).toISOString(),
           locked_at:null,
           updated_at:new Date().toISOString()
