@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       .update({status:"failed",last_error:"Recovered stale processing event",next_attempt_at:new Date().toISOString(),updated_at:new Date().toISOString()})
       .eq("status","processing")
       .or("locked_at.is.null,locked_at.lt."+new Date(Date.now()-10*60*1000).toISOString());
-    if (staleRecovery.error) throw new Error("Unable to recover stale outbox events: " + staleRecovery.error.message);
+    if (staleRecovery.error) throw new Error("Unable to recover stale outbox events.");
 
     const {data: events,error} = await supabase
       .from("publication_sync_outbox")
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       .order("created_at",{ascending:true})
       .limit(5);
 
-    if (error) throw error;
+    if (error) throw new Error("Unable to load pending publication sync events.");
     const results:any[] = [];
 
     for (const event of events ?? []) {
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (claim.error) {
-        results.push({id:event.id,chapter_id:event.chapter_id,status:"claim_failed",details:claim.error.message});
+        results.push({id:event.id,chapter_id:event.chapter_id,status:"claim_failed"});
         continue;
       }
       if (!claim.data) continue;
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
           updated_at:new Date().toISOString()
         }).eq("id",event.id).eq("status","processing").eq("locked_at",now).select("id").maybeSingle();
         if (completion.error || !completion.data) {
-          throw new Error("Outbox completion write was not confirmed: " + (completion.error?.message ?? "event row no longer processing"));
+          throw new Error("Outbox completion write was not confirmed.");
         }
 
         results.push({id:event.id,chapter_id:event.chapter_id,status:"succeeded"});
@@ -87,13 +87,13 @@ Deno.serve(async (req) => {
         const delayMinutes = Math.min(60, Math.pow(2,Math.max(0,attempts-1))*5);
         const retryWrite = await supabase.from("publication_sync_outbox").update({
           status: attempts >= 8 ? "failed" : "pending",
-          last_error: e instanceof Error ? e.message : String(e),
+          last_error: e instanceof Error ? e.message : "Publication sync attempt failed.",
           next_attempt_at:new Date(Date.now()+delayMinutes*60*1000).toISOString(),
           locked_at:null,
           updated_at:new Date().toISOString()
         }).eq("id",event.id).eq("status","processing").eq("locked_at",now).select("id").maybeSingle();
         if (retryWrite.error || !retryWrite.data) {
-          results.push({id:event.id,chapter_id:event.chapter_id,status:"retry_state_update_failed",attempts,details:retryWrite.error?.message ?? "event row no longer processing"});
+          results.push({id:event.id,chapter_id:event.chapter_id,status:"retry_state_update_failed",attempts});
         } else {
           results.push({id:event.id,chapter_id:event.chapter_id,status:attempts >= 8 ? "failed_terminal" : "retry_scheduled",attempts});
         }
@@ -103,6 +103,6 @@ Deno.serve(async (req) => {
     const batchSucceeded=results.every((result:any)=>result.status==="succeeded");
     return new Response(JSON.stringify({success:batchSucceeded,version:VERSION,processed:results.length,results}),{status:200,headers:H});
   } catch (e) {
-    return new Response(JSON.stringify({success:false,version:VERSION,error:e instanceof Error?e.message:String(e)}),{status:500,headers:H});
+    return new Response(JSON.stringify({success:false,version:VERSION,error:"Publication sync processor failed."}),{status:500,headers:H});
   }
 });
