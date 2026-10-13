@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -417,10 +418,7 @@ Deno.env.get(
 "SUPABASE_URL"
 );
 
-const serviceRoleKey =
-Deno.env.get(
-"TALEFORGE_SERVICE_ROLE_KEY"
-);
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
 
 const geminiApiKey =
 Deno.env.get(
@@ -443,6 +441,10 @@ if (!geminiApiKey) {
 throw new Error(
 "GEMINI_API_KEY secret is missing."
 );
+}
+
+if (!isTrustedInternalApiKey(req.headers.get("apikey"), serviceRoleKey, Deno.env.get("SUPABASE_SECRET_KEYS"), Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"))) {
+return jsonResponse({ success: false, error: "Caller must authenticate with a configured server-side Supabase API key." }, 401);
 }
 
 const supabase =
@@ -1007,7 +1009,7 @@ if (
 ) {
 
 return jsonResponse({
-success: true,
+success: false,
 
 mode:
 "chapter-revision",
