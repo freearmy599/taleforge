@@ -506,8 +506,11 @@ Deno.serve(async (req)=>{
 
     const failureActions=new Set(["error","schedule_error","lease_unavailable","lease_lost","lifecycle_config_invalid","lifecycle_verification_failed","lifecycle_transition_failed","publication_incomplete","publish_unconfirmed","schedule_advance_unconfirmed","schedule_config_invalid","published_chapter_gap","published_chapter_history_invalid","lease_release_warning"]);
     const hasScheduleFailures=results.some((result:any)=>failureActions.has(result.action));
+    // A schedule may have committed chapters before a later lifecycle or schedule-advance failure.
+    // Determine partial success from confirmed side effects, not only the final action label.
+    const hasPublishedSideEffects=results.some((result:any)=>Number(result.published_count)>0||(Array.isArray(result.published)&&result.published.length>0));
     return response({
-      success:!hasScheduleFailures,partial_success:results.some((result:any)=>result.action==="published")&&hasScheduleFailures,mode:"release-scheduler",scheduler_version:VERSION,
+      success:!hasScheduleFailures,partial_success:hasPublishedSideEffects&&hasScheduleFailures,mode:"release-scheduler",scheduler_version:VERSION,
       checked_at:now.toISOString(),due_schedules:schedules?.length??0,results,
       note:"Generic lifecycle gate: every series transitions from preparing to active after its configured launch chapter count is approved; publication then uses approved chapters only."
     });
