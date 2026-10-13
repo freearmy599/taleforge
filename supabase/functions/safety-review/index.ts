@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const SAFETY_VERSION = "safety-v2-fail-closed-provider-state";
+const SAFETY_VERSION = "safety-v3-redacted-error-details";
 
 function jsonResponse(body: unknown, status = 200) {
 return new Response(JSON.stringify(body, null, 2), {
@@ -259,7 +259,7 @@ return jsonResponse(
 {
 success: false,
 error: "Generation output was not found.",
-details: outputError?.message || null,
+details: outputError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -283,7 +283,7 @@ return jsonResponse(
 {
 success: false,
 error: "Series was not found.",
-details: seriesError?.message || null,
+details: seriesError ? "Internal review diagnostics were withheld." : null,
 },
 404
 );
@@ -316,7 +316,7 @@ return jsonResponse(
 {
 success: false,
 error: "Could not load the chapter blueprint.",
-details: blueprintError.message,
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
@@ -514,10 +514,7 @@ return jsonResponse(
 {
 success: false,
 error: "Gemini safety review failed.",
-details:
-error instanceof Error
-? error.message
-: String(error),
+details: "Internal review diagnostics were withheld.",
 output_id: outputId,
 },
 502
@@ -639,7 +636,7 @@ return jsonResponse(
 success: false,
 error:
 "Safety review completed but could not be saved.",
-details: reviewError.message,
+details: "Internal review diagnostics were withheld.",
 output_id: outputId,
 decision: finalDecision,
 score: aiScore,
@@ -663,7 +660,7 @@ return jsonResponse(
 success: false,
 error:
 "Safety review was saved, but the generation output could not be updated.",
-details: updateError.message,
+details: "Internal review diagnostics were withheld.",
 review_id: review.id,
 output_id: outputId,
 },
@@ -787,10 +784,7 @@ return jsonResponse(
 success: false,
 error:
 "Unexpected safety-review error.",
-details:
-error instanceof Error
-? error.message
-: String(error),
+details: "Internal review diagnostics were withheld.",
 },
 500
 );
