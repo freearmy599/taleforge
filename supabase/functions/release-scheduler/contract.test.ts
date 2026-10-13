@@ -929,10 +929,13 @@ Deno.test("semantic continuity dry-run never claims or resets a queue item", asy
 });
 
 
-Deno.test("continuity review rejects malformed provider cooldown timestamps", async () => {
-  const source = await Deno.readTextFile(new URL("../continuity-review/index.ts", import.meta.url));
-  const invalidTimestamp = source.indexOf("!Number.isFinite(cooldownTimestamp)");
-  const requestBody = source.indexOf("const body = await req.json()", invalidTimestamp);
-  assert(invalidTimestamp >= 0 && requestBody > invalidTimestamp,
-    "malformed cooldown state must block continuity review before request processing and model calls");
+Deno.test("review workers reject malformed provider cooldown timestamps", async () => {
+  for (const path of ["../continuity-review/index.ts", "../originality-review/index.ts", "../safety-review/index.ts"]) {
+    const source = await Deno.readTextFile(new URL(path, import.meta.url));
+    const invalidTimestamp = source.indexOf("Number.isFinite(");
+    const requestBody = source.indexOf("req.json()", invalidTimestamp);
+    assert(invalidTimestamp >= 0 && requestBody > invalidTimestamp,
+      path + " must reject malformed cooldown state before processing a request");
+    assert(source.includes("provider_state_unavailable"), path + " must fail closed on malformed provider state");
+  }
 });
