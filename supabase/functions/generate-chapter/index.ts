@@ -157,17 +157,24 @@ if(reviewError){
  console.error("[generate-chapter] deterministic quality-review write failed",reviewError.message);
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The deterministic review could not be saved; output state was not advanced."},503);
 }
-const {error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId);
-if(statusError){
- console.error("[generate-chapter] deterministic review status update failed",statusError.message);
- return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",review_id:review?.id||null,error:"The review was saved but output status could not be updated; retry the guarded workflow."},503);
+const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).neq("generation_status","published").select("id").maybeSingle();
+if(statusError||!statusRow){
+ console.error("[generate-chapter] deterministic review status update failed or was fenced",statusError?.message??"Output was published or changed concurrently");
+ return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
 }
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-failure",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision:"needs_revision",score:0,generation_status:"needs_revision",published:false,hard_validation:hard,next_step:"Run revise-chapter on this output."});
 }
 
 const contextSnapshotId=out?.quality_report?.generation_context_snapshot_id;
 let advancedPlan:any={};
-if(contextSnapshotId){const {data:cs}=await db.from("taleforge_generation_context_snapshots").select("payload").eq("id",contextSnapshotId).maybeSingle(); advancedPlan=cs?.payload?.advanced_chapter_plan||{};}
+if(contextSnapshotId){
+ const {data:cs,error:contextError}=await db.from("taleforge_generation_context_snapshots").select("payload").eq("id",contextSnapshotId).maybeSingle();
+ if(contextError||!cs){
+  console.error("[generate-chapter] quality-review context snapshot unavailable; failing closed",contextError?.message??"Context snapshot not found");
+  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"The required generation-context snapshot could not be verified; quality review was blocked."},503);
+ }
+ advancedPlan=cs.payload?.advanced_chapter_plan||{};
+}
 const reviewPrompt=`Review this serialized-fiction chapter. Return ONLY valid JSON.
 Evaluate coherence, character consistency, plot logic, blueprint alignment, worldbuilding, prose, dialogue, pacing, repetition and ending hook. Do not rewrite or invent problems.
 Also perform a semantic execution audit against the Advanced Chapter Plan. Judge whether the prose meaningfully executes its causal objective, character/relationship/world/thread objectives, dependency chain, escalation requirements, payoff progression, ending awareness, hook strategy, and anti-padding constraints. Do not require literal wording; evaluate narrative function and evidence.
@@ -187,10 +194,10 @@ generation_output_id:outputId,review_type:"quality",status:decision,score:Number
 findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
 },{onConflict:"generation_output_id,review_type"}).select().single();
 if(re)throw new Error(`Could not save quality review: ${re.message}`);
-const {error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId);
-if(statusError){
- console.error("[generate-chapter] AI quality-review status update failed",statusError.message);
- return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",review_id:review?.id||null,error:"The quality review was saved but output status could not be updated; retry the guarded workflow."},503);
+const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).neq("generation_status","published").select("id").maybeSingle();
+if(statusError||!statusRow){
+ console.error("[generate-chapter] AI quality-review status update failed or was fenced",statusError?.message??"Output was published or changed concurrently");
+ return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
 }
 return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
 }catch(e){
