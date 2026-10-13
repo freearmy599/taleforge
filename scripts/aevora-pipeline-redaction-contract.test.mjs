@@ -139,7 +139,7 @@ test("chapter revision is authenticated, quota-guarded, and state-fenced", async
   assert.ok(s.includes('last_error: "Gemini quota, rate-limit, or temporary overload response"'), "revision must store only sanitized provider diagnostics");
   assert.ok(s.includes('reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable"'), "revision must distinguish quota blocks from temporary provider overloads");
   assert.ok(s.includes('message.includes("Gemini HTTP 503")'), "temporary Gemini overloads must trigger cooldown persistence");
-  assert.ok(s.includes('reason: "provider_quota_blocked"'), "revision quota failures must have a stable safe reason");
+  assert.ok(s.includes('reason: quotaBlocked ? "provider_quota_blocked" : "provider_temporarily_unavailable"'), "revision quota and overload failures must have stable safe reasons");
   assert.ok(s.includes('if (originalOutput.generation_status !== "needs_revision")'), "only outputs in needs_revision state may be revised");
   assert.ok(s.includes(".eq(\"revision_of_output_id\", outputId)"), "revision must check for an existing successor");
   assert.ok(s.includes("revision_of_output_id:\noutputId"), "new revision must link to its predecessor");
