@@ -85,3 +85,12 @@ Default EXECUTE grants for future functions are also present under `postgres` an
 - A broader security catalog audit still reports 91 RLS-enabled public tables without policies, including 39 with client-role grants. This work deliberately addresses the clearly internal provider-state table only; the remaining tables need table-by-table caller/access review rather than a blanket revoke. Existing branch migrations also prepare targeted revokes for publication_sync_outbox and story_attachment_metrics, but none of these migrations have been applied; production still retains the current grants until an explicitly authorized rollout.
 
 **Rollout boundary remains unchanged:** no production Edge Function deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Phase 1 remains open.
+
+### Revision successor idempotency — 2026-10-13 follow-up
+
+- A read-only production query found one source output with three direct revision successors (two marked `approved`, one `generated`); none is currently marked `published`, and no source group has multiple `published` successors. Two excess successor rows need careful reconciliation before any migration rollout.
+- Prepared migration `20261013140000_aevora_revision_successor_idempotency.sql` ranks existing successors by lifecycle status and recency, marks losing non-published duplicates `rejected` without deleting history, aborts if a source has multiple published successors, and adds a partial unique index for non-rejected successors. Rejected successors are excluded so the revision worker's intentional retry path remains available.
+- `revise-chapter` now maps a concurrent unique-index conflict (Postgres `23505`) to a safe HTTP 409 response instead of exposing database diagnostics.
+- Added `scripts/aevora-revision-idempotency-contract.test.mjs` and wired it into the branch validation workflow. The latest run for this change, [38420691074](https://github.com/freearmy599/taleforge/actions/runs/38420691074), passed the configured Edge type checks and source-contract tests, including revision idempotency and internal-worker authorization contracts.
+- The migration remains unapplied. No production rows were modified, no function deployed, and no chapter generated or published.
+
