@@ -1019,7 +1019,8 @@ Deno.test("internal planner and metrics RPCs lose client EXECUTE grants", async 
   ]) {
     assert(migration.includes("public." + signature), signature + " must be restricted to trusted callers");
   }
-  assert(migration.includes("FROM anon, authenticated"), "both client roles must lose direct EXECUTE grants");
+  assert((migration.match(/FROM PUBLIC, anon, authenticated;/g) ?? []).length === 7,
+    "every internal RPC must revoke inherited PUBLIC execution as well as direct anon/authenticated grants");
 });
 
 
