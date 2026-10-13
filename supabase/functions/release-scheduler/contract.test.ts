@@ -1325,3 +1325,16 @@ Deno.test("generation orchestrator verifies blueprint resets after blocked or fa
   assert(source.includes('transitionBlueprintStatus(supabase,b.id,"rejected","generating")'),
     "non-retryable generation failures must verify their terminal blueprint transition");
 });
+
+
+Deno.test("generation orchestrator fails closed when story lifecycle lookup fails", async () => {
+  const source = await Deno.readTextFile(generationOrchestratorUrl);
+  const lifecycleLookup = source.indexOf('const{data:lifecycle,error:lifecycleError}=await supabase.from("story_lifecycle")');
+  const lifecycleGuard = source.indexOf('if(lifecycleError){results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"lifecycle_unavailable"', lifecycleLookup);
+  const planBuild = source.indexOf('await supabase.rpc("taleforge_build_advanced_chapter_plans"', lifecycleLookup);
+  assert(lifecycleLookup >= 0, "lifecycle query errors must be captured");
+  assert(lifecycleGuard > lifecycleLookup, "lifecycle lookup errors must be handled immediately");
+  assert(planBuild > lifecycleGuard, "lifecycle failures must stop processing before chapter-plan writes or generation");
+  assert(source.includes('blocked:true,retryable:true,reason:"Story lifecycle could not be verified; AI-dependent work was skipped."'),
+    "lifecycle lookup failure must be surfaced as blocked and retryable");
+});
