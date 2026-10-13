@@ -292,6 +292,15 @@ Deno.serve(async (req) => {
         }
 
         const result = call.data as Record<string, unknown> | null;
+        // Quality review uses generate-chapter's legacy response contract, which
+        // exposes decision/score without a top-level success flag. The dedicated
+        // continuity, originality, safety, and publication workers must explicitly
+        // affirm success before their review payload is trusted.
+        if (step.name !== "quality" && result?.success !== true) {
+          blocked = true;
+          break;
+        }
+
         if (step.name === "publication") {
           // publication-review intentionally returns HTTP 200 for both approved
           // and rejected decisions. Treating HTTP success alone as approval can
