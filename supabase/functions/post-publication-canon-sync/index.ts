@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="post-publication-canon-sync-v3-intelligence-verified";
+const VERSION="post-publication-canon-sync-v4-fail-closed-subresults";
 const H={"Content-Type":"application/json"};
 
 Deno.serve(async(req)=>{
@@ -32,7 +32,8 @@ Deno.serve(async(req)=>{
     for(const name of ["character-continuity","world-continuity"]){
       const r=await fetch(base+name,{method:"POST",headers,body:JSON.stringify({chapter_id:chapterId})});
       const t=await r.text(); let data:any; try{data=JSON.parse(t)}catch{data={raw:t}};
-      results[name]={ok:r.ok,status:r.status,data};
+      // A 2xx response is not sufficient if the downstream function explicitly reports failure.
+      results[name]={ok:r.ok && data?.success===true,status:r.status,data};
     }
 
 
