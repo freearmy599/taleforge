@@ -1033,6 +1033,6 @@ Deno.test("review orchestrator fails closed and reports blocked batches as unsuc
     "the overall review response must not claim success when any output is blocked or errored");
   assert(source.includes("partial_success: results.some((result: any) => result.action === \"reviewed\") && hasReviewFailures"),
     "mixed reviewed and blocked batches must be explicitly identified as partial success");
-  assert(source.includes("}, hasReviewFailures ? 207 : 200);"),
+  assert(source.includes("}, hasReviewFailures ? 422 : 200);"),
     "blocked or errored review batches must return a non-success HTTP status");
 });
