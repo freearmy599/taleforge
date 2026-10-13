@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
-const VERSION="arc-planner-v6-redacted-quota-guard"; const H={"Content-Type":"application/json"};
+const VERSION="arc-planner-v7-fail-closed-cooldown"; const H={"Content-Type":"application/json"};
 const clean=(t:string)=>{let s=t.trim().replace(/^```json\s*/,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");if(a<0||b<a)throw new Error("No JSON object found in model response");s=s.slice(a,b+1).replace(/,\\s*([}\\]])/g,"$1");return JSON.parse(s);};
 const errText=(e:any)=>e instanceof Error?e.message:(e&&typeof e==="object"?JSON.stringify(e):String(e));
 async function recordGeminiQuotaCooldown(error: unknown) {
@@ -80,6 +80,7 @@ The ending chapter is a planning target, not a rigid promise. Allow controlled f
   const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("provider,consecutive_throttle_count,cooldown_until").eq("provider","gemini").maybeSingle();
   if(providerStateError || !providerState) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable"}),{status:503,headers:{"Content-Type":"application/json"}});
   const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
+  if(providerState.cooldown_until && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
   if(cooldownUntil && cooldownUntil>Date.now()) return new Response(JSON.stringify({success:false,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:{"Content-Type":"application/json"}});
   const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(gemini)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.55,maxOutputTokens:6500,responseMimeType:"application/json"}})});
   if(!resp.ok)throw new Error(`Gemini HTTP ${resp.status}${resp.status===429?" RESOURCE_EXHAUSTED":""}`);
