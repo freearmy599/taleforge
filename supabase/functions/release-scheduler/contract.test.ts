@@ -368,7 +368,7 @@ Deno.test("scheduler validates interval arithmetic before side effects and reuse
     "next-release scheduling must pass raw interval configuration through the same strict resolver");
   assert(source.includes("const processingCompletedAt=new Date();"), "next interval deadline must use processing-completion time");
   assert(!source.includes("resolveNextIntervalRelease(base>now?base:now,schedule.interval_hours)"), "stale invocation time must not anchor the next interval deadline");
-  assert(source.includes("nextWeeklyRelease(processingCompletedAt,Number(schedule.preferred_weekday)"), "weekly deadline must share the completion-time anchor");
+  assert(source.includes("nextWeeklyReleaseAfterBatch(processingCompletedAt,weeklyReleaseAt,"), "weekly deadline must share the completion-time anchor and avoid a second same-day batch");
   assert(source.includes("last_release_at:processingCompletedAt.toISOString()"), "last release timestamp must reflect processing completion, not invocation start");
   assert(!source.includes("new Date(latestReleaseMs+Number(schedule.interval_hours)*3600000)"),
     "raw interval arithmetic must not bypass validation");
