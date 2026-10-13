@@ -32,7 +32,9 @@ Deno.serve(async(req)=>{
           success:false,version:VERSION,error:"provider_state_unavailable"
         }),{status:503,headers:H});
       }
-      const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
+      const cooldownValue=providerState.cooldown_until;
+      const cooldownUntil=cooldownValue ? Date.parse(cooldownValue) : 0;
+      if(cooldownValue && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:H});
       if(cooldownUntil && cooldownUntil>Date.now()){
         return new Response(JSON.stringify({
           success:false,version:VERSION,error:"provider_cooldown",
