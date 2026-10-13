@@ -155,3 +155,12 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 - The idempotency migration now aborts before any reconciliation/index write if a source has multiple approved successors, as well as if it has multiple published successors. This avoids choosing between two approved chapter candidates based only on recency.
 - The read-only audit found a source with two approved successors, so the migration intentionally remains blocked until a human reviews and reconciles those candidates. No production rows were changed.
 - The updated migration contract passed in [workflow run 38436555300](https://github.com/freearmy599/taleforge/actions/runs/38436555300). Configured Edge Function type checks and all source/Node contracts passed.
+
+
+### Weekly cadence DST-fold correction — 2026-10-13 continuation
+
+- A focused audit found that a future reserved slot could still point to the *second* occurrence of a repeated wall-clock time during a daylight-saving fall-back. A batch completed between the two occurrences could therefore permit another batch on the same local day.
+- Updated the weekly post-batch resolver to compare the completed timestamp and reserved slot by their actual local calendar date, consuming the whole day even when a second DST-fold occurrence remains in the future. A missing or stale reserved slot now also skips a later same-day occurrence.
+- Added regression cases for missing reserved slots, a stale first-fold slot, and a still-future second-fold slot, while preserving legitimate next-day/next-week slots.
+- Branch validation passed on [workflow run 38438561860](https://github.com/freearmy599/taleforge/actions/runs/38438561860), commit `166dd04c8defb2b59dc15a969178bd8b1b1c0991`. The configured Edge Function type checks and all configured source-contract test steps passed. A preceding run failed only because the scheduler version assertion still expected the previous marker; the assertion was updated and the subsequent run passed.
+- This is repository-only hardening. No production deployment, migration application, schedule mutation, chapter generation/publication, or billable Supabase branch was initiated.
