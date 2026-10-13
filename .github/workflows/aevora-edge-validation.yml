@@ -13,6 +13,8 @@ name: Aevora Edge source validation
       - "supabase/functions/review-orchestrator/**"
       - "supabase/functions/release-publisher/**"
       - "supabase/functions/generate-chapter/**"
+      - "supabase/functions/publication-sync-processor/**"
+      - "supabase/functions/post-publication-canon-sync/**"
       - "supabase/functions/_shared/**"
       - "supabase/migrations/**"
       - ".github/workflows/aevora-edge-validation.yml"
@@ -42,5 +44,9 @@ jobs:
         run: deno check supabase/functions/generation-orchestrator/index.ts
       - name: Type-check review orchestrator
         run: deno check supabase/functions/review-orchestrator/index.ts
+      - name: Type-check publication sync processor
+        run: deno check supabase/functions/publication-sync-processor/index.ts
+      - name: Type-check post-publication canon sync
+        run: deno check supabase/functions/post-publication-canon-sync/index.ts
       - name: Run source-contract regression tests
-        run: deno test --allow-read=supabase/functions/review-orchestrator/index.ts,supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/generate-chapter/index.ts,supabase/functions/_shared/internal-api-key.ts,supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql,supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql supabase/functions/release-scheduler/contract.test.ts
+        run: deno test --allow-read=supabase/functions/review-orchestrator/index.ts,supabase/functions/generation-orchestrator/index.ts,supabase/functions/release-scheduler/index.ts,supabase/functions/release-scheduler/published-history.ts,supabase/functions/release-scheduler/review-qualified-outputs.ts,supabase/functions/release-scheduler/weekly-schedule.ts,supabase/functions/release-publisher/index.ts,supabase/functions/release-publisher/publisher-idempotency.ts,supabase/functions/release-publisher/publisher-output-status.ts,supabase/functions/generate-chapter/index.ts,supabase/functions/_shared/internal-api-key.ts,supabase/functions/publication-sync-processor/index.ts,supabase/functions/post-publication-canon-sync/index.ts,supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql,supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql supabase/functions/release-scheduler/contract.test.ts
