@@ -134,7 +134,7 @@ test("chapter generator fences blueprint status writes and reports reconciliatio
 
 test("chapter revision is authenticated, quota-guarded, and state-fenced", async () => {
   const s = await source("supabase/functions/revise-chapter/index.ts");
-  assert.ok(s.includes('revision-v15-temporary-provider-cooldown'), "revision version marker must be present");
+  assert.ok(s.includes('revision-v16-short-overload-cooldown'), "revision version marker must be present");
   const auth = s.indexOf('isTrustedInternalApiKey(req.headers.get("apikey")');
   const body = s.indexOf("body = await req.json()");
   const governance = s.indexOf('supabase.rpc("taleforge_ceo_execution_gate"');
