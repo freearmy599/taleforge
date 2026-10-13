@@ -98,11 +98,11 @@ content,word_count:count,generation_model:MODEL,generation_prompt_version:"gener
 generation_attempt:attempt,generation_status:"generated",quality_report:{generation_context_snapshot_id:contextSnapshotId,generation_context_hash:contextHash,context_version:"generation-context-v5-long-term-architecture"}
 }).select("id,series_id,chapter_blueprint_id,chapter_number,title,word_count,generation_model,generation_prompt_version,generation_attempt,generation_status,created_at").single();
 if(oe||!out){
-await db.from("chapter_blueprints").update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id);
+const{error:rejectStatusError}=await db.from("chapter_blueprints").update({generation_status:"rejected",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating");if(rejectStatusError)console.error("[generate-chapter] blueprint rejection transition failed; internal diagnostics were withheld.");
 throw new Error("Could not create generation output; internal database diagnostics were withheld.");
 }
-await db.from("chapter_blueprints").update({generation_status:"generated",updated_at:new Date().toISOString()}).eq("id",b.id);
-return reply({success:true,mode:"generation",generator_version:"generation-v5-semantic-chapter-execution",already_generated:false,blueprint_id:b.id,output_id:out.id,chapter_number:out.chapter_number,chapter_title:out.title,word_count:out.word_count,generation_status:out.generation_status,generation_attempt:out.generation_attempt});
+const{data:blueprintUpdated,error:blueprintUpdateError}=await db.from("chapter_blueprints").update({generation_status:"generated",updated_at:new Date().toISOString()}).eq("id",b.id).eq("generation_status","generating").select("id").maybeSingle();let blueprintStatusSynced=!blueprintUpdateError&&!!blueprintUpdated;if(!blueprintStatusSynced){const{data:currentBlueprint,error:currentBlueprintError}=await db.from("chapter_blueprints").select("generation_status").eq("id",b.id).maybeSingle();blueprintStatusSynced=!currentBlueprintError&&["generated","quality_check","approved","published"].includes(String(currentBlueprint?.generation_status))}if(!blueprintStatusSynced)console.error("[generate-chapter] blueprint status could not be reconciled; internal diagnostics were withheld.");
+return reply({success:true,mode:"generation",generator_version:"generation-v5-semantic-chapter-execution",already_generated:false,blueprint_id:b.id,output_id:out.id,chapter_number:out.chapter_number,chapter_title:out.title,word_count:out.word_count,generation_status:out.generation_status,generation_attempt:out.generation_attempt,blueprint_status_synced:blueprintStatusSynced,status_sync_warning:blueprintStatusSynced?undefined:"Chapter output was saved, but blueprint status needs safe reconciliation."});
 }
 
 if(!outputId)return reply({success:false,error:"A blueprint_id is required for generation or an output_id is required for quality review."},400);
