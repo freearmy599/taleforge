@@ -427,6 +427,7 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /if\(providerQuotaBlocked\|\|providerTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
   assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
   assert.match(reviewOrchestrator, /if \(providerThrottleObserved\) \{\s*results\.push\(\{ output_id: output\.id, chapter_number: output\.chapter_number, action: "provider_throttle_observed"/);
-  assert.match(reviewOrchestrator, /call\.status === 429 \|\| call\.status === 503 \|\| call\.data\?\.reason === "provider_quota_blocked" \|\| call\.data\?\.reason === "provider_temporarily_unavailable"/);
+  assert.match(reviewOrchestrator, /const callReason = \(call\.data as Record<string, unknown> \| null\)\?\.reason/);
+  assert.match(reviewOrchestrator, /call\.status === 429 \|\| call\.status === 503 \|\| callReason === "provider_quota_blocked" \|\| callReason === "provider_temporarily_unavailable"/);
   assert.match(reviewOrchestrator, /providerThrottleObserved = true;/);
 });
