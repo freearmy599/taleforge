@@ -278,7 +278,7 @@ test("reader event idempotency keys are unique and reused on retry", () => {
   assert.match(readingProgressSource, /const pendingEventIds=new Map\(\)/);
   assert.match(readingProgressSource, /payload\.event_uuid=eventUuid/);
   assert.match(readingProgressSource, /error\.code==="23505"/);
-  assert.match(readingProgressSource, /pendingEventIds\.set\(key,eventUuid\)/);
+  assert.match(readingProgressSource, /pendingEventIds\.set\(eventKey,eventUuid\)/);
 });
 
 test("reader-event insert policy requires a published chapter to match its eligible series", () => {
