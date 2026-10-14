@@ -2,6 +2,7 @@ import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { nextWeeklyRelease, nextWeeklyReleaseAfterBatch } from "./weekly-schedule.ts";
 import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
+import { automationReadinessDisposition } from "./readiness.ts";
 
 const VERSION = "release-scheduler-v16-dst-fold-cadence";
 const corsHeaders = {
@@ -108,6 +109,13 @@ Deno.serve(async (req)=>{
       let confirmedPublishedCount=0;
       try{
       const series=schedule.series;
+      const readinessDisposition=automationReadinessDisposition(schedule.automation_ready_at,dryRun);
+      if(readinessDisposition!=="ready"){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,
+          action:dryRun?"readiness_unverified_dry_run":"automation_not_ready",
+          reason:"A server-controlled automation readiness marker is required before release work can proceed."});
+        continue;
+      }
       if(!series || ["draft","cancelled","hiatus"].includes(series.status)){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"skipped",reason:"Series is not currently publishable."});
         continue;
