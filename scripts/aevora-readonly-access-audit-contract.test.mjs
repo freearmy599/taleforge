@@ -25,6 +25,14 @@ const readingProgressSource = await readFile(
   new URL("../reading-progress.js", import.meta.url),
   "utf8",
 );
+const chapterReaderSource = await readFile(
+  new URL("../chapter.html", import.meta.url),
+  "utf8",
+);
+const homeSource = await readFile(
+  new URL("../index.html", import.meta.url),
+  "utf8",
+);
 const readerEventTimestampMigration = await readFile(
   new URL("../supabase/migrations/20261014230000_reader_event_server_timestamp.sql", import.meta.url),
   "utf8",
@@ -340,6 +348,20 @@ test("reader-event retries reuse the same UUID and distinct progress values get 
     "retry after a failed insert must reuse the original event UUID");
   assert.notEqual(submitted[2].event_uuid, submitted[1].event_uuid,
     "a distinct progress value must use a distinct idempotency key");
+});
+
+test("browser reader-event names match the database event vocabulary", () => {
+  const allowed = new Set([
+    "story_open", "chapter_start", "reading_progress", "chapter_complete",
+    "follow", "unfollow", "bookmark", "unbookmark",
+  ]);
+  const emitted = [];
+  for (const source of [chapterReaderSource, homeSource, readingProgressSource]) {
+    for (const match of source.matchAll(/\.track\(["']([a-z_]+)["']/g)) emitted.push(match[1]);
+  }
+  assert.ok(emitted.length > 0, "browser reader event calls should be discovered");
+  assert.deepEqual([...new Set(emitted.filter((name) => !allowed.has(name)))], [],
+    "every browser event name must satisfy the reader_events CHECK constraint");
 });
 
 test("anonymous reader events cannot choose their own event timestamp", () => {
