@@ -231,3 +231,12 @@ Because the 41-table inventory has explicit status-filtered client SELECT polici
 The earlier `20261014180000_revoke_unapproved_internal_client_writes.sql` remains as a narrower defense-in-depth step. Contract tests now assert table-list coverage, relation and column revokes, and removal of client-facing SELECT policy paths.
 
 This is a **prepared candidate, not a production authorization decision**. Before any rollout, validate all RPC/view/Edge Function dependencies and confirm that these 41 relations are not intended as public APIs. Current browser code evidence is supportive but not a complete dependency graph. Both new migrations remain branch-only; no production DDL or deployment was performed.
+
+
+## Reader-event chapter/series integrity candidate (branch-only, 2026-10-14)
+
+Read-only inspection of the live `Public can record reader events` INSERT policy confirmed that it validates a supplied chapter as published and independently validates a supplied series as eligible, but does **not** require the chapter to belong to that series. It also permits a chapter event when `series_id` is null. Separate foreign keys do not enforce this cross-column relationship.
+
+Branch migration candidate `20261014200000_validate_reader_event_series_chapter_pair.sql` replaces the policy so that a supplied chapter requires a non-null series and an existence check joining the published chapter to the exact supplied series; the series must remain in an eligible published lifecycle state. Series-only events remain supported, as do events with neither identifier if that is how the existing telemetry contract is used. The existing visitor-ID length check is preserved. The candidate does not change table grants or attempt to solve replay/spam abuse.
+
+A source-level contract test checks the key policy clauses. This is not yet a database integration test: a disposable test database should exercise accepted/rejected combinations before production consideration. Replay protection, deduplication, and rate limiting remain a separate unresolved abuse-control requirement. This migration is branch-only; no production policy or data was changed.
