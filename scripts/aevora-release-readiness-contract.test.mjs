@@ -90,6 +90,8 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
     "the atomic readiness RPC itself must still require service_role");
   assert.match(migration, /lifecycle_initialized/);
   assert.match(migration, /release_schedule_initialized/);
+  assert.match(migration, /fresh audited approval is required to reactivate a previously ready series/i,
+    "a revoked readiness decision must not be reused after lifecycle reactivation");
   assert.match(migration, /automation_ready_at = coalesce\(automation_ready_at, now\(\)\)/);
   assert.match(migration, /revoke all on function public\.taleforge_mark_release_automation_ready\(uuid\) from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.taleforge_mark_release_automation_ready\(uuid\) to service_role/i);
