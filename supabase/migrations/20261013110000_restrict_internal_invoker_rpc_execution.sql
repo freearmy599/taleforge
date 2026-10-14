@@ -11,3 +11,10 @@ REVOKE EXECUTE ON FUNCTION public.taleforge_get_long_term_architecture_context(u
 -- Pure scoring helper used by the trusted story-opportunity planner. It has no
 -- trigger references and returns only a score/decision; it is not a client API.
 REVOKE EXECUTE ON FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric) FROM PUBLIC, anon, authenticated;
+
+-- Trigger functions are not direct client APIs. Removing client EXECUTE grants
+-- does not stop PostgreSQL from invoking them through their attached triggers.
+REVOKE EXECUTE ON FUNCTION public.taleforge_update_updated_at() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.touch_story_lifecycle_updated_at() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_series_chapter_count() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_updated_at() FROM PUBLIC, anon, authenticated;
