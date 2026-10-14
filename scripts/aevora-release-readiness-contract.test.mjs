@@ -424,6 +424,7 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /const generated=\[\];for\(const b of missing\)\{if\(providerThrottleObserved\)\{generated\.push\(\{chapter_number:b\.chapter_number,action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /if\(revisionQuotaBlocked\|\|revisionTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
+  assert.match(generationOrchestrator, /if\(!revise\.ok\)\{if\(revise\.status===429\|\|revise\.status===503\)providerThrottleObserved=true/);
   assert.match(generationOrchestrator, /if\(providerQuotaBlocked\|\|providerTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
   assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
   assert.match(reviewOrchestrator, /if \(providerThrottleObserved\) \{\s*results\.push\(\{ output_id: output\.id, chapter_number: output\.chapter_number, action: "provider_throttle_observed"/);
