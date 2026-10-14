@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const scheduler = await readFile("supabase/functions/release-scheduler/index.ts", "utf8");
+const generationOrchestrator = await readFile("supabase/functions/generation-orchestrator/index.ts", "utf8");
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
@@ -103,4 +104,14 @@ test("completed series are terminal at both scheduler and publisher boundaries",
   assert.match(scheduler, /\["draft","cancelled","hiatus","completed"\]\.includes\(series\.status\)/);
   assert.match(publisher, /series\.status === "completed"/);
   assert.match(publisher, /\["draft", "cancelled", "hiatus", "completed"\]\.includes\(currentSeries\.status\)/);
+});
+
+
+test("scheduled generation is blocked before cooldown, review, or generation work when unready", () => {
+  assert.match(generationOrchestrator, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
+  const readinessGuard = generationOrchestrator.indexOf("automationReadinessDisposition(schedule.automation_ready_at,dryRun)");
+  const providerCheck = generationOrchestrator.indexOf("getGeminiCooldown(supabase)", readinessGuard);
+  assert.ok(readinessGuard >= 0 && providerCheck > readinessGuard,
+    "readiness must be checked before provider-state checks and downstream AI work");
+  assert.match(generationOrchestrator.slice(readinessGuard, providerCheck), /continue/);
 });
