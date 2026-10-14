@@ -34,9 +34,9 @@ begin
   end if;
 
   if new.automation_ready_at is distinct from old.automation_ready_at
-     and current_user not in ('postgres', 'service_role')
-     and coalesce(auth.role(), '') <> 'service_role' then
-    raise exception 'automation_ready_at is server-controlled';
+     and new.automation_ready_at is not null
+     and coalesce(pg_catalog.current_setting('aevora.release_readiness_rpc', true), '') <> 'on' then
+    raise exception 'automation_ready_at can only be set by the readiness RPC';
   end if;
   return new;
 end;
@@ -202,6 +202,7 @@ begin
     raise exception 'autonomous creation policy is disabled or missing';
   end if;
 
+  perform pg_catalog.set_config('aevora.release_readiness_rpc', 'on', true);
   update public.release_schedules
   set automation_ready_at = coalesce(automation_ready_at, now()),
       enabled = true,
@@ -210,6 +211,7 @@ begin
       next_release_at = coalesce(next_release_at, now()),
       updated_at = now()
   where id = v_schedule.id;
+  perform pg_catalog.set_config('aevora.release_readiness_rpc', 'off', true);
 
   update public.taleforge_autonomous_series_creation_runs
   set pipeline_snapshot = coalesce(pipeline_snapshot, '{}'::jsonb) || jsonb_build_object(
