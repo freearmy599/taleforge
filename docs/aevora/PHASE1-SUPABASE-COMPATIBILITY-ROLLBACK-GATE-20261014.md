@@ -230,3 +230,17 @@ These findings are a direct source comparison, not proof of external exploitabil
 **Gate disposition:** keep automated publishing and generation rollout blocked until the deployed function versions are reconciled through a reviewed, ordered rollout plan with pre/post verification and recovery steps. Do not deploy the entire branch blindly: review each function and migration dependency, preserve the existing fail-closed schedule posture, and verify status-safe publisher behavior before any schedule is re-enabled. This inventory did not inspect or change production schedules or database grants.
 
 Read-only source inventory performed through Supabase MCP on project `sxmbnlgufqhcwxcpcsvb`; source hashes above identify the retrieved deployed versions. No production SQL, migration, function deployment, schedule mutation, generation, publication, or billable development branch was initiated.
+
+
+### Follow-up verification — run-local provider-throttle circuit breaker (2026-10-14)
+
+Workflow [38593541726](https://github.com/freearmy599/taleforge/actions/runs/38593541726) passed on commit \`37f0afe554a107bb8bef3a8ab2a218f64bd0432f\`.
+
+- Edge Function type-check job: **success**, including \`generation-orchestrator\` and \`review-orchestrator\`.
+- Release-readiness contract suite: **35 passed, 0 failed**.
+- Disposable PostgreSQL migration/rollback, concurrency, and reader-event integrity job: **success**.
+- \`generation-orchestrator\` now stops further AI work across later schedules after a revision/generation worker returns a provider throttle or blocked 429/503 response, including when cooldown persistence fails. It also skips generation later in the same schedule after a revision worker returns 429/503.
+- \`review-orchestrator\` stops invoking reviewers for subsequent outputs in the same run after a reviewer returns a provider throttle/blocked 429/503 response.
+- The generation path now attempts cooldown persistence for any classified temporary 503 failure, not only one exact response reason.
+
+This is a **run-local** circuit breaker, not a substitute for durable shared cooldown state. A future invocation can still retry if provider-state persistence fails and no durable cooldown is present. The new behavior prevents a single orchestration run from fanning out additional AI calls after observing the failure; durable-state reliability and retry policy remain operational concerns. This does not validate production deployment state, and it does not authorize a production rollout. No production function, schedule, database, or publication state was changed.
