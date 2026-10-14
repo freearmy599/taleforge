@@ -89,6 +89,7 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
     "readiness RPC must lock series, lifecycle, then schedule in enrollment-trigger order");
   assert.match(readinessRpc, /where rs\.id = p_schedule_id\s+and rs\.series_id = v_series\.id\s+for update/i);
   assert.match(migration, /series must have exactly one release schedule before readiness/i);
+  assert.match(migration, /update public\.release_schedules\s+set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?where automation_ready_at is null/i);
   assert.doesNotMatch(migration, /update public\.release_schedules\s+set automation_ready_at\s*=\s*now\(\)\s*;/i,
     "existing schedules must not be blindly backfilled as ready");
 });
