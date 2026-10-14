@@ -116,7 +116,7 @@ Deno.serve(async (req)=>{
           reason:"A server-controlled automation readiness marker is required before release work can proceed."});
         continue;
       }
-      if(!series || ["draft","cancelled","hiatus"].includes(series.status)){
+      if(!series || ["draft","cancelled","hiatus","completed"].includes(series.status)){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"skipped",reason:"Series is not currently publishable."});
         continue;
       }
