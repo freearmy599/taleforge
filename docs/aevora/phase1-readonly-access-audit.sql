@@ -69,7 +69,7 @@ LEFT JOIN pg_roles grantee ON grantee.oid = acl.grantee
 WHERE n.nspname = 'public'
   AND d.defaclobjtype IN ('r', 'S', 'f')
   AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
-ORDER BY object_type, grantee, acl.privilege_type;
+ORDER BY object_type, default_acl_owner, grantee, acl.privilege_type;
 
 -- 4) Public-schema invoker/definer function execute grants to ordinary client roles.
 -- Review function names/signatures before any permission change; do not blindly revoke.
