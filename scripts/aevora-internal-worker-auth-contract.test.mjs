@@ -62,3 +62,28 @@ test("the shared internal API-key allowlist fails closed", async () => {
   assert.ok(s.includes("return false;"), "malformed secret configuration must never default to trust");
   assert.equal(/allowedNames\.size\s*===\s*0\s*\)\s*return\s*true/.test(s), false);
 });
+
+test("browser source files do not contain server-only credentials or internal key configuration", async () => {
+  const browserFiles = [
+    "404.html",
+    "admin.html",
+    "chapter.html",
+    "chief-editor.html",
+    "index.html",
+    "library.html",
+    "notifications.html",
+    "privacy.html",
+    "reading-progress.js",
+    "series.html",
+    "stories.html",
+    "story.html",
+    "supabase-client.js",
+    "taleforge-data.js",
+    "terms.html",
+  ];
+  const secretMarkers = /SUPABASE_SERVICE_ROLE_KEY|service_role_key|serviceRoleKey|SUPABASE_SECRET_KEYS|AEVORA_INTERNAL_API_KEY_NAMES|GEMINI_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY/i;
+  for (const path of browserFiles) {
+    const s = await source(path);
+    assert.doesNotMatch(s, secretMarkers, path + " must not embed server-only credential names or internal key configuration");
+  }
+});
