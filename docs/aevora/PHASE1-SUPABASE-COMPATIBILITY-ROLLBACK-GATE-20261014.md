@@ -245,3 +245,18 @@ Branch CI run [38593541726](https://github.com/freearmy599/taleforge/actions/run
 This is a **run-local** circuit breaker, not a substitute for durable shared cooldown state. A future invocation can still retry if provider-state persistence fails and no durable cooldown is present. Read-only inspection confirms deployed `generation-orchestrator` v35 and `review-orchestrator` v11 do not yet contain the branch circuit breaker or malformed-timestamp validation. Do not treat this branch-only fix as active in production.
 
 The scheduler/publisher deployment drift and Gate A/rollback/schedule-disposition blockers remain. No production deployment, SQL, schedule mutation, generation, publication, or billable Supabase branch was performed.
+
+### Follow-up hardening — generation readiness no longer enables publication (2026-10-14)
+
+A policy review found that the candidate `taleforge_mark_release_automation_ready(uuid)` RPC enabled `auto_publish=true` at the same time as generation readiness. That contradicted the documented requirement that generation approval and publication approval be separate decisions.
+
+The branch migration now changes the readiness RPC to:
+- enable the audited generation schedule while leaving `auto_publish=false`;
+- record `auto_publication_enabled=false` and `publication_approval_required=true` in the creation-run audit snapshot; and
+- return explicit `generation_enabled=true`, `publication_enabled=false`, and `publication_approval_required=true` fields.
+
+Added static contract coverage and disposable PostgreSQL assertions that generation readiness leaves publication disabled and that an unauthorized service-role attempt to switch `auto_publish` on revokes readiness and leaves the schedule disabled. This intentionally leaves automated publication unavailable until a separately reviewed publication-authorization mechanism is designed and tested; do not bypass the gate by editing the flag directly.
+
+The CI runs for this change are in progress at the time this note was written: [38594910734](https://github.com/freearmy599/taleforge/actions/runs/38594910734), [38594932813](https://github.com/freearmy599/taleforge/actions/runs/38594932813), and [38595002326](https://github.com/freearmy599/taleforge/actions/runs/38595002326). Do not treat this change as verified until the latest branch run completes successfully.
+
+No production migration, function deployment, SQL execution, schedule mutation, generation, publication, or billable Supabase development branch was performed.
