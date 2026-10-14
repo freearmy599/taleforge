@@ -32,6 +32,8 @@ create table public.chapters (
   status text not null default 'draft'
 );
 
+grant insert, update on public.chapters to service_role;
+
 create table public.release_schedules (
   id uuid primary key default gen_random_uuid(),
   series_id uuid not null unique references public.series(id) on delete cascade,
