@@ -81,6 +81,7 @@ test("runner does not return raw internal exception messages", () => {
 test("database readiness RPC is service-role-only and verifies bootstrap evidence", () => {
   assert.match(migration, /add column if not exists automation_ready_at timestamptz/i);
   assert.match(migration, /create table if not exists public\.taleforge_release_readiness_authorizations[\s\S]*?primary key \(transaction_id, schedule_id\)/i);
+  assert.match(migration, /alter table public\.taleforge_release_readiness_authorizations enable row level security/i);
   assert.match(migration, /revoke all on table public\.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role/i);
   assert.match(migration, /security definer\s+set search_path = ''[\s\S]*?taleforge_release_readiness_authorizations/i);
   assert.match(migration, /a\.transaction_id = pg_catalog\.pg_current_xact_id\(\)[\s\S]*?a\.schedule_id = new\.id/i);
