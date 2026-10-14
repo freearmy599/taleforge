@@ -137,11 +137,13 @@ Deno.test("generation orchestrator fails closed when Gemini provider state is un
 
 Deno.test("generation orchestrator distinguishes mid-run provider-state failure from active cooldown", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
-  const loopStart = source.indexOf("for(const schedule of ordered){const liveCooldown=await getGeminiCooldown(supabase);");
+  const loopStart = source.indexOf("for(const schedule of ordered){const readinessDisposition=automationReadinessDisposition(schedule.automation_ready_at,dryRun);");
+  const readinessGuard = source.indexOf('if(readinessDisposition!=="ready")', loopStart);
   const unavailableGuard = source.indexOf("if(liveCooldown.lookup_error)", loopStart);
   const activeCooldownGuard = source.indexOf("if(liveCooldown.active)", unavailableGuard);
   const scheduleSeriesRead = source.indexOf("const series=schedule.series;", activeCooldownGuard);
-  assert(loopStart >= 0 && unavailableGuard > loopStart, "every schedule iteration must explicitly handle provider-state lookup failure");
+  assert(loopStart >= 0 && readinessGuard > loopStart, "every schedule iteration must check readiness before any AI-dependent work");
+  assert(unavailableGuard > readinessGuard, "provider-state lookup must follow readiness verification");
   assert(activeCooldownGuard > unavailableGuard && scheduleSeriesRead > activeCooldownGuard, "provider-state failure and active cooldown must both skip the schedule before series processing");
   assert(source.includes('action:"provider_state_unavailable",blocked:true,retryable:true'), "mid-run provider-state failures must be reported as blocked and retryable");
   assert(source.includes('action:"ai_cooldown"'), "a confirmed active cooldown must remain distinguishable from unavailable state");
