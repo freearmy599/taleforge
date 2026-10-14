@@ -158,7 +158,7 @@ begin
     raise exception 'ASSERTION_FAILED: readiness authorization row was not cleaned up after RPC';
   end if;
 end;
-$;
+$$;
 
 -- A transition to any non-ongoing status revokes readiness, even if the
 -- status is not one of the common terminal values.
