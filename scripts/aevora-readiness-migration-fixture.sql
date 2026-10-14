@@ -52,6 +52,7 @@ create table public.release_schedules (
 );
 
 grant all privileges on table public.release_schedules to anon, authenticated, service_role;
+grant select (id), update (auto_publish) on table public.release_schedules to anon, authenticated;
 
 create table public.story_lifecycle (
   id uuid primary key default gen_random_uuid(),
