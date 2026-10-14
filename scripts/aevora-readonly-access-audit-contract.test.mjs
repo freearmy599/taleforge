@@ -327,8 +327,10 @@ test("reader-event retries reuse the same UUID and distinct progress values get 
   await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 40 });
   now += 15_001;
   await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 41 });
+  now += 15_001;
+  await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 40 });
 
-  assert.equal(submitted.length, 3);
+  assert.equal(submitted.length, 3, "a previously accepted progress value must not be counted again in this page session");
   assert.ok(submitted[0].event_uuid, "UUID is attached when browser crypto is available");
   assert.equal(submitted[1].event_uuid, submitted[0].event_uuid,
     "retry after a failed insert must reuse the original event UUID");
