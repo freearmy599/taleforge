@@ -71,6 +71,8 @@ test("runner does not return raw internal exception messages", () => {
 test("database readiness RPC is service-role-only and verifies bootstrap evidence", () => {
   assert.match(migration, /add column if not exists automation_ready_at timestamptz/i);
   assert.match(migration, /pg_catalog\.current_setting\('aevora\.release_readiness_rpc', true\).*<> 'on'/i);
+  assert.match(migration, /auth\.role\(\) is distinct from 'service_role'/i,
+    "the atomic readiness RPC itself must still require service_role");
   assert.match(migration, /lifecycle_initialized/);
   assert.match(migration, /release_schedule_initialized/);
   assert.match(migration, /automation_ready_at = coalesce\(automation_ready_at, now\(\)\)/);
