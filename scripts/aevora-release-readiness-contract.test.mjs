@@ -67,10 +67,10 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   assert.match(migration, /series first, schedule second/i);
   assert.match(migration, /where s\.id = v_series_id\s+for update/i);
   assert.match(migration, /series first, schedule second/i);
-  assert.ok(
-    migration.indexOf("from public.story_lifecycle sl") < migration.indexOf("where rs.id = p_schedule_id\\n    and rs.series_id = v_series.id\\n  for update"),
-    "readiness RPC must lock lifecycle before schedule to match enrollment lock order"
-  );
+  const lifecycleLock = migration.indexOf("perform 1\\n  from public.story_lifecycle sl");
+  const scheduleLock = migration.indexOf("select rs.* into v_schedule");
+  assert.ok(lifecycleLock >= 0 && scheduleLock > lifecycleLock,
+    "readiness RPC must lock lifecycle before schedule to match enrollment lock order");
   assert.match(migration, /where rs\.id = p_schedule_id\s+and rs\.series_id = v_series\.id\s+for update/i);
   assert.match(migration, /series must have exactly one release schedule before readiness/i);
   assert.doesNotMatch(migration, /update public\.release_schedules\s+set automation_ready_at\s*=\s*now\(\)\s*;/i,
