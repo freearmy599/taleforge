@@ -122,3 +122,15 @@ The explicit column ACL check confirmed that the client exposure is not only a t
 The intended public alternative should be a deliberately allowlisted status projection that omits internal evidence and blocking diagnostics, with only the necessary public fields and row filters. Do not grant access to the raw snapshot to preserve a UI convenience; map each UI dependency to the sanitized contract instead.
 
 No production grants, policies, views, functions, schema settings, data, or Edge Functions were changed.
+
+
+## Client write-policy cross-check (read-only, 2026-10-14)
+
+A catalog-only scan found one client-role write policy across the public schema: the `INSERT` policy on `reader_events`. No client-role `INSERT`, `UPDATE`, `DELETE`, or `ALL` policy with a literal `true` predicate was found. This supports the distinction between broad ACLs and effective row access: RLS generally blocks writes on the no-policy tables, but excessive grants remain unnecessary and should be removed. The reader-events INSERT policy still needs chapter/series relationship enforcement and replay/spam controls.
+
+The branch-only diagnostic-view column-grant fix and its contract test passed CI:
+- Migration repair commit: `8f93cc833afe3574530312eafa9d21139a3728df`.
+- Contract-test commit: `909848171577788ff98f1252d9ba4c96a09f24bb`.
+- Latest audit documentation commit: `ca4fd8b3f41e6e8a0984a223349ac3a1405ac781`; GitHub Actions run `38523636057` completed successfully.
+
+This evidence does not authorize a production rollout. The raw diagnostic view and underlying true policies remain live until a separately approved migration is applied.
