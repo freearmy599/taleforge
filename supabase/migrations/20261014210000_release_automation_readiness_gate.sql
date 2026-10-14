@@ -262,6 +262,12 @@ begin
     raise exception 'autonomous bootstrap audit evidence is incomplete';
   end if;
 
+  -- A series that was previously marked ready must not be silently revived
+  -- by reusing its original creation-run evidence after a lifecycle reset.
+  if coalesce(v_snapshot->>'automation_ready', 'false') = 'true' then
+    raise exception 'fresh audited approval is required to reactivate a previously ready series';
+  end if;
+
   if not exists (
     select 1
     from public.taleforge_autonomous_creation_policy p
