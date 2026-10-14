@@ -222,8 +222,8 @@ The Supabase Edge Function inventory and deployed source were inspected read-onl
 | `release-publisher` | 21 | `04a63046cb090b546eab6f09dad643ee30fa5c2ef1a3727c5bd4b653e3e79f2c` | Version marker is `release-publisher-v5-outbox`; source contains no `automation_ready_at` readiness gate. Existing-chapter response sets `published: true` while also returning `status: existingChapter.status`, so the response can claim publication without proving that status is `published`. |
 | `generate-chapter` | 59 | `9f6d57c77bba109cd079dd9441963e3f4ab3aed6ab8e0db2aab1ff2129522131` | Provider-state lookup exists, but the deployed generation guard does not reject a malformed cooldown timestamp; branch source adds finite-timestamp validation and the internal API-key allowlist check. |
 | `revise-chapter` | 40 | `d187fc6977e6a442f7bf85afa4f3216cb3723cd6e7b0683839108a6a2f669614` | Provider-state lookup and active-cooldown guard exist, but deployed source does not validate malformed timestamps and does not contain the branch's internal API-key allowlist check. |
-| `generation-orchestrator` | 35 | `2f96e3cca526f2c6801860fe7b6cf5456b528ba56ed964f4d5afd71c8569f8e6` | Provider-state lookup fails closed on lookup errors, but an invalid date parses to a non-finite timestamp and the current helper does not treat that as an error; branch source adds malformed-timestamp rejection. No readiness/lease behavior from the prepared branch was observed in this deployed function. |
-| `review-orchestrator` | 11 | `3a8d7b11608b26cc1bf98d2d66b9799c2602be726376c23ec9e728b68fa3a0b5` | Provider-state lookup and active-cooldown guard exist, but deployed source does not reject malformed cooldown timestamps and does not contain the branch's internal API-key allowlist check. |
+| `generation-orchestrator` | 35 | `2f96e3cca526f2c6801860fe7b6cf5456b528ba56ed964f4d5afd71c8569f8e6` | Provider-state lookup fails closed on lookup errors, but an invalid date parses to a non-finite timestamp and the helper does not treat that as an error. Deployed source also lacks the branch’s per-run `providerThrottleObserved` circuit breaker. No readiness/lease behavior from the prepared branch was observed in this deployed function. |
+| `review-orchestrator` | 11 | `3a8d7b11608b26cc1bf98d2d66b9799c2602be726376c23ec9e728b68fa3a0b5` | Provider-state lookup and active-cooldown guard exist, but deployed source does not reject malformed cooldown timestamps, does not contain the branch’s internal API-key allowlist check, and lacks the branch’s per-run `providerThrottleObserved` circuit breaker. |
 
 These findings are a direct source comparison, not proof of external exploitability. The inventory reports `verify_jwt=true` for the listed functions, so authentication implications require a separate call-path review. Nevertheless, the missing branch controls and scheduler/publisher safety gates are confirmed deployment drift and are blockers for any automated-release rollout.
 
@@ -244,3 +244,17 @@ Workflow [38593541726](https://github.com/freearmy599/taleforge/actions/runs/385
 - The generation path now attempts cooldown persistence for any classified temporary 503 failure, not only one exact response reason.
 
 This is a **run-local** circuit breaker, not a substitute for durable shared cooldown state. A future invocation can still retry if provider-state persistence fails and no durable cooldown is present. The new behavior prevents a single orchestration run from fanning out additional AI calls after observing the failure; durable-state reliability and retry policy remain operational concerns. This does not validate production deployment state, and it does not authorize a production rollout. No production function, schedule, database, or publication state was changed.
+
+### Follow-up verification — per-run provider-throttle circuit breaker (2026-10-14)
+
+Branch CI run [38593541726](https://github.com/freearmy599/taleforge/actions/runs/38593541726) passed on commit `37f0afe554a107bb8bef3a8ab2a218f64bd0432f`.
+
+- Source/type-check job: **success**.
+- Release-readiness contract suite: **35 passed, 0 failed**.
+- Disposable PostgreSQL migration, rollback/restore, concurrency, and reader-event integrity job: **success**.
+- Generation orchestration now stops further generation/revision work for the remainder of the same run after a 429/503 or blocked revision response, even if persisting the shared cooldown fails. Review orchestration similarly stops subsequent reviewer calls after a provider throttle.
+- Added regression coverage for the circuit-breaker ordering and blocked revision responses.
+
+This closes the **same-run retry** gap on the prepared branch. It does not guarantee a durable cooldown across separate invocations if the provider-state write fails; the next invocation must still read a valid persisted cooldown or fail closed when provider-state lookup is unavailable. Read-only inspection confirms deployed `generation-orchestrator` v35 and `review-orchestrator` v11 do not yet contain the branch circuit breaker or malformed-timestamp validation. Do not treat this branch-only fix as active in production.
+
+The scheduler/publisher deployment drift and Gate A/rollback/schedule-disposition blockers remain. No production deployment, SQL, schedule mutation, generation, publication, or billable Supabase branch was performed.
