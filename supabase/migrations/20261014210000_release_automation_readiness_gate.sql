@@ -378,7 +378,7 @@ begin
   set automation_ready_at = coalesce(automation_ready_at, now()),
       enabled = true,
       auto_generate = true,
-      auto_publish = true,
+      auto_publish = false,
       next_release_at = coalesce(next_release_at, now()),
       updated_at = now()
   where id = v_schedule.id;
@@ -392,7 +392,8 @@ begin
         'automation_ready_at', now(),
         'automation_ready_schedule_id', v_schedule.id,
         'auto_generation_enabled', true,
-        'auto_publication_enabled', true,
+        'auto_publication_enabled', false,
+         'publication_approval_required', true,
         'readiness_pending', false
       ),
       updated_at = now()
@@ -400,6 +401,9 @@ begin
 
   return jsonb_build_object(
     'ready', true,
+    'generation_enabled', true,
+    'publication_enabled', false,
+    'publication_approval_required', true,
     'schedule_id', v_schedule.id,
     'series_id', v_schedule.series_id,
     'automation_ready_at', (select rs.automation_ready_at from public.release_schedules rs where rs.id = v_schedule.id)
