@@ -966,11 +966,14 @@ Deno.test("post-publication canon sync authenticates and verifies publication be
 Deno.test("internal metrics and publication outbox remain server-only without client policies", async () => {
   const sql = await Deno.readTextFile(serverOnlyGrantsMigrationUrl);
   for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
-    assert(sql.includes("ALTER TABLE public." + table + " ENABLE ROW LEVEL SECURITY"),
-      table + " must have row-level security enabled");
-    assert(sql.includes("REVOKE ALL PRIVILEGES ON TABLE public." + table + " FROM PUBLIC, anon, authenticated"),
-      table + " must revoke all table privileges from public and ordinary client roles");
+    assert(sql.includes("'" + table + "'"), table + " must be included in the server-only target list");
   }
+  assert(sql.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"),
+    "all existing target tables must have RLS enabled");
+  assert(sql.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"),
+    "all target tables must revoke relation-level privileges");
+  assert(sql.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"),
+    "all target tables must also revoke separately granted column privileges");
   assert(!/CREATE\s+POLICY/i.test(sql), "server-only internal tables must not receive client-facing policies");
   assert(!/GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i.test(sql),
     "server-only migration must not grant table privileges to ordinary client roles");
@@ -1080,11 +1083,13 @@ Deno.test("review workers reject malformed provider cooldown timestamps", async 
 });
 
 
-Deno.test("server-only table grant migration revokes client privileges without adding policies", async () => {
+Deno.test("server-only table grant migration revokes relation and column privileges without adding policies", async () => {
   const migration = await Deno.readTextFile(new URL("../../migrations/20261013090000_aevora_server_only_metrics_outbox_grants.sql", import.meta.url));
-  assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "migration must revoke all table privileges");
-  assert(migration.includes("public.publication_sync_outbox"), "outbox must remain server-only");
-  assert(migration.includes("public.story_attachment_metrics"), "attachment metrics must remain server-only");
+  assert(migration.includes("REVOKE ALL PRIVILEGES ON TABLE"), "migration must revoke relation-level privileges");
+  assert(migration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"),
+    "migration must revoke separately granted column privileges");
+  assert(migration.includes("'publication_sync_outbox'"), "outbox must remain server-only");
+  assert(migration.includes("'story_attachment_metrics'"), "attachment metrics must remain server-only");
   assert(migration.includes("anon, authenticated"), "both client roles must lose direct grants, alongside PUBLIC");
   assert(!/CREATE\s+POLICY/i.test(migration), "migration must not create client-facing policies");
 });
