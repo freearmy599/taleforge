@@ -19,6 +19,8 @@ const rollbackAssertions = await readFile("scripts/aevora-readiness-rollback-ass
 const migrationTestRunner = await readFile("scripts/test-aevora-readiness-migration.sh", "utf8");
 const rollbackTestRunner = await readFile("scripts/test-aevora-readiness-rollback.sh", "utf8");
 const migrationWorkflow = await readFile(".github/workflows/aevora-edge-validation.yml", "utf8");
+const concurrencyTestRunner = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
+const readerEventTestRunner = await readFile("scripts/test-aevora-reader-event-integrity.sh", "utf8");
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
   assert.match(scheduler, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
@@ -310,6 +312,12 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(migrationTestRunner, /Refusing migration rehearsal against a Supabase URL/);
   assert.match(migrationTestRunner, /aevora_readiness/);
   assert.match(migrationWorkflow, /AEVORA_DISPOSABLE_MIGRATION_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE/);
+  assert.match(concurrencyTestRunner, /AEVORA_DISPOSABLE_CONCURRENCY_REHEARSAL/);
+  assert.match(concurrencyTestRunner, /Refusing readiness concurrency rehearsal against a Supabase URL/);
+  assert.match(readerEventTestRunner, /AEVORA_DISPOSABLE_READER_EVENT_REHEARSAL/);
+  assert.match(readerEventTestRunner, /Refusing reader-event integrity rehearsal against a Supabase URL/);
+  assert.match(migrationWorkflow, /AEVORA_DISPOSABLE_CONCURRENCY_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE/);
+  assert.match(migrationWorkflow, /AEVORA_DISPOSABLE_READER_EVENT_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE/);
   assert.match(rollbackScript, /set enabled = false, auto_generate = false, auto_publish = false/);
   const failClosedCommit = rollbackScript.indexOf("commit;");
   const rollbackDdl = rollbackScript.indexOf("drop trigger if exists trg_guard_chapter_publication_lifecycle");
