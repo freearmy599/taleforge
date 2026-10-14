@@ -386,3 +386,33 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(rollbackTestRunner, /Refusing rollback rehearsal against a Supabase URL/);
   assert.match(rollbackTestRunner, /aevora_readiness/);
 });
+
+
+test("chapter revision fails closed before Gemini when provider state is unavailable, malformed, or cooling down", () => {
+  assert.match(reviseChapter, /from\("taleforge_ai_provider_state"\)/);
+  assert.match(reviseChapter, /providerStateResult\.error \|\| !providerStateResult\.data/);
+  assert.match(reviseChapter, /reason: "provider_state_unavailable"/);
+  assert.match(reviseChapter, /reason: "invalid_cooldown_timestamp"/);
+  assert.match(reviseChapter, /reason: "provider_cooldown"/);
+  assert.match(reviseChapter, /no model call was made/);
+  const stateRead = reviseChapter.indexOf('from("taleforge_ai_provider_state")');
+  const unsafeStateReturn = reviseChapter.indexOf('reason: "provider_state_unavailable"');
+  const requestParse = reviseChapter.indexOf("body = await req.json()");
+  const modelCall = reviseChapter.indexOf("await callGemini(");
+  assert.ok(stateRead >= 0 && unsafeStateReturn > stateRead,
+    "provider state must be read and validated before request processing");
+  assert.ok(requestParse > unsafeStateReturn && modelCall > requestParse,
+    "all provider-state fail-closed checks must precede the Gemini call");
+  assert.match(reviseChapter.slice(stateRead, modelCall), /Number\.isFinite\(cooldownUntil\)/);
+  assert.match(reviseChapter.slice(stateRead, modelCall), /cooldownUntil > Date\.now\(\)/);
+});
+
+test("chapter revision records Gemini 429/503 cooldowns without overwriting malformed existing cooldown state", () => {
+  assert.match(reviseChapter, /async function recordGeminiThrottle/);
+  assert.match(reviseChapter, /message\.includes\("Gemini HTTP 503"\)/);
+  assert.match(reviseChapter, /message\.includes\("Gemini HTTP 429"\)/);
+  assert.match(reviseChapter, /Existing Gemini cooldown timestamp is malformed; existing state was preserved/);
+  assert.match(reviseChapter, /if \(data\.cooldown_until && !Number\.isFinite\(existingUntil\)\)/);
+  assert.match(reviseChapter, /Math\.max\(proposedUntil, existingUntil\)/);
+  assert.match(reviseChapter, /Gemini cooldown could not be persisted/);
+});
