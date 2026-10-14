@@ -40,3 +40,15 @@ The earlier read-only check found `public.get_public_story_trending_scores()` ab
 - No production state was changed.
 - This document is an audit record, not a production fix.
 - Phase 1 remains open until code, tests, and rollout evidence close the relevant gates.
+
+
+## Latest advisor snapshot (2026-10-14 06:25 UTC)
+
+The Supabase advisors were re-run read-only after the latest branch contract changes. They do not apply fixes automatically.
+
+- **Security advisor:** 91 `rls_enabled_no_policy` findings. This is an informational lint, not 91 proven data leaks: RLS enabled without a matching policy normally denies ordinary client row access. The urgent follow-up is to pair this catalog with effective table/column grants and the intended access model, then keep server-only tables denied to `PUBLIC`, `anon`, and `authenticated`.
+- **Performance advisor:** 68 unindexed foreign-key findings, 2 RLS initialization-plan warnings, 55 unused-index notices, and 1 duplicate-index warning. Do not bulk-add or drop indexes from this report. Confirm each FK's workload and existing composite-index prefixes; unused-index evidence can be misleading on a low-traffic or recently deployed project.
+- The two RLS initialization-plan warnings are on `public.chief_editor_series_health` and `public.chief_editor_alerts`; the suggested policy expression shape is `(select auth.<function>())` rather than per-row evaluation. Prepare a narrow migration only after checking exact policy definitions and access behavior.
+- The duplicate-index warning names `idx_taleforge_memory_consolidations_series` and `idx_taleforge_memory_consolidations_series_chapter`. Despite the advisor's wording, the names suggest one may be composite; inspect full index definitions before considering removal.
+
+These counts are a point-in-time snapshot and are not Phase 1 closure evidence. No production mutation was performed.
