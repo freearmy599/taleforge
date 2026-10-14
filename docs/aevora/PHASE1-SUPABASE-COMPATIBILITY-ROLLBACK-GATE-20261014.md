@@ -174,3 +174,14 @@ This section supersedes earlier notes above that describe the rollback rehearsal
 This closes the *execution-pending portion of Gate B*: the versioned fixture's forward migration, rollback/restore, fail-closed schedule state, and associated disposable concurrency tests have executed successfully. It does **not** close Gate A or authorize deployment. The rollback restores the fixture's versioned baseline stubs and ACLs, not a proven exact snapshot of production function definitions/grants. Supabase-specific RLS/ACL/PostgREST compatibility, exact production baseline capture, deployment ordering, failed/partial production rollout recovery, and the six per-schedule dispositions remain outstanding.
 
 No production migration, Edge Function deployment, schedule mutation, generation, publication, or billable Supabase branch was performed for this verification.
+
+### Follow-up verification — quota-guard regression coverage (2026-10-14)
+
+The latest workflow run [38591144268](https://github.com/freearmy599/taleforge/actions/runs/38591144268) completed successfully on commit `2852d9980aac50cb2f85878f1fa73521e4eadd06`.
+
+- Source/type-check job: success.
+- Release-readiness contract suite: **31 passed, 0 failed**.
+- Disposable PostgreSQL migration, rollback/restore, concurrency, and reader-event integrity steps: all completed successfully.
+- New regression tests assert that `generate-chapter` quality review fails closed when Gemini provider state is missing, malformed, or in active cooldown, and that `review-orchestrator` rejects unsafe provider state before invoking review workers.
+
+This improves quota-protection regression coverage. It is source-contract evidence plus disposable integration evidence; it is not a live Gemini call test and does not verify the current production Edge Function deployment matches this branch. Production rollout remains blocked by the Supabase-specific Gate A evidence, deployment-order review, exact production rollback baseline, and per-schedule disposition work described above.
