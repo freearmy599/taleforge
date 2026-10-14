@@ -263,3 +263,7 @@ The dedicated audit `PHASE1-LIVE-INTERNAL-EDGE-AUTH-AUDIT-20261014.md` records 1
 ## Revision-successor migration preflight blocker — 2026-10-14
 
 A read-only aggregate preflight for `20261013140000_aevora_revision_successor_idempotency.sql` found one parent-output group with multiple approved successors; there are no groups with multiple published successors. The migration is designed to abort on multiple approved successors, so it is **not currently safe to apply**. Its ranking/update step would otherwise change two rows' statuses to rejected. The unique index is not present in production. No output IDs, chapter content, or row payloads were queried, and no data was modified. Manual editorial review must identify the intended approved successor before the migration can be re-preflighted; do not bypass the migration's abort guard or auto-select a winner.
+
+## Provider-state migration preflight — 2026-10-14
+
+A read-only aggregate check found one Gemini provider-state row with a diagnostic that the prepared `20261013120000_lock_ai_provider_state_table.sql` would redact; one Gemini row currently has an active cooldown. The migration changes diagnostic text and client grants, but does not clear or shorten the cooldown. No diagnostic contents were queried, no provider state was changed, and no generation/review call was triggered. Preserve the active cooldown during any later approved migration.
