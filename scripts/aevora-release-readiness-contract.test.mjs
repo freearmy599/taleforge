@@ -141,6 +141,11 @@ test("readiness fixture preserves the production unique schedule invariant befor
   assert.match(migrationAssertions, /alter table public\.release_schedules drop constraint release_schedules_series_id_key/i);
 });
 
+test("new SECURITY DEFINER trigger functions are not directly executable by API roles", () => {
+  assert.match(migration, /revoke all on function public\.taleforge_protect_release_automation_readiness\(\) from public, anon, authenticated, service_role/i);
+  assert.match(migration, /revoke all on function public\.taleforge_revoke_ambiguous_release_schedules\(\) from public, anon, authenticated, service_role/i);
+});
+
 test("ready schedules cannot be reassigned and duplicate schedules revoke readiness", () => {
   assert.match(migration, /ready or automatic release schedules cannot be reassigned to another series/i);
   assert.match(migration, /before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public\.release_schedules/i);
