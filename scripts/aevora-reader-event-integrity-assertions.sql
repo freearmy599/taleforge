@@ -167,7 +167,27 @@ VALUES ('visitor-completed-0001','chapter_complete',
         '00000000-0000-0000-0000-000000000104',
         '00000000-0000-0000-0000-000000000141');
 
+-- A client-supplied future timestamp must be replaced by statement time.
+INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,event_uuid,created_at)
+VALUES ('visitor-timestamp-0001','story_open',
+        '00000000-0000-0000-0000-000000000101',NULL,
+        '10000000-0000-0000-0000-000000000002','2099-01-01 00:00:00+00');
+
 RESET ROLE;
+DO $server_timestamp_assert$
+DECLARE v_created_at timestamptz;
+BEGIN
+  SELECT created_at INTO v_created_at
+  FROM public.reader_events
+  WHERE event_uuid = '10000000-0000-0000-0000-000000000002';
+  IF v_created_at IS NULL
+     OR v_created_at > statement_timestamp() + interval '1 second'
+     OR v_created_at < statement_timestamp() - interval '1 minute' THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: client timestamp was not replaced with server statement time';
+  END IF;
+END;
+$server_timestamp_assert$;
+
 SET ROLE authenticated;
 INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id)
 VALUES ('visitor-valid-auth-0001','chapter_start',
@@ -180,8 +200,8 @@ DECLARE
   v_count bigint;
 BEGIN
   SELECT count(*) INTO v_count FROM public.reader_events;
-  IF v_count <> 4 THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: expected four accepted events, found %', v_count;
+  IF v_count <> 5 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: expected five accepted events, found %', v_count;
   END IF;
   IF has_table_privilege('anon','public.reader_events','SELECT')
      OR has_table_privilege('authenticated','public.reader_events','SELECT') THEN
