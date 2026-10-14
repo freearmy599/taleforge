@@ -279,7 +279,7 @@ test("review orchestrator fails closed before any reviewer call when provider st
     "provider-state guard must execute before request-driven review orchestration");
   const guardBlock = reviewOrchestrator.slice(providerGuard, requestParsing);
   assert.match(guardBlock, /providerStateError \|\| !providerState/);
-  assert.match(guardBlock, /Number\.isFinite\(new Date\(providerState\?\.cooldown_until\)\.getTime\(\)\)/);
+  assert.match(guardBlock, /Number\.isFinite\(new Date\(providerState\.cooldown_until\)\.getTime\(\)\)/);
   assert.match(guardBlock, /reason: "provider_state_unavailable"/);
   assert.match(guardBlock, /reason: "provider_cooldown"/);
   assert.match(guardBlock, /return json\([\s\S]*?503\)/);
