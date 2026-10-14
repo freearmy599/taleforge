@@ -98,6 +98,8 @@ A static call-site scan of the current branch found no direct Supabase `.from(..
  
 The read-only routine-definition scan found one stored `SECURITY DEFINER` verifier, `taleforge_verify_reader_progress()`, that reads `reading_history`; other name matches were not direct table reads/writes under the catalog query. The proposed migration leaves all tables, triggers, foreign keys, and routines in place and revokes only direct client table privileges, so this stored verifier remains a dependency to preserve and regression-test.
  
+The relation ACL catalog also shows explicit `service_role` table privileges on all 11, separate from the client-role entries. The prepared lock migration revokes only `PUBLIC`, `anon`, and `authenticated`; it does not revoke the trusted `service_role` grants.
+ 
 For these tables, no-policy RLS ordinarily denies row operations, so this is not evidence that reader data is currently exposed. However, the granted privilege set also includes `TRUNCATE`, `TRIGGER`, and `REFERENCES`, which are not normal reader-client needs and are not constrained by row policies in the same way as SELECT/INSERT/UPDATE/DELETE. A branch-only migration, `supabase/migrations/20261014100000_lock_unwired_reader_feature_tables.sql`, now enables RLS and revokes relation-level and explicit column-level client privileges on these 11 tables without adding policies or deleting tables/data. This is a conservative containment proposal based on the call-site scan; it remains subject to checking migration/RPC/trigger dependencies and any separately deployed clients. It has not been applied to production. If these features are wired later, add a specific access contract and owner-isolation tests before granting any access.
 
 
