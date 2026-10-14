@@ -18,6 +18,28 @@ begin
 end;
 $$;
 
+-- The schedule table is an internal control-plane surface: API client
+-- grants are removed, while the trusted service role keeps its worker access.
+do $release_schedule_acl_assert$
+begin
+  if has_table_privilege('anon', 'public.release_schedules', 'select')
+     or has_table_privilege('anon', 'public.release_schedules', 'insert')
+     or has_table_privilege('anon', 'public.release_schedules', 'update')
+     or has_table_privilege('anon', 'public.release_schedules', 'delete')
+     or has_table_privilege('authenticated', 'public.release_schedules', 'select')
+     or has_table_privilege('authenticated', 'public.release_schedules', 'insert')
+     or has_table_privilege('authenticated', 'public.release_schedules', 'update')
+     or has_table_privilege('authenticated', 'public.release_schedules', 'delete') then
+    raise exception 'ASSERTION_FAILED: release_schedules retains client API table grants';
+  end if;
+  if not has_table_privilege('service_role', 'public.release_schedules', 'select')
+     or not has_table_privilege('service_role', 'public.release_schedules', 'update')
+     or not has_table_privilege('service_role', 'public.release_schedules', 'insert') then
+    raise exception 'ASSERTION_FAILED: trusted service_role schedule access was removed';
+  end if;
+end;
+$release_schedule_acl_assert$;
+
 do $enabled_unready_assert$
 begin
   if exists (
