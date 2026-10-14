@@ -81,6 +81,12 @@ test("runner does not return raw internal exception messages", () => {
   assert.doesNotMatch(runner, /function errText\(e: unknown\) \{ return e instanceof Error \? e\.message/);
 });
 
+test("autonomous creation policy caps are serialized for the full creation transaction", () => {
+  assert.match(migration, /create or replace function public\.taleforge_check_autonomous_creation_gate\(\s*p_opportunity_id uuid,\s*p_concept_overall_score numeric default null\)[\s\S]*?from public\.taleforge_autonomous_creation_policy\s+where policy_key = 'production'\s+for update/i);
+  assert.match(migration, /revoke all on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) from public, anon, authenticated/i);
+  assert.match(migration, /grant execute on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) to service_role/i);
+});
+
 test("database readiness RPC is service-role-only and verifies bootstrap evidence", () => {
   assert.match(migration, /add column if not exists automation_ready_at timestamptz/i);
   assert.match(migration, /create table if not exists public\.taleforge_release_readiness_authorizations[\s\S]*?primary key \(transaction_id, schedule_id\)/i);
