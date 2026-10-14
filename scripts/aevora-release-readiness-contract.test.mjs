@@ -140,11 +140,11 @@ test("generation readiness never authorizes automatic publication", () => {
   const rpcStart = migration.indexOf("create or replace function public.taleforge_mark_release_automation_ready");
   const rpcEnd = migration.indexOf("revoke all on function public.taleforge_mark_release_automation_ready", rpcStart);
   const readinessRpc = migration.slice(rpcStart, rpcEnd);
-  assert.match(readinessRpc, /auto_generate = true,[\\s\\S]*?auto_publish = false,/,
+  assert.match(readinessRpc, /auto_generate = true,[\s\S]*?auto_publish = false,/,
     "generation readiness may enable generation but must leave publication disabled");
-  assert.match(readinessRpc, /'auto_publication_enabled', false,[\\s\\S]*?'publication_approval_required', true/,
+  assert.match(readinessRpc, /'auto_publication_enabled', false,[\s\S]*?'publication_approval_required', true/,
     "the audit snapshot must explicitly record that publication approval is still required");
-  assert.match(readinessRpc, /'publication_enabled', false,[\\s\\S]*?'publication_approval_required', true/,
+  assert.match(readinessRpc, /'publication_enabled', false,[\s\S]*?'publication_approval_required', true/,
     "the RPC response must clearly separate generation readiness from publication authorization");
   assert.doesNotMatch(readinessRpc, /auto_publish = true/,
     "generation readiness must never enable auto-publication as a side effect");
