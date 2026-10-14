@@ -342,4 +342,43 @@ $function$;
 revoke all on function public.taleforge_mark_release_automation_ready(uuid) from public, anon, authenticated;
 grant execute on function public.taleforge_mark_release_automation_ready(uuid) to service_role;
 
+
+-- Close the final status-check race at the database publication boundary.
+-- Locking the parent series serializes chapter publication with completion:
+-- whichever transaction acquires the series row first determines the order.
+create or replace function public.taleforge_guard_chapter_publication_lifecycle()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_series_status text;
+begin
+  if new.status <> 'published'
+     or (tg_op = 'UPDATE' and old.status is not distinct from new.status) then
+    return new;
+  end if;
+
+  select s.status into v_series_status
+  from public.series s
+  where s.id = new.series_id
+  for update;
+
+  if not found or v_series_status <> 'ongoing' then
+    raise exception 'series must be ongoing before chapter publication';
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.taleforge_guard_chapter_publication_lifecycle() from public, anon, authenticated, service_role;
+
+drop trigger if exists trg_guard_chapter_publication_lifecycle on public.chapters;
+create trigger trg_guard_chapter_publication_lifecycle
+before insert or update of status on public.chapters
+for each row
+execute function public.taleforge_guard_chapter_publication_lifecycle();
+
 commit;
