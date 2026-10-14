@@ -185,3 +185,16 @@ The latest workflow run [38591144268](https://github.com/freearmy599/taleforge/a
 - New regression tests assert that `generate-chapter` quality review fails closed when Gemini provider state is missing, malformed, or in active cooldown, and that `review-orchestrator` rejects unsafe provider state before invoking review workers.
 
 This improves quota-protection regression coverage. It is source-contract evidence plus disposable integration evidence; it is not a live Gemini call test and does not verify the current production Edge Function deployment matches this branch. Production rollout remains blocked by the Supabase-specific Gate A evidence, deployment-order review, exact production rollback baseline, and per-schedule disposition work described above.
+
+### Follow-up verification — revision-worker quota guard (2026-10-14)
+
+Workflow [38592755535](https://github.com/freearmy599/taleforge/actions/runs/38592755535) passed on commit `6487b30c65fbb837f05454885aa4fc6d1b0e9dce`.
+
+- Source/type-check job: **success**.
+- Release-readiness contract suite: **32 passed, 0 failed**.
+- Disposable PostgreSQL migration, rollback/restore, concurrency, and reader-event integrity job: **success**.
+- Added a regression contract proving `revise-chapter` rejects missing/error provider state, malformed cooldown timestamps, and active cooldown before request processing and Gemini revision calls.
+
+This is static source-contract evidence plus disposable PostgreSQL integration evidence. It does not exercise a live Gemini request or prove the deployed production function is the same version as the branch. One residual operational risk remains: if a Gemini throttle response occurs but persisting the shared cooldown itself fails, this invocation stops, but future invocations may not observe a newly recorded cooldown. This must be addressed or explicitly accepted in the provider-state failure policy before quota-protection is treated as fully closed.
+
+Production rollout remains blocked by Gate A Supabase-specific ACL/RLS evidence, exact production rollback baseline and deployment ordering, and auditable disposition of the six legacy schedules. No production change, deployment, schedule mutation, generation, publication, or billable Supabase branch was performed.
