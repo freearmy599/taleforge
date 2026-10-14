@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
+import { isAutomationReady } from "../release-scheduler/readiness.ts";
 
 const MODEL="gemini-3.5-flash-lite";
 const QUALITY_VERSION="quality-v8-short-overload-cooldown";
@@ -66,6 +67,18 @@ const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",
 if(be||!b)return reply({success:false,error:"Blueprint could not be loaded."},404);
 const {data:s,error:se}=await db.from("series").select("id,title,subtitle,description,mood,intensity,age_rating,status").eq("id",b.series_id).single();
 if(se||!s)return reply({success:false,error:"Series could not be loaded."},404);
+
+// Direct trusted calls must not bypass the schedule-level generation gate.
+const {data:automaticSchedules,error:automaticScheduleError}=await db.from("release_schedules")
+  .select("id,enabled,auto_generate,automation_ready_at,schedule_mode")
+  .eq("series_id",b.series_id).eq("auto_generate",true).order("id",{ascending:true}).limit(2);
+if(automaticScheduleError)return reply({success:false,retryable:true,error:"Could not verify scheduled generation readiness."},503);
+if((automaticSchedules??[]).length>0){
+  if(automaticSchedules.length!==1)return reply({success:false,error:"Automatic generation schedule is ambiguous."},409);
+  const automaticSchedule=automaticSchedules[0];
+  if(automaticSchedule.enabled!==true||automaticSchedule.schedule_mode==="manual"||!isAutomationReady(automaticSchedule.automation_ready_at))
+    return reply({success:false,blocked:true,retryable:false,error:"Scheduled generation is not ready; no chapter generation was attempted."},423);
+}
 const {data:contextResult,error:contextError}=await db.rpc("taleforge_build_generation_context",{p_blueprint_id:b.id});
 if(contextError||!contextResult?.context)return reply({success:false,error:"Generation context could not be verified."},500);
 const generationContext=contextResult.context;
