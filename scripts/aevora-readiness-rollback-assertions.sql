@@ -33,10 +33,10 @@ begin
   if exists (
     select 1 from pg_catalog.pg_proc p
     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
-    cross join lateral unnest(coalesce(p.proconfig, array[]::text[])) cfg
+    cross join lateral unnest(coalesce(p.proconfig, array[]::text[])) as cfg(setting)
     where n.nspname = 'public'
       and p.proname in ('taleforge_enroll_series_in_production', 'taleforge_check_autonomous_creation_gate')
-      and cfg like 'search_path=%'
+      and cfg.setting like 'search_path=%'
   ) then
     raise exception 'ASSERTION_FAILED: fixture baseline function search_path setting was not restored';
   end if;
