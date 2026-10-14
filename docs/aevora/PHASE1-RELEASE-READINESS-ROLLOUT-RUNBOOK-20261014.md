@@ -28,7 +28,7 @@ Consequences:
 
 - The readiness migration's fail-closed cleanup disables automatic flags for all six existing schedules because they have no readiness marker. The enrollment trigger also disables all schedules when the series is not `ongoing` or has duplicate schedule rows; the readiness RPC refuses any series that does not have exactly one schedule.
 - The autonomous-only readiness RPC cannot activate these six schedules; that is intentional, not a transient error.
-- A separate auditable approval mechanism for non-autonomous schedules is not implemented. Until such a path is designed, reviewed, and explicitly used, these six schedules must remain paused/manual-only after the migration.
+- A separate auditable approval mechanism for non-autonomous schedules is not implemented. Until such a path is designed, reviewed, and explicitly used, these six schedules must remain paused after migration. The migration deliberately preserves their existing `schedule_mode`; a manual workflow requires an explicit reviewed conversion to `manual` mode and a verified authorized caller path, not an assumption that clearing automatic flags makes an interval schedule manually usable.
 - Do not silently classify them as autonomous, fabricate creation-run evidence, or bulk-mark them ready. Before rollout, the product owner must accept this generation pause or approve a separate per-series approval design.
 
 ## Critical deployment-order hazard
