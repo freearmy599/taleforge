@@ -82,7 +82,7 @@ if((seriesSchedules??[]).length>1||(isAutonomousSeries&&(seriesSchedules??[]).le
   return reply({success:false,blocked:true,retryable:false,error:"Series automation schedule is missing or ambiguous."},409);
 if((seriesSchedules??[]).length===1){
   const schedule=seriesSchedules[0];
-  const requiresAutomation=isAutonomousSeries||schedule.schedule_mode!=="manual";
+  const requiresAutomation=isAutonomousSeries||schedule.schedule_mode!=="manual"||schedule.auto_generate===true;
   if(requiresAutomation&&(s.status!=="ongoing"||schedule.enabled!==true||schedule.auto_generate!==true||!isAutomationReady(schedule.automation_ready_at)))
     return reply({success:false,blocked:true,retryable:false,error:"Scheduled generation is not ready; no chapter generation was attempted."},423);
 }
