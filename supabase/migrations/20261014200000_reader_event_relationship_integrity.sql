@@ -11,14 +11,12 @@ TO anon, authenticated
 WITH CHECK (
   visitor_id IS NOT NULL
   AND length(visitor_id) BETWEEN 16 AND 100
-  AND (
-    series_id IS NULL
-    OR EXISTS (
-      SELECT 1
-      FROM public.series AS s
-      WHERE s.id = reader_events.series_id
-        AND s.status IN ('ongoing', 'completed')
-    )
+  AND series_id IS NOT NULL
+  AND EXISTS (
+    SELECT 1
+    FROM public.series AS s
+    WHERE s.id = reader_events.series_id
+      AND s.status IN ('ongoing', 'completed')
   )
   AND (
     chapter_id IS NULL
