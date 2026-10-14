@@ -157,3 +157,57 @@ Required next branch-only step:
 5. Repeat the same exercise for the 35 other client-write-granted base tables; those include intended reader/content surfaces mixed with internal controls, so they cannot be blanket-revoked without feature compatibility checks.
 
 No production table, policy, grant, view, function, schema setting, or data was changed during this audit. Phase 1 remains open.
+
+
+## Explicit table-by-table coverage checkpoint (read-only, 2026-10-14)
+
+Cross-checking the live list of 68 `taleforge_*` base tables with effective client write grants and no client write policy against the existing branch migration arrays found:
+
+- **27 of 68** are covered by one of the current internal-lock candidates: `20261013103000_lock_internal_narrative_intelligence_tables.sql`, `20261013130000_lock_internal_policyless_tables.sql`, or `20261013120000_lock_ai_provider_state_table.sql`.
+- **41 of 68 remain uncovered by those table-lock lists**. This is a migration coverage gap, not proof that each table should be locked without further usage review.
+
+Uncovered table names from the live metadata inventory:
+
+- `taleforge_advanced_chapter_plans`
+- `taleforge_character_architecture`
+- `taleforge_ending_architecture`
+- `taleforge_genre_grammars`
+- `taleforge_genre_inversion_patterns`
+- `taleforge_genre_taxonomy`
+- `taleforge_grammar_compatibility`
+- `taleforge_hybrid_story_recipes`
+- `taleforge_hybrid_story_recipes_generated`
+- `taleforge_narrative_arc_layers`
+- `taleforge_narrative_culture_profiles`
+- `taleforge_narrative_memory_consolidations`
+- `taleforge_narrative_modes`
+- `taleforge_series_genre_grammar_profiles`
+- `taleforge_series_genre_profiles`
+- `taleforge_series_narrative_profiles`
+- `taleforge_series_subgenre_profiles`
+- `taleforge_story_concept_arc_characters`
+- `taleforge_story_concept_arc_endings`
+- `taleforge_story_concept_arc_relationships`
+- `taleforge_story_concept_arc_threads`
+- `taleforge_story_concept_arc_world_functions`
+- `taleforge_story_concept_arcs`
+- `taleforge_story_concept_candidates`
+- `taleforge_story_concept_character_causality`
+- `taleforge_story_concept_characters`
+- `taleforge_story_concept_evaluations`
+- `taleforge_story_concept_faction_causality`
+- `taleforge_story_concept_factions`
+- `taleforge_story_concept_relationships`
+- `taleforge_story_concept_state_transitions`
+- `taleforge_story_concept_world_dependencies`
+- `taleforge_story_concept_world_links`
+- `taleforge_story_concept_world_rules`
+- `taleforge_story_concept_world_state_models`
+- `taleforge_story_concept_world_state_transitions`
+- `taleforge_story_concept_worlds`
+- `taleforge_story_opportunities`
+- `taleforge_story_specific_depth_designs`
+- `taleforge_story_trope_library`
+- `taleforge_subgenre_intelligence`
+
+Next, trace each uncovered table through application/Edge Function references and classify it as internal-only, intentional public read model, or feature requiring a future owner-scoped API. For confirmed internal-only tables, add them to a separately reviewed explicit migration list and regression contract. Do not automatically lock `taleforge_genre_taxonomy`, trope-library, or genre-profile tables until their reader-facing use has been ruled out. No production changes were made.
