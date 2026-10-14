@@ -48,6 +48,8 @@ begin
 end;
 $function$;
 
+revoke all on function public.taleforge_revoke_ambiguous_release_schedules() from public, anon, authenticated, service_role;
+
 drop trigger if exists trg_revoke_ambiguous_release_schedules on public.release_schedules;
 create trigger trg_revoke_ambiguous_release_schedules
 after insert or update of series_id on public.release_schedules
@@ -96,6 +98,8 @@ begin
   return new;
 end;
 $function$;
+
+revoke all on function public.taleforge_protect_release_automation_readiness() from public, anon, authenticated, service_role;
 
 drop trigger if exists trg_protect_release_automation_readiness on public.release_schedules;
 create trigger trg_protect_release_automation_readiness
