@@ -37,7 +37,7 @@ test("publisher independently checks non-manual schedule readiness", () => {
 
 test("direct generation cannot bypass unready or missing autonomous schedules", () => {
   assert.match(generator, /taleforge_autonomous_series_creation_runs/);
-  assert.match(generator, /isAutonomousSeries\s*&&\s*\(seriesSchedules\?\?\)\.length\s*!==\s*1/);
+  assert.match(generator, /isAutonomousSeries\s*&&\s*\(seriesSchedules\?\?\[\]\)\.length\s*!==\s*1/);
   assert.match(generator, /schedule\.auto_generate!==true/);
   assert.match(generator, /isAutomationReady\(schedule\.automation_ready_at\)/);
   assert.match(generator, /Scheduled generation is not ready/);
