@@ -103,3 +103,18 @@ These are advisory inventory results only. No policies or indexes were changed; 
 ### Evidence boundary
 
 The direct SQL catalog check remains blocked, so exact table/column grants, function security modes, and EXECUTE privileges are still unverified. Advisor results do not close Gate A. The inspected CI workflow confirms successful forward migration replay, runtime assertions, concurrency checks, and reader-event integrity/grant tests; the visible workflow steps do not establish a dedicated rollback-and-restore rehearsal. Gate B therefore remains open.
+
+## Candidate migration rollback inventory (read-only source review, 2026-10-14)
+
+The candidate migration was inspected at `supabase/migrations/20261014210000_release_automation_readiness_gate.sql` (blob `536e0b20c28000890641df23cb34b8653f728862`). This is a source inventory, not proof of rollback.
+
+A rollback rehearsal must account for more than dropping `automation_ready_at`:
+
+- **Schema:** `release_schedules.automation_ready_at`, partial index `release_schedules_ready_due_idx`, and private table `taleforge_release_readiness_authorizations` (including its RLS state and grants).
+- **Replaced functions:** `taleforge_enroll_series_in_production()` and `taleforge_check_autonomous_creation_gate(...)` must be restored to their exact pre-migration definitions, not merely dropped.
+- **Candidate functions:** `taleforge_lock_release_schedule_parent()`, `taleforge_revoke_ambiguous_release_schedules()`, `taleforge_protect_release_automation_readiness()`, `taleforge_mark_release_automation_ready(uuid)`, and `taleforge_guard_chapter_publication_lifecycle()` need a deliberate restore/drop disposition.
+- **Triggers:** `trg_lock_release_schedule_parent`, `trg_revoke_ambiguous_release_schedules`, `trg_protect_release_automation_readiness`, and `trg_guard_chapter_publication_lifecycle` must be reconciled with the exact pre-migration trigger set and definitions.
+- **Privileges:** restore the pre-migration table/column grants and function EXECUTE grants from a versioned baseline, then assert them as `PUBLIC`, `anon`, `authenticated`, and `service_role`. Do not assume the disposable fixture's grants are identical to production.
+- **Data effects:** the migration intentionally disables existing unready schedules and may clear readiness/automation state through triggers. Dropping the new column cannot recover the prior values; tests must prove the rollback policy keeps schedules safely disabled unless the prior state is independently evidenced.
+
+The migration fixture provides a minimal pre-candidate schema and an enrollment-trigger stub for disposable tests, but it is not a captured production baseline. The current migration-assertion and concurrency scripts are forward-path tests. Until a separate rollback/restore script captures and compares pre/post schema, trigger definitions, grants, and safety flags on a disposable database, **Gate B remains blocked**. No production rollback or state change was attempted.
