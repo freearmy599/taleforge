@@ -18,6 +18,39 @@ begin
 end;
 $$;
 
+-- The transaction authorization table must be RLS-enabled and inaccessible
+-- to client/service API roles; the SECURITY DEFINER functions own access.
+do $authorization_acl_assert$
+declare
+  v_rls boolean;
+begin
+  select c.relrowsecurity into v_rls
+  from pg_catalog.pg_class c
+  where c.oid = 'public.taleforge_release_readiness_authorizations'::regclass;
+
+  if v_rls is distinct from true then
+    raise exception 'ASSERTION_FAILED: readiness authorization table does not have RLS enabled';
+  end if;
+
+  if pg_catalog.has_table_privilege('anon', 'public.taleforge_release_readiness_authorizations', 'select')
+     or pg_catalog.has_table_privilege('anon', 'public.taleforge_release_readiness_authorizations', 'insert')
+     or pg_catalog.has_table_privilege('authenticated', 'public.taleforge_release_readiness_authorizations', 'select')
+     or pg_catalog.has_table_privilege('authenticated', 'public.taleforge_release_readiness_authorizations', 'insert')
+     or pg_catalog.has_table_privilege('service_role', 'public.taleforge_release_readiness_authorizations', 'select')
+     or pg_catalog.has_table_privilege('service_role', 'public.taleforge_release_readiness_authorizations', 'insert') then
+    raise exception 'ASSERTION_FAILED: readiness authorization table has API-role privileges';
+  end if;
+
+  if exists (
+    select 1 from pg_catalog.pg_policies
+    where schemaname = 'public'
+      and tablename = 'taleforge_release_readiness_authorizations'
+  ) then
+    raise exception 'ASSERTION_FAILED: readiness authorization table has an unexpected policy';
+  end if;
+end;
+$authorization_acl_assert$;
+
 -- An old service-role runner cannot re-enable an unready interval schedule.
 do $$
 begin
