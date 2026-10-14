@@ -145,3 +145,6 @@ A second review found that replacing the fixture's autonomous-creation gate func
 The readiness contract test now checks that the forward test runner includes both rollback steps, that rollback retains fail-closed schedule state, and that the standalone runner requires explicit opt-in, rejects Supabase URLs, and requires an aevora_readiness database identifier.
 
 These are source-level regression checks. They do not substitute for actually running PostgreSQL. The branch's latest inspected commit still has no reported CI status; Gate B remains open pending an actual run and log review.
+
+
+A further failure-mode review moved the schedule shutdown into its own committed transaction before rollback DDL begins. This is important because a DDL/ACL rollback error must not roll back the fail-closed schedule shutdown. The contract test now asserts this ordering. This remains source-reviewed only until disposable PostgreSQL CI executes the complete path.
