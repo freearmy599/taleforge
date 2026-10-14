@@ -56,3 +56,27 @@ for (const [name, version] of functions) {
     }
   });
 }
+
+const orchestrator = await readFile(
+  new URL("../supabase/functions/review-orchestrator/index.ts", import.meta.url),
+  "utf8",
+);
+
+test("review orchestrator blocks all review calls when provider state is unavailable, malformed, or cooling down", () => {
+  assert.ok(orchestrator.includes('const VERSION = "review-orchestrator-v4-fail-closed-provider-state"'));
+  assert.ok(orchestrator.includes('.from("taleforge_ai_provider_state")'));
+  assert.ok(orchestrator.includes('if (providerStateError || !providerState)'));
+  assert.ok(orchestrator.includes('reason: "provider_state_unavailable"'));
+  assert.ok(orchestrator.includes('new Date(providerState.cooldown_until).getTime()'));
+  assert.ok(orchestrator.includes('reason: "provider_cooldown"'));
+  assert.ok(orchestrator.includes('reason: "provider_state_unavailable"'));
+  assert.ok(orchestrator.includes("no review model calls were made"));
+  assert.ok(orchestrator.includes("no review model calls were made."));
+  const guardStart = orchestrator.indexOf('.from("taleforge_ai_provider_state")');
+  const requestParse = orchestrator.indexOf("let body: unknown;");
+  const reviewCalls = orchestrator.indexOf("for (const output of outputs ?? [])");
+  assert.ok(guardStart >= 0 && requestParse > guardStart && reviewCalls > requestParse,
+    "provider-state and cooldown gates must run before request processing and review orchestration");
+  assert.ok(orchestrator.includes("if (providerThrottleObserved)"),
+    "a provider throttle observed mid-run must stop further review model calls");
+});
