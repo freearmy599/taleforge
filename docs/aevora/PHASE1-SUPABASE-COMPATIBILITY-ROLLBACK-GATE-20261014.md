@@ -151,3 +151,7 @@ A further failure-mode review moved the schedule shutdown into its own committed
 
 
 The rollback assertions were extended to check the fixture baseline functions' SECURITY DEFINER and search_path attributes, not just their bodies and execute grants. This closes another class of rollback drift in the test fixture; PostgreSQL execution is still required to validate the catalog assertions.
+
+### Disposable-target guard follow-up (2026-10-14)
+
+The CI-invoked migration-and-rollback runner now requires the explicit marker `AEVORA_DISPOSABLE_MIGRATION_REHEARSAL=I_UNDERSTAND_THIS_IS_DISPOSABLE`, rejects Supabase-hosted URLs, and requires the database URL to identify an `aevora_readiness` disposable database. The workflow supplies the marker only for its local PostgreSQL 17 service. A source-contract test checks both the guard and workflow opt-in. This reduces accidental execution against a live database but is not a substitute for actual CI execution; the latest commit has no visible reported workflow/status result, so the PostgreSQL rehearsal remains unverified.
