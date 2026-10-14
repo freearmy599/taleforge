@@ -109,6 +109,13 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
     "existing schedules must not be blindly backfilled as ready");
 });
 
+test("readiness RPC rejects unsafe cadence and incomplete weekly due-time configuration", () => {
+  assert.match(migration, /v_schedule\.interval_hours > 168/i);
+  assert.match(migration, /v_schedule\.chapters_ahead > 12/i);
+  assert.match(migration, /v_schedule\.next_release_at is null/i);
+  assert.match(migrationAssertions, /weekly schedule without next_release_at was activated/i);
+});
+
 test("readiness migration preserves the live enrollment interval default", () => {
   assert.match(migration, /new\.id, false, 'interval', 8, 'UTC'/i);
 });
