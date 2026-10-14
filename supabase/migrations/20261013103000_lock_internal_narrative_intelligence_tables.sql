@@ -31,3 +31,45 @@ REVOKE ALL PRIVILEGES ON TABLE
   public.taleforge_system_health,
   public.taleforge_system_registry
 FROM PUBLIC, anon, authenticated;
+
+-- Relation-level REVOKE does not clear separately granted column privileges.
+DO $$
+DECLARE
+  table_name text;
+  column_list text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'character_continuity_events',
+    'world_continuity_events',
+    'taleforge_continuity_reconciliation_findings',
+    'taleforge_continuity_reconciliation_runs',
+    'taleforge_narrative_depth_plans',
+    'taleforge_narrative_memory_snapshots',
+    'taleforge_narrative_thread_events',
+    'taleforge_narrative_thread_progression',
+    'taleforge_narrative_threads',
+    'taleforge_novelty_evaluations',
+    'taleforge_system_dependencies',
+    'taleforge_system_health',
+    'taleforge_system_registry'
+  ]
+  LOOP
+    IF to_regclass(format('public.%I', table_name)) IS NOT NULL THEN
+      SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum)
+        INTO column_list
+      FROM pg_attribute
+      WHERE attrelid = to_regclass(format('public.%I', table_name))
+        AND attnum > 0
+        AND NOT attisdropped;
+
+      IF column_list IS NOT NULL THEN
+        EXECUTE format(
+          'REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated',
+          column_list,
+          table_name
+        );
+      END IF;
+    END IF;
+  END LOOP;
+END
+$$;
