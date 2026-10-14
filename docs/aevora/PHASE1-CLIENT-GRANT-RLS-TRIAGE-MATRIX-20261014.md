@@ -94,6 +94,8 @@ A fresh read-only metadata query confirmed that all 11 reader-feature candidates
 - `recommendations`
 - `story_reports`
 
+A static call-site scan of the current branch found no direct Supabase `.from(...)` or `.rpc(...)` calls targeting these 11 table names in the 15 top-level browser HTML/JS files or the 28 Edge Function TypeScript sources. The current `reading-progress.js` instead stores follows, bookmarks, and reading history in browser-local storage. This is evidence that the tables may be legacy or not wired into the current UI, **not** proof they are safe to drop: catalog metadata still shows foreign keys on all 11 tables and timestamp triggers on `collections`, `comments`, `profiles`, and `ratings`. A broader migration/RPC/deployment dependency review is still required before classifying any as unused.
+ 
 For these tables, no-policy RLS ordinarily denies row operations, so this is not evidence that reader data is currently exposed. However, the granted privilege set also includes `TRUNCATE`, `TRIGGER`, and `REFERENCES`, which are not normal reader-client needs and are not constrained by row policies in the same way as SELECT/INSERT/UPDATE/DELETE. Do not revoke all client grants indiscriminately because the application may require normal CRUD on selected tables once correct policies exist. The next safe step is to inspect repository client call sites and migrations, define per-table intended behavior, then prepare narrowly scoped policies and privilege revokes with owner-isolation tests. No live write/probe or production permission change was performed.
 
 
