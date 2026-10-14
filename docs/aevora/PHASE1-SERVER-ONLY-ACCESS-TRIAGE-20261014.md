@@ -2,26 +2,29 @@
 Date: 2026-10-14
 Status: read-only production inspection; remediation plan only. No production privileges, policies, schema, schedules, or data were changed.
 
-## Newly confirmed highest-priority exposure candidate
+## Newly confirmed public-view and underlying-policy review
 
-A broader read-only privilege inventory found **120 public tables with grants to `anon` and/or `authenticated`**, with 756 grant rows per role across the inspected result and 1,272 grants for elevated operations (INSERT/UPDATE/DELETE/TRUNCATE/TRIGGER/REFERENCES). This is a schema-wide least-privilege problem and cannot be safely solved by blanket revocation until tables are classified.
+A broad read-only inventory found **120 public-schema relations (tables and views combined) with grants to `anon` and/or `authenticated`**. The aggregate grant counts include view grants and must not be interpreted as 120 exposed base tables or 120 confirmed vulnerabilities. Each relation needs classification by object type, view security mode, underlying tables, and RLS policy.
 
-Three tables stand out as urgent because RLS is disabled while both client roles have full table privileges and there are no policies:
+Three names that initially appeared to have RLS disabled are actually **views** with `security_invoker=true`, not base tables:
 - `public.story_intelligence`
 - `public.story_trending_scores`
 - `public.taleforge_system_health_snapshot`
 
-For all three tables, the database reports both `anon` and `authenticated` with SELECT, INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES. With RLS disabled, these grants are materially more concerning than the policyless-but-RLS-enabled tables. The health snapshot contains internal system registry/health fields, blocking reasons, and a JSONB evidence field, so it deserves priority containment review. If the `public` schema is exposed through PostgREST (common but not confirmed in this audit), these privileges may allow unauthenticated reads and writes through the API. Actual API reachability and any additional platform protections remain unverified; treat this as a **potential critical exposure requiring prompt owner-led containment review**, not as a confirmed exploit. Column metadata indicates the discovery tables hold series metadata plus aggregate metrics such as trending score, views/opens, completions, follows/bookmarks, publication timing, and update activity. Even if those aggregates are intentionally reader-visible, direct client INSERT/UPDATE/DELETE/TRUNCATE privileges could permit discovery/ranking manipulation if API-reachable; the likely safer design is read-only access through a narrowly scoped view or RPC, with writes reserved for trusted workers.
+The first two are discovery views over published series/chapters and reader-event aggregates. Their `relrowsecurity=false` is expected for views; because they are security-invoker views, access to underlying rows is governed by the caller's privileges and RLS policies. Their view grants alone do not prove the underlying data is writable or bypasses RLS. Treat them as intentional public-discovery candidates pending API exposure and view-column review, not confirmed vulnerabilities.
 
-No matching branch migration filename was found for locking these two tables. The deployed migration inventory also ends at version `20261010161919` (`aevora_release_scheduler_leases`); the intended server-only migrations dated October 13 are absent. This indicates the live schema has drifted from the branch's intended hardening and requires a migration reconciliation plan, not an assumption that branch fixes are already deployed.
+**A separate, concrete policy-design concern remains:** `taleforge_system_health_snapshot` selects `blocking_reason` and a JSONB `evidence` field from `taleforge_system_health`, and the current underlying table has a SELECT policy for both client roles with predicate `true`. `taleforge_system_registry` also has a public SELECT policy with predicate `true`. This may be intentional for a public status panel, but the snapshot exposes operational health/evidence fields without filtering. Review the contents and intended audience of those fields promptly. Do not query or copy row payloads during this audit.
 
-## Immediate containment plan (approval required)
+The underlying discovery relations `series` and `chapters` have RLS enabled with public SELECT policies constrained to published/ongoing/completed content. `reader_events` has a public INSERT policy with visitor-ID length and published-content checks. These are more precise controls than the initial view-only grant snapshot suggested; their policy behavior should still be tested against the intended reader flows.
 
-1. In the Supabase Dashboard, verify Data API exposed schemas and any API gateway/network controls. Do not send probes or mutate data to test reachability.
-2. Inspect the intended product role for `story_intelligence` and `story_trending_scores`. If they are internal-only, prepare a narrowly scoped migration to enable RLS and revoke `PUBLIC`, `anon`, and `authenticated` table privileges; preserve trusted backend access and any legitimate reader-facing views/functions.
-3. Review whether the discovery tables contain sensitive/internal narrative intelligence or ranking data, and whether the health snapshot's evidence field contains sensitive operational details, before deciding if exposure requires incident handling.
-4. Extend the table-by-table matrix to all 120 tables. User-facing tables such as bookmarks, comments, profiles, likes, ratings, and reading history need intentional owner-scoped policies rather than indiscriminate server-only revocation.
-5. Have the project owner approve any production grant or RLS changes. This inspection made no production changes.
+## Containment / review plan (approval required)
+
+1. Verify the Data API exposed-schema list and any API gateway/network controls in the Supabase Dashboard. Do not send probes or mutate data to test reachability.
+2. Review whether `taleforge_system_health.blocking_reason` and `evidence` contain sensitive internal diagnostics. If so, remove those columns from any public view or replace the public status view with an allowlisted projection that exposes only safe status fields.
+3. Confirm `story_intelligence` and `story_trending_scores` are intended public discovery surfaces and that the security-invoker view options remain enabled.
+4. Continue the relation-by-relation matrix. User-facing tables such as bookmarks, comments, profiles, likes, ratings, and reading history need intentional owner-scoped policies rather than indiscriminate server-only revocation.
+5. Reconcile the missing October 13 server-only migrations separately; the finding below about outbox/metrics/schedules remains valid for those base tables.
+6. Obtain owner approval before any production grant, view, or RLS changes. This inspection made no production changes.
 
 ## Confirmed high-priority finding
 
