@@ -23,7 +23,7 @@ CREATE OR REPLACE FUNCTION public.aevora_claim_release_scheduler_lease(
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   affected integer;
@@ -38,7 +38,7 @@ BEGIN
   INSERT INTO public.aevora_release_scheduler_leases
     (schedule_id, lease_token, lease_expires_at, created_at, updated_at)
   VALUES
-    (p_schedule_id, p_lease_token, clock_timestamp() + make_interval(secs => p_lease_seconds), clock_timestamp(), clock_timestamp())
+    (p_schedule_id, p_lease_token, clock_timestamp() + pg_catalog.make_interval(secs => p_lease_seconds), clock_timestamp(), clock_timestamp())
   ON CONFLICT (schedule_id) DO UPDATE
     SET lease_token = EXCLUDED.lease_token,
         lease_expires_at = EXCLUDED.lease_expires_at,
@@ -58,7 +58,7 @@ CREATE OR REPLACE FUNCTION public.aevora_renew_release_scheduler_lease(
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   affected integer;
@@ -71,7 +71,7 @@ BEGIN
   END IF;
 
   UPDATE public.aevora_release_scheduler_leases
-  SET lease_expires_at = clock_timestamp() + make_interval(secs => p_lease_seconds),
+  SET lease_expires_at = clock_timestamp() + pg_catalog.make_interval(secs => p_lease_seconds),
       updated_at = clock_timestamp()
   WHERE schedule_id = p_schedule_id
     AND lease_token = p_lease_token
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION public.aevora_release_scheduler_lease(
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   affected integer;
