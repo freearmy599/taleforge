@@ -58,6 +58,10 @@ Direct browser-to-table INSERT is not a sufficient anti-abuse boundary. Move new
 
 ### Stage D — stateful engagement semantics
 
+The branch-only trending aggregate now resolves follow/unfollow and bookmark/unbookmark as latest state per visitor and target, rather than adding every positive event forever. Active state counts persist beyond the 30-day score window, while only recent state changes contribute decayed score. Future-dated events are excluded from recent scores and from state ordering. The disposable PostgreSQL fixture seeds follow → unfollow and bookmark → unbookmark transitions, confirms only active states are counted, and verifies future-dated opens do not inflate recent opens. Full GitHub Actions run [`38552076374`](https://github.com/freearmy599/taleforge/actions/runs/38552076374) passed.
+
+This remains a branch-only aggregate. Keep it gated until trusted intake and quotas prevent direct-insert bypass/spam, and until the event retention and anonymous-identity limitations are accepted.
+
 Do not score every positive follow/bookmark event as a permanent additive action. A follow or bookmark represents state, and its inverse removes that state. Recommended public score inputs:
 
 - **Opens / chapter starts:** deduplicated per event UUID, with an optional per-visitor/series cooldown for repeated opens.
