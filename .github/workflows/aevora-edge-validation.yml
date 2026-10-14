@@ -54,6 +54,8 @@ jobs:
         run: deno check supabase/functions/aevora-control-plane-audit/index.ts
       - name: Type-check scheduler
         run: deno check supabase/functions/release-scheduler/index.ts
+      - name: Type-check autonomous series creation runner
+        run: deno check supabase/functions/autonomous-series-creation-runner/index.ts
       - name: Type-check publisher
         run: deno check supabase/functions/release-publisher/index.ts
       - name: Type-check chapter generator
