@@ -38,3 +38,12 @@ The live `review-orchestrator` v11 source also fails closed when provider state 
 - Confirmed deployed publisher is v21 and branch publisher source is newer.
 - No deployment, migration, publication, generation, or schedule mutation occurred.
 - Phase 1 remains open.
+
+
+## Additional scheduled-worker source drift (read-only, 2026-10-14)
+
+A fresh live Edge Function inventory confirms that `autonomous-series-creation-runner` is ACTIVE at version 6, while the current hardening branch tree has no corresponding `supabase/functions/autonomous-series-creation-runner/index.ts`. Live cron job 13, `taleforge-autonomous-series-creation`, invokes this deployed function daily with `mode: scheduled`.
+
+Read-only source inspection of deployed v6 shows it checks the bearer token against the service-role secret for scheduled mode, loads `taleforge_autonomous_creation_policy`, checks successful non-dry-run creations in the preceding seven days, then calls `taleforge_orchestrate_autonomous_series_creation`. If creation succeeds, it activates the series and initializes/updates `story_lifecycle` and a `release_schedules` row. This invocation was not run; no series, chapter, lifecycle, or schedule was changed.
+
+**Gate:** treat this as production-only source drift. Before any release bundle or broad deployment is considered, recover/track the exact deployed source and verify its RPC/table dependencies and policy gates against the branch. Do not infer that a missing branch file means the live function is absent, and do not redeploy or invoke it as part of this audit.
