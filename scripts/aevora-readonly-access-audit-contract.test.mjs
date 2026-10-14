@@ -84,7 +84,7 @@ test("identity sequence migration limits direct sequence access without changing
       sequence + " must revoke direct client sequence privileges",
     );
   }
-  assert.doesNotMatch(identitySequenceMigration, /GRANT\\s+.+\\s+TO\\s+(PUBLIC|anon|authenticated)/i);
-  assert.doesNotMatch(identitySequenceMigration, /ALTER\\s+TABLE|ALTER\\s+SEQUENCE|DROP\\s+SEQUENCE|CREATE\\s+SEQUENCE/i);
+  assert.doesNotMatch(identitySequenceMigration, /GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i);
+  assert.doesNotMatch(identitySequenceMigration, /ALTER\s+TABLE|ALTER\s+SEQUENCE|DROP\s+SEQUENCE|CREATE\s+SEQUENCE/i);
   assert.match(identitySequenceMigration, /service_role grants/i);
 });
