@@ -76,3 +76,17 @@ A catalog query filtered public SECURITY DEFINER functions whose configured sear
 - Follow-up: run a complete inventory without an arbitrary row cap, include overload identity (oid / pg_get_function_identity_arguments), owner, ACL, function configuration, and Data API exposure; then classify each as public RPC, trusted service-only RPC, trigger/helper, or unused. Prepare targeted fixes and source-contract tests only after classification.
 
 This was a read-only catalog inspection. No function definitions or grants were changed.
+
+
+## Complete SECURITY DEFINER metadata inventory (read-only, 2026-10-14; supersedes bounded sample above)
+
+The earlier capped query is superseded by an aggregate query over the full live `public` SECURITY DEFINER inventory. The query returned metadata only (identity arguments, owner, function configuration, effective EXECUTE checks and ACL); it did not read function bodies or application data.
+
+- **134** public SECURITY DEFINER function overloads were present.
+- **69** had a configured search path mentioning `public`; **14** mentioned `pg_temp` (these groups overlap).
+- **0** were executable by `anon`; **0** were executable by `authenticated`; all **134** were executable by `service_role` under the inspected privilege checks.
+- **0** lacked an explicit `search_path` entry in `proconfig`. An explicitly empty path (`search_path=""`) is distinct from an absent setting; the function body still needs review for schema qualification and dynamic SQL.
+- The live lease claim, renew, and release functions still use `search_path=pg_catalog, public, pg_temp`. The branch's tighter path is not live and should be coordinated with scheduler caller changes.
+- This materially improves coverage of the inventory metadata but **does not establish that all 134 function bodies are safe**. Search-path hardening must be targeted: check function body references, dynamic SQL, trigger use, owner, effective role privileges, and dependencies before proposing changes. No blanket rewrite or grant change is authorized.
+
+**Next branch-only review:** classify the 134 overloads into client-facing RPCs, trusted service-only RPCs, trigger/helper functions, and apparently unused functions; review bodies of the 69 with `public` in the configured path first, then the 14 with `pg_temp`. Keep function body text out of audit output unless needed for a specific reviewed function, and never expose secrets or row payloads.
