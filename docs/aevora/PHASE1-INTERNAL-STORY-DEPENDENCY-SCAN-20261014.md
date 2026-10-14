@@ -69,3 +69,39 @@ A fresh catalog aggregate across the full `public` schema returned 134 SECURITY 
 This is inventory evidence, not a certification that all 134 functions are safe. An empty search path is often a useful hardening posture only when relation/type/function references are correctly schema-qualified; paths mentioning `public` or `pg_temp` require function-specific review. Continue in risk order: inspect bodies with `public`/temporary schemas in their path, confirm all object references and caller-role checks, review return data and side effects, and test changes in an isolated database. Do not change function definitions or ACLs wholesale based on this aggregate.
 
 No function was invoked and no production data, schema, or permissions were changed.
+
+
+## Trigger-driven side-effect audit checkpoint (read-only, 2026-10-14)
+
+A fresh catalog inspection enumerated enabled, non-internal triggers whose functions are SECURITY DEFINER and whose configured search path includes `public` or an internal schema. The relevant functions are owned by `postgres`; ordinary client roles cannot execute these trigger functions directly, but trigger side effects still occur as part of the triggering table write.
+
+### Release-critical finding: series status changes activate release automation
+
+The live `trg_enroll_series_in_production` trigger fires after INSERT or UPDATE OF `status` on `public.series`. Its SECURITY DEFINER function `public.taleforge_enroll_series_in_production()`:
+
+- Creates a `story_lifecycle` row if one does not exist.
+- Creates a `release_schedules` row if missing.
+- When `NEW.status = 'ongoing'`, enables the schedule and sets both `auto_generate = true` and `auto_publish = true`.
+- When the status becomes `completed`, `hiatus`, or `cancelled`, disables schedule automation.
+
+This is a consequential implicit side effect: changing a series to `ongoing` is not merely a content-status change; it can turn on automatic generation and publication. Any autonomous runner or publisher repair must therefore treat the series status update and the trigger-created/enabled schedule as one release-critical operation. Tests must assert the expected schedule state for every status transition and prove a failed creation/review/activation path cannot leave an unintended enabled auto-publish schedule. Do not assume a handler's later schedule write is the only schedule mutation.
+
+### Other trigger observations
+
+- `chapters_publication_sync_outbox` enqueues one `post_publication_canon_sync` event for published chapter inserts/status updates, with conflict suppression on `(chapter_id,event_type)`.
+- `trg_taleforge_enqueue_continuity` queues continuity extraction when a chapter becomes published.
+- `trg_taleforge_refresh_long_term_architecture` invokes long-term narrative architecture refresh after a chapter becomes published.
+- Quality/continuity gate triggers on generation outputs and publication reviews write review/check rows or downgrade an approval when the minimum quality/continuity checks are missing or failing.
+
+These triggers use schema-qualified table references in the inspected definitions. That reduces dependence on name resolution, but is not a substitute for testing trigger behavior and transactional rollback in isolation. The catalog inspection did not execute any trigger or modify a row.
+
+### Required isolated tests
+
+1. Insert a draft series: lifecycle/schedule defaults must be correct and automation must remain disabled.
+2. Transition draft → ongoing: verify whether enabling both auto-generation and auto-publication is explicitly intended and approved by the release policy.
+3. Simulate a runner failure after status update but before follow-up bookkeeping: confirm the transaction boundary prevents a partially activated series or document the recovery invariant.
+4. Transition ongoing → hiatus/completed/cancelled: verify schedule, generation, and publication flags are disabled atomically.
+5. Ensure client roles cannot directly invoke trigger functions or mutate protected schedule rows outside approved paths.
+6. Verify publication gate/outbox/continuity triggers are idempotent across repeated status updates and rollback correctly if downstream writes fail.
+
+**Disposition:** the automatic `auto_publish = true` transition is a release gate requiring explicit policy confirmation and isolated regression coverage. No production changes were made.
