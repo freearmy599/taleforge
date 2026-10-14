@@ -134,13 +134,15 @@ test("enrollment trigger does not enable an unready schedule", () => {
 });
 
 
-test("unready ongoing enrollment disables automation without rewriting schedule preferences", () => {
-  const triggerStart = migration.indexOf("elsif new.status = 'ongoing' and ready_at is null then");
-  const triggerEnd = migration.indexOf("end if;", triggerStart);
-  assert.ok(triggerStart >= 0 && triggerEnd > triggerStart);
-  const triggerBranch = migration.slice(triggerStart, triggerEnd);
-  assert.match(triggerBranch, /set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false/i);
-  assert.doesNotMatch(triggerBranch, /schedule_mode\s*=|interval_hours\s*=|chapters_ahead\s*=/i);
+test("enrollment keeps all schedules inert unless an ongoing series has exactly one ready schedule", () => {
+  const triggerStart = migration.indexOf("create or replace function public.taleforge_enroll_series_in_production()");
+  const triggerEnd = migration.indexOf("create or replace function public.taleforge_mark_release_automation_ready", triggerStart);
+  const trigger = migration.slice(triggerStart, triggerEnd);
+  assert.ok(trigger.includes("if new.status <> 'ongoing' or schedule_count <> 1 then"));
+  assert.ok(trigger.includes("elsif new.status = 'ongoing' and ready_count = 0 then"));
+  assert.ok(trigger.includes("where series_id = new.id"));
+  assert.match(trigger, /set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?automation_ready_at = null/i);
+  assert.doesNotMatch(trigger, /schedule_mode\s*=|interval_hours\s*=|chapters_ahead\s*=/i);
 });
 
 test("completed series are terminal at scheduler, generation, and publisher boundaries", () => {
