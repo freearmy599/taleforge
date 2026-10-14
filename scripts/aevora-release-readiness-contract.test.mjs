@@ -98,6 +98,12 @@ test("readiness migration preserves the live enrollment interval default", () =>
   assert.match(migration, /new\.id, false, 'interval', 8, 'UTC'/i);
 });
 
+test("legacy service-role writes cannot re-enable a schedule without readiness", () => {
+  assert.match(migration, /new\.automation_ready_at is null[\s\S]*?new\.enabled = true[\s\S]*?new\.auto_generate = true[\s\S]*?new\.auto_publish = true[\s\S]*?raise exception 'automation readiness is required/i);
+  assert.match(migration, /before insert or update of automation_ready_at, enabled, auto_generate, auto_publish on public\.release_schedules/i);
+  assert.match(migration, /update public\.release_schedules\s+set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?where automation_ready_at is null/i);
+});
+
 test("enrollment trigger does not enable an unready schedule", () => {
   assert.match(migration, /values \(\s*new\.id, false, 'interval', 8, 'UTC',[\s\S]*?false, false, null\s*\)/i);
   assert.match(migration, /auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?updated_at = now\(\)/i);
