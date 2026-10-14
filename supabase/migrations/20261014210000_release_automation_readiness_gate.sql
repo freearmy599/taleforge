@@ -196,6 +196,7 @@ declare
   v_series_id uuid;
   v_run_id uuid;
   v_snapshot jsonb;
+  v_lifecycle_metadata jsonb;
 begin
   if auth.role() is distinct from 'service_role' then
     raise exception 'service role required';
@@ -221,7 +222,7 @@ begin
   end if;
 
   -- Match enrollment's remaining lock order: lifecycle before schedule.
-  perform 1
+  select sl.metadata into v_lifecycle_metadata
   from public.story_lifecycle sl
   where sl.series_id = v_series.id
   for update;
@@ -267,13 +268,15 @@ begin
     raise exception 'release schedule configuration is invalid';
   end if;
 
+  -- Bind readiness to the exact creation run recorded by the runner in
+  -- the locked lifecycle row; never borrow another run's evidence by recency.
   select r.id, r.pipeline_snapshot
     into v_run_id, v_snapshot
   from public.taleforge_autonomous_series_creation_runs r
-  where r.series_id = v_schedule.series_id
+  where r.id::text = coalesce(v_lifecycle_metadata->>'autonomous_creation_run_id', '')
+    and r.series_id = v_schedule.series_id
     and r.status = 'created'
     and r.dry_run = false
-  order by r.created_at desc
   limit 1
   for update;
 
