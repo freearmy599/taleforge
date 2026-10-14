@@ -157,7 +157,7 @@ if(be||!b){
 const reviewBounds=boundsForTarget(b.target_word_count);
 const target=reviewBounds.target;
 const minimum=reviewBounds.minimum;
-const {data:s,error:se}=await db.from("series").select("title").eq("id",out.series_id).single();
+const {data:s,error:se}=await db.from("series").select("title,status").eq("id",out.series_id).single();
 if(se||!s){
  console.error("[generate-chapter] quality-review series lookup failed; failing closed.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_context_unavailable",error:"Required series context could not be verified; quality review was blocked."},503);
@@ -198,6 +198,36 @@ if(contextSnapshotId){
  }
  advancedPlan=cs.payload?.advanced_chapter_plan||{};
 }
+// Direct quality-review calls must not bypass the orchestrator's readiness gate.
+// This check stays after deterministic hard validation, so short/empty chapters can
+// still receive a deterministic needs_revision result without invoking Gemini.
+const {data:qualitySchedules,error:qualityScheduleError}=await db.from("release_schedules")
+  .select("id,enabled,auto_generate,auto_publish,automation_ready_at,schedule_mode")
+  .eq("series_id",out.series_id).order("id",{ascending:true}).limit(2);
+if(qualityScheduleError){
+ console.error("[generate-chapter] quality-review schedule lookup failed; failing closed.");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"automation_readiness_unavailable",error:"Quality review readiness could not be verified; AI review was blocked."},503);
+}
+const {data:qualityAutonomousRuns,error:qualityAutonomousRunError}=await db.from("taleforge_autonomous_series_creation_runs")
+  .select("id").eq("series_id",out.series_id).eq("dry_run",false).limit(1);
+if(qualityAutonomousRunError){
+ console.error("[generate-chapter] quality-review autonomous provenance lookup failed; failing closed.");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"automation_readiness_unavailable",error:"Quality review provenance could not be verified; AI review was blocked."},503);
+}
+const qualitySchedulesList=qualitySchedules??[];
+const isQualityAutonomous=(qualityAutonomousRuns??[]).length>0;
+if(qualitySchedulesList.length>1||(isQualityAutonomous&&qualitySchedulesList.length!==1)){
+ return reply({success:false,mode:"quality-review",retryable:false,reason:"automation_schedule_ambiguous",error:"Quality review schedule is missing or ambiguous; AI review was blocked."},409);
+}
+if(qualitySchedulesList.length===1){
+ const schedule=qualitySchedulesList[0];
+ const requiresAutomation=isQualityAutonomous||schedule.schedule_mode!=="manual"||
+   schedule.auto_generate===true||schedule.auto_publish===true;
+ if(requiresAutomation&&(s.status!=="ongoing"||schedule.enabled!==true||!isAutomationReady(schedule.automation_ready_at))){
+  return reply({success:false,mode:"quality-review",retryable:false,reason:"automation_not_ready",error:"Scheduled quality review is not ready; no AI review was attempted."},423);
+ }
+}
+
 // Quality review also calls Gemini. Keep this guard beside the provider call so
 // deterministic hard-validation failures can still be recorded during a cooldown.
 const {data:reviewProviderState,error:reviewProviderStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
