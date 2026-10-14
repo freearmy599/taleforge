@@ -244,14 +244,38 @@ begin
   select count(*) into v_authorization_count
   from public.taleforge_release_readiness_authorizations;
 
-  if not v_enabled or not v_auto_generate or not v_auto_publish or v_ready is null then
-    raise exception 'ASSERTION_FAILED: readiness RPC did not atomically enable the audited schedule';
+  if not v_enabled or not v_auto_generate or v_auto_publish or v_ready is null then
+    raise exception 'ASSERTION_FAILED: readiness RPC must enable generation but leave publication disabled';
   end if;
   if v_authorization_count <> 0 then
     raise exception 'ASSERTION_FAILED: readiness authorization row was not cleaned up after RPC';
   end if;
 end;
-$$;
+$;
+
+-- A legacy service-role writer cannot turn on publication after generation
+-- readiness: the trigger revokes readiness and leaves all automatic flags off.
+update public.release_schedules
+set auto_publish = true
+where series_id = '00000000-0000-0000-0000-000000000002';
+
+do $publication_separation_assert$
+declare
+  v_enabled boolean;
+  v_auto_generate boolean;
+  v_auto_publish boolean;
+  v_ready timestamptz;
+begin
+  select enabled, auto_generate, auto_publish, automation_ready_at
+    into v_enabled, v_auto_generate, v_auto_publish, v_ready
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000002';
+
+  if v_enabled or v_auto_generate or v_auto_publish or v_ready is not null then
+    raise exception 'ASSERTION_FAILED: unauthorized publication toggle did not fail closed';
+  end if;
+end;
+$publication_separation_assert$;
 
 -- A transition to any non-ongoing status revokes readiness, even if the
 -- status is not one of the common terminal values.
