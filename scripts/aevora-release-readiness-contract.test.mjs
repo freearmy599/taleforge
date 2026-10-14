@@ -257,6 +257,35 @@ test("direct AI quality review cannot bypass readiness for automatic schedules",
   assert.match(generateChapter, /deterministic hard-validation failures can still be recorded during a cooldown/);
 });
 
+test("AI quality review fails closed when Gemini provider cooldown state is missing, malformed, or active", () => {
+  const providerGuard = generateChapter.indexOf("const {data:reviewProviderState,error:reviewProviderStateError}");
+  const geminiReviewCall = generateChapter.indexOf("parseJson(await gemini(gkey,reviewPrompt,true))");
+  assert.ok(providerGuard >= 0 && geminiReviewCall > providerGuard,
+    "quality-review provider-state guard must precede the Gemini review call");
+  assert.match(generateChapter, /reviewProviderStateError\|\|!reviewProviderState/);
+  assert.match(generateChapter, /Number\.isFinite\(new Date\(reviewProviderState\.cooldown_until\)\.getTime\(\)\)/);
+  assert.match(generateChapter, /reason:"provider_state_unavailable".*AI quality review was blocked/s);
+  assert.match(generateChapter, /reason:"provider_cooldown".*AI quality review was skipped to protect quota/s);
+  const guardBlock = generateChapter.slice(providerGuard, geminiReviewCall);
+  assert.match(guardBlock, /return reply\(/);
+  assert.match(guardBlock, /new Date\(reviewProviderState\.cooldown_until\)\.getTime\(\)>Date\.now\(\)/);
+});
+
+test("review orchestrator fails closed before any reviewer call when provider state is unsafe", () => {
+  const providerGuard = reviewOrchestrator.indexOf(".from(\"taleforge_ai_provider_state\")");
+  const requestParsing = reviewOrchestrator.indexOf("body = await req.json()");
+  const firstReviewCall = reviewOrchestrator.indexOf("callFunction(supabaseUrl, serviceRoleKey, step.functionName, output.id)");
+  assert.ok(providerGuard >= 0 && requestParsing > providerGuard && firstReviewCall > providerGuard,
+    "provider-state guard must execute before request-driven review orchestration");
+  const guardBlock = reviewOrchestrator.slice(providerGuard, requestParsing);
+  assert.match(guardBlock, /providerStateError \|\| !providerState/);
+  assert.match(guardBlock, /Number\.isFinite\(new Date\(providerState\?\.cooldown_until\)\.getTime\(\)\)/);
+  assert.match(guardBlock, /reason: "provider_state_unavailable"/);
+  assert.match(guardBlock, /reason: "provider_cooldown"/);
+  assert.match(guardBlock, /return json\([\s\S]*?503\)/);
+  assert.match(guardBlock, /return json\([\s\S]*?429\)/);
+});
+
 test("direct chapter generation cannot bypass readiness for automatic schedules", () => {
   assert.match(generateChapter, /from\("release_schedules"\)/);
   assert.match(generateChapter, /taleforge_autonomous_series_creation_runs/);
