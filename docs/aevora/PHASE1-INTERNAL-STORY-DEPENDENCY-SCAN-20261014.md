@@ -24,3 +24,10 @@ This evidence is **supportive but not sufficient** to approve the read-lock cand
 4. A disposable-database integration test confirming service-role worker functions still operate after client grants and client SELECT policies are removed.
 
 The candidate remains branch-only and Phase 1 remains open. No production migration was run.
+
+
+## Repository Edge Function direct-reference follow-up (read-only, 2026-10-14)
+
+A source scan of the branch's 28 Edge Function/shared TypeScript files looked for literal references to the 41 relations. The only direct literal relation hit was `taleforge_advanced_chapter_plans` in `supabase/functions/revise-chapter/index.ts`. That worker initializes its Supabase client with `SUPABASE_SERVICE_ROLE_KEY` (or the legacy service-role secret) and validates the trusted internal API key before work; the proposed migrations revoke privileges only from `PUBLIC`, `anon`, and `authenticated`, preserving service-role access. No Edge Function source contained a literal `reader_events` reference in this scan.
+
+This narrows the direct client-source dependency risk, but does not close the rollout gate: string-built table names, SQL in migrations/cron, database triggers, dynamic SQL, external clients, and intentional client access to taxonomy/profile data still require review. The scan is source-level and does not prove runtime compatibility after revokes. The candidate remains branch-only.
