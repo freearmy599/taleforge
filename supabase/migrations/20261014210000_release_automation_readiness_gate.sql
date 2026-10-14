@@ -71,9 +71,6 @@ begin
   elsif new.status = 'ongoing' and ready_at is null then
     update public.release_schedules
     set enabled = false,
-        schedule_mode = case when schedule_mode = 'manual' then 'interval' else schedule_mode end,
-        interval_hours = coalesce(interval_hours, 8),
-        chapters_ahead = greatest(1, least(coalesce(chapters_ahead, 12), 20)),
         auto_generate = false,
         auto_publish = false,
         updated_at = now()
