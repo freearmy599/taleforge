@@ -54,3 +54,18 @@ This materially reduces the direct-trigger and client-RPC compatibility risks fo
 ## SECURITY DEFINER search-path nuance (read-only, 2026-10-14)
 
 Among the 53 functions matched to the 41 internal relations, 11 use `search_path=public`; a focused body scan found no standalone dynamic `EXECUTE`, `RETURN QUERY EXECUTE`, or `format(...)` call in those matched functions. Effective schema checks also show `CREATE = false` for both `anon` and `authenticated` on `public`. These facts reduce common object-shadowing and dynamic-SQL concerns, but the current function search paths remain a hardening opportunity: before modifying these established worker functions, inspect all unqualified relation/type/function references and dependency behavior, then test any fixed-path replacement in isolation. Do not apply a blanket function rewrite during the table-lock rollout.
+
+
+## Broader public SECURITY DEFINER inventory checkpoint (read-only, 2026-10-14)
+
+A fresh catalog aggregate across the full `public` schema returned 134 SECURITY DEFINER overloads:
+
+- 69 have a configured `search_path` mentioning `public`.
+- 14 have a configured `search_path` mentioning `pg_temp` (overlapping the preceding group is possible).
+- 65 use an explicitly empty configured search path (`search_path=""`).
+- Zero were effectively executable by `anon` or `authenticated` in this catalog snapshot.
+- An initial broad text filter marked two bodies as possible dynamic-SQL matches, but follow-up inspection showed the matches were lexical false positives (function-name/ordinary `format(...)` use); the focused scan found no standalone PL/pgSQL `EXECUTE` statement or `RETURN QUERY EXECUTE` in the public-schema SECURITY DEFINER bodies checked.
+
+This is inventory evidence, not a certification that all 134 functions are safe. An empty search path is often a useful hardening posture only when relation/type/function references are correctly schema-qualified; paths mentioning `public` or `pg_temp` require function-specific review. Continue in risk order: inspect bodies with `public`/temporary schemas in their path, confirm all object references and caller-role checks, review return data and side effects, and test changes in an isolated database. Do not change function definitions or ACLs wholesale based on this aggregate.
+
+No function was invoked and no production data, schema, or permissions were changed.
