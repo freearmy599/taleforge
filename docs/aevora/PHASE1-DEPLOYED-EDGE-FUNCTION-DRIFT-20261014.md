@@ -62,3 +62,15 @@ Comparing the live Supabase Edge Function inventory with the recursive tree for 
 - `aevora-cover-review` (live v4)
 
 These may be intentionally omitted from the hardening branch, but that intent is not encoded in the current branch inventory. They must be treated as production-only components until their source, callers, database dependencies, auth behavior, and deployment ownership are reconciled. Do not deploy, disable, or invoke them as part of this audit. In particular, a broad deployment/release should not assume this branch is a complete mirror of all live Edge Functions.
+
+
+## Production-only function dependency/auth follow-up (read-only, 2026-10-14)
+
+Read-only retrieval of the remaining production-only function sources found the following relevant dependencies and auth patterns:
+
+- `autonomous-series-creation` v5 directly reads `taleforge_story_opportunities` and `taleforge_story_concept_candidates` (both in the 41-table internal story-design set), plus its policy/run tables. It creates a service-role client only after validating a signed-in user's JWT and requiring `app_metadata.role` to be `admin` or `owner`. Its table access should continue to work after the candidate client-role revokes because those revokes do not target `service_role`.
+- `autonomous-series-creation-runner` v6 uses the service-role key for scheduled work and invokes `taleforge_orchestrate_autonomous_series_creation`; the retrieved source checks that scheduled-mode bearer equals the service-role secret. This routine's internal dependencies must be included in the trusted-worker compatibility review.
+- `chief-editor-monitor` v8 and `aevora-operations-snapshot` v5 validate a bearer JWT and require `admin`/ `owner` app metadata before returning operational data.
+- `aevora-cover-request` v5 and `aevora-cover-review` v4 validate the user JWT and require `admin`/ `owner`; `aevora-cover-worker` v4 also checks that role before processing `aevora_cover_jobs`.
+
+This source review did not invoke any endpoint, run the autonomous creation RPC, create/update cover jobs, or change production state. The findings are not a substitute for a full review of all deployed-only source, caller authentication, or runtime behavior.
