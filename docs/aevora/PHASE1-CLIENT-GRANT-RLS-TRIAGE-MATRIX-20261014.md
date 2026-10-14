@@ -8,6 +8,10 @@ This note supplements `PHASE1-SERVER-ONLY-ACCESS-TRIAGE-20261014.md`. It invento
 
 **RLS enabled + no policies ordinarily denies row access, but broad table grants remain an unnecessary-privilege problem.** Do not call every such table an exposure. Conversely, do not assume the app is functioning correctly just because RLS denies access: user-facing features can silently fail when their tables have no intended policies.
 
+## Snapshot count
+
+The latest targeted read-only query returned **39 base tables** with RLS enabled, zero policies, and table-level grants to `anon` and/or `authenticated`. The triage below separates **11 reader-facing candidates** from **28 internal/control-plane candidates** by apparent purpose; this is a working classification based on names and known architecture, not a substitute for tracing app usage. The prepared server-only migration set targets the 28 internal candidates and deliberately does not revoke the 11 reader-facing candidates until their intended behavior is confirmed.
+
 ## Priority classifications
 
 ### A. User-facing candidates requiring product-flow and ownership review
