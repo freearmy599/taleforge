@@ -48,3 +48,12 @@ A fresh catalog query confirmed the relationship gap and a more urgent table-lev
 - The branch-only `20261014150000_reader_events_insert_only.sql` and `20261014120000_lock_public_identity_sequence_grants.sql` are therefore relevant, but their absence from the migration ledger is not permission to apply them. Test identity inserts and sequence behavior in an isolated environment first.
 
 **Priority update:** the live raw-event access model is not yet at the intended least-privilege state. Keep the aggregate RPC gated on the relationship repair, table/column ACL cleanup, sequence ACL cleanup, anti-replay/spam controls, and role-based regression tests. No production grants, policies, sequences, or data were changed by this check.
+
+
+## Branch candidate and duplicate-migration cleanup (2026-10-14)
+
+The branch now contains `20261014200000_validate_reader_event_series_chapter_pair.sql`, which recreates the INSERT policy with the required chapter/series match, requires a series when a chapter is supplied, and requires the chapter to be published while its series is ongoing/completed. Series-only events remain permitted.
+
+A duplicate migration with the same timestamp was briefly created during parallel continuation. It was removed immediately, and the regression test now targets the single canonical migration file. The final branch tree must contain only one migration for timestamp `20261014200000`; CI is being checked against the latest commits.
+
+The policy repair does not solve replay, forged visitor IDs, or high-volume spam. Those require separate deduplication and rate-control design and remain release blockers for trusting public trending aggregates. No production policy was changed.
