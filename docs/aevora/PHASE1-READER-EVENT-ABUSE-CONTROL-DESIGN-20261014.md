@@ -15,7 +15,7 @@ The current `public.reader_events` columns are:
 - `progress_percent smallint NULL`, constrained to 0–100 when present.
 - `created_at timestamptz NOT NULL DEFAULT now()`.
 
-The table has no client event UUID, idempotency token, or unique constraint that deduplicates repeated logical events. Indexes support time/visitor/series/event queries but do not enforce a replay contract. The branch relationship migration now requires every event to identify an eligible series, requires any supplied chapter to belong to that same series and be published, and preserves series-only events. It still does not provide authenticity, deduplication, or rate limiting.
+The original live table has no client event UUID, idempotency token, or unique constraint that deduplicates repeated logical events; the branch-only migration adds an optional UUID and unique partial index. Indexes support time/visitor/series/event queries but do not enforce a replay contract. The branch relationship migration now requires every event to identify an eligible series, requires any supplied chapter to belong to that same series and be published, and preserves series-only events. It still does not provide authenticity, deduplication, or rate limiting.
 
 ## Branch-only runtime verification (2026-10-14)
 
@@ -44,6 +44,7 @@ Before enabling `get_public_story_trending_scores()`, require the chapter/series
 5. A two-session disposable PostgreSQL race now submits the same UUID concurrently and asserts exactly one insert succeeds while the competing insert receives the named unique-index violation. GitHub Actions run [`38550347974`](https://github.com/freearmy599/taleforge/actions/runs/38550347974) passed this concurrency rehearsal.
 6. A behavioral browser-source test now exercises failed-insert retry UUID reuse and distinct progress-value keys. GitHub Actions run [`38550465786`](https://github.com/freearmy599/taleforge/actions/runs/38550465786) passed the test alongside the full Edge validation workflow.
 7. This only prevents duplicate submissions that reuse the same UUID. It does **not** prevent spoofing, spam with fresh UUIDs, or authenticated-looking anonymous activity. The public trending aggregate remains gated until trusted intake and quotas are implemented and reviewed.
+8. Branch migration `20261014230000_reader_event_server_timestamp.sql` adds a `BEFORE INSERT` trigger that replaces `created_at` with statement time for `anon` and `authenticated` callers, while preserving trusted service-role timestamps. The disposable PostgreSQL assertions now attempt a far-future client timestamp and require it to be replaced. This narrows timestamp manipulation but does not authenticate event content or stop high-volume fresh-UUID submissions.
 
 ### Stage C — trusted intake and quotas
 
