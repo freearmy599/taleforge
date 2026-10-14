@@ -47,3 +47,18 @@ A fresh live Edge Function inventory confirms that `autonomous-series-creation-r
 Read-only source inspection of deployed v6 shows it checks the bearer token against the service-role secret for scheduled mode, loads `taleforge_autonomous_creation_policy`, checks successful non-dry-run creations in the preceding seven days, then calls `taleforge_orchestrate_autonomous_series_creation`. If creation succeeds, it activates the series and initializes/updates `story_lifecycle` and a `release_schedules` row. This invocation was not run; no series, chapter, lifecycle, or schedule was changed.
 
 **Gate:** treat this as production-only source drift. Before any release bundle or broad deployment is considered, recover/track the exact deployed source and verify its RPC/table dependencies and policy gates against the branch. Do not infer that a missing branch file means the live function is absent, and do not redeploy or invoke it as part of this audit.
+
+
+## Full live-versus-branch function inventory (read-only, 2026-10-14)
+
+Comparing the live Supabase Edge Function inventory with the recursive tree for `aevora/release-scheduler-hardening` found these additional ACTIVE deployed functions without matching branch source paths:
+
+- `chief-editor-monitor` (live v8)
+- `autonomous-series-creation` (live v5)
+- `aevora-operations-snapshot` (live v5)
+- `autonomous-series-creation-runner` (live v6; also referenced by active cron job 13)
+- `aevora-cover-worker` (live v4)
+- `aevora-cover-request` (live v5)
+- `aevora-cover-review` (live v4)
+
+These may be intentionally omitted from the hardening branch, but that intent is not encoded in the current branch inventory. They must be treated as production-only components until their source, callers, database dependencies, auth behavior, and deployment ownership are reconciled. Do not deploy, disable, or invoke them as part of this audit. In particular, a broad deployment/release should not assume this branch is a complete mirror of all live Edge Functions.
