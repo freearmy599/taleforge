@@ -61,8 +61,8 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 
 - Live migration ledger: 232 entries; latest recorded version `20261010161919`.
 - All 20 migration versions listed above are absent from that ledger.
-- Branch commit reviewed: `075d8bff532fc4b95b80f56fb31a8ef964c17875`.
-- GitHub Actions type-check run `38522406714`: **success**.
+- Latest readiness-gate implementation commit reviewed: `dd90714f4dc736f75ff78a279af37083523983b2`.
+- GitHub Actions type-check run `38557297899`: **success**; disposable PostgreSQL 17 migration/concurrency rehearsal: **success**.
 - This document records review only. It does not authorize or perform a production change.
 
 
@@ -76,6 +76,13 @@ Additional compatibility requirements for this migration:
 - It replaces the series-enrollment trigger so new/unready schedules remain disabled.
 - It adds `taleforge_mark_release_automation_ready(uuid)`, restricted to `service_role`, which verifies the series, schedule configuration, lifecycle row, production policy, and bootstrap audit evidence before atomically setting the readiness marker and automation flags.
 - It must be deployed together with the tracked branch version of `autonomous-series-creation-runner`, the scheduler, and the publisher. The production runner remains v6 until a separately approved rollout.
-- The migration has passed repository source-contract CI and a disposable PostgreSQL 17 GitHub Actions replay (`38545394445`) with runtime assertions for cleanup, legacy-write rejection, manual-mode compatibility, caller-settable-GUC bypass rejection, RPC-only readiness marking, successful audited activation, completed-series deactivation, and refusal to reuse stale readiness evidence after lifecycle revocation. A separate disposable-PostgreSQL concurrency rehearsal also passed for a series-completion race. It has **not** been replayed against an isolated Supabase environment; Supabase-specific RLS/ACL interactions, broader concurrent schedule-writer/lease-claim interleavings, rollback, and an authorized historical schedule disposition remain open.
+- The migration has passed repository source-contract CI and a disposable PostgreSQL 17 GitHub Actions replay (`38557297899`) with runtime assertions for cleanup, legacy-write rejection, manual-mode compatibility, caller-settable-GUC bypass rejection, RPC-only readiness marking, successful audited activation, completed-series deactivation, refusal to reuse stale readiness evidence after lifecycle revocation, duplicate-schedule revocation, invalid weekly cadence, ready-schedule reassignment, and readiness revocation after cadence/configuration changes. Routine next_release_at advancement remains allowed. A separate disposable-PostgreSQL concurrency rehearsal also passed for a series-completion race. It has **not** been replayed against an isolated Supabase environment; Supabase-specific RLS/ACL interactions, broader concurrent schedule-writer/lease-claim interleavings, rollback, and an authorized historical schedule disposition remain open.
 
 The no-go decision remains in force. Do not apply this migration or deploy the related Edge Functions until isolated migration rehearsal, detailed schedule inventory/backfill decisions, caller compatibility, and explicit rollout approval are complete.
+
+
+## Readiness direct-call and cadence controls (2026-10-14)
+
+The branch now checks readiness independently in the generation orchestrator, direct chapter generator, review orchestrator, direct AI quality-review path, scheduler, and publisher. The direct quality-review check occurs before provider-state/Gemini work, while deterministic hard-validation failures can still be recorded without invoking AI. A ready schedule's approved cadence/configuration changes revoke readiness and disable automatic flags; normal next_release_at advancement is exempt.
+
+These controls are source/type-contract tested and the migration trigger behavior has passed disposable PostgreSQL 17 replay. They have **not** been deployed to production, and the six live legacy interval schedules still require an explicit reviewed disposition. No-go remains in force.
