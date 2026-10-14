@@ -1,0 +1,26 @@
+# Aevora Phase 1 — Internal story-design read-surface dependency scan
+Date: 2026-10-14
+
+Status: read-only production catalog inspection. No production DDL, data, grants, policies, Edge Functions, or schedules were changed.
+
+## Scope
+
+This pass checks the 41 relations listed in `20261014190000_lock_internal_story_design_read_surfaces.sql` against catalog-tracked view dependencies and textual references in public-schema function bodies. It is a preliminary dependency scan, not a complete proof that the read-lock candidate is rollout-safe.
+
+## Findings
+
+- Catalog dependency lookup found no views/materialized views that directly depend on the 41 relations.
+- A text scan of public-schema function source found many references to these relations in the autonomous story-design, genre/narrative intelligence, chapter-planning, and verification pipelines.
+- Every matched function in the scan was marked `SECURITY DEFINER`; the effective privilege check returned `anon EXECUTE = false`, `authenticated EXECUTE = false`, and `service_role EXECUTE = true` for each matched function. This supports the design that these tables are consumed by trusted server-side workers, not direct client RPC calls.
+- Examples of matched worker functions include `taleforge_autonomous_create_series`, `taleforge_design_story_concept`, `taleforge_design_concept_arcs`, `taleforge_design_concept_world`, `taleforge_build_generation_context`, `taleforge_build_advanced_chapter_plans`, and `taleforge_resolve_narrative_grammar`.
+- The scan does not detect all dynamic SQL, external Edge Function queries, trigger behavior, or dependencies in other schemas. A substring match may also be a false positive if a table name occurs in comments or unrelated literals.
+
+## Decision
+
+This evidence is **supportive but not sufficient** to approve the read-lock candidate. The matched functions are service-role-only at the database EXECUTE boundary, but the remaining checks must cover:
+1. Trigger functions and trigger timing on public/reader-facing tables that may indirectly call into the story-design pipeline.
+2. All repository Edge Function source and scheduled SQL references, including dynamic query builders.
+3. Whether any intentional product feature depends on direct client reads of genre taxonomy, trope library, or profile tables.
+4. A disposable-database integration test confirming service-role worker functions still operate after client grants and client SELECT policies are removed.
+
+The candidate remains branch-only and Phase 1 remains open. No production migration was run.
