@@ -38,6 +38,22 @@ update public.release_schedules
 set schedule_mode = 'manual', enabled = true, auto_generate = false, auto_publish = false
 where series_id = '00000000-0000-0000-0000-000000000001';
 
+-- Manual mode may remain enabled for human-controlled workflows, but cannot
+-- accidentally retain automatic generation or publication flags.
+do $
+begin
+  begin
+    update public.release_schedules
+    set auto_publish = true
+    where series_id = '00000000-0000-0000-0000-000000000001';
+    raise exception 'ASSERTION_FAILED: manual schedule accepted auto-publication';
+  exception when others then
+    if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
+    if sqlerrm not like 'manual schedules cannot enable automatic generation or publication%' then raise; end if;
+  end;
+end;
+$;
+
 -- Direct service-role writes cannot set the readiness marker outside the RPC.
 select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
 do $$
