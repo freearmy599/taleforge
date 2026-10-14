@@ -63,7 +63,7 @@ The order above is not sufficient on its own: keep all invocation sources paused
 
 - Resume only the reviewed invocation source(s), initially in observation/dry-run mode where supported.
 - Resume generation-only schedules individually after per-series approval and evidence review.
-- Keep \`auto_publish=false\` for every series. The current candidate deliberately has no separate publication-authorization RPC; implementing, auditing, and testing that mechanism is a prerequisite before any publication schedule may be enabled. Do not treat generation readiness or the service-role key alone as publication approval.
+- Keep \`auto_publish=false\` for every series. The current candidate deliberately has no separate publication-authorization RPC; implementing, auditing, and testing that mechanism is a prerequisite before any publication schedule may be enabled. The threat model, minimum approval-record fields, transaction boundary, invariants, and exit criteria are specified in \`PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md\`. That document is a design proposal only, not an implemented authorization path. Do not treat generation readiness or the service-role key alone as publication approval.
 - Observe at least one complete controlled cycle, including lease ownership, provider state, blueprint transitions, publication result, and \`next_release_at\` behavior, before expanding the rollout.
 - Stop immediately on any invariant violation; pause all entry points and preserve logs/evidence.
 
