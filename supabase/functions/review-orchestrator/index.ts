@@ -203,8 +203,13 @@ Deno.serve(async (req) => {
     }
 
     const results = [];
+    let providerThrottleObserved = false;
 
     for (const output of outputs ?? []) {
+      if (providerThrottleObserved) {
+        results.push({ output_id: output.id, chapter_number: output.chapter_number, action: "provider_throttle_observed", blocked: true, retryable: true, note: "A Gemini throttle response already stopped further AI review calls in this orchestration run." });
+        continue;
+      }
       if (!dryRun) {
         const { data: reviewSeries, error: reviewSeriesError } = await supabase
           .from("series").select("id,status").eq("id", output.series_id).maybeSingle();
@@ -369,6 +374,9 @@ Deno.serve(async (req) => {
         });
 
         if (!call.ok) {
+          if (call.status === 429 || call.status === 503 || call.data?.reason === "provider_quota_blocked" || call.data?.reason === "provider_temporarily_unavailable") {
+            providerThrottleObserved = true;
+          }
           blocked = true;
           break;
         }
