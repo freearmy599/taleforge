@@ -196,6 +196,15 @@ test("scheduled generation is blocked before cooldown, review, or generation wor
 });
 
 
+test("targeted generation dry runs can inspect disabled schedules without invoking AI", () => {
+  assert.match(generationOrchestrator, /if\(!dryRun\|\|!requestedScheduleId\)q=q\.eq\("enabled",true\)/);
+  const queryGuard = generationOrchestrator.indexOf('if(!dryRun||!requestedScheduleId)q=q.eq("enabled",true)');
+  const readinessGuard = generationOrchestrator.indexOf("automationReadinessDisposition(schedule.automation_ready_at,dryRun)");
+  assert.ok(queryGuard >= 0 && readinessGuard > queryGuard,
+    "targeted dry-run inspection must still pass through the readiness gate");
+  assert.match(generationOrchestrator, /readiness_unverified_dry_run/);
+});
+
 test("direct chapter generation rejects terminal series regardless of schedule mode", () => {
   assert.match(generateChapter, /\["completed","cancelled","hiatus"\]\.includes\(s\.status\)/);
   const terminalGuard = generateChapter.indexOf('if(["completed","cancelled","hiatus"].includes(s.status))');
