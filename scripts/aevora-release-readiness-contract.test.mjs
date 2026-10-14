@@ -111,8 +111,10 @@ test("unready ongoing enrollment disables automation without rewriting schedule 
   assert.doesNotMatch(triggerBranch, /schedule_mode\s*=|interval_hours\s*=|chapters_ahead\s*=/i);
 });
 
-test("completed series are terminal at both scheduler and publisher boundaries", () => {
+test("completed series are terminal at scheduler, generation, and publisher boundaries", () => {
   assert.match(scheduler, /\["draft","cancelled","hiatus","completed"\]\.includes\(series\.status\)/);
+  assert.match(generationOrchestrator, /series\.status!=="ongoing"/);
+  assert.match(generateChapter, /requiresAutomation&&\(s\.status!=="ongoing"/);
   assert.match(publisher, /series\.status === "completed"/);
   assert.match(publisher, /\["draft", "cancelled", "hiatus", "completed"\]\.includes\(currentSeries\.status\)/);
 });
