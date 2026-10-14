@@ -1130,10 +1130,11 @@ Deno.test("internal planner and metrics RPCs lose client EXECUTE grants", async 
     "prepare_next_chapter_blueprint(uuid)",
     "refresh_story_attachment_metrics(uuid)",
     "taleforge_get_long_term_architecture_context(uuid)",
+    "taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric)",
   ]) {
     assert(migration.includes("public." + signature), signature + " must be restricted to trusted callers");
   }
-  assert((migration.match(/FROM PUBLIC, anon, authenticated;/g) ?? []).length === 7,
+  assert((migration.match(/FROM PUBLIC, anon, authenticated;/g) ?? []).length === 8,
     "every internal RPC must revoke inherited PUBLIC execution as well as direct anon/authenticated grants");
 });
 
