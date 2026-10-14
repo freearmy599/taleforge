@@ -5,6 +5,8 @@ import { readFile } from "node:fs/promises";
 const scheduler = await readFile("supabase/functions/release-scheduler/index.ts", "utf8");
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
+const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
+const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
   assert.match(scheduler, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
@@ -29,4 +31,30 @@ test("publisher independently checks non-manual schedule readiness", () => {
 test("readiness marker parser rejects absent and malformed values", () => {
   assert.match(readiness, /typeof value !== "string"/);
   assert.match(readiness, /Number\.isFinite\(timestamp\)/);
+});
+
+
+test("autonomous runner keeps schedule inert until audited bootstrap and atomic readiness succeed", () => {
+  const inertWrite = runner.indexOf("enabled: false, schedule_mode: \"interval\"");
+  const auditUpdate = runner.indexOf(".update({ pipeline_snapshot:");
+  const readinessCall = runner.indexOf('rpc("taleforge_mark_release_automation_ready"');
+  assert.ok(inertWrite >= 0, "runner must prepare a disabled schedule");
+  assert.ok(auditUpdate > inertWrite, "bootstrap audit must follow the disabled schedule write");
+  assert.ok(readinessCall > auditUpdate, "readiness RPC must run only after audit update");
+  assert.match(runner.slice(auditUpdate, readinessCall), /if \(auditError\)/);
+});
+
+test("database readiness RPC is service-role-only and verifies bootstrap evidence", () => {
+  assert.match(migration, /add column if not exists automation_ready_at timestamptz/i);
+  assert.match(migration, /auth\.role\(\) is distinct from 'service_role'/i);
+  assert.match(migration, /lifecycle_initialized/);
+  assert.match(migration, /release_schedule_initialized/);
+  assert.match(migration, /automation_ready_at = coalesce\(automation_ready_at, now\(\)\)/);
+  assert.match(migration, /revoke all on function public\.taleforge_mark_release_automation_ready\(uuid\) from public, anon, authenticated/i);
+  assert.match(migration, /grant execute on function public\.taleforge_mark_release_automation_ready\(uuid\) to service_role/i);
+});
+
+test("enrollment trigger does not enable an unready schedule", () => {
+  assert.match(migration, /values \(\s*new\.id, false, 'interval', 24, 'UTC',[\s\S]*?false, false, null\s*\)/i);
+  assert.match(migration, /auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?updated_at = now\(\)/i);
 });
