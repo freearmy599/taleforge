@@ -69,3 +69,22 @@ test("public trending data is exposed only through a fixed-search-path aggregate
   assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH \(security_invoker = true\)/i);
   assert.doesNotMatch(trendingMigration, /visitor_id|reader_events\.id|CREATE\s+POLICY|GRANT\s+SELECT\s+ON\s+TABLE\s+public\.reader_events/i);
 });
+
+
+const identitySequenceMigration = await readFile(
+  new URL("../supabase/migrations/20261014120000_lock_public_identity_sequence_grants.sql", import.meta.url),
+  "utf8",
+);
+
+test("identity sequence migration limits direct sequence access without changing identity columns", () => {
+  for (const sequence of ["aevora_engineering_events_id_seq", "reader_events_id_seq"]) {
+    assert.match(
+      identitySequenceMigration,
+      new RegExp("REVOKE ALL PRIVILEGES ON SEQUENCE public\\." + sequence + " FROM PUBLIC, anon, authenticated", "i"),
+      sequence + " must revoke direct client sequence privileges",
+    );
+  }
+  assert.doesNotMatch(identitySequenceMigration, /GRANT\\s+.+\\s+TO\\s+(PUBLIC|anon|authenticated)/i);
+  assert.doesNotMatch(identitySequenceMigration, /ALTER\\s+TABLE|ALTER\\s+SEQUENCE|DROP\\s+SEQUENCE|CREATE\\s+SEQUENCE/i);
+  assert.match(identitySequenceMigration, /service_role grants/i);
+});
