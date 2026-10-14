@@ -485,13 +485,16 @@ test("production rollout runbook requires pause, exact baseline, leaf-first orde
   assert.match(rolloutPlan, /production-specific recovery procedure/i);
   assert.match(rolloutPlan, /Pause all invocation sources identified in preflight/i);
   assert.match(rolloutPlan, /Confirm no in-flight generation, review, or publication worker remains active/i);
-  const publisherOrder = rolloutPlan.indexOf("1. \\`release-publisher\\`");
-  const generatorOrder = rolloutPlan.indexOf("2. \\`generate-chapter\\` and \\`revise-chapter\\`");
-  const reviewWorkersOrder = rolloutPlan.indexOf("3. AI review workers");
-  const reviewOrchestratorOrder = rolloutPlan.indexOf("4. \\`review-orchestrator\\`");
-  const generationOrchestratorOrder = rolloutPlan.indexOf("5. \\`generation-orchestrator\\`");
-  const runnerOrder = rolloutPlan.indexOf("6. \\`autonomous-series-creation-runner\\`");
-  const schedulerOrder = rolloutPlan.indexOf("7. \\`release-scheduler\\`");
+  const stage2Start = rolloutPlan.indexOf("### Stage 2");
+  const stage2End = rolloutPlan.indexOf("### Stage 3", stage2Start);
+  const stage2 = rolloutPlan.slice(stage2Start, stage2End);
+  const publisherOrder = stage2.indexOf("1. \\`release-publisher\\`");
+  const generatorOrder = stage2.indexOf("2. \\`generate-chapter\\` and \\`revise-chapter\\`");
+  const reviewWorkersOrder = stage2.indexOf("3. AI review workers");
+  const reviewOrchestratorOrder = stage2.indexOf("4. \\`review-orchestrator\\`");
+  const generationOrchestratorOrder = stage2.indexOf("5. \\`generation-orchestrator\\`");
+  const runnerOrder = stage2.indexOf("6. \\`autonomous-series-creation-runner\\`");
+  const schedulerOrder = stage2.indexOf("7. \\`release-scheduler\\`");
   assert.ok(publisherOrder >= 0 && generatorOrder > publisherOrder &&
     reviewWorkersOrder > generatorOrder && reviewOrchestratorOrder > reviewWorkersOrder &&
     generationOrchestratorOrder > reviewOrchestratorOrder && runnerOrder > generationOrchestratorOrder &&
