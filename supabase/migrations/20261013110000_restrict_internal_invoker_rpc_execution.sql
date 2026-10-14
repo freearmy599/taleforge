@@ -7,3 +7,7 @@ REVOKE EXECUTE ON FUNCTION public.get_story_narrative_destination(uuid) FROM PUB
 REVOKE EXECUTE ON FUNCTION public.prepare_next_chapter_blueprint(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.refresh_story_attachment_metrics(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.taleforge_get_long_term_architecture_context(uuid) FROM PUBLIC, anon, authenticated;
+
+-- Pure scoring helper used by the trusted story-opportunity planner. It has no
+-- trigger references and returns only a score/decision; it is not a client API.
+REVOKE EXECUTE ON FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric) FROM PUBLIC, anon, authenticated;
