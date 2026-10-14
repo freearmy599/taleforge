@@ -512,7 +512,7 @@ test("rollback harness requires explicit disposable opt-in and executes fail-clo
     assert.match(runner, /DATABASE_URL must point to a disposable PostgreSQL database/);
     assert.match(runner, /I_UNDERSTAND_THIS_IS_DISPOSABLE/);
     assert.match(runner, /Refusing rollback rehearsal against a Supabase URL|Refusing migration rehearsal against a Supabase URL/);
-    assert.match(runner, /database name must identify an explicitly named aevora_readiness disposable database/);
+    assert.match(runner, /database URL must identify an explicitly named aevora_readiness disposable database/);
     assert.match(runner, /psql .*aevora-readiness-migration-fixture\.sql/);
     assert.match(runner, /psql .*20261014210000_release_automation_readiness_gate\.sql/);
     assert.match(runner, /psql .*aevora-readiness-rollback\.sql/);
