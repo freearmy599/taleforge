@@ -12,8 +12,8 @@ Coordinate the `automation_ready_at` schema gate with the autonomous-series runn
 
 - [ ] Explicit approval for the exact rollout window and production changes.
 - [ ] Current source fingerprints captured for the runner, scheduler, generation orchestrator, direct `generate-chapter`, and publisher.
-- [ ] A disposable PostgreSQL/Supabase environment exists without creating a billable Supabase development branch.
-- [ ] The migration has been replayed in that environment; trigger behavior, role checks, row locks, failure paths, and rollback rehearsed.
+- [x] A disposable PostgreSQL 17 fixture is exercised in GitHub Actions; no billable Supabase development branch was created.
+- [ ] Replay and assertions pass against a disposable Supabase environment or an equivalently faithful fixture, including Supabase-specific RLS/ACL/catalog behavior, concurrency, and rollback.
 - [ ] The complete live schedule inventory is reviewed by series owner/status/mode and a disposition chosen for every existing row.
 - [ ] An approved plan exists for non-autonomous series. The autonomous readiness RPC intentionally requires a matching successful creation-run audit; do not weaken that evidence to activate legacy/creator-studio schedules.
 - [ ] Internal API keys, service-role invocation, cron callers, and response contracts are verified for every Edge Function being deployed.
@@ -70,4 +70,4 @@ Therefore **do not apply the migration while the old autonomous runner or old re
 
 ## Current decision
 
-**NO-GO.** This runbook is not authorization. The readiness migration has not been applied to any database, the production runner remains v6, isolated database rehearsal and concurrency/rollback tests are outstanding, and historical/non-autonomous schedule disposition is not yet approved. No production cron, schedule, database, generation, or publication state was changed while writing this document.
+**NO-GO.** This runbook is not authorization. The readiness migration has not been applied to any Supabase database. The ephemeral PostgreSQL 17 migration replay and runtime assertions pass in GitHub Actions, but Supabase-specific compatibility plus concurrency/rollback rehearsal remain outstanding. The production runner remains v6, and historical/non-autonomous schedule disposition is not yet approved. No production cron, schedule, database, generation, or publication state was changed while writing this document.
