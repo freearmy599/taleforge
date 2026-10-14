@@ -180,3 +180,30 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 
 The first pass used `information_schema.role_column_grants` / `column_privileges` and misread their effective privilege rows as independent column-level ACLs. A full public-schema check of `pg_attribute.attacl` found **zero explicit column ACL entries** for `PUBLIC`, `anon`, or `authenticated` across tables, partitioned tables, views, and materialized views. The confirmed finding is broad relation-level grants and permissive default ACLs, not separately stored column grants. The branch migrations keep column-level revoke clauses as defensive cleanup, but prior wording suggesting explicit column ACLs were observed is superseded. The repeatable `phase1-readonly-access-audit.sql` now checks `pg_attribute.attacl` directly and includes the default-ACL owner to disambiguate entries.
 
+
+
+### Phase 1 continuation checkpoint — 2026-10-14 latest verified batch
+
+**Branch:** `aevora/release-scheduler-hardening`  
+**Latest successful validation for the current source/test batch:** [workflow run 38515472247](https://github.com/freearmy599/taleforge/actions/runs/38515472247), commit `6bb598502b6a37ef1914ed1e5f58004c01b40aec`. Configured Edge Function type checks and the source-contract workflow passed, including provider-state grants, complete server-only table inventory, read-only access audit, and internal worker authorization contracts.
+
+#### Branch-only access hardening prepared
+
+- The live metadata-only query reconfirmed exactly **39 public base tables** with RLS enabled, zero policies, and direct table grants to `anon` and `authenticated`.
+- Prepared branch migrations cover all 39 by explicit group: 25 internal policyless tables, 2 telemetry/outbox tables, 1 provider-state table, and 11 dormant reader-feature tables. The new source contract asserts that these groups cover 39 unique table targets. The 11 reader-feature tables are not called by the current browser HTML/JS or Edge Function source scan; their tables, FKs, triggers, and data remain intact. A stored `SECURITY DEFINER` reader-progress verifier references `reading_history`; read-only ACL metadata confirms it is not executable by `anon` or `authenticated` and remains executable by `service_role`.
+- The prepared internal RPC migration covers all 12 public-schema invoker functions with current client EXECUTE, including four trigger-returning helpers. It revokes direct execution from `PUBLIC`, `anon`, and `authenticated`, preserving service-role access. The contract passed.
+- A fresh sequence ACL audit found client SELECT/UPDATE/USAGE grants on `reader_events_id_seq` and `aevora_engineering_events_id_seq`, both identity sequences. A new branch-only migration revokes direct client sequence privileges while preserving service-role grants; its contract passed.
+- A repeatable read-only SQL audit now covers five metadata-only queries: relation grants/policies, explicit column ACLs, schema-specific default ACLs by owner, client-executable public functions, and existing public sequence ACLs. Its contract verifies the SQL contains only SELECT statements.
+
+#### Additional findings that remain open
+
+- **Default privileges:** `postgres` and `supabase_admin` schema-specific default ACLs grant broad table, sequence, and function privileges to ordinary client roles for future public-schema objects. No global/default ACL change has been prepared or applied; changing those owner-scoped templates needs separate compatibility and role-ownership review.
+- **Trending visibility:** `story_trending_scores` and `story_intelligence` are security-invoker views; `story_trending_scores` aggregates `reader_events`, whose only client policy is validated INSERT and which has no SELECT policy. Event-derived ranking aggregates may therefore be invisible/zero to ordinary callers. Do not expose raw reader-event rows or visitor IDs to fix this; design a narrow aggregate-only projection and test it.
+- **Public system health:** the existing public status view includes `blocking_reason` and JSONB `evidence`; the audience and safe fields need explicit review before the prepared narrative-internal migration is rolled out.
+- **Dispatch correlation:** the latest aggregate snapshot at approximately 05:12 UTC found the newest pg_net response at 05:05:00.365 UTC and newest cron run start at 05:05:00.312 UTC, so the previously observed freshness gap was absent in that snapshot. Request-ID correlation and HTTP/application/business-outcome separation remain open; aggregate timestamps do not prove per-job success.
+- **Data API exposed schemas:** still not verified from project configuration. SQL grants and view options alone do not prove which schemas PostgREST exposes.
+- **Migration drift:** the live Supabase migration inventory still ends at `20261010161919`; the prepared October 13–14 branch migrations are not present in live migration history. No migration was applied.
+
+#### Safety boundary
+
+All work above is repository documentation, migration source, and tests plus read-only catalog inspection. **No production migration, GRANT/REVOKE, RLS/policy/view change, deployment, queue/schedule mutation, generation, or publication was performed. No billable Supabase branch was created.** Phase 1 remains open; production rollout requires an explicit authorization and a compatibility review of the outstanding items above.
