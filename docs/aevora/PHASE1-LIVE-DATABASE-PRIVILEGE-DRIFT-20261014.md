@@ -52,3 +52,15 @@ The Supabase advisors were re-run read-only after the latest branch contract cha
 - The duplicate-index warning names `idx_taleforge_memory_consolidations_series` and `idx_taleforge_memory_consolidations_series_chapter`. Despite the advisor's wording, the names suggest one may be composite; inspect full index definitions before considering removal.
 
 These counts are a point-in-time snapshot and are not Phase 1 closure evidence. No production mutation was performed.
+
+
+## Exact default-ACL catalog check (read-only, 2026-10-14)
+
+A focused query of `pg_default_acl` confirmed the future-object risk rather than merely inferring it from existing object grants:
+
+- For objects created by `postgres`, the `public` schema has defaults granting `anon` and `authenticated` broad table privileges (`arwdDxtm`), sequence privileges (`rwU`), and function EXECUTE (`X`). The executor is a member of `postgres`, so the branch migration's guarded `postgres` changes are technically eligible if a future rollout is approved.
+- For objects created by `supabase_admin`, the `public` schema has the same client grants on future tables, sequences, and functions. The current executor is **not** a member of `supabase_admin`; the branch migration correctly skips it, so that portion of the proposed remediation cannot close the issue by itself.
+- The catalog also showed client defaults in `graphql` and `graphql_public` for `supabase_admin`, plus client defaults in `storage` for `postgres`. Do not extend a revoke blindly across managed schemas: confirm Data API exposure, Supabase-managed dependencies, and intended role behavior first.
+- The query returned schema-specific ACL entries; a global default ACL was not present in the result for these roles. The migration nevertheless addresses both global and `public` schema defaults to prevent global grants from remaining an independent source of future privileges.
+
+**Rollout consequence:** before Phase 1 can close, arrange a separately authorized operation by the owning/privileged role to review and correct the `supabase_admin` defaults on `public`, then re-query `pg_default_acl` and create disposable-object verification evidence. Do not run that operation as part of this audit. No production state was changed.
