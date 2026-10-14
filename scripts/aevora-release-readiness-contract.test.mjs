@@ -446,7 +446,12 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
   assert.match(reviewOrchestrator, /if \(providerThrottleObserved\) \{\s*results\.push\(\{ output_id: output\.id, chapter_number: output\.chapter_number, action: "provider_throttle_observed"/);
   assert.match(reviewOrchestrator, /const callReason = \(call\.data as Record<string, unknown> \| null\)\?\.reason/);
-  assert.match(reviewOrchestrator, /call\.status === 429 \|\| call\.status === 503 \|\| callReason === "provider_quota_blocked" \|\| callReason === "provider_temporarily_unavailable"/);
+  assert.match(reviewOrchestrator, /call\.status === 429/);
+  assert.match(reviewOrchestrator, /callReason === "provider_state_unavailable"/);
+  assert.match(reviewOrchestrator, /callReason === "provider_cooldown"/);
+  assert.match(reviewOrchestrator, /callReason === "invalid_cooldown_timestamp"/);
+  assert.match(reviewOrchestrator, /const callReason = \(call\.data as Record<string, unknown> \| null\)\?\.reason[\s\S]*?if \(!call\.ok\)/,
+    "provider blocks must be classified before the HTTP-success branch so one output cannot trigger further AI calls for later outputs");
   assert.match(reviewOrchestrator, /providerThrottleObserved = true;/);
 });
 
