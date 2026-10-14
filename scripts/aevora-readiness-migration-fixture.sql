@@ -28,7 +28,7 @@ create table public.series (
 
 create table public.release_schedules (
   id uuid primary key default gen_random_uuid(),
-  series_id uuid not null references public.series(id) on delete cascade,
+  series_id uuid not null unique references public.series(id) on delete cascade,
   enabled boolean not null default false,
   schedule_mode text not null default 'manual',
   interval_hours integer,
