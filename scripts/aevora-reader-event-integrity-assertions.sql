@@ -57,6 +57,18 @@ BEGIN
 END;
 $mismatched_pair_assert$;
 
+DO $event_without_series_assert$
+BEGIN
+  BEGIN
+    INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id)
+    VALUES ('visitor-no-series-0002','story_open',NULL,NULL);
+    RAISE EXCEPTION 'ASSERTION_FAILED: event without a series was accepted';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END;
+$event_without_series_assert$;
+
 DO $chapter_without_series_assert$
 BEGIN
   BEGIN
