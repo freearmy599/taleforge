@@ -4,7 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 const sql = await readFile(
   new URL("../docs/aevora/phase1-readonly-access-audit.sql", import.meta.url),
@@ -265,3 +265,18 @@ test("reader-event insert policy requires a published chapter to match its eligi
   assert.doesNotMatch(readerEventIntegrityMigration, /GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i);
 });
 
+
+
+test("Supabase migration timestamps are unique within the branch", async () => {
+  const names = await readdir(new URL("../supabase/migrations/", import.meta.url));
+  const timestamped = names.filter((name) => /^\d{14}_.+\.sql$/.test(name));
+  const seen = new Map();
+  for (const name of timestamped) {
+    const timestamp = name.slice(0, 14);
+    const previous = seen.get(timestamp) ?? [];
+    previous.push(name);
+    seen.set(timestamp, previous);
+  }
+  const duplicates = [...seen.entries()].filter(([, matches]) => matches.length > 1);
+  assert.deepEqual(duplicates, [], "each migration timestamp must be unique to avoid ordering ambiguity");
+});
