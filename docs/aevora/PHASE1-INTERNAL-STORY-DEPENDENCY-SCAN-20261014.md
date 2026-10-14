@@ -49,3 +49,8 @@ A fresh catalog scan of all public-schema function bodies against the exact 41-r
 This materially reduces the direct-trigger and client-RPC compatibility risks for removing ordinary-client access to these tables. It does not eliminate risks from other schemas, cron SQL, dynamically constructed relation names, direct external clients, or application features not represented in this repository. SECURITY DEFINER does not by itself make a function safe; owners, search paths, dynamic SQL, data returned, and service-role caller behavior remain in the broader Phase 1 function review.
 
 **Disposition:** the read-lock migration has stronger supporting dependency evidence, but it is still not approved for production. A disposable-database replay with representative service-role worker calls and client-role denial tests remains a required gate.
+
+
+## SECURITY DEFINER search-path nuance (read-only, 2026-10-14)
+
+Among the 53 functions matched to the 41 internal relations, 11 use `search_path=public`; a focused body scan found no standalone dynamic `EXECUTE`, `RETURN QUERY EXECUTE`, or `format(...)` call in those matched functions. Effective schema checks also show `CREATE = false` for both `anon` and `authenticated` on `public`. These facts reduce common object-shadowing and dynamic-SQL concerns, but the current function search paths remain a hardening opportunity: before modifying these established worker functions, inspect all unqualified relation/type/function references and dependency behavior, then test any fixed-path replacement in isolation. Do not apply a blanket function rewrite during the table-lock rollout.
