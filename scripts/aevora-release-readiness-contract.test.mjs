@@ -313,4 +313,5 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(rollbackAssertions, /rollback re-enabled a schedule without independent approval evidence/);
   assert.match(rollbackTestRunner, /AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL/);
   assert.match(rollbackTestRunner, /Refusing rollback rehearsal against a Supabase URL/);
+  assert.match(rollbackTestRunner, /aevora_readiness/);
 });
