@@ -10,6 +10,8 @@ const generator = await readFile("supabase/functions/generate-chapter/index.ts",
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
+const migrationFixture = await readFile("scripts/aevora-readiness-migration-fixture.sql", "utf8");
+const migrationAssertions = await readFile("scripts/aevora-readiness-migration-assertions.sql", "utf8");
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
   assert.match(scheduler, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
@@ -123,6 +125,12 @@ test("legacy service-role writes cannot re-enable automation without readiness",
     "enabled manual schedules with both automatic flags false remain allowed");
   assert.doesNotMatch(migration, /current_user not in \('postgres', 'service_role'\)/i,
     "service-role callers must not bypass the atomic readiness marker setter");
+});
+
+test("readiness fixture preserves the production unique schedule invariant before fault injection", () => {
+  assert.match(migrationFixture, /series_id uuid not null unique references public\.series\(id\) on delete cascade/i);
+  assert.match(migrationAssertions, /production has UNIQUE\(series_id\) constraint/i);
+  assert.match(migrationAssertions, /alter table public\.release_schedules drop constraint release_schedules_series_id_key/i);
 });
 
 test("ready schedules cannot be reassigned and duplicate schedules revoke readiness", () => {
