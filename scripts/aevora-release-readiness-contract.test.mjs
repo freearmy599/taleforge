@@ -68,6 +68,11 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
     "existing schedules must not be blindly backfilled as ready");
 });
 
+test("readiness migration preserves the live enrollment interval default", () => {
+  assert.match(migration, /new\.id, false, 'interval', 8, 'UTC'/i);
+  assert.match(migration, /interval_hours = coalesce\(interval_hours, 8\)/i);
+});
+
 test("enrollment trigger does not enable an unready schedule", () => {
   assert.match(migration, /values \(\s*new\.id, false, 'interval', 24, 'UTC',[\s\S]*?false, false, null\s*\)/i);
   assert.match(migration, /auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?updated_at = now\(\)/i);
