@@ -234,7 +234,7 @@ test("scheduled review orchestration fails closed before invoking AI reviewers",
   assert.match(reviewOrchestrator, /isAutomationReady\(schedule\.automation_ready_at\)/);
   assert.match(reviewOrchestrator, /Scheduled review is not ready; no AI review was attempted/);
   const readinessBlock = reviewOrchestrator.indexOf("Scheduled review is not ready; no AI review was attempted");
-  const firstReviewCall = reviewOrchestrator.indexOf("callFunction(baseUrl, serviceKey, step.functionName, output.id)");
+  const firstReviewCall = reviewOrchestrator.indexOf("callFunction(supabaseUrl, serviceRoleKey, step.functionName, output.id)");
   assert.ok(readinessBlock >= 0 && firstReviewCall > readinessBlock,
     "readiness must be verified before any review worker can be invoked");
   assert.match(reviewOrchestrator.slice(readinessBlock, firstReviewCall), /continue;/);
