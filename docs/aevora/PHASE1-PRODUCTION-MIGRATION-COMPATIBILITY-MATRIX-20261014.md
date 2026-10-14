@@ -54,12 +54,12 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 - [ ] Disposable-environment migration replay, role-based tests, TypeScript/tests, and advisors pass.
 - [ ] Rollback/recovery plan and an explicit deployment approval exist.
 
-**Current decision: NO-GO for applying the 14 migrations as a batch.** Several are promising hardening changes, but the live ledger/catalog drift, caller compatibility, the provider-state data update, revision-successor mutation, public SECURITY DEFINER aggregate, and missing `supabase_admin` privilege path must be resolved first.
+**Current decision: NO-GO for applying the 19 migrations as a batch.** Several are promising hardening changes, but the live ledger/catalog drift, caller compatibility, the provider-state data update, revision-successor mutation, public SECURITY DEFINER aggregate, and missing `supabase_admin` privilege path must be resolved first.
 
 ## Verification snapshot
 
 - Live migration ledger: 232 entries; latest recorded version `20261010161919`.
-- All 14 migration versions listed above are absent from that ledger.
+- All 19 migration versions listed above are absent from that ledger.
 - Branch commit reviewed: `075d8bff532fc4b95b80f56fb31a8ef964c17875`.
 - GitHub Actions type-check run `38522406714`: **success**.
 - This document records review only. It does not authorize or perform a production change.
@@ -67,7 +67,7 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 
 ## Readiness-gate migration addendum (2026-10-14)
 
-The branch now also contains `20261014210000_release_automation_readiness_gate.sql`, bringing the known branch-only migration set to **19** relative to the recorded live ledger. This new migration is not present in production and has not been applied.
+The current matrix contains **19 branch-only migration versions** absent from the recorded live ledger, including `20261014210000_release_automation_readiness_gate.sql` and `20261014220000_reader_event_idempotency_key.sql`. Neither migration is present in production or has been applied.
 
 Additional compatibility requirements for this migration:
 
