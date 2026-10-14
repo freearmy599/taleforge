@@ -76,3 +76,22 @@ A separate metadata-only scan found 16 unrestricted client-facing `SELECT` polic
 - Server-only candidates have least-privilege client grants, validated against live role behavior before deployment.
 - Public status projections expose only deliberately allowlisted fields; `blocking_reason` and JSONB `evidence` require explicit audience review.
 - SQL cron dispatch, HTTP response, Edge Function result, and durable business postcondition are correlated without persisting credentials, prompts, or story content.
+
+
+## Confirmed reader-feature tables still need policy design
+
+A fresh read-only metadata query confirmed that all 11 reader-feature candidates below currently have RLS enabled, zero policies, and broad table-level grants to both `anon` and `authenticated`:
+
+- `bookmarks`
+- `collection_stories`
+- `collections`
+- `comments`
+- `likes`
+- `notifications`
+- `profiles`
+- `ratings`
+- `reading_history`
+- `recommendations`
+- `story_reports`
+
+For these tables, no-policy RLS ordinarily denies row operations, so this is not evidence that reader data is currently exposed. However, the granted privilege set also includes `TRUNCATE`, `TRIGGER`, and `REFERENCES`, which are not normal reader-client needs and are not constrained by row policies in the same way as SELECT/INSERT/UPDATE/DELETE. Do not revoke all client grants indiscriminately because the application may require normal CRUD on selected tables once correct policies exist. The next safe step is to inspect repository client call sites and migrations, define per-table intended behavior, then prepare narrowly scoped policies and privilege revokes with owner-isolation tests. No live write/probe or production permission change was performed.
