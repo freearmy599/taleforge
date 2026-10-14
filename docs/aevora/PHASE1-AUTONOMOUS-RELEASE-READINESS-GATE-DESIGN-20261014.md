@@ -111,6 +111,9 @@ Next implementation gate: finish CI for the latest migration adjustment, add mig
 - The unready enrollment-trigger branch now changes only the safety flags (`enabled=false`, `auto_generate=false`, `auto_publish=false`) and update timestamp; it does not rewrite an existing schedule's mode, interval, or buffer preferences. New schedule rows retain the live 8-hour/UTC fallback; the autonomous runner explicitly sets its own 24-hour/Asia-Kolkata cadence.
 
 
+- A separate read-only production aggregate confirmed 6 total schedules, all 6 enabled, all 6 with `auto_generate=true`, and 0 with `auto_publish=true`. The readiness gate therefore must cover generation as well as publication to avoid spending provider quota for schedules that cannot release.
+- The branch now gates the `generation-orchestrator` schedule loop before provider-state checks, review recovery, planning refresh, or generation work. The direct `generate-chapter` blueprint path also independently checks automatic schedule readiness before building generation context. Manual generation with no automatic schedule remains available; a configured automatic schedule must be unique, enabled, and ready.
+
 These checks are repository-side only. The live enrollment trigger was inspected read-only and currently uses an 8-hour interval fallback, confirming why the migration was adjusted to preserve it. No production changes were made.
 
 ## Read-only production schedule baseline (2026-10-14)
