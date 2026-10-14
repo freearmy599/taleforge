@@ -142,3 +142,76 @@ end;
 $assert$;
 select 'chapter publication/completion concurrency assertion passed' as result;
 SQL
+
+
+# Two concurrent autonomous-creation gate calls must serialize on the policy row.
+# The first transaction holds the policy lock through its simulated creation;
+# the second must re-evaluate weekly caps after the first commits.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+update public.taleforge_autonomous_creation_policy
+set enabled = true,
+    max_total_production_series = 12,
+    max_unpublished_autonomous_series = 2,
+    max_autonomous_creations_per_7d = 1,
+    min_opportunity_score = 75,
+    min_concept_overall_score = 75,
+    exclude_internal_test_series = true
+where policy_key = 'production';
+
+update public.taleforge_autonomous_series_creation_runs
+set status = 'blocked'
+where status = 'created' and created_at >= now() - interval '7 days';
+
+insert into public.taleforge_story_opportunities(id, opportunity_score, title)
+values
+  ('00000000-0000-0000-0000-000000000201', 90, 'Concurrent opportunity A'),
+  ('00000000-0000-0000-0000-000000000202', 90, 'Concurrent opportunity B');
+SQL
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-creation-gate-lock-holder.log 2>&1 <<'SQL' &
+begin;
+select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
+do $first_gate$
+declare
+  v_gate jsonb;
+begin
+  v_gate := public.taleforge_check_autonomous_creation_gate(
+    '00000000-0000-0000-0000-000000000201', 90
+  );
+  if coalesce((v_gate->>'allowed')::boolean, false) is not true then
+    raise exception 'ASSERTION_FAILED: first autonomous creation gate was unexpectedly blocked: %', v_gate;
+  end if;
+end;
+$first_gate$;
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000004', 'Concurrent created series A', 'ongoing', 'ai_original', 'pending');
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, opportunity_id, status, dry_run
+) values (
+  '00000000-0000-0000-0000-000000000030',
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000201',
+  'created', false
+);
+select pg_sleep(1);
+commit;
+SQL
+creation_gate_lock_pid=$!
+sleep 0.2
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-creation-gate-second.log 2>&1 <<'SQL'
+begin;
+select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
+select public.taleforge_check_autonomous_creation_gate(
+  '00000000-0000-0000-0000-000000000202', 90
+);
+commit;
+SQL
+wait "$creation_gate_lock_pid"
+
+if ! grep -q "weekly_autonomous_creation_cap_reached" /tmp/aevora-creation-gate-second.log; then
+  cat /tmp/aevora-creation-gate-lock-holder.log /tmp/aevora-creation-gate-second.log >&2
+  echo "ASSERTION_FAILED: concurrent autonomous creation bypassed the weekly policy cap" >&2
+  exit 1
+fi
+echo "autonomous creation policy concurrency assertion passed"
