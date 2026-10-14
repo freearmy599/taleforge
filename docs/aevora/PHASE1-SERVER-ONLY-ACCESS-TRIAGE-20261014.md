@@ -84,3 +84,27 @@ This creates a **future-object privilege drift risk**: a newly created table or 
 3. For `public`, determine whether the defaults are intentional for all future objects or only public-facing ones. If least-privilege defaults are adopted, update defaults only after verifying migration roles and explicitly granting the required access on the intended public API objects.
 4. Add a migration-review check that flags new server-only objects without explicit least-privilege grants. Keep the existing read-only audit for global and per-schema default ACLs.
 5. No default ACL was changed, and no production migration, grant, schema exposure setting, or API configuration was modified.
+
+
+## Complete effective-grant and public-policy recheck (read-only, 2026-10-14)
+
+A fresh catalog query covered 173 relations in `public` and checked effective table privileges for `anon`, `authenticated`, and `service_role`. This is a permission metadata review; no row payloads were queried.
+
+- 120 relations have effective grants for `anon` and/or `authenticated` (117 base tables and 3 views in the prior relation-kind breakdown).
+- 39 RLS-enabled base tables have client grants but no policy rows. RLS with no policies normally denies client row access, so these 39 are not automatically confirmed data leaks; the excess grants should still be removed where the tables are server-only.
+- No client-granted base table with RLS disabled appeared in this targeted inventory.
+- The current catalog shows broad effective INSERT/UPDATE/DELETE as well as SELECT privileges for client roles on numerous base tables, including server/internal tables. This confirms that least-privilege table ACLs have not yet been achieved. Because inherited/default grants can complicate simple ACL interpretation, each affected table needs intended-access classification and role-based verification before a repair is proposed.
+- A separate scan found **16 SELECT/ALL policies whose predicate is literally true** and includes internal or narrative-intelligence tables, including continuity reconciliation findings/runs, narrative depth plans, narrative memory snapshots, narrative thread events/progression/threads, novelty evaluations, system dependencies, system health, and system registry. These are more urgent than the 39 no-policy cases: where client SELECT grants and Data API exposure coexist, a true policy can expose rows. Treat these as **potential direct data exposure** until the intended product-public fields are explicitly distinguished from internal diagnostics and the policy is narrowed or removed.
+- Existing `public.taleforge_system_health_snapshot` is a security-invoker view, but its underlying `taleforge_system_health` table has a public true SELECT policy and the view includes diagnostic fields such as blocking reason and evidence. Do not query the row contents in the audit; inspect column contracts and replace public access with an explicitly sanitized public status model if those fields are internal.
+- `public.aevora_automation_job_status` is a security-definer view over `cron.job` and `cron.job_run_details`, but its ACL currently grants SELECT only to `postgres` and `service_role`; `anon` and `authenticated` do not have SELECT. Do not change it based solely on its definer setting; preserve service-only behavior and test future changes.
+- The public-facing `genres` and `tags` true SELECT policies appear plausible, but the narrative/diagnostic tables above require an explicit product-publication decision. Do not treat all true policies as equally risky.
+
+### Required next actions
+
+1. Treat true SELECT policies on narrative snapshots/events/threads, reconciliation diagnostics, novelty evaluations, and system health/dependency registries as a priority review list.
+2. For each listed relation, record intended public columns and row eligibility, then compare with actual client API queries; never use raw table reads as an audit shortcut.
+3. Prepare a **branch-only** least-privilege proposal with narrow public views or sanitized aggregate RPCs where public features truly need these signals. Preserve service-role/worker paths and trigger execution.
+4. Add role-based tests proving anonymous/authenticated clients can read only intentionally public material and cannot write internal tables, while trusted service paths continue to work.
+5. Confirm actual Data API exposed schemas and column-level grants; re-query effective grants after any separately authorized rollout.
+
+This is a read-only finding record. No production data, RLS policies, grants, views, functions, schema settings, cron jobs, or Edge Functions were changed. Phase 1 remains open.
