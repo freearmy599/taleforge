@@ -117,6 +117,16 @@ begin
     raise exception 'series must exist and be ongoing';
   end if;
 
+  -- Match enrollment's remaining lock order: lifecycle before schedule.
+  perform 1
+  from public.story_lifecycle sl
+  where sl.series_id = v_series.id
+  for update;
+
+  if not found then
+    raise exception 'story lifecycle must exist before readiness';
+  end if;
+
   select rs.* into v_schedule
   from public.release_schedules rs
   where rs.id = p_schedule_id
@@ -146,15 +156,6 @@ begin
               )))
      or v_schedule.schedule_mode not in ('interval', 'weekly') then
     raise exception 'release schedule configuration is invalid';
-  end if;
-
-  perform 1
-  from public.story_lifecycle sl
-  where sl.series_id = v_schedule.series_id
-  for update;
-
-  if not found then
-    raise exception 'story lifecycle must exist before readiness';
   end if;
 
   select r.id, r.pipeline_snapshot
