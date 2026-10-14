@@ -13,6 +13,8 @@ test("scheduler fails closed on a missing readiness marker before publisher invo
   const guard = scheduler.indexOf('if(readinessDisposition!=="ready")');
   const publisherCall = scheduler.indexOf('fetch(url+"\/functions\/v1\/release-publisher"');
   assert.ok(guard >= 0, "scheduler must contain the readiness guard");
+  const leaseClaim = scheduler.indexOf('rpc("aevora_claim_release_scheduler_lease"');
+  assert.ok(leaseClaim > guard, "unready schedules must be rejected before any lease claim");
   assert.ok(publisherCall > guard, "readiness guard must precede any publisher invocation");
   assert.match(scheduler.slice(guard, publisherCall), /continue;/);
 });
