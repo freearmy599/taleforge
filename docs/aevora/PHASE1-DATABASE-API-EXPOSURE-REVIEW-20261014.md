@@ -19,3 +19,8 @@ This is a permission-hardening item, not evidence that an outside party has expl
 5. Obtain explicit approval before changing production privileges.
 
 Do not blindly revoke broad grants: a correction must preserve scheduler compatibility. No schema, grant, function, schedule, table, or production state was modified during this inspection.
+
+## Follow-up: effective public-schema function EXECUTE inventory
+
+A metadata-only follow-up using `has_function_privilege` confirmed 12 public-schema invoker functions currently have effective EXECUTE for `anon` and `authenticated`. Four are trigger-returning functions attached to table triggers (`taleforge_update_updated_at`, `touch_story_lifecycle_updated_at`, `update_series_chapter_count`, `update_updated_at`); this is not proof they can be meaningfully invoked through PostgREST RPC. The prepared migration `20261013110000_restrict_internal_invoker_rpc_execution.sql` revokes client EXECUTE on seven named planner/metrics functions. One additional non-trigger function, `taleforge_score_story_opportunity(numeric,numeric,numeric,numeric,numeric)`, also has effective client EXECUTE and no catalog trigger references, but it is not in that migration. Its intended audience and caller paths have not been verified, so it remains a **classification item**, not an automatic revoke. Confirm whether it is used by any client-facing workflow before extending the migration. Do not change production privileges during this audit.
+
