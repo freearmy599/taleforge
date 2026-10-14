@@ -239,3 +239,15 @@ test("scheduled review orchestration fails closed before invoking AI reviewers",
     "readiness must be verified before any review worker can be invoked");
   assert.match(reviewOrchestrator.slice(readinessBlock, firstReviewCall), /continue;/);
 });
+
+
+test("manual-only review and dry-run inspection remain compatible with readiness gating", () => {
+  assert.match(reviewOrchestrator, /if \(!dryRun\) \{/);
+  assert.match(reviewOrchestrator, /const requiresAutomation = isAutonomous \|\| schedule\.schedule_mode !== "manual" \|\|\s*schedule\.auto_generate === true \|\| schedule\.auto_publish === true/);
+  assert.match(reviewOrchestrator, /if \(dryRun\) \{/);
+  assert.match(reviewOrchestrator, /No review function was called and no database state was changed/);
+  const dryRunBranch = reviewOrchestrator.indexOf("if (dryRun) {");
+  const invocation = reviewOrchestrator.indexOf("callFunction(supabaseUrl, serviceRoleKey, step.functionName, output.id)");
+  assert.ok(dryRunBranch >= 0 && invocation > dryRunBranch,
+    "dry-run branch must finish before any AI review invocation");
+});
