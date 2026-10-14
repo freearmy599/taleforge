@@ -35,6 +35,8 @@ name: Aevora Edge source validation
       - "scripts/aevora-*.mjs"
       - "scripts/aevora-readiness-migration-*.sql"
       - "scripts/test-aevora-readiness-migration.sh"
+      - "scripts/aevora-reader-event-integrity-*.sql"
+      - "scripts/test-aevora-reader-event-integrity.sh"
       - ".github/workflows/aevora-edge-validation.yml"
 
 permissions:
@@ -154,3 +156,11 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_readiness_concurrency"
           bash scripts/test-aevora-readiness-concurrency.sh
+
+      - name: Rehearse reader-event integrity and INSERT-only grants
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_reader_event_test
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_reader_event_test"
+          bash scripts/test-aevora-reader-event-integrity.sh
