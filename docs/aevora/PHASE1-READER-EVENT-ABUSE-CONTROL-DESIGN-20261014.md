@@ -62,13 +62,13 @@ The branch-only trending aggregate now resolves follow/unfollow and bookmark/unb
 
 This remains a branch-only aggregate. Keep it gated until trusted intake and quotas prevent direct-insert bypass/spam, and until the event retention and anonymous-identity limitations are accepted.
 
-Do not score every positive follow/bookmark event as a permanent additive action. A follow or bookmark represents state, and its inverse removes that state. Recommended public score inputs:
+Do not treat the current branch aggregate as abuse-proof. Remaining controls before trusting public ranking:
 
-- **Opens / chapter starts:** deduplicated per event UUID, with an optional per-visitor/series cooldown for repeated opens.
-- **Reading progress:** retain only a bounded number of meaningful updates per visitor/chapter/time bucket, or compute the maximum/latest valid progress per window; never count every heartbeat as a separate full engagement action.
-- **Chapter completion:** count at most once per visitor/chapter within the chosen retention window.
-- **Follow / unfollow and bookmark / unbookmark:** derive current state from the latest valid event per visitor/series/action, or maintain an idempotent state table updated through the trusted intake path. Do not use a positive-only sum that ignores reversals.
-- **Ranking:** cap each visitor's contribution to a series within a window, apply time decay after deduplication/state resolution, and keep the ranking an explicitly heuristic discovery signal.
+- **Opens / chapter starts:** UUID retries are deduplicated, but server-side per-visitor/series cooldowns and contribution caps are not implemented.
+- **Reading progress:** repeated rounded values are deduplicated in page memory, but this is not durable and does not stop scripted fresh-key submissions; use bounded server-side time buckets or maximum/latest progress per window.
+- **Chapter completion:** no server-side one-completion-per-visitor/chapter rule exists yet.
+- **Follow / unfollow and bookmark / unbookmark:** latest-state semantics are implemented in the branch aggregate, but forgeable/rotatable visitor IDs can still inflate apparent distinct state.
+- **Ranking:** per-visitor contribution caps and trusted-intake quotas remain unimplemented. Keep ranking explicitly heuristic and do not enable the public aggregate in production until these controls are designed and tested.
 
 A stable anonymous visitor ID is still forgeable and can be rotated; it is a deduplication hint, not proof of personhood. Stronger uniqueness guarantees would require an explicit account/session product decision.
 
