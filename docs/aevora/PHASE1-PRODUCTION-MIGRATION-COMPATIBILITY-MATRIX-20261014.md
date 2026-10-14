@@ -58,3 +58,18 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 - Branch commit reviewed: `075d8bff532fc4b95b80f56fb31a8ef964c17875`.
 - GitHub Actions type-check run `38522406714`: **success**.
 - This document records review only. It does not authorize or perform a production change.
+
+
+## Readiness-gate migration addendum (2026-10-14)
+
+The branch now also contains `20261014210000_release_automation_readiness_gate.sql`, bringing the known branch-only migration set from 14 to **15** relative to the recorded live ledger. This new migration is not present in production and has not been applied.
+
+Additional compatibility requirements for this migration:
+
+- It adds `release_schedules.automation_ready_at` and intentionally leaves every existing row NULL; there is no blanket backfill.
+- It replaces the series-enrollment trigger so new/unready schedules remain disabled.
+- It adds `taleforge_mark_release_automation_ready(uuid)`, restricted to `service_role`, which verifies the series, schedule configuration, lifecycle row, production policy, and bootstrap audit evidence before atomically setting the readiness marker and automation flags.
+- It must be deployed together with the tracked branch version of `autonomous-series-creation-runner`, the scheduler, and the publisher. The production runner remains v6 until a separately approved rollout.
+- The migration has passed repository source-contract CI, but it has **not** been replayed against an isolated PostgreSQL/Supabase database. Trigger behavior, RLS/ACL interactions, rollback, race windows, and an authorized historical schedule disposition remain open.
+
+The no-go decision remains in force. Do not apply this migration or deploy the related Edge Functions until isolated migration rehearsal, detailed schedule inventory/backfill decisions, caller compatibility, and explicit rollout approval are complete.
