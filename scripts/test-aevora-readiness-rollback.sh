@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "\${DATABASE_URL:?DATABASE_URL must point to a disposable PostgreSQL database}"
-: "\${AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL:?Set AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL=I_UNDERSTAND_THIS_IS_DISPOSABLE to opt into fixture setup}"
+: "${DATABASE_URL:?DATABASE_URL must point to a disposable PostgreSQL database}"
+: "${AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL:?Set AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL=I_UNDERSTAND_THIS_IS_DISPOSABLE to opt into fixture setup}"
 if [[ "$AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL" != "I_UNDERSTAND_THIS_IS_DISPOSABLE" ]]; then
   echo "Refusing rollback rehearsal: explicit disposable-database confirmation did not match." >&2
   exit 2
