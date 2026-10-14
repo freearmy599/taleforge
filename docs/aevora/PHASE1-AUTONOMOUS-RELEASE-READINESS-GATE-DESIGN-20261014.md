@@ -82,6 +82,20 @@ Current branch scheduler and publisher guards skip draft/cancelled/hiatus but do
 No production query in this work changed data. No migration, deployment, schedule update, generation, or publication was executed.
 
 
+## Branch implementation checkpoint (2026-10-14)
+
+A branch-only enforcement prototype now exists in commit `206aed56` and later commits:
+
+- `supabase/functions/release-scheduler/readiness.ts` fails closed on missing or malformed readiness timestamps.
+- The scheduler checks the readiness marker before it can reach the publisher call; an unready targeted dry run reports `readiness_unverified_dry_run`, and a real run reports `automation_not_ready`.
+- The publisher independently queries non-manual schedules for the series and rejects ambiguous, disabled, non-auto-publishing, or unready automation schedules before chapter insertion.
+- Deno and Node source-contract tests were added to the branch CI workflow.
+
+**This is not yet a deployable end-to-end change.** The branch does not yet include the schema migration that adds `release_schedules.automation_ready_at`, the revised enrollment trigger, a server-only atomic readiness RPC, or the live autonomous runner source/wiring that calls that RPC after bootstrap succeeds. The deployed autonomous runner is not present as a tracked Edge Function in this branch; do not assume changing the scheduler and publisher alone completes the rollout. Until those pieces are implemented and tested together, do not deploy either function. Existing schedules would otherwise have no readiness marker and be blocked by the new code, and the column query would fail if the schema were not migrated first.
+
+Next implementation gate: retrieve/reconstruct and version the exact runner source, define the bootstrap transaction contract, then add an isolated-testable migration and runner integration before considering deployment. No live data or production configuration was changed by this checkpoint.
+
+
 ## Read-only production schedule baseline (2026-10-14)
 
 A read-only aggregate query against the live catalog returned six release-schedule rows: six enabled, six with automatic generation enabled, zero with automatic publication enabled, zero enabled auto-publish schedules with a null `next_release_at`, zero completed-series schedules still auto-publish-enabled, and zero schedules with missing lifecycle rows.
