@@ -62,7 +62,8 @@ create table public.story_lifecycle (
 
 create table public.taleforge_autonomous_series_creation_runs (
   id uuid primary key,
-  series_id uuid not null references public.series(id) on delete cascade,
+  series_id uuid references public.series(id) on delete cascade,
+  opportunity_id uuid,
   status text not null,
   dry_run boolean not null default false,
   created_at timestamptz not null default now(),
@@ -70,9 +71,22 @@ create table public.taleforge_autonomous_series_creation_runs (
   pipeline_snapshot jsonb not null default '{}'::jsonb
 );
 
+create table public.taleforge_story_opportunities (
+  id uuid primary key,
+  opportunity_score numeric not null default 0,
+  title text
+);
+
 create table public.taleforge_autonomous_creation_policy (
   policy_key text primary key,
-  enabled boolean not null default false
+  enabled boolean not null default false,
+  max_total_production_series integer not null default 12,
+  max_autonomous_creations_per_7d integer not null default 1,
+  min_opportunity_score numeric not null default 75,
+  min_concept_overall_score numeric not null default 75,
+  max_unpublished_autonomous_series integer not null default 2,
+  cooldown_hours numeric not null default 24,
+  exclude_internal_test_series boolean not null default true
 );
 
 create function public.taleforge_enroll_series_in_production()
