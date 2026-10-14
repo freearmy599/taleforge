@@ -93,6 +93,22 @@ create table public.taleforge_autonomous_creation_policy (
   exclude_internal_test_series boolean not null default true
 );
 
+-- Versioned stand-in for the pre-candidate creation-gate function. The rollback
+-- rehearsal verifies that this fixture baseline body is restored, not a production body.
+create function public.taleforge_check_autonomous_creation_gate(
+  p_opportunity_id uuid,
+  p_concept_overall_score numeric default null
+)
+returns jsonb
+language sql stable
+as $function$
+  select jsonb_build_object(
+    'allowed', false, 'reason', 'fixture_pre_migration_stub',
+    'opportunity_id', p_opportunity_id,
+    'concept_overall_score', p_concept_overall_score
+  )
+$function$;
+
 create function public.taleforge_enroll_series_in_production()
 returns trigger
 language plpgsql
