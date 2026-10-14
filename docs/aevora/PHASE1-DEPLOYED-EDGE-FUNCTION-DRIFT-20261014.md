@@ -140,3 +140,12 @@ The live `trg_enroll_series_in_production` trigger also fires on step 3 and itse
 ### Disposition
 
 **Release blocker:** production autonomous creation currently spans multiple network/database requests and uses a status trigger that turns on auto-publication before bootstrap completion. Do not enable or deploy the runner as a verified safe pipeline until the activation boundary is made atomic or equivalent disabled-until-ready gating is proven. This source review did not invoke the runner, alter a series, change a schedule, or publish/generate content.
+
+
+### Follow-up confirmation: trigger-created schedule is immediately due (read-only catalog/source review)
+
+The live `release_schedules` column defaults show `next_release_at` is nullable with no default. The series-status trigger inserts a schedule for an ongoing series with `enabled=true`, `auto_generate=true`, and `auto_publish=true`, but does not set `next_release_at`. The hardening-branch scheduler's due query explicitly accepts `next_release_at IS NULL` and, for an unscoped live run, selects enabled `auto_publish=true` schedules.
+
+That combination makes the trigger-created schedule eligible for the release scheduler immediately, before the autonomous runner finishes its subsequent lifecycle/schedule/audit requests. This is not just a theoretical partial-bootstrap concern: a concurrent release tick can observe the trigger-created row in that intermediate state. A later runner update may set the 24-hour cadence, but it cannot retroactively prevent a scheduler that already selected and claimed the row.
+
+**Required invariant:** newly created series must not become visible as enabled/auto-publishable to the release scheduler until lifecycle and schedule bootstrap has completed and an explicit readiness gate is true. The readiness check should be enforced server-side/database-side and in the scheduler query; relying on request ordering in the runner is insufficient. Verify this with a deterministic concurrency test before any production rollout.
