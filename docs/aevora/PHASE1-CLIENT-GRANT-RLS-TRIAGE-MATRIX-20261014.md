@@ -50,7 +50,7 @@ The prepared narrative-internals migration drops public read policies on `talefo
 
 ## Correction: explicit column grants not confirmed
 
-The earlier `information_schema.role_column_grants` result was initially interpreted as evidence of independent column grants. A direct catalog check of `pg_attribute.attacl` found **zero columns with explicit ACLs** on the sampled internal tables and health snapshot. In this project, the information-schema results reflect effective privileges from relation-level grants; they do not establish separately stored column ACLs.
+The earlier `information_schema.role_column_grants` result was initially interpreted as evidence of independent column grants. A full public-schema catalog check of `pg_attribute.attacl` found **zero explicit column ACL entries** for `PUBLIC`, `anon`, or `authenticated` across public tables, partitioned tables, views, and materialized views. In this project, the information-schema results reflect effective privileges from relation-level grants; they do not establish separately stored column ACLs.
 
 The confirmed finding is broad **relation-level** grants plus schema-specific default ACLs for future objects. The prepared migrations retain column-level `REVOKE ALL PRIVILEGES` statements as defensive cleanup; these are harmless when no explicit column ACL exists. No production change was made. The repeatable audit SQL has been corrected to inspect `pg_attribute.attacl` directly.
 
