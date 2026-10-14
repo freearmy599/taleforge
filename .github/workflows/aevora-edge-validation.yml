@@ -146,3 +146,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_readiness_test
         run: bash scripts/test-aevora-readiness-migration.sh
+
+      - name: Rehearse readiness against concurrent series completion
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_readiness_concurrency
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_readiness_concurrency"
+          bash scripts/test-aevora-readiness-concurrency.sh
