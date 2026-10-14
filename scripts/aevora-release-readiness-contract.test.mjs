@@ -125,6 +125,13 @@ test("legacy service-role writes cannot re-enable automation without readiness",
     "service-role callers must not bypass the atomic readiness marker setter");
 });
 
+test("ready schedules cannot be reassigned and duplicate schedules revoke readiness", () => {
+  assert.match(migration, /ready or automatic release schedules cannot be reassigned to another series/i);
+  assert.match(migration, /before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public\.release_schedules/i);
+  assert.match(migration, /create trigger trg_revoke_ambiguous_release_schedules[\s\S]*?after insert or update of series_id on public\.release_schedules/i);
+  assert.match(migration, /create or replace function public\.taleforge_revoke_ambiguous_release_schedules[\s\S]*?count\(\*\)[\s\S]*?> 1[\s\S]*?automation_ready_at = null/i);
+});
+
 test("database trigger forbids automatic flags on manual schedules", () => {
   assert.match(migration, /new\.schedule_mode = 'manual'[\s\S]*?new\.auto_generate = true or new\.auto_publish = true[\s\S]*?manual schedules cannot enable automatic generation or publication/i);
 });
