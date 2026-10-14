@@ -93,6 +93,7 @@ as $function$
 declare
   v_schedule public.release_schedules%rowtype;
   v_series public.series%rowtype;
+  v_series_id uuid;
   v_run_id uuid;
   v_snapshot jsonb;
 begin
@@ -102,7 +103,7 @@ begin
 
   -- Lock order matches the enrollment trigger: series first, schedule second.
   -- Read the parent ID without locking, then lock and revalidate both rows.
-  select rs.series_id into v_schedule.series_id
+  select rs.series_id into v_series_id
   from public.release_schedules rs
   where rs.id = p_schedule_id;
 
@@ -112,7 +113,7 @@ begin
 
   select s.* into v_series
   from public.series s
-  where s.id = v_schedule.series_id
+  where s.id = v_series_id
   for update;
 
   if not found or v_series.status <> 'ongoing' then
