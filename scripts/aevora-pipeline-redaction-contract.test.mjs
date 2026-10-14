@@ -36,7 +36,7 @@ test("generation orchestrator sanitizes downstream failures and provider diagnos
   assert.ok(s.includes('function errorMessage(_error:unknown){return "Internal orchestration diagnostics were withheld."}'));
   assert.ok(s.includes("if(!r.ok||d?.success===false){const safe:any="));
   assert.ok(s.includes('const providerTemporarilyUnavailable=g.status===503'), "temporary provider outages must be recognized as retryable");
-  assert.ok(s.includes('action:providerQuotaBlocked?"provider_quota_blocked":"provider_temporarily_unavailable"'), "temporary provider outages must return claimed blueprints to ready instead of rejecting them");
+  assert.ok(s.includes('action:providerStateBlocked?"provider_state_blocked":providerQuotaBlocked?"provider_quota_blocked":"provider_temporarily_unavailable"'), "provider-state blocks and temporary provider outages must return claimed blueprints to ready instead of rejecting them");
   assert.ok(s.includes('const lastError=providerQuotaFailure?"Gemini quota or rate-limit response":"Gemini temporary overload response"'));
   assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), "orchestrator quota recorder must read the existing cooldown");
   assert.ok(s.includes("Math.max(proposedUntil,existingUntil)"), "orchestrator quota recorder must not shorten an existing cooldown");
