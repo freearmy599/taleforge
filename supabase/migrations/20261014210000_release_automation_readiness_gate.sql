@@ -25,6 +25,12 @@ language plpgsql
 set search_path = ''
 as $function$
 begin
+  -- Manual schedules must never carry automatic generation/publication flags.
+  if new.schedule_mode = 'manual'
+     and (new.auto_generate = true or new.auto_publish = true) then
+    raise exception 'manual schedules cannot enable automatic generation or publication';
+  end if;
+
   -- A NULL marker means the schedule is not authorized for autonomous work.
   -- Reject legacy service-role writes too, so an old runner cannot re-enable it.
   if new.automation_ready_at is null
