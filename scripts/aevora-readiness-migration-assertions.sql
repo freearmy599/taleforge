@@ -88,9 +88,11 @@ end;
 $manual_assert$;
 
 -- Direct service-role writes cannot set the readiness marker outside the RPC.
+-- Even the former caller-settable GUC must not bypass the transaction authorization record.
 select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
-do $$
+do $
 begin
+  perform pg_catalog.set_config('aevora.release_readiness_rpc', 'on', true);
   begin
     update public.release_schedules
     set automation_ready_at = now()
