@@ -8,7 +8,8 @@ Status: unresolved operational observation; read-only checks only.
 - At the read-only check around 2026-10-14 04:05 UTC, `cron.job_run_details` showed recent successful SQL executions, including release and publication-sync jobs with latest runs at about 04:05 UTC.
 - At that same inspection, `net._http_response` contained 246 rows, but its newest `created` timestamp was about 02:25 UTC. The request queue count was zero.
 - The database reports `pg_net.ttl = 6 hours` (default). A point-in-time response table can contain older rows because cleanup behavior depends on the worker processing requests; the table age alone does not establish worker health.
-- The existing cron command metadata does not mention a persisted `request_id`. Most jobs call through helper expressions, so the absence of an obvious direct assignment in the command text is not proof that no internal helper captures it; no request-ID persistence mechanism was found in the reviewed metadata.
+- A follow-up metadata-only function-name extraction from active dispatch commands found direct `net.http_post` calls alongside built-in `exists` and `jsonb_build_object` expressions; no custom helper function appeared in those commands. The command text was not emitted or copied into this report. No request-ID persistence mechanism was found in the reviewed dispatch metadata.
+- A read-only `pg_stat_activity` snapshot showed one `pg_net 0.20.4 worker` session in an idle state waiting on an extension event. This confirms a worker session was visible at that moment; an idle wait state is not proof of failure or full health.
 
 ## Interpretation
 
@@ -20,6 +21,7 @@ There is a freshness gap between recent successful cron SQL executions and the n
 2. Check pg_net worker health and response-table freshness using supported operational telemetry.
 3. Establish the exact API-exposed schema list from project configuration; database grants alone do not prove client API reachability.
 4. Add correlation to a future reviewed design, capturing each `net.http_post` request ID and reconciling status before response cleanup. Preserve current job cadence, payload, headers, and side effects exactly.
-5. Do not send test HTTP requests, trigger any Edge Function, or change live jobs as part of diagnosis.
+5. Confirm worker health using supported Supabase operational telemetry and time-correlated, aggregate logs; do not treat an idle worker wait state as an error.
+6. Do not send test HTTP requests, trigger any Edge Function, or change live jobs as part of diagnosis.
 
 No live job, schedule, function, grant, table, or production task state was changed.
