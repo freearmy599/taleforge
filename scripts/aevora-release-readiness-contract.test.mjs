@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const scheduler = await readFile("supabase/functions/release-scheduler/index.ts", "utf8");
 const generationOrchestrator = await readFile("supabase/functions/generation-orchestrator/index.ts", "utf8");
+const generateChapter = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
@@ -113,4 +114,15 @@ test("scheduled generation is blocked before cooldown, review, or generation wor
   assert.ok(readinessGuard >= 0 && providerCheck > readinessGuard,
     "readiness must be checked before provider-state checks and downstream AI work");
   assert.match(generationOrchestrator.slice(readinessGuard, providerCheck), /continue/);
+});
+
+
+test("direct chapter generation cannot bypass readiness for automatic schedules", () => {
+  assert.match(generateChapter, /from\("release_schedules"\)/);
+  assert.match(generateChapter, /isAutomationReady\(automaticSchedule\.automation_ready_at\)/);
+  assert.match(generateChapter, /Scheduled generation is not ready; no chapter generation was attempted/);
+  const guard = generateChapter.indexOf("Scheduled generation is not ready; no chapter generation was attempted");
+  const contextBuild = generateChapter.indexOf('rpc("taleforge_build_generation_context"');
+  assert.ok(guard >= 0 && contextBuild > guard,
+    "direct-generation readiness guard must run before context build and provider call");
 });
