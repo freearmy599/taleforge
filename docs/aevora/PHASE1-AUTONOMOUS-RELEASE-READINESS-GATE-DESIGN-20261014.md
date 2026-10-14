@@ -89,6 +89,7 @@ A branch-only enforcement prototype now exists in commit `206aed56` and later co
 - `supabase/functions/release-scheduler/readiness.ts` fails closed on missing or malformed readiness timestamps.
 - The scheduler checks the readiness marker before it can reach the publisher call; an unready targeted dry run reports `readiness_unverified_dry_run`, and a real run reports `automation_not_ready`.
 - The publisher independently queries non-manual schedules for the series and rejects ambiguous, disabled, non-auto-publishing, or unready automation schedules before chapter insertion.
+- The generation orchestrator checks readiness before provider-state lookups or AI-dependent work, and the direct `generate-chapter` blueprint path checks schedule readiness plus autonomous-series provenance before building generation context. Autonomous series with a missing/ambiguous schedule are blocked rather than treated as manual.
 - Deno and Node source-contract tests were added to the branch CI workflow.
 
 **This is still not deployment-ready.** The branch now includes a candidate migration (`20261014210000_release_automation_readiness_gate.sql`), a server-only atomic readiness RPC, a revised enrollment trigger that leaves unready automation disabled, and a tracked runner source reconstructed from deployed Edge Function v6. The runner now writes a disabled schedule, confirms bootstrap audit evidence, and only then calls the readiness RPC. Scheduler and publisher enforce the marker independently.
