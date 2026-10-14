@@ -122,3 +122,17 @@ The migration fixture provides a minimal pre-candidate schema and an enrollment-
 ### CI harness cross-check (2026-10-14)
 
 The successful disposable-PostgreSQL job invokes `bash scripts/test-aevora-readiness-migration.sh`, which runs the fixture, candidate migration, and forward assertions. The same job separately invokes `scripts/test-aevora-readiness-concurrency.sh`. In workflow run [38571249545](https://github.com/freearmy599/taleforge/actions/runs/38571249545), both jobs completed successfully; the PostgreSQL job's visible step list names forward replay, runtime assertions, concurrency, and reader-event integrity/grant checks. Neither the harness source nor those visible steps performs a post-commit migration rollback/restore. This confirms the rollback gap is real, not just missing documentation.
+
+
+## Rollback rehearsal implementation (2026-10-14; execution pending)
+
+Added a fixture-scoped rollback path and wired it into the existing disposable PostgreSQL migration test runner:
+
+- `scripts/aevora-readiness-rollback.sql` first disables all schedules and clears readiness, then removes candidate triggers/functions/index/table/column and restores the versioned fixture's pre-migration function bodies and ACLs.
+- `scripts/aevora-readiness-rollback-assertions.sql` checks candidate objects are gone, the baseline enrollment trigger and creation-gate stub are restored, fixture ACLs return, and every schedule remains disabled.
+- `scripts/test-aevora-readiness-migration.sh` now runs rollback and rollback assertions after the existing forward migration assertions, so the existing CI invocation exercises both directions.
+- `scripts/test-aevora-readiness-rollback.sh` provides an explicit opt-in runner and refuses Supabase-hosted URLs.
+
+Important boundary: this is a **disposable fixture rollback rehearsal**, not a production-grade rollback script. The fixture's pre-migration function bodies and grants are deliberately versioned test stand-ins; they do not prove exact production definitions or ACLs. The rollback policy intentionally does not restore any previous enabled/auto flags because provenance and approval cannot be inferred from pre-migration values. Failed-transaction recovery and Supabase-specific catalog/API behavior remain separate checks.
+
+The runner and SQL were committed to the branch, but this environment has not run PostgreSQL locally (no `psql`/server/container runtime available), and the latest commits currently show no reported CI status. Therefore the rehearsal is **implemented but not yet verified as passing**. Gate B remains open until the CI job executes successfully and its logs are inspected; production remains untouched.
