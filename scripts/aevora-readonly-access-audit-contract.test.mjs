@@ -207,3 +207,23 @@ test("internal narrative migration keeps every DO dollar-quoted block balanced",
   assert.doesNotMatch(internalNarrativeMigration, /\bDO\s+\$(?:\r?\n|$)/i, "reject malformed single-dollar DO opener");
   assert.doesNotMatch(internalNarrativeMigration, /^\$;\s*$/m, "reject malformed single-dollar DO terminator");
 });
+
+
+const unapprovedInternalWritesMigration = await readFile(
+  new URL("../supabase/migrations/20261014180000_revoke_unapproved_internal_client_writes.sql", import.meta.url),
+  "utf8",
+);
+
+test("unapproved internal-write migration covers all 41 audited uncovered tables and preserves SELECT", () => {
+  for (const table of ["taleforge_advanced_chapter_plans","taleforge_character_architecture","taleforge_ending_architecture","taleforge_genre_grammars","taleforge_genre_inversion_patterns","taleforge_genre_taxonomy","taleforge_grammar_compatibility","taleforge_hybrid_story_recipes","taleforge_hybrid_story_recipes_generated","taleforge_narrative_arc_layers","taleforge_narrative_culture_profiles","taleforge_narrative_memory_consolidations","taleforge_narrative_modes","taleforge_series_genre_grammar_profiles","taleforge_series_genre_profiles","taleforge_series_narrative_profiles","taleforge_series_subgenre_profiles","taleforge_story_concept_arc_characters","taleforge_story_concept_arc_endings","taleforge_story_concept_arc_relationships","taleforge_story_concept_arc_threads","taleforge_story_concept_arc_world_functions","taleforge_story_concept_arcs","taleforge_story_concept_candidates","taleforge_story_concept_character_causality","taleforge_story_concept_characters","taleforge_story_concept_evaluations","taleforge_story_concept_faction_causality","taleforge_story_concept_factions","taleforge_story_concept_relationships","taleforge_story_concept_state_transitions","taleforge_story_concept_world_dependencies","taleforge_story_concept_world_links","taleforge_story_concept_world_rules","taleforge_story_concept_world_state_models","taleforge_story_concept_world_state_transitions","taleforge_story_concept_worlds","taleforge_story_opportunities","taleforge_story_specific_depth_designs","taleforge_story_trope_library","taleforge_subgenre_intelligence"]) {
+    assert.match(
+      unapprovedInternalWritesMigration,
+      new RegExp("'" + table + "'"),
+      table + " must be in the explicit audited table list",
+    );
+  }
+  assert.match(unapprovedInternalWritesMigration, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE/i);
+  assert.match(unapprovedInternalWritesMigration, /REVOKE INSERT \(%1\$s\), UPDATE \(%1\$s\), REFERENCES \(%1\$s\) ON TABLE/i);
+  assert.doesNotMatch(unapprovedInternalWritesMigration, /REVOKE ALL PRIVILEGES ON TABLE/i);
+  assert.doesNotMatch(unapprovedInternalWritesMigration, /GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i);
+});
