@@ -286,3 +286,73 @@ end;
 $assert$;
 select 'release schedule writer concurrency assertion passed' as result;
 SQL
+
+
+# A stale service-role worker that updates automation flags after a readiness
+# transaction commits must revoke readiness. This exercises the real row-lock
+# interleaving rather than only a sequential trigger assertion.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000009', 'Concurrent stale-worker fixture', 'ongoing', 'ai_original', 'pending')
+on conflict (id) do nothing;
+
+update public.release_schedules
+set schedule_mode = 'interval', interval_hours = 24, timezone = 'Asia/Kolkata',
+    chapters_ahead = 3, next_release_at = now(), enabled = false,
+    auto_generate = false, auto_publish = false, automation_ready_at = null
+where series_id = '00000000-0000-0000-0000-000000000009';
+
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, status, dry_run, pipeline_snapshot
+) values (
+  '00000000-0000-0000-0000-000000000031',
+  '00000000-0000-0000-0000-000000000009',
+  'created', false,
+  jsonb_build_object(
+    'series_id', '00000000-0000-0000-0000-000000000009',
+    'lifecycle_initialized', true,
+    'release_schedule_initialized', true
+  )
+) on conflict (id) do nothing;
+
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000031')
+where series_id = '00000000-0000-0000-0000-000000000009';
+SQL
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-readiness-writer-a.log 2>&1 <<'SQL' &
+begin;
+select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
+select public.taleforge_mark_release_automation_ready(
+  (select id from public.release_schedules
+   where series_id = '00000000-0000-0000-0000-000000000009')
+);
+select pg_sleep(1);
+commit;
+SQL
+readiness_writer_pid=$!
+sleep 0.2
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-readiness-writer-b.log 2>&1 <<'SQL'
+begin;
+update public.release_schedules
+set auto_publish = false
+where series_id = '00000000-0000-0000-0000-000000000009';
+commit;
+SQL
+wait "$readiness_writer_pid"
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+do $stale_worker_interleave_assert$
+begin
+  if exists (
+    select 1 from public.release_schedules
+    where series_id = '00000000-0000-0000-0000-000000000009'
+      and (automation_ready_at is not null or enabled or auto_generate or auto_publish)
+  ) then
+    raise exception 'ASSERTION_FAILED: stale worker retained readiness after concurrent automation-flag mutation';
+  end if;
+end;
+$stale_worker_interleave_assert$;
+select 'concurrent stale-worker readiness revocation assertion passed' as result;
+SQL
