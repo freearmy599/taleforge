@@ -311,6 +311,10 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(migrationTestRunner, /AEVORA_DISPOSABLE_MIGRATION_REHEARSAL/);
   assert.match(migrationTestRunner, /Refusing migration rehearsal against a Supabase URL/);
   assert.match(migrationTestRunner, /aevora_readiness/);
+  assert.match(migrationTestRunner, /database_url_without_query=.*DATABASE_URL/);
+  assert.match(migrationTestRunner, /database_name=.*database_url_without_query/);
+  assert.match(concurrencyTestRunner, /database_name=.*database_url_without_query/);
+  assert.match(readerEventTestRunner, /database_name=.*database_url_without_query/);
   assert.match(migrationWorkflow, /AEVORA_DISPOSABLE_MIGRATION_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE/);
   assert.match(concurrencyTestRunner, /AEVORA_DISPOSABLE_CONCURRENCY_REHEARSAL/);
   assert.match(concurrencyTestRunner, /Refusing readiness concurrency rehearsal against a Supabase URL/);
