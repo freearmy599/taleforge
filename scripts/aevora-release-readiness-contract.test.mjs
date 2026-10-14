@@ -441,8 +441,15 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /const generated=\[\];for\(const b of missing\)\{if\(providerThrottleObserved\)\{generated\.push\(\{chapter_number:b\.chapter_number,action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /if\(revisionQuotaBlocked\|\|revisionTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
-  assert.match(generationOrchestrator, /if\(!revise\.ok\)\{if\(revise\.status===429\|\|revise\.status===503\)providerThrottleObserved=true/);
+  assert.match(generationOrchestrator, /function isProviderBlockResult\(result:any\):boolean/);
+  assert.match(generationOrchestrator, /const revisionProviderBlock=isProviderBlockResult\(revise\);if\(!revise\.ok\|\|revisionProviderBlock\)/);
+  assert.match(generationOrchestrator, /if\(isProviderBlockResult\(recovery\)\)providerThrottleObserved=true/);
+  assert.match(generationOrchestrator, /if\(isProviderBlockResult\(x\)\)providerThrottleObserved=true/);
+  assert.match(generationOrchestrator, /const providerStateBlocked=\["provider_state_unavailable","provider_cooldown","invalid_cooldown_timestamp"\]/);
+  assert.match(generationOrchestrator, /if\(!g\.ok\|\|isProviderBlockResult\(g\)\)/);
   assert.match(generationOrchestrator, /if\(providerQuotaBlocked\|\|providerTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
+  assert.match(generationOrchestrator, /providerQuotaBlocked\|\|providerTemporarilyUnavailable\|\|providerStateBlocked/);
+  assert.match(generationOrchestrator, /action:providerStateBlocked\?"provider_state_blocked"/);
   assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
   assert.match(reviewOrchestrator, /if \(providerThrottleObserved\) \{\s*results\.push\(\{ output_id: output\.id, chapter_number: output\.chapter_number, action: "provider_throttle_observed"/);
   assert.match(reviewOrchestrator, /const callReason = \(call\.data as Record<string, unknown> \| null\)\?\.reason/);
