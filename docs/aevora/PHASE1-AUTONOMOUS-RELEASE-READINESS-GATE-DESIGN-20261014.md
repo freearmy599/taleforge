@@ -68,7 +68,7 @@ The trigger must not re-enable automation when an unready series is changed to `
 
 ## Adjacent policy gate: completed series
 
-Current branch scheduler and publisher guards skip draft/cancelled/hiatus but do not explicitly reject completed. Decide whether completed means no further chapter may publish. If yes, reject completed at both boundaries and test stale enabled schedules/direct publisher calls. If a terminal chapter is allowed after completion, represent that exception with a distinct explicit authorization rather than the general path.
+The branch now treats `completed` as terminal for ordinary publication: scheduler and publisher both reject it, including the publisher's final status recheck. A final chapter must be published before the series transitions to completed. No post-completion exception exists in the general release path; if product later requires one, it must use a distinct explicit authorization and dedicated tests.
 
 ## Acceptance criteria
 
