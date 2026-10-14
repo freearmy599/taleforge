@@ -12,8 +12,9 @@ Coordinate the `automation_ready_at` schema gate with the autonomous-series runn
 
 - [ ] Explicit approval for the exact rollout window and production changes.
 - [ ] Current source fingerprints captured for the runner, scheduler, generation orchestrator, direct `generate-chapter`, and publisher.
-- [x] A disposable PostgreSQL 17 fixture is exercised in GitHub Actions; no billable Supabase development branch was created.
-- [ ] Replay and assertions pass against a disposable Supabase environment or an equivalently faithful fixture, including Supabase-specific RLS/ACL/catalog behavior, concurrency, and rollback.
+- [x] The migration and runtime assertions pass against a disposable PostgreSQL 17 fixture in GitHub Actions; no billable Supabase development branch was created.
+- [x] A concurrent completion-versus-readiness rehearsal passes in disposable PostgreSQL; duplicate-schedule activation and terminal-state cleanup are covered by fixture assertions.
+- [ ] Replay and assertions pass against a disposable Supabase environment or an equivalently faithful fixture, including Supabase-specific RLS/ACL/catalog behavior and rollback. The plain PostgreSQL fixture does not certify Supabase-specific auth, Data API, RLS, or managed-role behavior.
 - [ ] The complete live schedule inventory is reviewed by series owner/status/mode and a disposition chosen for every existing row.
 - [ ] An approved plan exists for non-autonomous series. The autonomous readiness RPC intentionally requires a matching successful creation-run audit; do not weaken that evidence to activate legacy/creator-studio schedules.
 - [ ] Internal API keys, service-role invocation, cron callers, and response contracts are verified for every Edge Function being deployed.
@@ -25,7 +26,7 @@ A read-only aggregate join on 2026-10-14 found **six** current schedules, all `i
 
 Consequences:
 
-- The readiness migration's fail-closed cleanup would disable all six existing schedules because they have no readiness marker.
+- The readiness migration's fail-closed cleanup disables automatic flags for all six existing schedules because they have no readiness marker. The enrollment trigger also disables all schedules when the series is not `ongoing` or has duplicate schedule rows; the readiness RPC refuses any series that does not have exactly one schedule.
 - The autonomous-only readiness RPC cannot activate these six schedules; that is intentional, not a transient error.
 - A separate auditable approval mechanism for non-autonomous schedules is not implemented. Until such a path is designed, reviewed, and explicitly used, these six schedules must remain paused/manual-only after the migration.
 - Do not silently classify them as autonomous, fabricate creation-run evidence, or bulk-mark them ready. Before rollout, the product owner must accept this generation pause or approve a separate per-series approval design.
