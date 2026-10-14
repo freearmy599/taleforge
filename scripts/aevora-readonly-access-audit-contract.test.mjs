@@ -11,6 +11,11 @@ const sql = await readFile(
   "utf8",
 );
 
+const trendingMigration = await readFile(
+  new URL("../supabase/migrations/20261014130000_public_trending_aggregate_rpc.sql", import.meta.url),
+  "utf8",
+);
+
 test("Phase 1 access audit contains only read-only SELECT statements", () => {
   const executableSql = sql.replace(/--[^\n]*/g, "").trim();
   const statements = executableSql.split(";").map((statement) => statement.trim()).filter(Boolean);
@@ -50,4 +55,17 @@ test("existing sequence ACL inventory is read-only and distinguishes client role
   assert.match(sql, /aclexplode\(c\.relacl\)/i);
   assert.match(sql, /sequence_owner/i);
   assert.match(sql, /grantee\.rolname\s+IN\s+\('anon',\s*'authenticated'\)/i);
+});
+
+
+test("public trending data is exposed only through a fixed-search-path aggregate function", () => {
+  assert.match(trendingMigration, /CREATE OR REPLACE FUNCTION public\.get_public_story_trending_scores\(\)/i);
+  assert.match(trendingMigration, /SECURITY DEFINER/i);
+  assert.match(trendingMigration, /SET search_path = pg_catalog/i);
+  assert.match(trendingMigration, /created_at > pg_catalog\.now\(\) - interval '30 days'/i);
+  assert.match(trendingMigration, /WHERE s\.status = ANY \(ARRAY\['ongoing'::text, 'completed'::text\]\)/i);
+  assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON FUNCTION public\.get_public_story_trending_scores\(\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(trendingMigration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO anon, authenticated, service_role/i);
+  assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH \(security_invoker = true\)/i);
+  assert.doesNotMatch(trendingMigration, /visitor_id|reader_events\.id|CREATE\s+POLICY|GRANT\s+SELECT\s+ON\s+TABLE\s+public\.reader_events/i);
 });
