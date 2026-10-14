@@ -37,6 +37,11 @@ const internalRpcMigration = await readFile(
   "utf8",
 );
 
+const identitySequenceMigration = await readFile(
+  new URL("../supabase/migrations/20261014120000_lock_public_identity_sequence_grants.sql", import.meta.url),
+  "utf8",
+);
+
 test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("ALTER TABLE public.taleforge_ai_provider_state ENABLE ROW LEVEL SECURITY"));
   assert.ok(migration.includes("REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"));
@@ -179,4 +184,18 @@ test("server-only migration targets cover the complete 39-table client-grant inv
   assert.ok(migration.includes("public.taleforge_ai_provider_state"), "provider-state migration must cover the remaining server-only table");
   assert.equal(new Set(targets).size, 39, "the four migration groups must cover 39 unique client-granted, policyless base tables");
   assert.equal(targets.length, 39, "migration groups must not contain duplicate table targets");
+});
+
+test("identity sequences are not directly exposed to ordinary client roles", () => {
+  for (const sequence of ["aevora_engineering_events_id_seq", "reader_events_id_seq"]) {
+    assert.ok(identitySequenceMigration.includes("public." + sequence), sequence + " must be included in the sequence lock");
+    assert.ok(
+      identitySequenceMigration.includes("REVOKE ALL PRIVILEGES ON SEQUENCE public." + sequence + " FROM PUBLIC, anon, authenticated"),
+      sequence + " must revoke broad direct sequence privileges",
+    );
+  }
+  assert.equal(/GRANT\\s+.+\\s+TO\\s+(PUBLIC|anon|authenticated)/i.test(identitySequenceMigration), false,
+    "sequence lock must not re-grant direct client access");
+  assert.equal(/FROM\\s+PUBLIC,\\s*anon,\\s*authenticated/i.test(identitySequenceMigration), true,
+    "sequence revokes must cover PUBLIC and both ordinary client roles");
 });
