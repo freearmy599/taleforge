@@ -142,14 +142,14 @@ test("public trending aggregate preserves the exact existing discovery-view outp
     "bookmarks bigint",
     "latest_activity timestamptz",
   ];
-  const returnBlock = trendingMigration.match(/RETURNS TABLE\\s*\\(([\\s\\S]*?)\\)\\s*LANGUAGE sql/i);
+  const returnBlock = trendingMigration.match(/RETURNS TABLE\s*\(([\s\S]*?)\)\s*LANGUAGE sql/i);
   assert.ok(returnBlock, "trending RPC must declare an explicit table return contract");
   const actualColumns = returnBlock[1]
     .split(",")
-    .map((column) => column.trim().replace(/\\s+/g, " ").toLowerCase());
+    .map((column) => column.trim().replace(/\s+/g, " ").toLowerCase());
   assert.deepEqual(actualColumns, expectedColumns, "RPC output names, types, and order must match the observed discovery view contract");
-  assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\\.story_trending_scores\\s+WITH \\(security_invoker = true\\)/i);
-  assert.match(readerEventsMigration, /REVOKE ALL PRIVILEGES ON TABLE public\\.reader_events FROM PUBLIC, anon, authenticated/i);
-  assert.match(readerEventsMigration, /GRANT INSERT ON TABLE public\\.reader_events TO anon, authenticated/i);
-  assert.doesNotMatch(readerEventsMigration, /GRANT SELECT ON TABLE public\\.reader_events TO (PUBLIC|anon|authenticated)/i);
+  assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH \(security_invoker = true\)/i);
+  assert.match(readerEventsMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.reader_events FROM PUBLIC, anon, authenticated/i);
+  assert.match(readerEventsMigration, /GRANT INSERT ON TABLE public\.reader_events TO anon, authenticated/i);
+  assert.doesNotMatch(readerEventsMigration, /GRANT SELECT ON TABLE public\.reader_events TO (PUBLIC|anon|authenticated)/i);
 });
