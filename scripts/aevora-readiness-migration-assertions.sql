@@ -39,7 +39,7 @@ set schedule_mode = 'manual', enabled = true, auto_generate = false, auto_publis
 where series_id = '00000000-0000-0000-0000-000000000001';
 
 -- Direct service-role writes cannot set the readiness marker outside the RPC.
-select pg_catalog.set_config('request.jwt.claim.role', 'service_role', true);
+select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
 do $$
 begin
   begin
