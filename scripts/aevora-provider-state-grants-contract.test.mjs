@@ -156,3 +156,27 @@ test("unwired reader-feature tables remain unavailable to direct client roles un
   assert.equal(/CREATE\s+POLICY/i.test(readerFeatureMigration), false, "no broad client policies may be added before access requirements are defined");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(readerFeatureMigration), false, "migration must not re-grant client access");
 });
+
+
+test("server-only migration targets cover the complete 39-table client-grant inventory", () => {
+  const extractTargets = (source, label) => {
+    const match = source.match(/FOREACH\s+table_name\s+IN\s+ARRAY\s+ARRAY\[([\s\S]*?)\]/i);
+    assert.ok(match, \`\${label} must declare an explicit bounded table target list\`);
+    return [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1]);
+  };
+  const internalTargets = extractTargets(internalTablesMigration, "internal policyless migration");
+  const metricsTargets = extractTargets(metricsOutboxMigration, "metrics/outbox migration");
+  const readerTargets = extractTargets(readerFeatureMigration, "unwired reader migration");
+  const targets = [
+    ...internalTargets,
+    ...metricsTargets,
+    "taleforge_ai_provider_state",
+    ...readerTargets,
+  ];
+  assert.equal(internalTargets.length, 25, "expected 25 internal policyless table targets");
+  assert.equal(metricsTargets.length, 2, "expected 2 metrics/outbox table targets");
+  assert.equal(readerTargets.length, 11, "expected 11 dormant reader-feature table targets");
+  assert.ok(migration.includes("public.taleforge_ai_provider_state"), "provider-state migration must cover the remaining server-only table");
+  assert.equal(new Set(targets).size, 39, "the four migration groups must cover 39 unique client-granted, policyless base tables");
+  assert.equal(targets.length, 39, "migration groups must not contain duplicate table targets");
+});
