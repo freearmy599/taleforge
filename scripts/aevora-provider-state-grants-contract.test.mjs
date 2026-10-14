@@ -194,8 +194,8 @@ test("identity sequences are not directly exposed to ordinary client roles", () 
       sequence + " must revoke broad direct sequence privileges",
     );
   }
-  assert.equal(/GRANT\\s+.+\\s+TO\\s+(PUBLIC|anon|authenticated)/i.test(identitySequenceMigration), false,
+  assert.equal(identitySequenceMigration.includes("GRANT "), false,
     "sequence lock must not re-grant direct client access");
-  assert.equal(/FROM\\s+PUBLIC,\\s*anon,\\s*authenticated/i.test(identitySequenceMigration), true,
+  assert.ok(identitySequenceMigration.includes("FROM PUBLIC, anon, authenticated"),
     "sequence revokes must cover PUBLIC and both ordinary client roles");
 });
