@@ -153,6 +153,6 @@ test("unwired reader-feature tables remain unavailable to direct client roles un
   assert.ok(readerFeatureMigration.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"), "all target tables must have RLS enabled");
   assert.ok(readerFeatureMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "all target tables must revoke relation-level client grants");
   assert.ok(readerFeatureMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "migration must defensively clear explicit column ACLs");
-  assert.equal(/CREATE\\s+POLICY/i.test(readerFeatureMigration), false, "no broad client policies may be added before access requirements are defined");
-  assert.equal(/GRANT\\s+.+\\s+TO\\s+(anon|authenticated)/i.test(readerFeatureMigration), false, "migration must not re-grant client access");
+  assert.equal(/CREATE\s+POLICY/i.test(readerFeatureMigration), false, "no broad client policies may be added before access requirements are defined");
+  assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(readerFeatureMigration), false, "migration must not re-grant client access");
 });
