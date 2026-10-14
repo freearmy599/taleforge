@@ -249,7 +249,7 @@ test("internal story-design read lock removes client SELECT paths from all 41 au
 
 
 const readerEventIntegrityMigration = await readFile(
-  new URL("../supabase/migrations/20261014200000_validate_reader_event_series_chapter_pair.sql", import.meta.url),
+  new URL("../supabase/migrations/20261014200000_reader_event_relationship_integrity.sql", import.meta.url),
   "utf8",
 );
 
@@ -265,20 +265,3 @@ test("reader-event insert policy requires a published chapter to match its eligi
   assert.doesNotMatch(readerEventIntegrityMigration, /GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i);
 });
 
-
-const readerEventPairMigration = await readFile(
-  new URL("../supabase/migrations/20261014200000_validate_reader_event_series_chapter_pair.sql", import.meta.url),
-  "utf8",
-);
-
-test("reader event INSERT policy requires a published chapter to match its supplied series", () => {
-  assert.match(readerEventPairMigration, /DROP POLICY IF EXISTS "Public can record reader events" ON public\.reader_events/i);
-  assert.match(readerEventPairMigration, /CREATE POLICY "Public can record reader events"[\s\S]*?FOR INSERT[\s\S]*?TO anon, authenticated[\s\S]*?WITH CHECK/i);
-  assert.match(readerEventPairMigration, /series_id IS NOT NULL/i);
-  assert.match(readerEventPairMigration, /c\.series_id = reader_events\.series_id/i);
-  assert.match(readerEventPairMigration, /c\.status = 'published'/i);
-  assert.match(readerEventPairMigration, /s\.status IN \('ongoing', 'completed'\)/i);
-  assert.match(readerEventPairMigration, /length\(visitor_id\) >= 16/i);
-  assert.match(readerEventPairMigration, /length\(visitor_id\) <= 100/i);
-  assert.doesNotMatch(readerEventPairMigration, /GRANT|REVOKE|DELETE FROM|TRUNCATE|UPDATE public\.reader_events/i);
-});
