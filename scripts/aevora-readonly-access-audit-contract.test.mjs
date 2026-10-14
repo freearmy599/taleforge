@@ -25,6 +25,10 @@ const readingProgressSource = await readFile(
   new URL("../reading-progress.js", import.meta.url),
   "utf8",
 );
+const readerEventTimestampMigration = await readFile(
+  new URL("../supabase/migrations/20261014230000_reader_event_server_timestamp.sql", import.meta.url),
+  "utf8",
+);
 
 const revisionConflictReport = await readFile(
   new URL("../docs/aevora/phase1-revision-successor-conflict-report.sql", import.meta.url),
@@ -336,6 +340,14 @@ test("reader-event retries reuse the same UUID and distinct progress values get 
     "retry after a failed insert must reuse the original event UUID");
   assert.notEqual(submitted[2].event_uuid, submitted[1].event_uuid,
     "a distinct progress value must use a distinct idempotency key");
+});
+
+test("anonymous reader events cannot choose their own event timestamp", () => {
+  assert.match(readerEventTimestampMigration, /RETURNS trigger[\s\S]*?SET search_path = pg_catalog/i);
+  assert.match(readerEventTimestampMigration, /current_user IN \('anon', 'authenticated'\)/i);
+  assert.match(readerEventTimestampMigration, /NEW\.created_at := statement_timestamp\(\)/i);
+  assert.match(readerEventTimestampMigration, /BEFORE INSERT ON public\.reader_events/i);
+  assert.match(readerEventTimestampMigration, /REVOKE ALL ON FUNCTION[\s\S]*?FROM PUBLIC, anon, authenticated/i);
 });
 
 test("reader-event insert policy requires a published chapter to match its eligible series", () => {
