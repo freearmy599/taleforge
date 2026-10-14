@@ -519,7 +519,7 @@ Deno.test("lease foundation migration reproduces the inspected lease table and R
     assert(sql.includes("CREATE OR REPLACE FUNCTION public." + name), "lease RPC definition missing: " + name);
   }
   assert(sql.split("SECURITY DEFINER").length - 1 === 3, "all lease RPCs must use security-definer execution");
-  assert(sql.split("SET search_path TO 'pg_catalog', 'public', 'pg_temp'").length - 1 === 3, "all lease RPCs must pin search_path");
+  assert(sql.split("SET search_path = pg_catalog").length - 1 === 3, "all lease RPCs must use a pg_catalog-only search_path");
   assert(sql.includes("p_lease_seconds < 30 OR p_lease_seconds > 900"), "lease duration bounds must match the inspected production contract");
   assert(sql.includes("WHERE public.aevora_release_scheduler_leases.lease_expires_at <= clock_timestamp()"), "claim must not replace an unexpired lease");
   assert(sql.includes("AND lease_expires_at > clock_timestamp()"), "renewal must reject expired leases");
@@ -537,7 +537,7 @@ Deno.test("atomic lease-fencing migration locks and validates ownership and rest
   assert(sql.includes("OR p_next_release_at <= p_last_release_at THEN"), "atomic advancement must reject a non-advancing release deadline");
   assert(sql.includes("WHERE id = p_schedule_id AND series_id = p_series_id\n    FOR UPDATE;"), "lifecycle activation must lock the matching schedule row before transition");
   assert(sql.split("SECURITY DEFINER").length - 1 === 2, "both RPCs must use the reviewed security-definer contract");
-  assert(sql.split("SET search_path TO 'pg_catalog', 'public', 'pg_temp'").length - 1 === 2, "both RPCs must pin search_path");
+  assert(sql.split("SET search_path = pg_catalog").length - 1 === 2, "both RPCs must use a pg_catalog-only search_path");
   assert(sql.includes("FROM PUBLIC, anon, authenticated"), "untrusted roles must not retain execute privileges");
   assert(sql.includes("TO postgres, service_role"), "only postgres and service_role should be granted execute");
 });
