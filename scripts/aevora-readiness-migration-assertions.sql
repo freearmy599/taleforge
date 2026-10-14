@@ -118,6 +118,58 @@ begin
 end;
 $$;
 
+-- A transition to any non-ongoing status revokes readiness, even if the
+-- status is not one of the common terminal values.
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000003', 'Lifecycle transition fixture', 'ongoing', 'ai_original', 'pending');
+
+update public.release_schedules
+set schedule_mode = 'interval', interval_hours = 24, timezone = 'Asia/Kolkata',
+    chapters_ahead = 3, next_release_at = now()
+where series_id = '00000000-0000-0000-0000-000000000003';
+
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, status, dry_run, pipeline_snapshot
+) values (
+  '00000000-0000-0000-0000-000000000023',
+  '00000000-0000-0000-0000-000000000003',
+  'created', false,
+  jsonb_build_object(
+    'series_id', '00000000-0000-0000-0000-000000000003',
+    'lifecycle_initialized', true,
+    'release_schedule_initialized', true
+  )
+);
+
+select public.taleforge_mark_release_automation_ready(
+  (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000003')
+);
+
+update public.series set status = 'preparing'
+where id = '00000000-0000-0000-0000-000000000003';
+
+do $lifecycle_assert$
+declare
+  v_enabled_count bigint;
+  v_generate_count bigint;
+  v_publish_count bigint;
+  v_ready_count bigint;
+begin
+  select count(*) filter (where enabled),
+         count(*) filter (where auto_generate),
+         count(*) filter (where auto_publish),
+         count(*) filter (where automation_ready_at is not null)
+    into v_enabled_count, v_generate_count, v_publish_count, v_ready_count
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000003';
+
+  if v_enabled_count <> 0 or v_generate_count <> 0
+     or v_publish_count <> 0 or v_ready_count <> 0 then
+    raise exception 'ASSERTION_FAILED: non-ongoing status retained release automation';
+  end if;
+end;
+$lifecycle_assert$;
+
 -- Simulate a historical duplicate schedule. Terminal transitions must
 -- disable and de-authorize every schedule for the series, not an arbitrary row.
 insert into public.release_schedules(
