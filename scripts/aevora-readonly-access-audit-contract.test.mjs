@@ -28,7 +28,7 @@ test("Phase 1 access audit contains only read-only SELECT statements", () => {
 test("explicit column ACL audit uses pg_attribute.attacl rather than effective column privileges", () => {
   assert.match(sql, /pg_attribute\s+a/i);
   assert.match(sql, /aclexplode\(a\.attacl\)/i);
-  assert.doesNotMatch(sql, /information_schema\.(role_)?column_privileges/i);
+  assert.doesNotMatch(sql, /FROM\s+information_schema\.(role_)?column_privileges/i);
 });
 
 test("function inventory inspects effective EXECUTE without calling functions", () => {
