@@ -274,7 +274,7 @@ test("reader-event integrity documentation references the canonical migration", 
 
 test("reader event idempotency keys are unique and reused on retry", () => {
   assert.match(readerEventIdempotencyMigration, /ADD COLUMN IF NOT EXISTS event_uuid uuid/i);
-  assert.match(readerEventIdempotencyMigration, /CREATE UNIQUE INDEX IF NOT EXISTS reader_events_event_uuid_uidx[\\s\\S]*?WHERE event_uuid IS NOT NULL/i);
+  assert.match(readerEventIdempotencyMigration, /CREATE UNIQUE INDEX IF NOT EXISTS reader_events_event_uuid_uidx[\s\S]*?WHERE event_uuid IS NOT NULL/i);
   assert.match(readingProgressSource, /const pendingEventIds=new Map\(\)/);
   assert.match(readingProgressSource, /payload\.event_uuid=eventUuid/);
   assert.match(readingProgressSource, /error\.code==="23505"/);
