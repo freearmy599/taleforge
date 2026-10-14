@@ -82,7 +82,7 @@ if((seriesSchedules??[]).length>1||(isAutonomousSeries&&(seriesSchedules??[]).le
 if((seriesSchedules??[]).length===1){
   const schedule=seriesSchedules[0];
   const requiresAutomation=isAutonomousSeries||schedule.schedule_mode!=="manual";
-  if(requiresAutomation&&(schedule.enabled!==true||schedule.auto_generate!==true||!isAutomationReady(schedule.automation_ready_at)))
+  if(requiresAutomation&&(s.status!=="ongoing"||schedule.enabled!==true||schedule.auto_generate!==true||!isAutomationReady(schedule.automation_ready_at)))
     return reply({success:false,blocked:true,retryable:false,error:"Scheduled generation is not ready; no chapter generation was attempted."},423);
 }
 const {data:contextResult,error:contextError}=await db.rpc("taleforge_build_generation_context",{p_blueprint_id:b.id});
