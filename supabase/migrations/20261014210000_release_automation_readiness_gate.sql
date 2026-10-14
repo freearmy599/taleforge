@@ -1,0 +1,202 @@
+-- Aevora autonomous release readiness gate.
+-- Branch-only migration. Existing rows remain unready until reviewed and explicitly activated.
+begin;
+
+alter table public.release_schedules
+  add column if not exists automation_ready_at timestamptz;
+
+create index if not exists release_schedules_ready_due_idx
+  on public.release_schedules (next_release_at, id)
+  where enabled = true and auto_publish = true and automation_ready_at is not null;
+
+create or replace function public.taleforge_protect_release_automation_readiness()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  if new.automation_ready_at is distinct from old.automation_ready_at
+     and current_user not in ('postgres', 'service_role')
+     and coalesce(auth.role(), '') <> 'service_role' then
+    raise exception 'automation_ready_at is server-controlled';
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists trg_protect_release_automation_readiness on public.release_schedules;
+create trigger trg_protect_release_automation_readiness
+before insert or update of automation_ready_at on public.release_schedules
+for each row
+execute function public.taleforge_protect_release_automation_readiness();
+
+create or replace function public.taleforge_enroll_series_in_production()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  schedule_id uuid;
+  ready_at timestamptz;
+begin
+  insert into public.story_lifecycle(series_id, lifecycle_status)
+  values (new.id, 'preparing')
+  on conflict (series_id) do nothing;
+
+  select rs.id, rs.automation_ready_at
+    into schedule_id, ready_at
+  from public.release_schedules rs
+  where rs.series_id = new.id
+  order by rs.created_at
+  limit 1;
+
+  if schedule_id is null then
+    insert into public.release_schedules(
+      series_id, enabled, schedule_mode, interval_hours, timezone,
+      chapters_ahead, auto_generate, auto_publish, automation_ready_at
+    )
+    values (
+      new.id, false, 'interval', 24, 'UTC',
+      12, false, false, null
+    );
+  elsif new.status in ('completed', 'hiatus', 'cancelled') then
+    update public.release_schedules
+    set enabled = false,
+        auto_generate = false,
+        auto_publish = false,
+        automation_ready_at = null,
+        updated_at = now()
+    where id = schedule_id;
+  elsif new.status = 'ongoing' and ready_at is null then
+    update public.release_schedules
+    set enabled = false,
+        schedule_mode = case when schedule_mode = 'manual' then 'interval' else schedule_mode end,
+        interval_hours = coalesce(interval_hours, 24),
+        chapters_ahead = greatest(1, least(coalesce(chapters_ahead, 12), 20)),
+        auto_generate = false,
+        auto_publish = false,
+        updated_at = now()
+    where id = schedule_id;
+  end if;
+
+  return new;
+end;
+$function$;
+
+create or replace function public.taleforge_mark_release_automation_ready(p_schedule_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_schedule public.release_schedules%rowtype;
+  v_series public.series%rowtype;
+  v_run_id uuid;
+  v_snapshot jsonb;
+begin
+  if auth.role() is distinct from 'service_role' then
+    raise exception 'service role required';
+  end if;
+
+  select rs.* into v_schedule
+  from public.release_schedules rs
+  where rs.id = p_schedule_id
+  for update;
+
+  if not found then
+    raise exception 'release schedule not found';
+  end if;
+
+  select s.* into v_series
+  from public.series s
+  where s.id = v_schedule.series_id
+  for update;
+
+  if not found or v_series.status <> 'ongoing' then
+    raise exception 'series must exist and be ongoing';
+  end if;
+
+  if v_schedule.schedule_mode = 'manual'
+     or (v_schedule.schedule_mode = 'interval'
+         and (v_schedule.interval_hours is null or v_schedule.interval_hours <= 0))
+     or (v_schedule.schedule_mode = 'weekly'
+         and (v_schedule.preferred_weekday is null
+              or v_schedule.preferred_weekday < 0
+              or v_schedule.preferred_weekday > 6
+              or v_schedule.preferred_time is null
+              or nullif(btrim(v_schedule.timezone), '') is null))
+     or v_schedule.schedule_mode not in ('interval', 'weekly') then
+    raise exception 'release schedule configuration is invalid';
+  end if;
+
+  perform 1
+  from public.story_lifecycle sl
+  where sl.series_id = v_schedule.series_id
+  for update;
+
+  if not found then
+    raise exception 'story lifecycle must exist before readiness';
+  end if;
+
+  select r.id, r.pipeline_snapshot
+    into v_run_id, v_snapshot
+  from public.taleforge_autonomous_series_creation_runs r
+  where r.series_id = v_schedule.series_id
+    and r.status = 'created'
+    and r.dry_run = false
+  order by r.created_at desc
+  limit 1
+  for update;
+
+  if v_run_id is null
+     or coalesce(v_snapshot->>'series_id', '') <> v_schedule.series_id::text
+     or coalesce(v_snapshot->>'lifecycle_initialized', 'false') <> 'true'
+     or coalesce(v_snapshot->>'release_schedule_initialized', 'false') <> 'true' then
+    raise exception 'autonomous bootstrap audit evidence is incomplete';
+  end if;
+
+  if not exists (
+    select 1
+    from public.taleforge_autonomous_creation_policy p
+    where p.policy_key = 'production'
+      and p.enabled = true
+  ) then
+    raise exception 'autonomous creation policy is disabled or missing';
+  end if;
+
+  update public.release_schedules
+  set automation_ready_at = coalesce(automation_ready_at, now()),
+      enabled = true,
+      auto_generate = true,
+      auto_publish = true,
+      next_release_at = coalesce(next_release_at, now()),
+      updated_at = now()
+  where id = v_schedule.id;
+
+  update public.taleforge_autonomous_series_creation_runs
+  set pipeline_snapshot = coalesce(pipeline_snapshot, '{}'::jsonb) || jsonb_build_object(
+        'automation_ready', true,
+        'automation_ready_at', now(),
+        'automation_ready_schedule_id', v_schedule.id,
+        'auto_generation_enabled', true,
+        'auto_publication_enabled', true,
+        'readiness_pending', false
+      ),
+      updated_at = now()
+  where id = v_run_id;
+
+  return jsonb_build_object(
+    'ready', true,
+    'schedule_id', v_schedule.id,
+    'series_id', v_schedule.series_id,
+    'automation_ready_at', (select rs.automation_ready_at from public.release_schedules rs where rs.id = v_schedule.id)
+  );
+end;
+$function$;
+
+revoke all on function public.taleforge_mark_release_automation_ready(uuid) from public, anon, authenticated;
+grant execute on function public.taleforge_mark_release_automation_ready(uuid) to service_role;
+
+commit;
