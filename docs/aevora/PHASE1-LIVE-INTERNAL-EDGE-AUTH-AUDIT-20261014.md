@@ -52,3 +52,7 @@ The read-only inventory found separate handler-level authorization in the deploy
 ## Safety boundary
 
 No production Edge Function was called, deployed, or modified. No secrets were read or printed. The production authorization gap remains open until the branch guard is deployed through an approved release.
+
+## Cron caller compatibility check
+
+A metadata-only check of active cron command definitions confirms jobs 3–7, 9, and 10 include an `apikey` header, a reference to the server-side service-role key, and an Authorization header, matching the branch guard's expected server-to-server credential path. Job 13 (`taleforge-autonomous-series-creation`) does not include an `apikey` header; its deployed runner instead has a separate handler path that requires the Authorization bearer token to equal the server-side service-role key or validates an admin/owner session. This runner is outside the 18-function helper list and remains absent from repository source. Only metadata booleans were inspected; cron command text and secrets were not returned or changed.
