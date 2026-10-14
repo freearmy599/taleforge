@@ -444,6 +444,8 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /function isProviderBlockResult\(result:any\):boolean/);
   assert.match(generationOrchestrator, /const revisionProviderBlock=isProviderBlockResult\(revise\);if\(!revise\.ok\|\|revisionProviderBlock\)/);
   assert.match(generationOrchestrator, /if\(isProviderBlockResult\(recovery\)\)providerThrottleObserved=true/);
+  assert.ok(generationOrchestrator.includes('if(providerThrottleObserved){rr.push({output_id:c.id,action:"provider_throttle_observed"'), "revision loop must stop after a prior provider block");
+  assert.ok(generationOrchestrator.includes('if(handoff){review=handoff;if(isProviderBlockResult'), "revision review handoffs must preserve provider-block state");
   assert.match(generationOrchestrator, /if\(isProviderBlockResult\(x\)\)providerThrottleObserved=true/);
   assert.match(generationOrchestrator, /const providerStateBlocked=\["provider_state_unavailable","provider_cooldown","invalid_cooldown_timestamp"\]/);
   assert.match(generationOrchestrator, /if\(!g\.ok\|\|isProviderBlockResult\(g\)\)/);
