@@ -90,3 +90,17 @@ test("identity sequence migration limits direct sequence access without changing
   assert.doesNotMatch(identitySequenceMigration, /ALTER\s+TABLE|ALTER\s+SEQUENCE|DROP\s+SEQUENCE|CREATE\s+SEQUENCE/i);
   assert.match(identitySequenceMigration, /service_role grants/i);
 });
+
+
+const readerEventsMigration = await readFile(
+  new URL("../supabase/migrations/20261014150000_reader_events_insert_only.sql", import.meta.url),
+  "utf8",
+);
+
+test("reader event intake grants only INSERT to ordinary clients and retains the RLS policy contract", () => {
+  assert.match(readerEventsMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.reader_events FROM PUBLIC, anon, authenticated/i);
+  assert.match(readerEventsMigration, /REVOKE ALL PRIVILEGES \(%s\) ON TABLE public\.reader_events FROM PUBLIC, anon, authenticated/i);
+  assert.match(readerEventsMigration, /GRANT INSERT ON TABLE public\.reader_events TO anon, authenticated/i);
+  assert.doesNotMatch(readerEventsMigration, /GRANT\s+(?!INSERT\b)[A-Z ,]+\s+ON\s+TABLE\s+public\.reader_events\s+TO\s+(PUBLIC|anon|authenticated)/i);
+  assert.doesNotMatch(readerEventsMigration, /CREATE\s+POLICY|DROP\s+POLICY|DELETE\s+FROM\s+public\.reader_events|TRUNCATE\s+TABLE/i);
+});
