@@ -29,7 +29,11 @@ begin
      or has_table_privilege('authenticated', 'public.release_schedules', 'select')
      or has_table_privilege('authenticated', 'public.release_schedules', 'insert')
      or has_table_privilege('authenticated', 'public.release_schedules', 'update')
-     or has_table_privilege('authenticated', 'public.release_schedules', 'delete') then
+     or has_table_privilege('authenticated', 'public.release_schedules', 'delete')
+     or has_column_privilege('anon', 'public.release_schedules', 'id', 'select')
+     or has_column_privilege('anon', 'public.release_schedules', 'auto_publish', 'update')
+     or has_column_privilege('authenticated', 'public.release_schedules', 'id', 'select')
+     or has_column_privilege('authenticated', 'public.release_schedules', 'auto_publish', 'update') then
     raise exception 'ASSERTION_FAILED: release_schedules retains client API table grants';
   end if;
   if not has_table_privilege('service_role', 'public.release_schedules', 'select')
