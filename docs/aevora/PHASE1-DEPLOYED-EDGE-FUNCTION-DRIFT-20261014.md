@@ -149,3 +149,14 @@ The live `release_schedules` column defaults show `next_release_at` is nullable 
 That combination makes the trigger-created schedule eligible for the release scheduler immediately, before the autonomous runner finishes its subsequent lifecycle/schedule/audit requests. This is not just a theoretical partial-bootstrap concern: a concurrent release tick can observe the trigger-created row in that intermediate state. A later runner update may set the 24-hour cadence, but it cannot retroactively prevent a scheduler that already selected and claimed the row.
 
 **Required invariant:** newly created series must not become visible as enabled/auto-publishable to the release scheduler until lifecycle and schedule bootstrap has completed and an explicit readiness gate is true. The readiness check should be enforced server-side/database-side and in the scheduler query; relying on request ordering in the runner is insufficient. Verify this with a deterministic concurrency test before any production rollout.
+
+
+## Completed-series publication semantics require an explicit policy decision (read-only source review, 2026-10-14)
+
+The hardening-branch scheduler's initial series-status guard skips `draft`, `cancelled`, and `hiatus`, but does not skip `completed`. The branch publisher's series-status guard likewise rejects `draft`, `cancelled`, and `hiatus`, but does not explicitly reject `completed`. The live series-status trigger disables automation when a series transitions to `completed`, but that is a schedule mutation convention rather than an independent publication invariant.
+
+This is not classified as a confirmed defect until the product meaning of `completed` is confirmed: a series might be marked completed only after its last chapter is published, in which case further publication should be blocked; alternatively, an intentional editorial workflow might mark a series completed before a final scheduled chapter is released. The code currently leaves that semantic choice implicit.
+
+**Required release gate:** document the lifecycle contract and test it at both scheduler and publisher boundaries. If `completed` means no additional chapters may publish, reject it in both components and test direct publisher invocation with otherwise-valid review gates, stale enabled schedules, and retry paths. If a final chapter is allowed after completion, represent that as a distinct explicit exception (for example, a terminal-release authorization) rather than allowing every completed series through the general path.
+
+No status was changed and no publication was attempted during this review.
