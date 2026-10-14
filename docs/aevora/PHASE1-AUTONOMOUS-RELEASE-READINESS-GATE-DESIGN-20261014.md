@@ -98,6 +98,17 @@ Repository CI has passed on the runner integration and readiness-contract checkp
 Next implementation gate: finish CI for the latest migration adjustment, add migration/trigger and failure-path regression coverage, and perform disposable local/isolated-database rehearsal without creating a billable Supabase branch. No live data or production configuration was changed by this checkpoint.
 
 
+
+## Follow-up safety review (2026-10-14)
+
+- The readiness migration now preserves the deployed enrollment trigger's **8-hour default interval** and UTC timezone for schedules it creates or normalizes. The autonomous runner explicitly configures its own intended 24-hour cadence and Asia/Kolkata timezone. The readiness change must not silently rewrite unrelated schedule cadence.
+- The readiness RPC follows the enrollment trigger's lock order (**series, then schedule**), revalidates the schedule-to-series relationship after locking, and refuses readiness when a series has anything other than exactly one release schedule. This reduces deadlock risk and rejects ambiguous schedule state; it does not replace a database uniqueness constraint or eliminate races from writers that do not follow the same lock protocol.
+- The scheduler skips unready schedules before claiming a lease. The publisher independently blocks autonomous series with missing/ambiguous schedule configuration and blocks any non-manual automation schedule unless it is enabled, auto-publishing, and marked ready.
+- **Non-autonomous/manual-review activation remains unresolved.** The current readiness RPC intentionally requires an autonomous creation run and its bootstrap audit evidence. Therefore, existing or creator-studio series that do not have such a run cannot be activated through this RPC. The trigger leaves unready ongoing schedules disabled. Before rollout, define and implement a separate authenticated, auditable approval path for non-autonomous schedules, or explicitly keep those schedules manual-only. Do not weaken the autonomous evidence checks merely to make legacy schedules run.
+- Completed series are now explicitly terminal in the branch scheduler and publisher, including a fresh status recheck before publication. This is the chosen safety policy for the current hardening branch; any future continuation/revival should require an explicit status transition back to an eligible lifecycle and fresh readiness evaluation.
+
+These checks are repository-side only. The live enrollment trigger was inspected read-only and currently uses an 8-hour interval fallback, confirming why the migration was adjusted to preserve it. No production changes were made.
+
 ## Read-only production schedule baseline (2026-10-14)
 
 A read-only aggregate query against the live catalog returned six release-schedule rows: six enabled, six with automatic generation enabled, zero with automatic publication enabled, zero enabled auto-publish schedules with a null `next_release_at`, zero completed-series schedules still auto-publish-enabled, and zero schedules with missing lifecycle rows.
