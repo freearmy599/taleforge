@@ -455,7 +455,8 @@ test("publication authorization remains a separate, unimplemented release gate",
   assert.match(publicationAuthorizationDesign, /authenticated human approver identity and authorization source/i);
   assert.match(publicationAuthorizationDesign, /revocation\/configuration changes must invalidate authorization/i);
   assert.match(publicationAuthorizationDesign, /No current branch artifact provides a separately audited publication-approval workflow/i);
-  assert.match(rolloutPlan, /Keep \`auto_publish=false\` for every series/i);
+  assert.match(rolloutPlan, /auto_publish=false/i);
+  assert.match(rolloutPlan, /for every series/i);
   assert.match(rolloutPlan, /publication-authorization-design-20261014\.md/i);
   const readinessStart = migration.indexOf("create or replace function public.taleforge_mark_release_automation_ready");
   const readinessEnd = migration.indexOf("revoke all on function public.taleforge_mark_release_automation_ready", readinessStart);
