@@ -148,3 +148,6 @@ These are source-level regression checks. They do not substitute for actually ru
 
 
 A further failure-mode review moved the schedule shutdown into its own committed transaction before rollback DDL begins. This is important because a DDL/ACL rollback error must not roll back the fail-closed schedule shutdown. The contract test now asserts this ordering. This remains source-reviewed only until disposable PostgreSQL CI executes the complete path.
+
+
+The rollback assertions were extended to check the fixture baseline functions' SECURITY DEFINER and search_path attributes, not just their bodies and execute grants. This closes another class of rollback drift in the test fixture; PostgreSQL execution is still required to validate the catalog assertions.
