@@ -483,4 +483,65 @@ begin
 end;
 $terminal_assert$;
 
+
+-- A normal release-time advance must preserve readiness, but changing approved
+-- cadence must revoke it and disable automation until fresh approval.
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000007', 'Cadence mutation fixture', 'ongoing', 'ai_original', 'pending');
+
+update public.release_schedules
+set schedule_mode = 'interval', interval_hours = 24, timezone = 'Asia/Kolkata',
+    chapters_ahead = 3, next_release_at = now()
+where series_id = '00000000-0000-0000-0000-000000000007';
+
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, status, dry_run, pipeline_snapshot
+) values (
+  '00000000-0000-0000-0000-000000000027',
+  '00000000-0000-0000-0000-000000000007',
+  'created', false,
+  jsonb_build_object(
+    'series_id', '00000000-0000-0000-0000-000000000007',
+    'lifecycle_initialized', true,
+    'release_schedule_initialized', true
+  )
+);
+
+select public.taleforge_mark_release_automation_ready(
+  (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000007')
+);
+
+update public.release_schedules
+set next_release_at = now() + interval '1 day'
+where series_id = '00000000-0000-0000-0000-000000000007';
+
+do $schedule_advance_assert$
+begin
+  if not exists (
+    select 1 from public.release_schedules
+    where series_id = '00000000-0000-0000-0000-000000000007'
+      and enabled and auto_generate and auto_publish
+      and automation_ready_at is not null
+  ) then
+    raise exception 'ASSERTION_FAILED: ordinary next_release_at advancement revoked readiness';
+  end if;
+end;
+$schedule_advance_assert$;
+
+update public.release_schedules
+set interval_hours = 48
+where series_id = '00000000-0000-0000-0000-000000000007';
+
+do $schedule_config_revoke_assert$
+begin
+  if exists (
+    select 1 from public.release_schedules
+    where series_id = '00000000-0000-0000-0000-000000000007'
+      and (enabled or auto_generate or auto_publish or automation_ready_at is not null)
+  ) then
+    raise exception 'ASSERTION_FAILED: changed cadence retained prior readiness authorization';
+  end if;
+end;
+$schedule_config_revoke_assert$;
+
 select 'release readiness migration integration assertions passed' as result;
