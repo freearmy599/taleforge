@@ -170,6 +170,63 @@ begin
 end;
 $lifecycle_assert$;
 
+-- Weekly cadence must already have a computed due time; readiness may not
+-- silently convert an invalid weekly schedule into an immediate release.
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000005', 'Weekly schedule fixture', 'ongoing', 'ai_original', 'pending');
+
+update public.release_schedules
+set schedule_mode = 'weekly', interval_hours = null, timezone = 'Asia/Kolkata',
+    preferred_weekday = 2, preferred_time = time '20:00', chapters_ahead = 3,
+    next_release_at = null
+where series_id = '00000000-0000-0000-0000-000000000005';
+
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, status, dry_run, pipeline_snapshot
+) values (
+  '00000000-0000-0000-0000-000000000025',
+  '00000000-0000-0000-0000-000000000005',
+  'created', false,
+  jsonb_build_object(
+    'series_id', '00000000-0000-0000-0000-000000000005',
+    'lifecycle_initialized', true,
+    'release_schedule_initialized', true
+  )
+);
+
+do $weekly_assert$
+begin
+  begin
+    perform public.taleforge_mark_release_automation_ready(
+      (select id from public.release_schedules
+       where series_id='00000000-0000-0000-0000-000000000005')
+    );
+    raise exception 'ASSERTION_FAILED: weekly schedule without next_release_at was activated';
+  exception when others then
+    if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
+    if sqlerrm not like 'release schedule configuration is invalid%' then raise; end if;
+  end;
+end;
+$weekly_assert$;
+
+do $weekly_state_assert$
+declare
+  v_enabled boolean;
+  v_generate boolean;
+  v_publish boolean;
+  v_ready timestamptz;
+begin
+  select enabled, auto_generate, auto_publish, automation_ready_at
+    into v_enabled, v_generate, v_publish, v_ready
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000005';
+
+  if v_enabled or v_generate or v_publish or v_ready is not null then
+    raise exception 'ASSERTION_FAILED: invalid weekly schedule partially activated';
+  end if;
+end;
+$weekly_state_assert$;
+
 -- Fault-injection only: production has a UNIQUE(series_id) constraint. Drop it
 -- after the faithful-schema assertions to prove defensive gates fail closed if
 -- that invariant is ever lost in a future schema regression.
