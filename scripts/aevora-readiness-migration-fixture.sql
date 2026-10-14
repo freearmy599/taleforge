@@ -47,6 +47,7 @@ create table public.story_lifecycle (
   id uuid primary key default gen_random_uuid(),
   series_id uuid not null unique references public.series(id) on delete cascade,
   lifecycle_status text not null,
+  metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
