@@ -18,6 +18,18 @@ begin
 end;
 $$;
 
+do $enabled_unready_assert$
+begin
+  if exists (
+    select 1 from public.release_schedules
+    where series_id = '00000000-0000-0000-0000-000000000004'
+      and (enabled or auto_generate or auto_publish or automation_ready_at is not null)
+  ) then
+    raise exception 'ASSERTION_FAILED: enabled non-manual unready schedule remained active';
+  end if;
+end;
+$enabled_unready_assert$;
+
 -- The transaction authorization table must be RLS-enabled and inaccessible
 -- to client/service API roles; the SECURITY DEFINER functions own access.
 do $authorization_acl_assert$
