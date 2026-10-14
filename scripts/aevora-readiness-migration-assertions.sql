@@ -139,6 +139,10 @@ insert into public.taleforge_autonomous_series_creation_runs(
     'release_schedule_initialized', true
   )
 );
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000022')
+where series_id = '00000000-0000-0000-0000-000000000002';
+
 
 insert into public.taleforge_autonomous_creation_policy(policy_key, enabled)
 values ('production', true);
@@ -213,6 +217,10 @@ insert into public.taleforge_autonomous_series_creation_runs(
     'release_schedule_initialized', true
   )
 );
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000023')
+where series_id = '00000000-0000-0000-0000-000000000003';
+
 
 select public.taleforge_mark_release_automation_ready(
   (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000003')
@@ -296,6 +304,10 @@ insert into public.taleforge_autonomous_series_creation_runs(
     'release_schedule_initialized', true
   )
 );
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000025')
+where series_id = '00000000-0000-0000-0000-000000000005';
+
 
 do $weekly_assert$
 begin
@@ -364,6 +376,10 @@ insert into public.taleforge_autonomous_series_creation_runs(
     'release_schedule_initialized', true
   )
 );
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000024')
+where series_id = '00000000-0000-0000-0000-000000000004';
+
 
 do $ambiguous_assert$
 begin
@@ -506,6 +522,10 @@ insert into public.taleforge_autonomous_series_creation_runs(
     'release_schedule_initialized', true
   )
 );
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000027')
+where series_id = '00000000-0000-0000-0000-000000000007';
+
 
 select public.taleforge_mark_release_automation_ready(
   (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000007')
