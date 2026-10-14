@@ -114,3 +114,29 @@ The production runner's privileged RPC chain was inspected through function cata
 The proposed revokes on the 41 internal story-design relations target `PUBLIC`, `anon`, and `authenticated`, not `service_role`; the inspected RPC chain is therefore designed to retain its intended role path. That is necessary but not sufficient: a disposable-database test must verify function ownership, effective EXECUTE ACLs, the gate's disabled/missing/cap-reached cases, dry-run non-creation, successful draft creation, and runner follow-up behavior. The runner is not present in the hardening branch, so no broad Edge Function deployment can be considered complete until that production-only component is explicitly accounted for.
 
 No policy row was read, no RPC/function was invoked, and no production state was changed during this review.
+
+
+## Critical autonomous-runner activation ordering finding (read-only source review, 2026-10-14)
+
+The complete deployed `autonomous-series-creation-runner` v6 source was re-read after the trigger audit. Its flow confirms a release-critical partial-bootstrap risk:
+
+1. The runner calls the service-role orchestration RPC.
+2. Once it receives `decision = 'created'`, it loads the new series.
+3. It updates `series.status = 'ongoing'`.
+4. Only afterward does it look up/write the `story_lifecycle` row.
+5. Only afterward does it look up/write the `release_schedules` row with `enabled=true`, `auto_generate=true`, `auto_publish=true`, `interval_hours=24`, `timezone='Asia/Kolkata'`, and `next_release_at=now()`.
+6. Finally it updates the run's pipeline snapshot.
+
+The live `trg_enroll_series_in_production` trigger also fires on step 3 and itself enables automatic generation and publication when status becomes `ongoing`. Consequently, the later explicit schedule write is not the first point at which automation can become enabled. If a subsequent lifecycle/schedule/audit write fails, the endpoint returns `created_but_bootstrap_incomplete`, but the series and trigger side effects are already committed unless an external transaction boundary exists; the Edge Function's separate PostgREST requests do not form one transaction.
+
+### Required repair design (not deployed)
+
+- Make activation a final, explicit step only after the lifecycle and schedule bootstrap is ready; however, because the trigger enables auto-publish during activation, that alone does not solve failure between activation and final audit bookkeeping.
+- Prefer a database-side atomic bootstrap/activation routine that creates the draft, lifecycle, and **disabled** schedule together, validates all prerequisites, and only then performs a guarded activation/schedule enablement in one transaction.
+- Alternatively, maintain schedules disabled until all bootstrap and audit invariants are verified, then perform one controlled enablement transition; make the trigger respect an explicit activation gate rather than unconditionally turning on `auto_publish` for every transition to `ongoing`.
+- Ensure retries are idempotent and reconcile an existing partially bootstrapped series without accidentally enabling publishing. A response reporting bootstrap failure must not leave a series eligible for a release tick.
+- Test concurrent scheduler ticks during activation, transaction rollback, missing lifecycle/schedule, failed audit snapshot write, retry after timeout, and all series-status transitions in a disposable database.
+
+### Disposition
+
+**Release blocker:** production autonomous creation currently spans multiple network/database requests and uses a status trigger that turns on auto-publication before bootstrap completion. Do not enable or deploy the runner as a verified safe pipeline until the activation boundary is made atomic or equivalent disabled-until-ready gating is proven. This source review did not invoke the runner, alter a series, change a schedule, or publish/generate content.
