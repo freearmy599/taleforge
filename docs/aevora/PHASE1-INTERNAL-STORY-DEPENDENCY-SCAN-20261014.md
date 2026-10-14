@@ -31,3 +31,12 @@ The candidate remains branch-only and Phase 1 remains open. No production migrat
 A source scan of the branch's 28 Edge Function/shared TypeScript files looked for literal references to the 41 relations. The only direct literal relation hit was `taleforge_advanced_chapter_plans` in `supabase/functions/revise-chapter/index.ts`. That worker initializes its Supabase client with `SUPABASE_SERVICE_ROLE_KEY` (or the legacy service-role secret) and validates the trusted internal API key before work; the proposed migrations revoke privileges only from `PUBLIC`, `anon`, and `authenticated`, preserving service-role access. No Edge Function source contained a literal `reader_events` reference in this scan.
 
 This narrows the direct client-source dependency risk, but does not close the rollout gate: string-built table names, SQL in migrations/cron, database triggers, dynamic SQL, external clients, and intentional client access to taxonomy/profile data still require review. The scan is source-level and does not prove runtime compatibility after revokes. The candidate remains branch-only.
+
+
+## Trigger and dynamic-SQL follow-up (read-only, 2026-10-14)
+
+- A catalog scan of non-internal triggers found no trigger function whose source text directly references any of the 41 candidate relations.
+- A line-oriented scan of public-schema SECURITY DEFINER function bodies found no standalone PL/pgSQL `EXECUTE` or `RETURN QUERY EXECUTE` statements in the scanned functions. This reduces the risk of table names being assembled through obvious dynamic SQL, but does not prove absence of indirect/dynamic access outside public-schema function bodies.
+- Effective schema privilege checks report `CREATE = false` for both `anon` and `authenticated` on `public`; this limits client ability to create shadow objects in that schema. The check does not replace the recommendation to keep trusted schemas first and `pg_temp` last in SECURITY DEFINER search paths.
+
+The dependency scan remains supportive, not a complete disposable-database compatibility test. No production changes were made.
