@@ -29,13 +29,28 @@ async function readTable(table: string, select: string): Promise<unknown[]> {
     headers: {
       apikey: SERVICE_ROLE_KEY,
       Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      Prefer: "count=exact",
     },
   });
   if (!response.ok) {
     console.error("[aevora-control-plane-audit] table read failed", table, response.status);
     throw new Error(`Audit data source unavailable: ${table}`);
   }
-  return await response.json();
+  const rows = await response.json();
+  if (!Array.isArray(rows)) {
+    console.error("[aevora-control-plane-audit] table read returned an unexpected shape", table);
+    throw new Error(`Audit data source returned an invalid snapshot: ${table}`);
+  }
+  // Never report a partial first page as a complete health snapshot. A missing
+  // or oversized count is treated as uncertainty rather than silently truncated.
+  const contentRange = response.headers.get("content-range") ?? "";
+  const totalMatch = contentRange.match(/\\/(\\d+)$/);
+  const reportedTotal = totalMatch ? Number(totalMatch[1]) : Number.NaN;
+  if (rows.length >= 500 || !Number.isSafeInteger(reportedTotal) || reportedTotal > rows.length) {
+    console.error("[aevora-control-plane-audit] table snapshot may be truncated", table);
+    throw new Error(`Audit data source snapshot is incomplete: ${table}`);
+  }
+  return rows;
 }
 
 Deno.serve(async (req: Request) => {
