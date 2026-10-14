@@ -405,4 +405,110 @@ before insert or update of status on public.chapters
 for each row
 execute function public.taleforge_guard_chapter_publication_lifecycle();
 
+
+-- Serialize autonomous creation-policy evaluation with the enclosing series
+-- creation transaction. The row lock is retained until that transaction ends,
+-- so a second runner rechecks counts after the first creation commits.
+create or replace function public.taleforge_check_autonomous_creation_gate(
+  p_opportunity_id uuid,
+  p_concept_overall_score numeric default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  p record;
+  o record;
+  v_real_series integer;
+  v_unpublished_autonomous integer;
+  v_recent_autonomous integer;
+  v_allowed boolean := true;
+  v_reason text := 'allowed';
+begin
+  if coalesce(auth.role(), '') <> 'service_role' then
+    raise exception 'service_role required';
+  end if;
+
+  select * into p
+  from public.taleforge_autonomous_creation_policy
+  where policy_key = 'production'
+  for update;
+
+  if not found then
+    return jsonb_build_object('allowed', false, 'reason', 'policy_missing');
+  end if;
+
+  if not p.enabled then
+    return jsonb_build_object('allowed', false, 'reason', 'production_creation_disabled', 'policy_key', p.policy_key);
+  end if;
+
+  select * into o
+  from public.taleforge_story_opportunities
+  where id = p_opportunity_id;
+
+  if not found then
+    return jsonb_build_object('allowed', false, 'reason', 'opportunity_missing');
+  end if;
+
+  if coalesce(o.opportunity_score, 0) < p.min_opportunity_score then
+    return jsonb_build_object('allowed', false, 'reason', 'opportunity_score_below_threshold',
+      'opportunity_score', coalesce(o.opportunity_score, 0), 'minimum', p.min_opportunity_score);
+  end if;
+
+  if p_concept_overall_score is not null and p_concept_overall_score < p.min_concept_overall_score then
+    return jsonb_build_object('allowed', false, 'reason', 'concept_score_below_threshold',
+      'concept_overall_score', p_concept_overall_score, 'minimum', p.min_concept_overall_score);
+  end if;
+
+  select count(*) into v_real_series
+  from public.series s
+  where not (p.exclude_internal_test_series and lower(coalesce(s.title, '')) = 'taleforge autonomous pipeline test');
+
+  if v_real_series >= p.max_total_production_series then
+    return jsonb_build_object('allowed', false, 'reason', 'production_series_cap_reached',
+      'real_series_count', v_real_series, 'maximum', p.max_total_production_series);
+  end if;
+
+  select count(*) into v_unpublished_autonomous
+  from public.taleforge_autonomous_series_creation_runs r
+  join public.series s on s.id = r.series_id
+  where r.status = 'created'
+    and s.status in ('draft', 'candidate', 'planned')
+    and not (p.exclude_internal_test_series and lower(coalesce(s.title, '')) = 'taleforge autonomous pipeline test');
+
+  if v_unpublished_autonomous >= p.max_unpublished_autonomous_series then
+    return jsonb_build_object('allowed', false, 'reason', 'unpublished_autonomous_cap_reached',
+      'unpublished_autonomous_count', v_unpublished_autonomous, 'maximum', p.max_unpublished_autonomous_series);
+  end if;
+
+  select count(*) into v_recent_autonomous
+  from public.taleforge_autonomous_series_creation_runs r
+  where r.status = 'created'
+    and r.created_at >= now() - interval '7 days';
+
+  if v_recent_autonomous >= p.max_autonomous_creations_per_7d then
+    return jsonb_build_object('allowed', false, 'reason', 'weekly_autonomous_creation_cap_reached',
+      'recent_autonomous_creations', v_recent_autonomous, 'maximum', p.max_autonomous_creations_per_7d);
+  end if;
+
+  return jsonb_build_object(
+    'allowed', v_allowed,
+    'reason', v_reason,
+    'real_series_count', v_real_series,
+    'max_total_production_series', p.max_total_production_series,
+    'unpublished_autonomous_count', v_unpublished_autonomous,
+    'max_unpublished_autonomous_series', p.max_unpublished_autonomous_series,
+    'recent_autonomous_creations_7d', v_recent_autonomous,
+    'max_autonomous_creations_7d', p.max_autonomous_creations_per_7d,
+    'min_opportunity_score', p.min_opportunity_score,
+    'min_concept_overall_score', p.min_concept_overall_score
+  );
+end;
+$function$;
+
+revoke all on function public.taleforge_check_autonomous_creation_gate(uuid, numeric) from public, anon, authenticated;
+grant execute on function public.taleforge_check_autonomous_creation_gate(uuid, numeric) to service_role;
+
 commit;
