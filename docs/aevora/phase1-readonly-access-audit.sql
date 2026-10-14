@@ -48,6 +48,7 @@ ORDER BY table_name, grantee, privilege_type;
 -- A result here is a forward-looking grant template, not proof of current access.
 SELECT
   n.nspname AS schema_name,
+  pg_get_userbyid(d.defaclrole) AS default_acl_owner,
   CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE grantee.rolname END AS grantee,
   acl.privilege_type,
   acl.is_grantable,
