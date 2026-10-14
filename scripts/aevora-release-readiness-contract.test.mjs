@@ -6,6 +6,7 @@ const scheduler = await readFile("supabase/functions/release-scheduler/index.ts"
 const generationOrchestrator = await readFile("supabase/functions/generation-orchestrator/index.ts", "utf8");
 const generateChapter = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
+const generator = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
@@ -32,6 +33,17 @@ test("publisher independently checks non-manual schedule readiness", () => {
   const insert = publisher.indexOf("const chapterInsert =");
   assert.ok(guard >= 0, "publisher must reject unready automation");
   assert.ok(insert > guard, "publisher readiness guard must precede chapter insertion");
+});
+
+test("direct generation cannot bypass unready or missing autonomous schedules", () => {
+  assert.match(generator, /taleforge_autonomous_series_creation_runs/);
+  assert.match(generator, /isAutonomousSeries\s*&&\s*\(seriesSchedules\?\?\)\.length\s*!==\s*1/);
+  assert.match(generator, /schedule\.auto_generate!==true/);
+  assert.match(generator, /isAutomationReady\(schedule\.automation_ready_at\)/);
+  assert.match(generator, /Scheduled generation is not ready/);
+  const guard = generator.indexOf("const {data:seriesSchedules");
+  const contextBuild = generator.indexOf('rpc("taleforge_build_generation_context"');
+  assert.ok(guard >= 0 && contextBuild > guard, "schedule readiness must be checked before generation context/provider work");
 });
 
 test("readiness marker parser rejects absent and malformed values", () => {
