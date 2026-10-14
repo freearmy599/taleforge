@@ -35,13 +35,13 @@ GitHub Actions run [38547727704](https://github.com/freearmy599/taleforge/action
 
 Before enabling `get_public_story_trending_scores()`, require the chapter/series policy repair, relation and column ACL cleanup, identity-sequence behavior test, and ordinary-role regression suite. Do not treat visitor IDs as verified identity. Do not expose raw event rows to clients.
 
-### Stage B — idempotency contract (requires a separate schema migration)
+### Stage B — idempotency contract (branch implementation added; rollout still gated)
 
-1. Add a nullable `event_uuid uuid` field for client-generated event identity. Keep it nullable initially so historical rows do not need fabricated identifiers.
-2. Add a partial unique index on `event_uuid` where it is not null. If product semantics require idempotency to be scoped by visitor, use a composite unique key only after the contract is explicitly chosen; do not silently mix the two models.
-3. New clients generate one UUID per logical event and reuse that UUID for retries of the same event. A deliberate new reading action gets a new UUID. Server-side inserts should use `INSERT ... ON CONFLICT DO NOTHING` (or return a clear duplicate response) so retries do not inflate aggregates.
+1. Branch migration `20261014220000_reader_event_idempotency_key.sql` adds nullable `event_uuid uuid` and a partial unique index. Historical rows remain NULL; no fabricated identifiers are backfilled.
+2. `reading-progress.js` now creates an event UUID when supported and retains the pending UUID in page memory if the insert fails, so a retry of the same event key reuses it. A successful insert or a duplicate-key response clears the pending key. The pending map is not persisted across reloads, so this is a limited retry contract rather than a durable client queue.
+3. The disposable PostgreSQL replay verifies duplicate UUID rejection, legacy NULL compatibility, INSERT-only table grants, and identity-generated inserts after direct sequence access is revoked. GitHub Actions run `38548320860` passed the runtime migration assertions and Edge source validation.
 4. Keep this field separate from `visitor_id`: rotating a visitor ID must not make a replay of the same event UUID count twice.
-5. Test migration against existing data and concurrent duplicate submissions before any rollout. Existing rows remain nullable and are not backfilled with invented event identities.
+5. This only prevents duplicate submissions that reuse the same UUID. It does **not** prevent spoofing, spam with fresh UUIDs, or authenticated-looking anonymous activity. The public trending aggregate remains gated until trusted intake and quotas are implemented and reviewed.
 
 ### Stage C — trusted intake and quotas
 
