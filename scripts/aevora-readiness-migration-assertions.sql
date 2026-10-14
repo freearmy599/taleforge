@@ -627,7 +627,7 @@ begin
   if not exists (
     select 1 from public.release_schedules
     where series_id = '00000000-0000-0000-0000-000000000007'
-      and enabled and auto_generate and auto_publish
+      and enabled and auto_generate and not auto_publish
       and automation_ready_at is not null
   ) then
     raise exception 'ASSERTION_FAILED: ordinary next_release_at advancement revoked readiness';
