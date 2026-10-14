@@ -249,7 +249,7 @@ test("internal story-design read lock removes client SELECT paths from all 41 au
 
 
 const readerEventIntegrityMigration = await readFile(
-  new URL("../supabase/migrations/20261014200000_reader_event_relationship_integrity.sql", import.meta.url),
+  new URL("../supabase/migrations/20261014200000_validate_reader_event_series_chapter_pair.sql", import.meta.url),
   "utf8",
 );
 
