@@ -97,3 +97,20 @@ Do not treat the function named `autonomous-series-creation` as the scheduled ex
 All seven handlers validate a caller JWT and/or compare the scheduled runner's token to the service-role secret before privileged work in the reviewed code. This is source inspection only, not a runtime authorization test. Hashes are fingerprints of the retrieved source files, not cryptographic attestation of deployed execution after this timestamp.
 
 No endpoint was invoked, no autonomous series was created, no cover job was processed, and no production state was changed during this follow-up.
+
+
+## Autonomous creation RPC authorization and policy-gate review (read-only, 2026-10-14)
+
+The production runner's privileged RPC chain was inspected through function catalog metadata and function definitions; no function was called.
+
+- `public.taleforge_orchestrate_autonomous_series_creation(integer, boolean)` is owned by `postgres`, uses an empty configured search path, is `SECURITY DEFINER`, and is executable by `service_role` but not `anon` or `authenticated`. Its body also requires `auth.role() = 'service_role'`.
+- It selects an eligible opportunity, reuses or designs a concept, calls `taleforge_autonomous_create_series`, and records an orchestrator decision snapshot. Its exception path records a failed run and re-raises.
+- `public.taleforge_autonomous_create_series(uuid, jsonb, boolean)` has the same owner/security/search-path/effective-execute pattern and explicitly checks `auth.role() = 'service_role'`. A dry run returns before series creation. Non-dry-run execution requires a `strong_candidate` evaluation and a positive response from `taleforge_check_autonomous_creation_gate` before creating a **draft** series and its story architecture.
+- `public.taleforge_check_autonomous_creation_gate(uuid, numeric)` is also service-role-only, `SECURITY DEFINER`, and uses an empty search path. Its source checks for a production policy row and enabled flag, opportunity and concept thresholds, total series cap, unpublished autonomous-series cap, and weekly autonomous-creation cap. The catalog/source review did not query the policy row's actual values or execute the gate.
+- `taleforge_design_story_concept(uuid, jsonb)` is also service-role-only by effective EXECUTE checks and uses an empty search path. The runner then performs separate activation/lifecycle/schedule writes after a successful RPC result, so those follow-up writes must be tested together with the database gate rather than treating the RPC's draft-series creation as the end of the transaction.
+
+### Compatibility implications
+
+The proposed revokes on the 41 internal story-design relations target `PUBLIC`, `anon`, and `authenticated`, not `service_role`; the inspected RPC chain is therefore designed to retain its intended role path. That is necessary but not sufficient: a disposable-database test must verify function ownership, effective EXECUTE ACLs, the gate's disabled/missing/cap-reached cases, dry-run non-creation, successful draft creation, and runner follow-up behavior. The runner is not present in the hardening branch, so no broad Edge Function deployment can be considered complete until that production-only component is explicitly accounted for.
+
+No policy row was read, no RPC/function was invoked, and no production state was changed during this review.
