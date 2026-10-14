@@ -141,3 +141,19 @@ This evidence does not authorize a production rollout. The raw diagnostic view a
 During review of the diagnostic-view column-grant repair, I found that the newly inserted anonymous PL/pgSQL block had malformed dollar quoting (`DO $` / `$;`) rather than the required `DO $$` / `$$;`. The branch migration has been corrected in commit `bcdb687f45a3446210da6daebd879436fb5b926c`. I added a contract test in commit `dd0fae745955c305b33916662ef286a4080adf0c` that checks dollar-quoted block balance and rejects the malformed single-dollar form.
 
 The syntax correction and test are on the branch only; CI for the latest commits must pass before considering the migration candidate review-ready. This is another reason the migration remains **not approved for production application**. No live database DDL was executed.
+
+
+## Expanded inventory: internal-prefixed tables remain outside current lock lists (read-only, 2026-10-14)
+
+A broader effective-privilege query found **103 base tables** with client INSERT/UPDATE/DELETE grants (plus 3 views in the earlier 106-relation total). Of these, **68 `taleforge_*` base tables** have client write grants but no client-role INSERT/UPDATE/DELETE/ALL RLS policy. This means current RLS generally blocks those writes, but broad grants violate least privilege and make future policy mistakes more consequential.
+
+The 68-table list includes story-concept graph/state tables, narrative and genre intelligence, CEO/governance runs, system registries, novelty signatures, and other internal orchestration state. The current branch migrations cover some subsets (internal narrative intelligence, internal policyless tables, provider state, and related locks) but **do not yet prove that all 68 have been accounted for**. Do not infer completeness from a prefix alone: the final allow/deny inventory must be reconciled with actual frontend/Edge Function references and any intended public genre/trope discovery behavior.
+
+Required next branch-only step:
+1. Build a table-by-table coverage map from the 68 live names to a migration lock, an explicitly approved public API contract, or a documented exception.
+2. For each table not in a lock migration, search repository references and confirm whether browser clients access it directly or only trusted workers do.
+3. Prefer a reviewed explicit table list over an unbounded prefix-based dynamic revoke.
+4. Add a contract test that every audited internal-only table appears in the lock migration set, and that approved public-facing tables are excluded intentionally.
+5. Repeat the same exercise for the 35 other client-write-granted base tables; those include intended reader/content surfaces mixed with internal controls, so they cannot be blanket-revoked without feature compatibility checks.
+
+No production table, policy, grant, view, function, schema setting, or data was changed during this audit. Phase 1 remains open.
