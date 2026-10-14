@@ -314,6 +314,8 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(rollbackScript, /drop column if exists automation_ready_at/);
   assert.match(rollbackScript, /grant execute on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) to public/);
   assert.match(rollbackAssertions, /fixture baseline creation-gate EXECUTE grant was not restored/);
+  assert.match(rollbackAssertions, /fixture baseline function SECURITY DEFINER property was not restored/);
+  assert.match(rollbackAssertions, /fixture baseline function search_path setting was not restored/);
   assert.match(rollbackAssertions, /rollback re-enabled a schedule without independent approval evidence/);
   assert.match(rollbackTestRunner, /AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL/);
   assert.match(rollbackTestRunner, /Refusing rollback rehearsal against a Supabase URL/);
