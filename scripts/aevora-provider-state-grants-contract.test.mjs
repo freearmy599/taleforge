@@ -32,6 +32,11 @@ const readerFeatureMigration = await readFile(
   "utf8",
 );
 
+const publicContentMigration = await readFile(
+  new URL("../supabase/migrations/20261014160000_limit_public_content_tables_to_select.sql", import.meta.url),
+  "utf8",
+);
+
 const internalRpcMigration = await readFile(
   new URL("../supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql", import.meta.url),
   "utf8",
@@ -199,4 +204,17 @@ test("identity sequences are not directly exposed to ordinary client roles", () 
     "sequence lock must not re-grant direct client access");
   assert.ok(identitySequenceMigration.includes("FROM PUBLIC, anon, authenticated"),
     "sequence revokes must cover PUBLIC and both ordinary client roles");
+});
+
+
+test("public content tables keep RLS and expose only SELECT to ordinary clients", () => {
+  for (const table of ["series", "chapters", "stories"]) {
+    assert.ok(publicContentMigration.includes("'" + table + "'"), table + " must be in the public content target list");
+  }
+  assert.match(publicContentMigration, /ALTER TABLE public\.%I ENABLE ROW LEVEL SECURITY/i);
+  assert.match(publicContentMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/i);
+  assert.match(publicContentMigration, /REVOKE ALL PRIVILEGES \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/i);
+  assert.match(publicContentMigration, /GRANT SELECT ON TABLE public\.series, public\.chapters, public\.stories TO anon, authenticated/i);
+  assert.doesNotMatch(publicContentMigration, /GRANT\s+(INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER|MAINTAIN|ALL)\b/i);
+  assert.doesNotMatch(publicContentMigration, /CREATE\s+POLICY/i);
 });
