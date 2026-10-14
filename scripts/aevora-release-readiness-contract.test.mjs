@@ -90,6 +90,10 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   assert.match(migration, /auth\.role\(\) is distinct from 'service_role'/i,
     "the atomic readiness RPC itself must still require service_role");
   assert.match(migration, /lifecycle_initialized/);
+  assert.match(migration, /select sl\.metadata into v_lifecycle_metadata[\s\S]*?for update/i);
+  assert.match(migration, /r\.id::text = coalesce\(v_lifecycle_metadata->>'autonomous_creation_run_id', ''\)/i);
+  assert.doesNotMatch(migration, /order by r\.created_at desc[\s\S]*?limit 1[\s\S]*?for update/i,
+    "readiness must use the exact runner-recorded run, not whichever run is newest");
   assert.match(migration, /release_schedule_initialized/);
   assert.match(migration, /fresh audited approval is required to reactivate a previously ready series/i,
     "a revoked readiness decision must not be reused after lifecycle reactivation");
