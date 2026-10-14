@@ -21,7 +21,7 @@ test("publisher independently checks non-manual schedule readiness", () => {
   assert.match(publisher, /automation_ready_at/);
   assert.match(publisher, /AUTOMATION_NOT_READY/);
   const guard = publisher.indexOf("AUTOMATION_NOT_READY");
-  const insert = publisher.indexOf('.from("chapters")\n .insert(chapterInsert)');
+  const insert = publisher.indexOf("const chapterInsert =");
   assert.ok(guard >= 0, "publisher must reject unready automation");
   assert.ok(insert > guard, "publisher readiness guard must precede chapter insertion");
 });
