@@ -61,21 +61,19 @@ security definer
 set search_path = ''
 as $function$
 declare
-  schedule_id uuid;
-  ready_at timestamptz;
+  schedule_count bigint;
+  ready_count bigint;
 begin
   insert into public.story_lifecycle(series_id, lifecycle_status)
   values (new.id, 'preparing')
   on conflict (series_id) do nothing;
 
-  select rs.id, rs.automation_ready_at
-    into schedule_id, ready_at
+  select count(*), count(*) filter (where rs.automation_ready_at is not null)
+    into schedule_count, ready_count
   from public.release_schedules rs
-  where rs.series_id = new.id
-  order by rs.created_at
-  limit 1;
+  where rs.series_id = new.id;
 
-  if schedule_id is null then
+  if schedule_count = 0 then
     insert into public.release_schedules(
       series_id, enabled, schedule_mode, interval_hours, timezone,
       chapters_ahead, auto_generate, auto_publish, automation_ready_at
@@ -84,21 +82,28 @@ begin
       new.id, false, 'interval', 8, 'UTC',
       12, false, false, null
     );
-  elsif new.status in ('completed', 'hiatus', 'cancelled') then
+    schedule_count := 1;
+    ready_count := 0;
+  end if;
+
+  -- Terminal/ineligible lifecycle states must disable every schedule, not
+  -- only an arbitrary first row if historical duplicate schedules exist.
+  if new.status in ('draft', 'completed', 'hiatus', 'cancelled')
+     or schedule_count <> 1 then
     update public.release_schedules
     set enabled = false,
         auto_generate = false,
         auto_publish = false,
         automation_ready_at = null,
         updated_at = now()
-    where id = schedule_id;
-  elsif new.status = 'ongoing' and ready_at is null then
+    where series_id = new.id;
+  elsif new.status = 'ongoing' and ready_count = 0 then
     update public.release_schedules
     set enabled = false,
         auto_generate = false,
         auto_publish = false,
         updated_at = now()
-    where id = schedule_id;
+    where series_id = new.id;
   end if;
 
   return new;
