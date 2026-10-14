@@ -2,6 +2,26 @@
 Date: 2026-10-14
 Status: read-only production inspection; remediation plan only. No production privileges, policies, schema, schedules, or data were changed.
 
+## Newly confirmed highest-priority exposure candidate
+
+A broader read-only privilege inventory found **120 public tables with grants to `anon` and/or `authenticated`**, with 756 grant rows per role across the inspected result and 1,272 grants for elevated operations (INSERT/UPDATE/DELETE/TRUNCATE/TRIGGER/REFERENCES). This is a schema-wide least-privilege problem and cannot be safely solved by blanket revocation until tables are classified.
+
+Two tables stand out as urgent because RLS is disabled while both client roles have full table privileges and there are no policies:
+- `public.story_intelligence`
+- `public.story_trending_scores`
+
+For each table, the database reports both `anon` and `authenticated` with SELECT, INSERT, UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES. With RLS disabled, these grants are materially more concerning than the policyless-but-RLS-enabled tables. If the `public` schema is exposed through PostgREST (common but not confirmed in this audit), these privileges may allow unauthenticated reads and writes through the API. Actual API reachability and any additional platform protections remain unverified; treat this as a **potential critical exposure requiring prompt owner-led containment review**, not as a confirmed exploit.
+
+No matching branch migration filename was found for locking these two tables. The deployed migration inventory also ends at version `20261010161919` (`aevora_release_scheduler_leases`); the intended server-only migrations dated October 13 are absent. This indicates the live schema has drifted from the branch's intended hardening and requires a migration reconciliation plan, not an assumption that branch fixes are already deployed.
+
+## Immediate containment plan (approval required)
+
+1. In the Supabase Dashboard, verify Data API exposed schemas and any API gateway/network controls. Do not send probes or mutate data to test reachability.
+2. Inspect the intended product role for `story_intelligence` and `story_trending_scores`. If they are internal-only, prepare a narrowly scoped migration to enable RLS and revoke `PUBLIC`, `anon`, and `authenticated` table privileges; preserve trusted backend access and any legitimate reader-facing views/functions.
+3. Review whether these tables contain sensitive/internal narrative intelligence or ranking data before deciding if exposure requires incident handling.
+4. Extend the table-by-table matrix to all 120 tables. User-facing tables such as bookmarks, comments, profiles, likes, ratings, and reading history need intentional owner-scoped policies rather than indiscriminate server-only revocation.
+5. Have the project owner approve any production grant or RLS changes. This inspection made no production changes.
+
 ## Confirmed high-priority finding
 
 The connected database reports RLS enabled with zero policies on these tables:
