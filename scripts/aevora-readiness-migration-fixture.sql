@@ -95,13 +95,13 @@ insert into public.release_schedules(
 -- A non-manual schedule can be enabled even if both automation flags are false.
 -- The readiness migration must still make this unready automatic schedule inert.
 insert into public.series(id, title, status, origin_type, originality_status)
-values ('00000000-0000-0000-0000-000000000004', 'Enabled interval fixture', 'ongoing', 'ai_original', 'pending');
+values ('00000000-0000-0000-0000-000000000006', 'Enabled interval fixture', 'ongoing', 'ai_original', 'pending');
 
 insert into public.release_schedules(
   id, series_id, enabled, schedule_mode, interval_hours, timezone,
   chapters_ahead, auto_generate, auto_publish, next_release_at
 ) values (
-  '00000000-0000-0000-0000-000000000014',
-  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000016',
+  '00000000-0000-0000-0000-000000000006',
   true, 'interval', 8, 'UTC', 12, false, false, now()
 );
