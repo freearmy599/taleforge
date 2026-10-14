@@ -27,6 +27,11 @@ const narrativeMigration = await readFile(
   "utf8",
 );
 
+const readerFeatureMigration = await readFile(
+  new URL("../supabase/migrations/20261014100000_lock_unwired_reader_feature_tables.sql", import.meta.url),
+  "utf8",
+);
+
 const internalRpcMigration = await readFile(
   new URL("../supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql", import.meta.url),
   "utf8",
@@ -125,4 +130,29 @@ test("internal story opportunity scoring RPC is not exposed to client roles", ()
     internalRpcMigration.includes("REVOKE EXECUTE ON FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric) FROM PUBLIC, anon, authenticated"),
     "pure planner scoring helper must not retain inherited client EXECUTE grants",
   );
+});
+
+
+test("unwired reader-feature tables remain unavailable to direct client roles until policies are designed", () => {
+  const readerTables = [
+    "bookmarks",
+    "collection_stories",
+    "collections",
+    "comments",
+    "likes",
+    "notifications",
+    "profiles",
+    "ratings",
+    "reading_history",
+    "recommendations",
+    "story_reports",
+  ];
+  for (const table of readerTables) {
+    assert.ok(readerFeatureMigration.includes(`'${table}'`), `${table} must be included in the dormant reader-feature target list`);
+  }
+  assert.ok(readerFeatureMigration.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"), "all target tables must have RLS enabled");
+  assert.ok(readerFeatureMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "all target tables must revoke relation-level client grants");
+  assert.ok(readerFeatureMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "migration must defensively clear explicit column ACLs");
+  assert.equal(/CREATE\\s+POLICY/i.test(readerFeatureMigration), false, "no broad client policies may be added before access requirements are defined");
+  assert.equal(/GRANT\\s+.+\\s+TO\\s+(anon|authenticated)/i.test(readerFeatureMigration), false, "migration must not re-grant client access");
 });
