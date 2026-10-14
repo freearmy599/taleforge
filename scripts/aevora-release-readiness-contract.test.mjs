@@ -130,7 +130,9 @@ test("scheduled generation is blocked before cooldown, review, or generation wor
 
 test("direct chapter generation cannot bypass readiness for automatic schedules", () => {
   assert.match(generateChapter, /from\("release_schedules"\)/);
-  assert.match(generateChapter, /isAutomationReady\(automaticSchedule\.automation_ready_at\)/);
+  assert.match(generateChapter, /taleforge_autonomous_series_creation_runs/);
+  assert.match(generateChapter, /isAutomationReady\(schedule\.automation_ready_at\)/);
+  assert.match(generateChapter, /schedule\.auto_generate!==true/);
   assert.match(generateChapter, /Scheduled generation is not ready; no chapter generation was attempted/);
   const guard = generateChapter.indexOf("Scheduled generation is not ready; no chapter generation was attempted");
   const contextBuild = generateChapter.indexOf('rpc("taleforge_build_generation_context"');
