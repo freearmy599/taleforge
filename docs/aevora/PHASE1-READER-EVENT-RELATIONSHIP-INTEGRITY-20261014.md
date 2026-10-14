@@ -57,3 +57,23 @@ The branch now contains `20261014200000_validate_reader_event_series_chapter_pai
 A duplicate migration with the same timestamp was briefly created during parallel continuation. It was removed immediately, and the regression test now targets the single canonical migration file. The final branch tree must contain only one migration for timestamp `20261014200000`; CI is being checked against the latest commits.
 
 The policy repair does not solve replay, forged visitor IDs, or high-volume spam. Those require separate deduplication and rate-control design and remain release blockers for trusting public trending aggregates. No production policy was changed.
+
+
+## Client intake and trending abuse review (read-only, 2026-10-14)
+
+The current browser tracker in `reading-progress.js` writes directly to `public.reader_events`. It generates a UUID in local storage for `visitor_id` and applies in-memory throttling (15 seconds for reading progress; 3 seconds for other event types). Those controls improve ordinary-client behavior but are not security controls: a caller can bypass the UI, clear storage, forge visitor IDs, and submit repeated events directly.
+
+The live schema has no event-level idempotency key or unique constraint beyond the event row ID. Its indexes on `(visitor_id, created_at)`, `(series_id, created_at)`, and `(event_type, created_at)` support queries but do not prevent replay. There are no user-defined triggers on `reader_events` in the current catalog snapshot.
+
+A further semantic issue exists in the prepared trending aggregate: the allowed event vocabulary includes `unfollow` and `unbookmark`, but a simple positive sum of `follow` and `bookmark` events ignores those reversals. It can therefore retain positive engagement after a reader unfollows or removes a bookmark, and repeated submissions can inflate the score. The aggregate is a discovery heuristic, not an authenticated count of unique readers.
+
+### Required design before enabling public trending
+
+1. Keep raw event intake INSERT-only for browser roles, with the chapter/series policy repair and table/column/sequence ACL cleanup.
+2. Add an event idempotency contract, such as a client-generated event UUID persisted with each submission and a unique constraint; confirm retry semantics and migration backfill before choosing exact schema.
+3. Apply server-side rate limits/quotas by trusted network/session signals where available. Do not treat the browser-supplied `visitor_id` as authenticated identity or rely on client-only throttling.
+4. Define event semantics explicitly: dedupe opens/completions, bound progress updates, and compute follow/bookmark state from the latest per-visitor state or correctly net reversals rather than summing every historical positive event.
+5. Add tests for duplicate event UUIDs, rapid repeated events, changing visitor IDs, follow→unfollow, bookmark→unbookmark, invalid progress, and chapter/series mismatch. Use an isolated database for policy/constraint behavior.
+6. Recheck privacy/data-retention needs for visitor identifiers before collecting more detailed anti-abuse signals.
+
+No raw event rows were queried; this review used only schema, policy, index, trigger, and browser-code metadata. No production change was made.
