@@ -90,3 +90,18 @@ The earlier capped query is superseded by an aggregate query over the full live 
 - This materially improves coverage of the inventory metadata but **does not establish that all 134 function bodies are safe**. Search-path hardening must be targeted: check function body references, dynamic SQL, trigger use, owner, effective role privileges, and dependencies before proposing changes. No blanket rewrite or grant change is authorized.
 
 **Next branch-only review:** classify the 134 overloads into client-facing RPCs, trusted service-only RPCs, trigger/helper functions, and apparently unused functions; review bodies of the 69 with `public` in the configured path first, then the 14 with `pg_temp`. Keep function body text out of audit output unless needed for a specific reviewed function, and never expose secrets or row payloads.
+
+
+## Scheduler lease SECURITY DEFINER body review (read-only, 2026-10-14)
+
+The three live lease functions were reviewed by reading their definitions and ACL metadata only:
+
+- `aevora_claim_release_scheduler_lease(uuid, uuid, integer)`
+- `aevora_renew_release_scheduler_lease(uuid, uuid, integer)`
+- `aevora_release_scheduler_lease(uuid, uuid)`
+
+All are owned by `postgres`, marked `SECURITY DEFINER`, and currently configure `search_path=pg_catalog, public, pg_temp`. All three use schema-qualified references to `public.aevora_release_scheduler_leases`; claim/renew also call `make_interval` without schema qualification. Since `pg_catalog` is explicitly first, the observed order reduces shadowing risk, but branch code correctly narrows the path to `pg_catalog` and qualifies `pg_catalog.make_interval` for a smaller attack surface and clearer contract.
+
+Privilege metadata shows `anon` and `authenticated` cannot execute these functions; `service_role` can. The backing lease table is owned by `postgres`, has RLS enabled with no policies, and denies table privileges to both client roles while granting service_role SELECT/INSERT/UPDATE/DELETE. This is the expected internal-only access shape.
+
+**Decision:** no direct client EXECUTE exposure was found for these three functions, but the production definitions still drift from branch hardening. Keep their function-path update coordinated with the scheduler Edge Function lease-call deployment and concurrency tests. A database-only update would not activate the currently missing lease calls in live scheduler v12. No function/table/ACL was changed.
