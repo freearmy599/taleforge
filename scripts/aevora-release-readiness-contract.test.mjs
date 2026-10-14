@@ -395,12 +395,13 @@ test("chapter revision fails closed before Gemini when provider state is unavail
   assert.match(reviseChapter, /reason: "invalid_cooldown_timestamp"/);
   assert.match(reviseChapter, /reason: "provider_cooldown"/);
   assert.match(reviseChapter, /no model call was made/);
-  const stateRead = reviseChapter.indexOf('from("taleforge_ai_provider_state")');
-  const unsafeStateReturn = reviseChapter.indexOf('reason: "provider_state_unavailable"');
+  const stateRead = reviseChapter.indexOf("const providerStateResult = await supabase");
+  const stateTableRead = reviseChapter.indexOf('from("taleforge_ai_provider_state")', stateRead);
+  const unsafeStateReturn = reviseChapter.indexOf('reason: "provider_state_unavailable"', stateRead);
   const requestParse = reviseChapter.indexOf("body = await req.json()");
   const modelCall = reviseChapter.indexOf("await callGemini(");
-  assert.ok(stateRead >= 0 && unsafeStateReturn > stateRead,
-    "provider state must be read and validated before request processing");
+  assert.ok(stateRead >= 0 && stateTableRead > stateRead && unsafeStateReturn > stateTableRead,
+    "the request-level provider-state read and fail-closed response must precede request processing");
   assert.ok(requestParse > unsafeStateReturn && modelCall > requestParse,
     "all provider-state fail-closed checks must precede the Gemini call");
   assert.match(reviseChapter.slice(stateRead, modelCall), /Number\.isFinite\(cooldownUntil\)/);
