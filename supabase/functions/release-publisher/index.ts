@@ -48,6 +48,22 @@ if (automationScheduleError) {
     error: "Could not verify release automation readiness.",
     details: getErrorMessage(automationScheduleError) }, 503);
 }
+const { data: autonomousRuns, error: autonomousRunError } = await supabase
+  .from("taleforge_autonomous_series_creation_runs")
+  .select("id")
+  .eq("series_id", output.series_id)
+  .eq("dry_run", false)
+  .limit(1);
+if (autonomousRunError) {
+  return jsonResponse({ success: false, retryable: true,
+    error: "Could not verify autonomous-series provenance.",
+    details: getErrorMessage(autonomousRunError) }, 503);
+}
+const isAutonomousSeries = (autonomousRuns ?? []).length > 0;
+if (isAutonomousSeries && (automationSchedules ?? []).length !== 1) {
+  return jsonResponse({ success: false, error: "Autonomous series has no unique release automation schedule.",
+    code: "AUTOMATION_SCHEDULE_MISSING_OR_AMBIGUOUS" }, 409);
+}
 if ((automationSchedules ?? []).length > 0) {
   if (automationSchedules.length !== 1) {
     return jsonResponse({ success: false, error: "Release automation schedule is ambiguous.",
