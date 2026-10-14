@@ -335,6 +335,7 @@ sleep 0.2
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-readiness-writer-b.log 2>&1 <<'SQL'
 begin;
+set role service_role;
 update public.release_schedules
 set auto_publish = false
 where series_id = '00000000-0000-0000-0000-000000000009';
