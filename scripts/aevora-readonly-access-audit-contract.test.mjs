@@ -16,6 +16,15 @@ const trendingMigration = await readFile(
   "utf8",
 );
 
+const readerEventIdempotencyMigration = await readFile(
+  new URL("../supabase/migrations/20261014220000_reader_event_idempotency_key.sql", import.meta.url),
+  "utf8",
+);
+const readingProgressSource = await readFile(
+  new URL("../reading-progress.js", import.meta.url),
+  "utf8",
+);
+
 const revisionConflictReport = await readFile(
   new URL("../docs/aevora/phase1-revision-successor-conflict-report.sql", import.meta.url),
   "utf8",
@@ -261,6 +270,15 @@ const readerEventIntegrityDoc = await readFile(
 test("reader-event integrity documentation references the canonical migration", () => {
   assert.match(readerEventIntegrityDoc, /20261014200000_reader_event_relationship_integrity\.sql/);
   assert.doesNotMatch(readerEventIntegrityDoc, /20261014200000_validate_reader_event_series_chapter_pair\.sql/);
+});
+
+test("reader event idempotency keys are unique and reused on retry", () => {
+  assert.match(readerEventIdempotencyMigration, /ADD COLUMN IF NOT EXISTS event_uuid uuid/i);
+  assert.match(readerEventIdempotencyMigration, /CREATE UNIQUE INDEX IF NOT EXISTS reader_events_event_uuid_uidx[\\s\\S]*?WHERE event_uuid IS NOT NULL/i);
+  assert.match(readingProgressSource, /const pendingEventIds=new Map\(\)/);
+  assert.match(readingProgressSource, /payload\.event_uuid=eventUuid/);
+  assert.match(readingProgressSource, /error\.code==="23505"/);
+  assert.match(readingProgressSource, /pendingEventIds\.set\(key,eventUuid\)/);
 });
 
 test("reader-event insert policy requires a published chapter to match its eligible series", () => {
