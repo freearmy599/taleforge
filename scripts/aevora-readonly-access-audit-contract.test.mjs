@@ -16,6 +16,11 @@ const trendingMigration = await readFile(
   "utf8",
 );
 
+const revisionConflictReport = await readFile(
+  new URL("../docs/aevora/phase1-revision-successor-conflict-report.sql", import.meta.url),
+  "utf8",
+);
+
 test("Phase 1 access audit contains only read-only SELECT statements", () => {
   const executableSql = sql.replace(/--[^\n]*/g, "").trim();
   const statements = executableSql.split(";").map((statement) => statement.trim()).filter(Boolean);
@@ -105,4 +110,18 @@ test("reader event intake grants only INSERT to ordinary clients and retains the
   assert.match(readerEventsMigration, /GRANT INSERT ON TABLE public\.reader_events TO anon, authenticated/i);
   assert.doesNotMatch(readerEventsMigration, /GRANT\s+(?!INSERT\b)[A-Z ,]+\s+ON\s+TABLE\s+public\.reader_events\s+TO\s+(PUBLIC|anon|authenticated)/i);
   assert.doesNotMatch(readerEventsMigration, /CREATE\s+POLICY|DROP\s+POLICY|DELETE\s+FROM\s+public\.reader_events|TRUNCATE\s+TABLE/i);
+});
+
+
+test("revision-successor conflict report is read-only and excludes story content", () => {
+  const executableSql = revisionConflictReport.replace(/--[^\n]*/g, "").trim();
+  const statements = executableSql.split(";").map((statement) => statement.trim()).filter(Boolean);
+  assert.equal(statements.length, 1, "expected one read-only conflict report query");
+  assert.match(statements[0], /^WITH\b/i);
+  assert.doesNotMatch(
+    statements[0],
+    /\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|GRANT|REVOKE|TRUNCATE|CALL|DO)\b/i,
+  );
+  assert.doesNotMatch(executableSql, /output_text|chapter_content/i);
+  assert.match(executableSql, /generation_status\s*=\s*'approved'/i);
 });
