@@ -64,3 +64,15 @@ A focused query of `pg_default_acl` confirmed the future-object risk rather than
 - The query returned schema-specific ACL entries; a global default ACL was not present in the result for these roles. The migration nevertheless addresses both global and `public` schema defaults to prevent global grants from remaining an independent source of future privileges.
 
 **Rollout consequence:** before Phase 1 can close, arrange a separately authorized operation by the owning/privileged role to review and correct the `supabase_admin` defaults on `public`, then re-query `pg_default_acl` and create disposable-object verification evidence. Do not run that operation as part of this audit. No production state was changed.
+
+
+## Focused SECURITY DEFINER inventory (read-only, 2026-10-14)
+
+A catalog query filtered public SECURITY DEFINER functions whose configured search path includes public or pg_temp, and checked effective EXECUTE privilege for anon, authenticated, and service_role. The result returned 80 rows (query cap), so this is a bounded sample, not a complete count.
+
+- In the returned sample, anon_execute=false and authenticated_execute=false for every function; service_role_execute=true. This lowers direct client invocation exposure for those sampled functions but does not prove the whole function inventory is safe.
+- The three live lease functions aevora_claim_release_scheduler_lease, aevora_renew_release_scheduler_lease, and aevora_release_scheduler_lease still report search_path=pg_catalog, public, pg_temp in production. Branch source has been tightened to pg_catalog and qualifies make_interval; this is another confirmed branch/live drift item. Coordinate it with the matching scheduler deployment and migration review.
+- Other sampled internal functions commonly use search_path=public or public, pg_temp while keeping direct client EXECUTE revoked. Do not blanket-rewrite them: function body qualification, dynamic SQL, triggers, managed dependencies, and invoker expectations need per-function review.
+- Follow-up: run a complete inventory without an arbitrary row cap, include overload identity (oid / pg_get_function_identity_arguments), owner, ACL, function configuration, and Data API exposure; then classify each as public RPC, trusted service-only RPC, trigger/helper, or unused. Prepare targeted fixes and source-contract tests only after classification.
+
+This was a read-only catalog inspection. No function definitions or grants were changed.
