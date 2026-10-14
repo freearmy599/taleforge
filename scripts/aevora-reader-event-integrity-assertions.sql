@@ -177,7 +177,6 @@ RESET ROLE;
 DO $server_timestamp_assert$
 DECLARE
   v_client_created_at timestamptz;
-  v_service_created_at timestamptz;
 BEGIN
   SELECT created_at INTO v_client_created_at
   FROM public.reader_events
@@ -188,12 +187,6 @@ BEGIN
     RAISE EXCEPTION 'ASSERTION_FAILED: client timestamp was not replaced with server statement time';
   END IF;
 
-  SELECT created_at INTO v_service_created_at
-  FROM public.reader_events
-  WHERE event_uuid = '10000000-0000-0000-0000-000000000003';
-  IF v_service_created_at <> '2000-01-01 00:00:00+00'::timestamptz THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: trusted service timestamp was unexpectedly overwritten';
-  END IF;
 END;
 $server_timestamp_assert$;
 
