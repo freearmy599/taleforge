@@ -34,6 +34,12 @@ This is a triage list, not a complete inventory or an assertion that all names a
 
 A further group of internal relations had no table-level grants to `PUBLIC`, `anon`, or `authenticated` in the targeted metadata result. Keep them in the inventory, but avoid unnecessary DDL; validate inherited/schema/function paths and the actual exposed-schema configuration before drawing conclusions.
 
+## Additional finding: per-column grants
+
+A follow-up metadata-only query confirmed separate column-level grants on `publication_sync_outbox`, `story_attachment_metrics`, and `release_schedules` for both `anon` and `authenticated` (SELECT, INSERT, UPDATE, and REFERENCES on multiple columns). Similar grants were also observed on internal tables including `generation_jobs`, `automation_config`, and `taleforge_ai_provider_state`. The original branch migrations revoked relation-level grants but did not explicitly revoke separately granted column privileges. Those two branch migrations have now been updated to revoke both relation-level and all existing per-column privileges for their server-only target tables. This is a source change only; it has not been applied to production. Because the existing migration versions are absent from live migration history, the updated migration source can address the drift when an approved migration is eventually applied. If either original migration is applied before this corrected source is used, a new follow-up migration would be required to clear residual column grants.
+
+The live query was metadata-only and returned aggregate counts, not column names or row payloads. Keep the client-facing table candidates separate from this internal-table fix: do not revoke user-facing tables until intended access behavior and app usage are confirmed.
+
 ## Safe remediation workflow
 
 1. Trace application usage for each user-facing candidate before designing policies.
