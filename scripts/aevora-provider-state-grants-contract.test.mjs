@@ -108,6 +108,7 @@ test("internal narrative intelligence tables lose public read policies and clien
   for (const table of internalTables) {
     assert.ok(narrativeMigration.includes(`public.${table}`), `missing internal narrative lock for ${table}`);
   }
+  assert.ok(narrativeMigration.includes("ENABLE ROW LEVEL SECURITY;"), "all narrative internal tables must explicitly have RLS enabled");
   assert.ok(narrativeMigration.includes("REVOKE ALL PRIVILEGES ON TABLE"));
   assert.ok(narrativeMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "narrative internal column grants must also be revoked");
   assert.equal(/CREATE POLICY/i.test(narrativeMigration), false, "internal narrative state must not gain client policies");
