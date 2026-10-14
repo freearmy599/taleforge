@@ -57,6 +57,11 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   assert.match(migration, /automation_ready_at = coalesce\(automation_ready_at, now\(\)\)/);
   assert.match(migration, /revoke all on function public\.taleforge_mark_release_automation_ready\(uuid\) from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.taleforge_mark_release_automation_ready\(uuid\) to service_role/i);
+  assert.match(migration, /p\.policy_key = 'production'[\s\S]*?p\.enabled = true/i);
+  assert.match(migration, /story lifecycle must exist before readiness/i);
+  assert.match(migration, /release schedule configuration is invalid/i);
+  assert.doesNotMatch(migration, /update public\.release_schedules\s+set automation_ready_at\s*=\s*now\(\)\s*;/i,
+    "existing schedules must not be blindly backfilled as ready");
 });
 
 test("enrollment trigger does not enable an unready schedule", () => {
