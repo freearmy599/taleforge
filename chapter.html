@@ -92,7 +92,7 @@ function updateBookmark(){
   if(!currentChapter)return;
   if(window.taleForgeProgress.isBookmarked(currentChapter.id)){
    window.taleForgeProgress.removeBookmark(currentChapter.id);
-   window.taleForgeProgress.track("bookmark_remove",{seriesId:currentSeries?.id,chapterId:currentChapter.id});
+   window.taleForgeProgress.track("unbookmark",{seriesId:currentSeries?.id,chapterId:currentChapter.id});
   }else{
    window.taleForgeProgress.bookmarkChapter({seriesId:currentSeries?.id,seriesTitle:currentSeries?.title,chapterId:currentChapter.id,chapterNumber:currentChapter.chapter_number,chapterTitle:currentChapter.title});
    window.taleForgeProgress.track("bookmark",{seriesId:currentSeries?.id,chapterId:currentChapter.id});
