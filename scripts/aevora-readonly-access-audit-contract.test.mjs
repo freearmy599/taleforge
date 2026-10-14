@@ -19,7 +19,7 @@ const trendingMigration = await readFile(
 test("Phase 1 access audit contains only read-only SELECT statements", () => {
   const executableSql = sql.replace(/--[^\n]*/g, "").trim();
   const statements = executableSql.split(";").map((statement) => statement.trim()).filter(Boolean);
-  assert.equal(statements.length, 5, "expected five discrete metadata queries");
+  assert.equal(statements.length, 6, "expected six discrete metadata queries");
   for (const [index, statement] of statements.entries()) {
     assert.match(statement, /^SELECT\b/i, `statement ${index + 1} must begin with SELECT`);
     assert.doesNotMatch(
@@ -48,6 +48,7 @@ test("default ACL inventory distinguishes future-object privileges by owner", ()
   assert.match(sql, /d\.defaclobjtype/i);
   assert.match(sql, /aclexplode\(d\.defaclacl\)/i);
   assert.match(sql, /WHERE\s+n\.nspname\s*=\s*'public'/i);
+  assert.match(sql, /WHERE\s+n\.nspname\s*<>\s*'public'/i);
 });
 
 test("existing sequence ACL inventory is read-only and distinguishes client roles", () => {
