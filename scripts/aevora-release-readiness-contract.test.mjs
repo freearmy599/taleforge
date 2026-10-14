@@ -152,7 +152,7 @@ test("new SECURITY DEFINER trigger functions are not directly executable by API 
 
 test("ready schedules cannot be reassigned and duplicate schedules revoke readiness", () => {
   assert.match(migration, /ready or automatic release schedules cannot be reassigned to another series/i);
-  assert.match(migration, /before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public\.release_schedules/i);
+  assert.match(migration, /before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode, interval_hours, timezone, chapters_ahead, preferred_weekday, preferred_time on public\.release_schedules/i);
   assert.match(migration, /create trigger trg_revoke_ambiguous_release_schedules[\s\S]*?after insert or update of series_id on public\.release_schedules/i);
   assert.match(migration, /create or replace function public\.taleforge_revoke_ambiguous_release_schedules[\s\S]*?count\(\*\)[\s\S]*?> 1[\s\S]*?automation_ready_at = null/i);
 });
@@ -222,7 +222,7 @@ test("direct AI quality review cannot bypass readiness for automatic schedules",
   const providerCall = generateChapter.indexOf("const {data:reviewProviderState,error:reviewProviderStateError}");
   assert.ok(guard >= 0 && providerCall > guard,
     "direct quality-review readiness gate must run before provider-state lookup and Gemini invocation");
-  assert.match(generateChapter, /deterministic hard validation failures can still be recorded during a cooldown/);
+  assert.match(generateChapter, /deterministic hard-validation failures can still be recorded during a cooldown/);
 });
 
 test("direct chapter generation cannot bypass readiness for automatic schedules", () => {
