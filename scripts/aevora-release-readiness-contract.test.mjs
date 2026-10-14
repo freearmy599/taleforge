@@ -134,6 +134,7 @@ test("direct chapter generation cannot bypass readiness for automatic schedules"
   assert.match(generateChapter, /isAutomationReady\(schedule\.automation_ready_at\)/);
   assert.match(generateChapter, /schedule\.auto_generate!==true/);
   assert.match(generateChapter, /Scheduled generation is not ready; no chapter generation was attempted/);
+  assert.match(generateChapter, /requiresAutomation&&\(s\.status!=="ongoing"/);
   const guard = generateChapter.indexOf("Scheduled generation is not ready; no chapter generation was attempted");
   const contextBuild = generateChapter.indexOf('rpc("taleforge_build_generation_context"');
   assert.ok(guard >= 0 && contextBuild > guard,
