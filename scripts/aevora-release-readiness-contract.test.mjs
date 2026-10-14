@@ -505,3 +505,22 @@ test("production rollout runbook requires pause, exact baseline, leaf-first orde
   assert.match(rolloutPlan, /If any precondition is missing, stop before migration/i);
   assert.match(rolloutPlan, /Production deployment, migration, schedule changes, generation, and publication remain unauthorized/i);
 });
+
+
+test("rollback harness requires explicit disposable opt-in and executes fail-closed restore assertions", () => {
+  for (const runner of [migrationTestRunner, rollbackTestRunner]) {
+    assert.match(runner, /DATABASE_URL must point to a disposable PostgreSQL database/);
+    assert.match(runner, /I_UNDERSTAND_THIS_IS_DISPOSABLE/);
+    assert.match(runner, /Refusing rollback rehearsal against a Supabase URL|Refusing migration rehearsal against a Supabase URL/);
+    assert.match(runner, /database name must identify an explicitly named aevora_readiness disposable database/);
+    assert.match(runner, /psql .*aevora-readiness-migration-fixture\.sql/);
+    assert.match(runner, /psql .*20261014210000_release_automation_readiness_gate\.sql/);
+    assert.match(runner, /psql .*aevora-readiness-rollback\.sql/);
+    assert.match(runner, /psql .*aevora-readiness-rollback-assertions\.sql/);
+  }
+  assert.match(rollbackScript, /Commit the fail-closed state separately/i);
+  assert.match(rollbackScript, /set enabled = false, auto_generate = false, auto_publish = false/i);
+  assert.match(rollbackAssertions, /all schedules remain disabled/i);
+  assert.match(rollbackAssertions, /baseline creation-gate function body was not restored/i);
+  assert.match(rollbackAssertions, /fixture baseline release_schedules grants were not restored/i);
+});
