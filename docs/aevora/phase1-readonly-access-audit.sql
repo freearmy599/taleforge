@@ -30,19 +30,28 @@ GROUP BY n.nspname, c.relname, c.relkind, c.relrowsecurity, c.relforcerowsecurit
 HAVING count(DISTINCT g.grantee) > 0
 ORDER BY relation_kind, relation_name;
 
--- 2) Aggregate separately granted column privileges. This catches grants that
--- survive a table-level REVOKE; column names and data values are intentionally omitted.
+-- 2) Aggregate explicit per-column ACLs from pg_attribute.attacl.
+-- This deliberately does not use information_schema.column_privileges, which can
+-- reflect effective relation-level privileges rather than independent column ACLs.
 SELECT
-  table_schema,
-  table_name,
-  grantee,
-  privilege_type,
-  count(DISTINCT column_name) AS columns_with_privilege
-FROM information_schema.column_privileges
-WHERE table_schema = 'public'
-  AND grantee IN ('PUBLIC', 'anon', 'authenticated')
-GROUP BY table_schema, table_name, grantee, privilege_type
-ORDER BY table_name, grantee, privilege_type;
+  n.nspname AS schema_name,
+  c.relname AS table_name,
+  pg_get_userbyid(acl.grantor) AS grantor,
+  CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE grantee.rolname END AS grantee,
+  acl.privilege_type,
+  count(DISTINCT a.attnum) AS columns_with_explicit_acl
+FROM pg_attribute a
+JOIN pg_class c ON c.oid = a.attrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+CROSS JOIN LATERAL aclexplode(a.attacl) AS acl
+LEFT JOIN pg_roles grantee ON grantee.oid = acl.grantee
+WHERE n.nspname = 'public'
+  AND a.attnum > 0
+  AND NOT a.attisdropped
+  AND a.attacl IS NOT NULL
+  AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
+GROUP BY n.nspname, c.relname, acl.grantor, acl.grantee, grantee.rolname, acl.privilege_type
+ORDER BY table_name, grantee, acl.privilege_type;
 
 -- 3) Schema-level default table ACLs for future objects in public.
 -- A result here is a forward-looking grant template, not proof of current access.
