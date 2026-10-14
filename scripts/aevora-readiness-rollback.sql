@@ -1,12 +1,16 @@
 -- Fixture-only rollback for 20261014210000_release_automation_readiness_gate.sql.
 -- Deliberately fail closed: do not restore legacy automation flags from memory.
 \set ON_ERROR_STOP on
-begin;
 
+-- Commit the fail-closed state separately so a later DDL/ACL rollback failure
+-- cannot roll this safety change back with the rest of the transaction.
+begin;
 update public.release_schedules
 set enabled = false, auto_generate = false, auto_publish = false,
     automation_ready_at = null, updated_at = now();
+commit;
 
+begin;
 drop trigger if exists trg_guard_chapter_publication_lifecycle on public.chapters;
 drop trigger if exists trg_protect_release_automation_readiness on public.release_schedules;
 drop trigger if exists trg_revoke_ambiguous_release_schedules on public.release_schedules;
