@@ -124,6 +124,10 @@ test("legacy service-role writes cannot re-enable automation without readiness",
     "service-role callers must not bypass the atomic readiness marker setter");
 });
 
+test("database trigger forbids automatic flags on manual schedules", () => {
+  assert.match(migration, /new\.schedule_mode = 'manual'[\s\S]*?new\.auto_generate = true or new\.auto_publish = true[\s\S]*?manual schedules cannot enable automatic generation or publication/i);
+});
+
 test("enrollment trigger does not enable an unready schedule", () => {
   assert.match(migration, /values \(\s*new\.id, false, 'interval', 8, 'UTC',[\s\S]*?false, false, null\s*\)/i);
   assert.match(migration, /auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?updated_at = now\(\)/i);
