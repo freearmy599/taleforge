@@ -148,6 +148,7 @@ jobs:
       - name: Replay readiness migration and assert runtime invariants
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_readiness_test
+          AEVORA_DISPOSABLE_MIGRATION_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
         run: bash scripts/test-aevora-readiness-migration.sh
 
       - name: Rehearse readiness against concurrent series completion
