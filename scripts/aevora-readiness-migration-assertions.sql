@@ -74,6 +74,12 @@ begin
 end;
 $chapter_trigger_acl_assert$;
 
+-- Trigger ACLs must not prevent a trusted publisher from firing the trigger.
+set role service_role;
+insert into public.chapters(series_id, status)
+values ('00000000-0000-0000-0000-000000000001', 'published');
+reset role;
+
 -- An old service-role runner cannot re-enable an unready interval schedule.
 do $$
 begin
