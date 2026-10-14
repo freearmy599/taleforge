@@ -198,3 +198,12 @@ test("internal narrative migration revokes both relation and column grants on di
     /GRANT\s+(SELECT|ALL PRIVILEGES)\s+ON\s+(TABLE\s+)?public\.taleforge_system_health_snapshot\s+TO\s+(PUBLIC|anon|authenticated)/i,
   );
 });
+
+
+test("internal narrative migration keeps every DO dollar-quoted block balanced", () => {
+  const opens = internalNarrativeMigration.match(/\\bDO\\s+\\$\\$/gi) ?? [];
+  const closes = internalNarrativeMigration.match(/^\\$\\$;\\s*$/gm) ?? [];
+  assert.equal(opens.length, closes.length, "DO $$ blocks and $$; terminators must match");
+  assert.doesNotMatch(internalNarrativeMigration, /\\bDO\\s+\\$(?:\\r?\\n|$)/i, "reject malformed single-dollar DO opener");
+  assert.doesNotMatch(internalNarrativeMigration, /^\\$;\\s*$/m, "reject malformed single-dollar DO terminator");
+});
