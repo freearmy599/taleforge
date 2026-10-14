@@ -42,6 +42,10 @@ returns jsonb language sql stable as $function$
     'concept_overall_score', p_concept_overall_score
   )
 $function$;
+-- CREATE OR REPLACE preserves ACLs; explicitly restore the fixture's original
+-- default PUBLIC EXECUTE grant after the candidate migration narrowed it.
+revoke all on function public.taleforge_check_autonomous_creation_gate(uuid, numeric) from public, anon, authenticated, service_role;
+grant execute on function public.taleforge_check_autonomous_creation_gate(uuid, numeric) to public;
 
 revoke all privileges on table public.release_schedules from public, anon, authenticated, service_role;
 grant all privileges on table public.release_schedules to anon, authenticated, service_role;
