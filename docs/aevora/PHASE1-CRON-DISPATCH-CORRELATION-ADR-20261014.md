@@ -65,3 +65,23 @@ This ADR is not authorization to change production. Before implementation or dep
 ## Current state
 
 The existing monitor's counts (including HTTP 200 and cooldown-related HTTP 429 responses) are aggregate evidence only. Per-job downstream outcome correlation remains open. No live cron command, table, schedule, Edge Function, or production queue state was changed to prepare this proposal.
+
+
+## Read-only production inventory (2026-10-14)
+
+The following was verified with read-only SQL against the connected project; no cron command text, headers, tokens, request bodies, or response bodies were retrieved.
+
+- Installed extensions: `pg_cron 1.6.4`, `pg_net 0.20.4`.
+- `net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer)` returns `bigint`, which is suitable to capture as a request ID.
+- Active HTTP-dispatch cron jobs observed:
+  - job 3 `taleforge-generation-tick` → `generation-orchestrator`
+  - job 4 `taleforge-release-tick` → `release-scheduler`
+  - job 5 `taleforge-blueprint-tick` → `blueprint-planner`
+  - job 6 `taleforge-dna-tick` → `story-dna-planner`
+  - job 7 `taleforge-arc-tick` → `arc-planner`
+  - job 9 `taleforge-publication-sync` → `publication-sync-processor`
+  - job 10 `taleforge-semantic-continuity-tick` → `semantic-continuity-extraction`
+  - job 13 `taleforge-autonomous-series-creation` → `autonomous-series-creation-runner`
+- Jobs 8 (`taleforge-quality-monitor`) and 12 (`taleforge-clara-supervision`) did not match `net.http_post` in the command metadata check and need separate outcome instrumentation if they are in scope.
+- A point-in-time metadata-only snapshot contained 246 `net._http_response` rows, from `2026-10-13 20:30:00Z` through `2026-10-14 02:25:00Z`, with none older than 24 hours. This is not enough to establish the cleanup policy; retention and cleanup behavior remain to be explicitly inspected.
+- Because the current job commands were not rewritten to persist returned request IDs, this inventory does not close the correlation gap. No live jobs, schedules, tables, or functions were changed.
