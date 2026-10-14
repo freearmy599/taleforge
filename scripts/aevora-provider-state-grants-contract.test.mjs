@@ -27,6 +27,11 @@ const narrativeMigration = await readFile(
   "utf8",
 );
 
+const internalRpcMigration = await readFile(
+  new URL("../supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql", import.meta.url),
+  "utf8",
+);
+
 test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("ALTER TABLE public.taleforge_ai_provider_state ENABLE ROW LEVEL SECURITY"));
   assert.ok(migration.includes("REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"));
@@ -113,4 +118,11 @@ test("internal narrative intelligence tables lose public read policies and clien
   assert.ok(narrativeMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "narrative internal column grants must also be revoked");
   assert.equal(/CREATE POLICY/i.test(narrativeMigration), false, "internal narrative state must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(narrativeMigration), false, "migration must not re-grant client access");
+});
+
+test("internal story opportunity scoring RPC is not exposed to client roles", () => {
+  assert.ok(
+    internalRpcMigration.includes("REVOKE EXECUTE ON FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric) FROM PUBLIC, anon, authenticated"),
+    "pure planner scoring helper must not retain inherited client EXECUTE grants",
+  );
 });
