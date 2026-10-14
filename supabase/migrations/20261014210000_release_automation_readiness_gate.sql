@@ -73,6 +73,26 @@ begin
     raise exception 'ready or automatic release schedules cannot be reassigned to another series';
   end if;
 
+  -- A ready schedule's cadence/configuration is part of the approved
+  -- readiness decision. Changes to those fields revoke readiness atomically;
+  -- next_release_at is deliberately excluded because the scheduler advances it.
+  if tg_op = 'UPDATE'
+     and old.automation_ready_at is not null
+     and (
+       new.schedule_mode is distinct from old.schedule_mode
+       or new.interval_hours is distinct from old.interval_hours
+       or new.timezone is distinct from old.timezone
+       or new.chapters_ahead is distinct from old.chapters_ahead
+       or new.preferred_weekday is distinct from old.preferred_weekday
+       or new.preferred_time is distinct from old.preferred_time
+     ) then
+    new.automation_ready_at := null;
+    new.enabled := false;
+    new.auto_generate := false;
+    new.auto_publish := false;
+    new.updated_at := now();
+  end if;
+
   -- Manual schedules must never carry automatic generation/publication flags.
   if new.schedule_mode = 'manual'
      and (new.auto_generate = true or new.auto_publish = true) then
@@ -105,7 +125,7 @@ revoke all on function public.taleforge_protect_release_automation_readiness() f
 
 drop trigger if exists trg_protect_release_automation_readiness on public.release_schedules;
 create trigger trg_protect_release_automation_readiness
-before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public.release_schedules
+before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode, interval_hours, timezone, chapters_ahead, preferred_weekday, preferred_time on public.release_schedules
 for each row
 execute function public.taleforge_protect_release_automation_readiness();
 
