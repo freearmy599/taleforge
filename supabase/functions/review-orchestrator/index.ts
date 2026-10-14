@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
+import { isAutomationReady } from "../release-scheduler/readiness.ts";
 
 const VERSION = "review-orchestrator-v4-fail-closed-provider-state";
 
@@ -204,6 +205,52 @@ Deno.serve(async (req) => {
     const results = [];
 
     for (const output of outputs ?? []) {
+      if (!dryRun) {
+        const { data: reviewSeries, error: reviewSeriesError } = await supabase
+          .from("series").select("id,status").eq("id", output.series_id).maybeSingle();
+        const { data: reviewSchedules, error: reviewSchedulesError } = await supabase
+          .from("release_schedules")
+          .select("id,enabled,auto_generate,auto_publish,automation_ready_at,schedule_mode")
+          .eq("series_id", output.series_id).order("id", { ascending: true }).limit(2);
+        const { data: autonomousRuns, error: autonomousRunsError } = await supabase
+          .from("taleforge_autonomous_series_creation_runs")
+          .select("id").eq("series_id", output.series_id).eq("dry_run", false).limit(1);
+
+        if (reviewSeriesError || !reviewSeries || reviewSchedulesError || autonomousRunsError) {
+          results.push({
+            output_id: output.id, chapter_number: output.chapter_number,
+            action: "blocked", blocked: true, retryable: true,
+            reason: "Automation readiness or series status could not be verified; no review function was called.",
+          });
+          continue;
+        }
+
+        const schedules = reviewSchedules ?? [];
+        const isAutonomous = (autonomousRuns ?? []).length > 0;
+        if (schedules.length > 1 || (isAutonomous && schedules.length !== 1)) {
+          results.push({
+            output_id: output.id, chapter_number: output.chapter_number,
+            action: "blocked", blocked: true, retryable: false,
+            reason: "Automation schedule is missing or ambiguous; no review function was called.",
+          });
+          continue;
+        }
+        if (schedules.length === 1) {
+          const schedule = schedules[0];
+          const requiresAutomation = isAutonomous || schedule.schedule_mode !== "manual" ||
+            schedule.auto_generate === true || schedule.auto_publish === true;
+          if (requiresAutomation && (reviewSeries.status !== "ongoing" ||
+              schedule.enabled !== true || !isAutomationReady(schedule.automation_ready_at))) {
+            results.push({
+              output_id: output.id, chapter_number: output.chapter_number,
+              action: "blocked", blocked: true, retryable: false,
+              reason: "Scheduled review is not ready; no AI review was attempted.",
+            });
+            continue;
+          }
+        }
+      }
+
       if (output.generation_status === "published" && !dryRun) {
         results.push({
           output_id: output.id,
