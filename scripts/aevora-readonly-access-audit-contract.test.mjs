@@ -38,9 +38,9 @@ test("function inventory inspects effective EXECUTE without calling functions", 
 });
 
 test("default ACL inventory distinguishes future-object privileges by owner", () => {
-  assert.match(sql, /FROM\\s+pg_default_acl\\s+d/i);
-  assert.match(sql, /pg_get_userbyid\\(d\\.defaclrole\\)\\s+AS\\s+default_acl_owner/i);
-  assert.match(sql, /d\\.defaclobjtype/i);
-  assert.match(sql, /aclexplode\\(d\\.defaclacl\\)/i);
-  assert.match(sql, /WHERE\\s+n\\.nspname\\s*=\\s*'public'/i);
+  assert.match(sql, /FROM\s+pg_default_acl\s+d/i);
+  assert.match(sql, /pg_get_userbyid\(d\.defaclrole\)\s+AS\s+default_acl_owner/i);
+  assert.match(sql, /d\.defaclobjtype/i);
+  assert.match(sql, /aclexplode\(d\.defaclacl\)/i);
+  assert.match(sql, /WHERE\s+n\.nspname\s*=\s*'public'/i);
 });
