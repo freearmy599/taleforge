@@ -353,7 +353,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-readiness-writer-b.log 2>&
 begin;
 set role service_role;
 update public.release_schedules
-set auto_publish = false
+set auto_generate = false
 where series_id = '00000000-0000-0000-0000-000000000009';
 commit;
 SQL
