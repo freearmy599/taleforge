@@ -201,9 +201,9 @@ test("internal narrative migration revokes both relation and column grants on di
 
 
 test("internal narrative migration keeps every DO dollar-quoted block balanced", () => {
-  const opens = internalNarrativeMigration.match(/\\bDO\\s+\\$\\$/gi) ?? [];
-  const closes = internalNarrativeMigration.match(/^\\$\\$;\\s*$/gm) ?? [];
+  const opens = internalNarrativeMigration.match(/\bDO\s+\$\$/gi) ?? [];
+  const closes = internalNarrativeMigration.match(/^\$\$;\s*$/gm) ?? [];
   assert.equal(opens.length, closes.length, "DO $$ blocks and $$; terminators must match");
-  assert.doesNotMatch(internalNarrativeMigration, /\\bDO\\s+\\$(?:\\r?\\n|$)/i, "reject malformed single-dollar DO opener");
-  assert.doesNotMatch(internalNarrativeMigration, /^\\$;\\s*$/m, "reject malformed single-dollar DO terminator");
+  assert.doesNotMatch(internalNarrativeMigration, /\bDO\s+\$(?:\r?\n|$)/i, "reject malformed single-dollar DO opener");
+  assert.doesNotMatch(internalNarrativeMigration, /^\$;\s*$/m, "reject malformed single-dollar DO terminator");
 });
