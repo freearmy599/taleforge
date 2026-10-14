@@ -46,8 +46,6 @@ test("publication outbox and attachment metrics remain server-side only", () => 
     assert.ok(metricsOutboxMigration.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM PUBLIC, anon, authenticated`), `${table} must revoke all client and PUBLIC table privileges`);
   }
   assert.ok(metricsOutboxMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "outbox and metrics column grants must also be revoked");
-  for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
-  }
   assert.equal(/CREATE POLICY/i.test(metricsOutboxMigration), false, "server-only telemetry and outbox tables must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(metricsOutboxMigration), false, "server-only tables must not re-grant client access");
 });
