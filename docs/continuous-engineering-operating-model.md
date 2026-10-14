@@ -125,3 +125,11 @@ A task is complete only when the result is verified and recorded. The worker sho
 - The first broad validation run exposed a stale lifecycle guard assertion (it expected only `lifecycleError`, while the implementation correctly blocks on `lifecycleError || !lifecycle`). Updated the contract to match the fail-closed implementation.
 - The corrected branch passed the full configured Edge type-check and source-contract workflow on run [38497279275](https://github.com/freearmy599/taleforge/actions/runs/38497279275), commit `4cb3d782ab31f34bf12d4b2075654412b3b4c835`. All configured type checks and contract steps passed.
 - No production endpoint deployment or live audit request was performed. The deployed function remains separate from branch source until an explicitly authorized rollout.
+
+
+## Cron-to-Edge outcome correlation proposal (2026-10-14)
+
+- Added [the dispatch-correlation ADR](aevora/PHASE1-CRON-DISPATCH-CORRELATION-ADR-20261014.md) as a branch-only design proposal. It separates cron SQL execution, pg_net HTTP response, allowlisted application outcome, and durable business postcondition.
+- The proposal requires persisting the returned pg_net request ID with an explicit cron job identity, then reconciling response status before pg_net cleanup; it forbids storing headers, secrets, request/response bodies, prompts, or story content.
+- Missing response/correlation is unknown, never success. HTTP 2xx is not sufficient to claim business completion without the function's documented application result and durable postcondition.
+- The rollout gates require read-only inspection of the actual deployed cron commands, pg_net schema/version/retention, and grants before designing a migration. No production command, table, schedule, Edge Function, task queue, or generation/publication state was changed.
