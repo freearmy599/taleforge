@@ -619,4 +619,51 @@ begin
 end;
 $schedule_config_revoke_assert$;
 
+
+-- Legacy service-role workers that toggle flags while leaving a stale marker
+-- cannot preserve authorization; the trigger clears the marker and all flags.
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000008', 'Stale automation flag fixture', 'ongoing', 'ai_original', 'pending');
+
+update public.release_schedules
+set schedule_mode = 'interval', interval_hours = 24, timezone = 'Asia/Kolkata',
+    chapters_ahead = 3, next_release_at = now()
+where series_id = '00000000-0000-0000-0000-000000000008';
+
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, status, dry_run, pipeline_snapshot
+) values (
+  '00000000-0000-0000-0000-000000000029',
+  '00000000-0000-0000-0000-000000000008',
+  'created', false,
+  jsonb_build_object(
+    'series_id', '00000000-0000-0000-0000-000000000008',
+    'lifecycle_initialized', true,
+    'release_schedule_initialized', true
+  )
+);
+update public.story_lifecycle
+set metadata = jsonb_build_object('autonomous_creation_run_id', '00000000-0000-0000-0000-000000000029')
+where series_id = '00000000-0000-0000-0000-000000000008';
+
+select public.taleforge_mark_release_automation_ready(
+  (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000008')
+);
+
+update public.release_schedules
+set enabled = false, auto_generate = false, auto_publish = false
+where series_id = '00000000-0000-0000-0000-000000000008';
+
+do $stale_flags_assert$
+begin
+  if exists (
+    select 1 from public.release_schedules
+    where series_id = '00000000-0000-0000-0000-000000000008'
+      and (enabled or auto_generate or auto_publish or automation_ready_at is not null)
+  ) then
+    raise exception 'ASSERTION_FAILED: legacy automation flag change retained a stale readiness marker';
+  end if;
+end;
+$stale_flags_assert$;
+
 select 'release readiness migration integration assertions passed' as result;
