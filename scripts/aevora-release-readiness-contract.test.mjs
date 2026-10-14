@@ -130,6 +130,14 @@ test("scheduled generation is blocked before cooldown, review, or generation wor
 });
 
 
+test("direct chapter generation rejects terminal series regardless of schedule mode", () => {
+  assert.match(generateChapter, /\["completed","cancelled","hiatus"\]\.includes\(s\.status\)/);
+  const terminalGuard = generateChapter.indexOf('if(["completed","cancelled","hiatus"].includes(s.status))');
+  const scheduleQuery = generateChapter.indexOf('from("release_schedules")', terminalGuard);
+  assert.ok(terminalGuard >= 0 && scheduleQuery > terminalGuard,
+    "terminal series must be rejected before any schedule/manual bypass");
+});
+
 test("direct chapter generation cannot bypass readiness for automatic schedules", () => {
   assert.match(generateChapter, /from\("release_schedules"\)/);
   assert.match(generateChapter, /taleforge_autonomous_series_creation_runs/);
