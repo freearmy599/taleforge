@@ -34,3 +34,8 @@ A newer read-only aggregate snapshot found 246 rows in `net._http_response`, wit
 ## Later read-only recheck — 2026-10-14 05:10 UTC
 
 The six-hour aggregate now shows 246 `net._http_response` rows with newest response at `2026-10-14 05:10:00.12948+00`; the 294 `cron.job_run_details` rows have newest start at `2026-10-14 05:10:00.112231+00`. Active scheduled jobs showed zero failed SQL runs in this six-hour window; generation/blueprint/DNA/arc/quality/Clara jobs last started at about 05:00 UTC, while release, publication-sync, and semantic-continuity jobs last started at about 05:10 UTC. This confirms the earlier response freshness gap was not present at this snapshot, but it still does not correlate individual pg_net responses with individual cron dispatches or prove application-level business success. No command text, request/response payload, credentials, or application rows were read; no job was triggered or modified.
+
+
+## Latest read-only recheck — approximately 2026-10-14 05:40 UTC
+
+The aggregate query returned 246 retained `net._http_response` rows, newest response at `2026-10-14 05:40:00.135864+00`, zero queued HTTP requests, newest cron start at `2026-10-14 05:40:00.113879+00`, and zero failed cron runs in the preceding six hours. The latest visible response and latest cron start were within roughly 22 milliseconds at this snapshot. This supports that the earlier aggregate freshness gap was not present then; it still cannot attribute a particular response to a particular dispatch or establish Edge Function business success. No dispatch commands, headers, request/response bodies, secrets, or application rows were read; no requests were sent and no jobs or functions were changed.
