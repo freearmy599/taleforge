@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const scheduler = await readFile("supabase/functions/release-scheduler/index.ts", "utf8");
 const generationOrchestrator = await readFile("supabase/functions/generation-orchestrator/index.ts", "utf8");
+const reviewOrchestrator = await readFile("supabase/functions/review-orchestrator/index.ts", "utf8");
 const generateChapter = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
 const generator = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
@@ -224,4 +225,17 @@ test("direct chapter generation cannot bypass readiness for automatic schedules"
   const contextBuild = generateChapter.indexOf('rpc("taleforge_build_generation_context"');
   assert.ok(guard >= 0 && contextBuild > guard,
     "direct-generation readiness guard must run before context build and provider call");
+});
+
+
+test("scheduled review orchestration fails closed before invoking AI reviewers", () => {
+  assert.match(reviewOrchestrator, /from\("release_schedules"\)/);
+  assert.match(reviewOrchestrator, /taleforge_autonomous_series_creation_runs/);
+  assert.match(reviewOrchestrator, /isAutomationReady\(schedule\.automation_ready_at\)/);
+  assert.match(reviewOrchestrator, /Scheduled review is not ready; no AI review was attempted/);
+  const readinessBlock = reviewOrchestrator.indexOf("Scheduled review is not ready; no AI review was attempted");
+  const firstReviewCall = reviewOrchestrator.indexOf("callFunction(baseUrl, serviceKey, step.functionName, output.id)");
+  assert.ok(readinessBlock >= 0 && firstReviewCall > readinessBlock,
+    "readiness must be verified before any review worker can be invoked");
+  assert.match(reviewOrchestrator.slice(readinessBlock, firstReviewCall), /continue;/);
 });
