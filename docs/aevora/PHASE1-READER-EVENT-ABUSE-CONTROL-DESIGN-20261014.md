@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-Design checkpoint for the still-unimplemented abuse controls. Branch-only relationship and INSERT-only migrations now have disposable-PostgreSQL regression coverage, but this does not authorize production schema changes. No production event rows were read, no intake endpoint was called, and no database mutation was performed. The current public trending aggregate must remain gated until deduplication, rate limiting, and relationship integrity are addressed together.
+Design checkpoint for the still-incomplete abuse controls. Branch-only relationship-integrity, INSERT-only ACL, event-idempotency, and server-timestamp migrations now have disposable-PostgreSQL regression coverage, along with browser retry, progress dedupe, and event-vocabulary contracts. These controls reduce accidental duplicates and timestamp manipulation but do not replace trusted intake or quotas, and they do not authorize production schema changes. No production event rows were read, no intake endpoint was called, and no database mutation was performed. The current public trending aggregate must remain gated until deduplication, rate limiting, and relationship integrity are addressed together.
 
 ## Verified schema contract (read-only catalog inspection)
 
