@@ -74,3 +74,26 @@ Read-only retrieval of the remaining production-only function sources found the 
 - `aevora-cover-request` v5 and `aevora-cover-review` v4 validate the user JWT and require `admin`/ `owner`; `aevora-cover-worker` v4 also checks that role before processing `aevora_cover_jobs`.
 
 This source review did not invoke any endpoint, run the autonomous creation RPC, create/update cover jobs, or change production state. The findings are not a substitute for a full review of all deployed-only source, caller authentication, or runtime behavior.
+
+
+## Production-only source fingerprints and execution-boundary clarification (read-only, 2026-10-14)
+
+The deployed function source was retrieved again through the Supabase management interface. Record these exact version/hash pairs so later comparisons can detect silent source drift:
+
+| Function | Live version | Retrieved source SHA-256 | Direct data/RPC scope observed |
+|---|---:|---|---|
+| `chief-editor-monitor` | 8 | `5cf478d5172a52a5778c88afa32ee0790dfe196daa241a7d7be46962713a4b0f` | Reads series/chapter/generation/lifecycle/schedule health and writes reports through `aevora_report_issue` |
+| `autonomous-series-creation` | 5 | `cdce39df4064bcf817dcf497f90e410893718b266a1e8397fd758eb63baa395a` | Reads creation policy, orchestration runs, story opportunities and concept candidates; its retrieved v5 handler is **preflight-only** and rejects execute/dry-run-false requests |
+| `aevora-operations-snapshot` | 5 | `3435a4ba075f7bbf1bebc3995ca2ef41e7a9eadb9a06f7c733e7d6d938afc693` | Admin/owner-gated operational snapshot across series, chapters, jobs, schedules, health/alerts and autonomous-creation status |
+| `autonomous-series-creation-runner` | 6 | `d7aea3c7ee29c363ee828325a69e463a35d3b2f032b1b9ff8cb120b842260c4f` | Actual execution path: invokes `taleforge_orchestrate_autonomous_series_creation`, then may activate a series and initialize/update lifecycle and release schedule |
+| `aevora-cover-worker` | 4 | `d1dfe5e65872a2f05e4746f0b6e2e9e01e3ade1aa06069be443281b07fde4374` | Admin/owner-gated queue readiness check only; explicitly reports generation disabled and does not claim jobs |
+| `aevora-cover-request` | 5 | `1404678eda26cebfdd61e2bfaa0c2e848c508be164b15cf9244cf1ae4792e49b` | Admin/owner-gated request path reads series/genres and cover jobs; generation disabled in inspected response paths |
+| `aevora-cover-review` | 4 | `68022a7c52446e72f37aadca93b85759bd333d3178de42247389449459a88c73` | Admin/owner-gated review path reads/updates cover jobs and series |
+
+### Execution-boundary finding
+
+Do not treat the function named `autonomous-series-creation` as the scheduled executor: the inspected v5 source is a preflight-only admin endpoint. The active daily cron calls the separate `autonomous-series-creation-runner` v6, which invokes the privileged creation RPC and then performs follow-up activation/lifecycle/schedule writes. Any Phase 1 access-control rollout must preserve the runner's service-role path while ensuring the RPC's execution ACL, validation, idempotency, and side effects are understood. A name-only inventory would miss this distinction.
+
+All seven handlers validate a caller JWT and/or compare the scheduled runner's token to the service-role secret before privileged work in the reviewed code. This is source inspection only, not a runtime authorization test. Hashes are fingerprints of the retrieved source files, not cryptographic attestation of deployed execution after this timestamp.
+
+No endpoint was invoked, no autonomous series was created, no cover job was processed, and no production state was changed during this follow-up.
