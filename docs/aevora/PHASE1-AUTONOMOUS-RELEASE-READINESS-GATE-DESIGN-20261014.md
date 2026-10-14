@@ -124,6 +124,9 @@ Next implementation gate: broaden concurrent schedule-writer/readiness-claim int
 
 These checks are repository-side only. The live enrollment trigger was inspected read-only and currently uses an 8-hour interval fallback, confirming why the migration was adjusted to preserve it. No production changes were made.
 
+
+- **Fresh approval after revocation:** the readiness RPC now rejects an autonomous creation run whose audit snapshot already records `automation_ready=true`. If a series leaves `ongoing`, the enrollment trigger revokes its readiness; transitioning it back to `ongoing` cannot reuse the old run to silently reactivate automation. A new audited approval/run is required. Disposable PostgreSQL runtime assertions verify the failed revival attempt leaves generation and publication disabled.
+
 ## Read-only production schedule baseline (2026-10-14)
 
 A read-only aggregate query against the live catalog returned six release-schedule rows: six distinct series and zero duplicate schedule rows; all six are enabled with automatic generation, zero have automatic publication enabled, zero enabled auto-publish schedules have a null `next_release_at`, zero completed-series schedules remain auto-publish-enabled, and zero schedules have missing lifecycle rows. A direct read-only query also confirmed that `automation_ready_at` does not yet exist in production, as expected because the candidate migration remains branch-only.
