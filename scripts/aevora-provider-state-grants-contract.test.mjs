@@ -30,6 +30,7 @@ const narrativeMigration = await readFile(
 test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("ALTER TABLE public.taleforge_ai_provider_state ENABLE ROW LEVEL SECURITY"));
   assert.ok(migration.includes("REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"));
+  assert.ok(migration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"), "provider-state column grants must also be revoked");
   assert.ok(migration.includes("SET last_error = CASE"), "legacy Gemini diagnostics must be classified and redacted");
   assert.ok(migration.includes("WHEN last_error ILIKE '%Gemini HTTP 503%'"), "legacy temporary-overload payloads must be sanitized");
   assert.ok(migration.includes("WHEN last_error ILIKE '%Gemini HTTP 429%'"), "legacy quota payloads must be sanitized");
@@ -43,6 +44,9 @@ test("publication outbox and attachment metrics remain server-side only", () => 
   for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
     assert.ok(metricsOutboxMigration.includes(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY`), `${table} must have RLS enabled`);
     assert.ok(metricsOutboxMigration.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM PUBLIC, anon, authenticated`), `${table} must revoke all client and PUBLIC table privileges`);
+  }
+  assert.ok(metricsOutboxMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "outbox and metrics column grants must also be revoked");
+  for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
   }
   assert.equal(/CREATE POLICY/i.test(metricsOutboxMigration), false, "server-only telemetry and outbox tables must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(metricsOutboxMigration), false, "server-only tables must not re-grant client access");
@@ -81,6 +85,7 @@ test("internal policyless intelligence tables are server-side only", () => {
   }
   assert.ok(internalTablesMigration.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"));
   assert.ok(internalTablesMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"));
+  assert.ok(internalTablesMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "internal table column grants must also be revoked");
   assert.equal(/CREATE POLICY/i.test(internalTablesMigration), false, "internal tables must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(internalTablesMigration), false, "migration must not re-grant client access");
 });
@@ -105,6 +110,7 @@ test("internal narrative intelligence tables lose public read policies and clien
     assert.ok(narrativeMigration.includes(`public.${table}`), `missing internal narrative lock for ${table}`);
   }
   assert.ok(narrativeMigration.includes("REVOKE ALL PRIVILEGES ON TABLE"));
+  assert.ok(narrativeMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "narrative internal column grants must also be revoked");
   assert.equal(/CREATE POLICY/i.test(narrativeMigration), false, "internal narrative state must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(narrativeMigration), false, "migration must not re-grant client access");
 });
