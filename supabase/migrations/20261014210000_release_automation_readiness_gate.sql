@@ -88,8 +88,7 @@ begin
 
   -- Terminal/ineligible lifecycle states must disable every schedule, not
   -- only an arbitrary first row if historical duplicate schedules exist.
-  if new.status in ('draft', 'completed', 'hiatus', 'cancelled')
-     or schedule_count <> 1 then
+  if new.status <> 'ongoing' or schedule_count <> 1 then
     update public.release_schedules
     set enabled = false,
         auto_generate = false,
