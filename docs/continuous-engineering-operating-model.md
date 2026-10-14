@@ -117,3 +117,10 @@ A task is complete only when the result is verified and recorded. The worker sho
 - Source inspection found the tracked Edge Function's Authorization-header parser was double-escaped: it searched for a literal backslash followed by `s`, rather than whitespace. A standard `Authorization: Bearer <token>` header would therefore fail token extraction.
 - Corrected the branch source to use the whitespace matcher and added a regression contract that rejects the double-escaped form.
 - Important: the connected Supabase function was observed earlier at deployed version 4. The branch fix is **not deployed**, so this source repair must not be treated as a live endpoint fix. The next safe verification is a passing branch contract-test workflow and a separately authorized deployment followed by a read-only authenticated smoke test. No deployment or production configuration was changed.
+
+## Audit snapshot completeness and CI isolation (2026-10-14)
+
+- The read-only audit endpoint now requests an exact PostgREST count and refuses to return a health snapshot if any table response is malformed, lacks a usable total count, or reaches the 500-row safety cap. This prevents a partial first page from being presented as a complete audit; the GitHub monitor will report an endpoint failure instead.
+- Added a regression contract for the count parser and truncation fail-closed behavior. The control-plane contract job completed successfully on commit `b8b5d7cc114174a0075249aa9f7cef41458e2145`; the live audit job was intentionally skipped on the feature-branch push. The broader Edge type-check/source-contract workflow is still running at the time of this note: https://github.com/freearmy599/taleforge/actions/runs/38497188348
+- The content-range parser itself was corrected after source review; its final contract-test commit is `b8b5d7cc114174a0075249aa9f7cef41458e2145`. Do not call the broad validation complete until the workflow finishes successfully.
+- No production endpoint deployment or live audit request was performed. The deployed function remains separate from branch source until an explicitly authorized rollout.
