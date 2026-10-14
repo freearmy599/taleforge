@@ -17,7 +17,10 @@ $roles$;
 CREATE TABLE public.series (
   id uuid PRIMARY KEY,
   title text NOT NULL,
-  status text NOT NULL
+  subtitle text,
+  description text,
+  status text NOT NULL,
+  published_at timestamptz
 );
 CREATE TABLE public.chapters (
   id uuid PRIMARY KEY,
@@ -39,6 +42,10 @@ CREATE TABLE public.reader_events (
 CREATE TABLE public.aevora_engineering_events (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   event text NOT NULL
+);
+CREATE TABLE public.story_intelligence (
+  series_id uuid PRIMARY KEY REFERENCES public.series(id) ON DELETE CASCADE,
+  synopsis text
 );
 
 ALTER TABLE public.series ENABLE ROW LEVEL SECURITY;
