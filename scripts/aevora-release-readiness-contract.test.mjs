@@ -214,6 +214,17 @@ test("direct chapter generation rejects terminal series regardless of schedule m
     "terminal series must be rejected before any schedule/manual bypass");
 });
 
+test("direct AI quality review cannot bypass readiness for automatic schedules", () => {
+  assert.match(generateChapter, /quality-review autonomous provenance lookup failed; failing closed/);
+  assert.match(generateChapter, /isAutomationReady\(schedule\.automation_ready_at\)/);
+  assert.match(generateChapter, /Scheduled quality review is not ready; no AI review was attempted/);
+  const guard = generateChapter.indexOf("Scheduled quality review is not ready; no AI review was attempted");
+  const providerCall = generateChapter.indexOf("const {data:reviewProviderState,error:reviewProviderStateError}");
+  assert.ok(guard >= 0 && providerCall > guard,
+    "direct quality-review readiness gate must run before provider-state lookup and Gemini invocation");
+  assert.match(generateChapter, /deterministic hard validation failures can still be recorded during a cooldown/);
+});
+
 test("direct chapter generation cannot bypass readiness for automatic schedules", () => {
   assert.match(generateChapter, /from\("release_schedules"\)/);
   assert.match(generateChapter, /taleforge_autonomous_series_creation_runs/);
