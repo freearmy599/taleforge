@@ -43,7 +43,7 @@ Before enabling `get_public_story_trending_scores()`, require the chapter/series
 4. Keep this field separate from `visitor_id`: rotating a visitor ID must not make a replay of the same event UUID count twice.
 5. A two-session disposable PostgreSQL race now submits the same UUID concurrently and asserts exactly one insert succeeds while the competing insert receives the named unique-index violation. GitHub Actions run [`38550347974`](https://github.com/freearmy599/taleforge/actions/runs/38550347974) passed this concurrency rehearsal.
 6. A behavioral browser-source test is now being added to exercise failed-insert retry UUID reuse and distinct progress-value keys; its CI result is pending at this checkpoint.
-5. This only prevents duplicate submissions that reuse the same UUID. It does **not** prevent spoofing, spam with fresh UUIDs, or authenticated-looking anonymous activity. The public trending aggregate remains gated until trusted intake and quotas are implemented and reviewed.
+7. This only prevents duplicate submissions that reuse the same UUID. It does **not** prevent spoofing, spam with fresh UUIDs, or authenticated-looking anonymous activity. The public trending aggregate remains gated until trusted intake and quotas are implemented and reviewed.
 
 ### Stage C — trusted intake and quotas
 
