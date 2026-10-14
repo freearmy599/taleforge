@@ -19,9 +19,18 @@ set enabled = false,
 where automation_ready_at is null
   and (auto_generate = true or auto_publish = true);
 
+create table if not exists public.taleforge_release_readiness_authorizations (
+  transaction_id xid8 not null,
+  schedule_id uuid not null,
+  created_at timestamptz not null default now(),
+  primary key (transaction_id, schedule_id)
+);
+revoke all on table public.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role;
+
 create or replace function public.taleforge_protect_release_automation_readiness()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $function$
 begin
@@ -41,7 +50,12 @@ begin
 
   if new.automation_ready_at is distinct from old.automation_ready_at
      and new.automation_ready_at is not null
-     and coalesce(pg_catalog.current_setting('aevora.release_readiness_rpc', true), '') <> 'on' then
+     and not exists (
+       select 1
+       from public.taleforge_release_readiness_authorizations a
+       where a.transaction_id = pg_catalog.pg_current_xact_id()
+         and a.schedule_id = new.id
+     ) then
     raise exception 'automation_ready_at can only be set by the readiness RPC';
   end if;
   return new;
@@ -212,7 +226,10 @@ begin
     raise exception 'autonomous creation policy is disabled or missing';
   end if;
 
-  perform pg_catalog.set_config('aevora.release_readiness_rpc', 'on', true);
+  insert into public.taleforge_release_readiness_authorizations(transaction_id, schedule_id)
+  values (pg_catalog.pg_current_xact_id(), v_schedule.id)
+  on conflict (transaction_id, schedule_id) do nothing;
+
   update public.release_schedules
   set automation_ready_at = coalesce(automation_ready_at, now()),
       enabled = true,
@@ -221,7 +238,9 @@ begin
       next_release_at = coalesce(next_release_at, now()),
       updated_at = now()
   where id = v_schedule.id;
-  perform pg_catalog.set_config('aevora.release_readiness_rpc', 'off', true);
+  delete from public.taleforge_release_readiness_authorizations
+  where transaction_id = pg_catalog.pg_current_xact_id()
+    and schedule_id = v_schedule.id;
 
   update public.taleforge_autonomous_series_creation_runs
   set pipeline_snapshot = coalesce(pipeline_snapshot, '{}'::jsonb) || jsonb_build_object(
