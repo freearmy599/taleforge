@@ -84,6 +84,18 @@ Deno.serve(async (req)=>{
     const results=[];
 
     for(const schedule of schedules){
+      const series=schedule.series;
+      const readinessDisposition=automationReadinessDisposition(schedule.automation_ready_at,dryRun);
+      if(readinessDisposition!=="ready"){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,
+          action:dryRun?"readiness_unverified_dry_run":"automation_not_ready",
+          reason:"A server-controlled automation readiness marker is required before release work can proceed."});
+        continue;
+      }
+      if(!series || ["draft","cancelled","hiatus","completed"].includes(series.status)){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"skipped",reason:"Series is not currently publishable."});
+        continue;
+      }
       const leaseToken=crypto.randomUUID();
       let leaseClaimed=false;
       if(!dryRun && schedule.auto_publish){
@@ -108,19 +120,6 @@ Deno.serve(async (req)=>{
       let leaseLost=false;
       let confirmedPublishedCount=0;
       try{
-      const series=schedule.series;
-      const readinessDisposition=automationReadinessDisposition(schedule.automation_ready_at,dryRun);
-      if(readinessDisposition!=="ready"){
-        results.push({schedule_id:schedule.id,series_id:schedule.series_id,
-          action:dryRun?"readiness_unverified_dry_run":"automation_not_ready",
-          reason:"A server-controlled automation readiness marker is required before release work can proceed."});
-        continue;
-      }
-      if(!series || ["draft","cancelled","hiatus","completed"].includes(series.status)){
-        results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"skipped",reason:"Series is not currently publishable."});
-        continue;
-      }
-
       // Validate scheduling configuration before any publication side effect.
       // A bad timezone or interval must not leave a published batch immediately due again.
       let weeklyReleaseAt:Date|null=null;
