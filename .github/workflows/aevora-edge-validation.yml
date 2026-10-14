@@ -116,3 +116,31 @@ jobs:
         run: node --test scripts/aevora-readonly-access-audit-contract.test.mjs
       - name: Run internal worker authorization contract tests
         run: node --test scripts/aevora-internal-worker-auth-contract.test.mjs
+
+
+  readiness-migration-test:
+    name: Rehearse readiness migration on disposable PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aevora_readiness_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d aevora_readiness_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Replay readiness migration and assert runtime invariants
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_readiness_test
+        run: bash scripts/test-aevora-readiness-migration.sh
