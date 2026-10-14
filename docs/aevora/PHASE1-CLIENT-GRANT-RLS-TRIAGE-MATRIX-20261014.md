@@ -54,6 +54,10 @@ The earlier `information_schema.role_column_grants` result was initially interpr
 
 The confirmed finding is broad **relation-level** grants plus schema-specific default ACLs for future objects. The prepared migrations retain column-level `REVOKE ALL PRIVILEGES` statements as defensive cleanup; these are harmless when no explicit column ACL exists. No production change was made. The repeatable audit SQL has been corrected to inspect `pg_attribute.attacl` directly.
 
+## Public-policy predicate cross-check
+
+A separate metadata-only scan found 16 unrestricted client-facing `SELECT` policy rows across 15 tables where the policy predicate is literally `true`. Thirteen of those tables are internal narrative/continuity/system state covered by the prepared narrative-internals migration; `genres` and `tags` are the two remaining tables and appear to be intended public catalogs, subject to normal product confirmation. The same scan found **no** client-facing `INSERT`, `UPDATE`, or `ALL` policy with a literal `true` check/using predicate. This is a narrow predicate check, not proof that all nontrivial policies are correct or that the Data API exposes these relations.
+
 ## Safe remediation workflow
 
 1. Trace application usage for each user-facing candidate before designing policies.
