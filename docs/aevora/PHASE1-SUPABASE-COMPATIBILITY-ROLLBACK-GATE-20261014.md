@@ -159,3 +159,18 @@ The CI-invoked migration-and-rollback runner now requires the explicit marker `A
 ### Additional disposable harness guards (2026-10-14)
 
 The readiness-concurrency and reader-event-integrity rehearsal scripts now require their own explicit opt-in markers, reject Supabase-hosted URLs, and require an `aevora_` database name. The GitHub Actions disposable PostgreSQL job supplies those markers, and the release-readiness source-contract suite checks the scripts and workflow wiring. These guard changes await a fresh CI run; the earlier successful run validates the previous migration/rollback harness revision, not these newest guard additions.
+
+### Verification update — actual disposable PostgreSQL rollback run passed (2026-10-14)
+
+This section supersedes earlier notes above that describe the rollback rehearsal as pending. Those notes were accurate when written; a subsequent GitHub Actions run has now executed the updated harness.
+
+- Workflow: [Aevora Edge source validation, run 1318](https://github.com/freearmy599/taleforge/actions/runs/38587961305)
+- Tested commit: `335564bf361a8615080ce7c655d66856654df41a`
+- Source/type-check job: **success**. The release-readiness contract suite reported 29 tests passed, 0 failed.
+- Disposable PostgreSQL job: **success** on PostgreSQL 17.
+- The log explicitly reports `release readiness migration integration assertions passed`, then `release readiness rollback/restore assertions passed; all schedules remain disabled`.
+- The same PostgreSQL job passed release-readiness concurrency assertions, chapter publication/completion concurrency, autonomous-creation policy concurrency, release-schedule writer concurrency, stale-worker readiness revocation, and reader-event integrity/INSERT-only grant assertions.
+
+This closes the *execution-pending portion of Gate B*: the versioned fixture's forward migration, rollback/restore, fail-closed schedule state, and associated disposable concurrency tests have executed successfully. It does **not** close Gate A or authorize deployment. The rollback restores the fixture's versioned baseline stubs and ACLs, not a proven exact snapshot of production function definitions/grants. Supabase-specific RLS/ACL/PostgREST compatibility, exact production baseline capture, deployment ordering, failed/partial production rollout recovery, and the six per-schedule dispositions remain outstanding.
+
+No production migration, Edge Function deployment, schedule mutation, generation, publication, or billable Supabase branch was performed for this verification.
