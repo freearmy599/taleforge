@@ -137,7 +137,7 @@ Deno.test("generation orchestrator fails closed when Gemini provider state is un
 
 Deno.test("generation orchestrator distinguishes mid-run provider-state failure from active cooldown", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
-  const loopStart = source.indexOf("for(const schedule of ordered){const readinessDisposition=automationReadinessDisposition(schedule.automation_ready_at,dryRun);");
+  const loopStart = source.indexOf("for(const schedule of ordered){");
   const readinessGuard = source.indexOf('if(readinessDisposition!=="ready")', loopStart);
   const unavailableGuard = source.indexOf("if(liveCooldown.lookup_error)", loopStart);
   const activeCooldownGuard = source.indexOf("if(liveCooldown.active)", unavailableGuard);
