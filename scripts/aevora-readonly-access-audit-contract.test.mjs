@@ -153,3 +153,21 @@ test("public trending aggregate preserves the exact existing discovery-view outp
   assert.match(readerEventsMigration, /GRANT INSERT ON TABLE public\.reader_events TO anon, authenticated/i);
   assert.doesNotMatch(readerEventsMigration, /GRANT SELECT ON TABLE public\.reader_events TO (PUBLIC|anon|authenticated)/i);
 });
+
+
+const defaultPrivilegesMigration = await readFile(
+  new URL("../supabase/migrations/20261014170000_restrict_public_default_privileges.sql", import.meta.url),
+  "utf8",
+);
+
+test("future-object default privilege migration is owner-guarded and removes client defaults", () => {
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/i);
+  assert.match(defaultPrivilegesMigration, /requires a privileged owner operation/i);
+  assert.doesNotMatch(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin/i);
+});
