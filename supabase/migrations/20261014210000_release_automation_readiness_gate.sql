@@ -93,6 +93,30 @@ begin
     new.updated_at := now();
   end if;
 
+  -- A stale service-role worker may still try to toggle automation flags
+  -- while leaving an old readiness marker intact. Revoke that marker and all
+  -- automatic flags instead of allowing the old authorization to survive.
+  if tg_op = 'UPDATE'
+     and old.automation_ready_at is not null
+     and new.automation_ready_at is not null
+     and (
+       new.enabled is distinct from old.enabled
+       or new.auto_generate is distinct from old.auto_generate
+       or new.auto_publish is distinct from old.auto_publish
+     )
+     and not exists (
+       select 1
+       from public.taleforge_release_readiness_authorizations a
+       where a.transaction_id = pg_catalog.pg_current_xact_id()
+         and a.schedule_id = new.id
+     ) then
+    new.automation_ready_at := null;
+    new.enabled := false;
+    new.auto_generate := false;
+    new.auto_publish := false;
+    new.updated_at := now();
+  end if;
+
   -- Manual schedules must never carry automatic generation/publication flags.
   if new.schedule_mode = 'manual'
      and (new.auto_generate = true or new.auto_publish = true) then
