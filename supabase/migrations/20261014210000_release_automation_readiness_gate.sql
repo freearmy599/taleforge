@@ -9,6 +9,16 @@ create index if not exists release_schedules_ready_due_idx
   on public.release_schedules (next_release_at, id)
   where enabled = true and auto_publish = true and automation_ready_at is not null;
 
+-- Stop legacy Edge Function versions from continuing scheduled generation
+-- during the migration-first rollout window. Rows remain unready; no backfill.
+update public.release_schedules
+set enabled = false,
+    auto_generate = false,
+    auto_publish = false,
+    updated_at = now()
+where automation_ready_at is null
+  and (auto_generate = true or auto_publish = true);
+
 create or replace function public.taleforge_protect_release_automation_readiness()
 returns trigger
 language plpgsql
