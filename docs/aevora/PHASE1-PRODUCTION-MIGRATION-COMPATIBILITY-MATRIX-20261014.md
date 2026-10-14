@@ -2,7 +2,7 @@
 
 ## Purpose and safety boundary
 
-This is a **read-only reconciliation plan**, not an authorization to deploy. The live Supabase migration ledger contains 232 entries and ends at `20261010161919_aevora_release_scheduler_leases`. The 18 branch migrations below are not recorded in that ledger. Their absence does not prove that every corresponding schema change is absent from production: live catalog checks already show partial drift (for example, production lease functions exist but still use the older search path). Do not apply these migrations as a batch or use `IF NOT EXISTS` as a substitute for compatibility review.
+This is a **read-only reconciliation plan**, not an authorization to deploy. The live Supabase migration ledger contains 232 entries and ends at `20261010161919_aevora_release_scheduler_leases`. The 19 branch migrations below are not recorded in that ledger. Their absence does not prove that every corresponding schema change is absent from production: live catalog checks already show partial drift (for example, production lease functions exist but still use the older search path). Do not apply these migrations as a batch or use `IF NOT EXISTS` as a substitute for compatibility review.
 
 No production schema, grants, data, cron job, Edge Function, schedule, generation, or publication was changed for this review.
 
@@ -28,6 +28,7 @@ No production schema, grants, data, cron job, Edge Function, schedule, generatio
 | `20261014190000_lock_internal_story_design_read_surfaces.sql` | Removes client read paths from the same 41 internal story-design relations | **High**: hides internal design data from browser clients; the source scan found no direct browser dependency but this requires runtime confirmation. | Validate service-role read/write paths, policies, triggers, and all planner/revision-worker dependencies; smoke-test the reader UI separately. |
 | `20261014200000_reader_event_relationship_integrity.sql` | Requires every event to identify an eligible series and supplied chapters to match that series and be published | **High**: can reject malformed legacy client payloads; eligible series-only events remain valid. | Rehearse accepted/rejected event pairs, chapter-only payloads, unpublished content, role privileges, and browser event payload compatibility in a disposable database. |
 | `20261014210000_release_automation_readiness_gate.sql` | Adds a server-controlled readiness marker, atomic service-only readiness RPC, and inert enrollment defaults | **Critical**: disables existing unready non-manual schedules and requires a coordinated runner/scheduler/publisher/generation rollout. | Rehearse the migration and concurrency tests; confirm callers, schedule disposition, policy state, lifecycle/run evidence, rollback, and manual-review activation behavior. Keep production rollout separately approved. |
+| `20261014220000_reader_event_idempotency_key.sql` | Adds nullable client event UUIDs and a partial unique index for retry idempotency | **Medium–high**: does not prevent spoofing or spam with fresh UUIDs; browser clients must reuse a key when retrying. | Replay duplicate-key and legacy-null cases; verify identity/insert-only grants and client error handling; keep the public trending RPC gated until rate limiting and trusted intake are designed. |
 
 ## Cross-migration dependencies and order
 
@@ -66,7 +67,7 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 
 ## Readiness-gate migration addendum (2026-10-14)
 
-The branch now also contains `20261014210000_release_automation_readiness_gate.sql`, bringing the known branch-only migration set to **18** relative to the recorded live ledger. This new migration is not present in production and has not been applied.
+The branch now also contains `20261014210000_release_automation_readiness_gate.sql`, bringing the known branch-only migration set to **19** relative to the recorded live ledger. This new migration is not present in production and has not been applied.
 
 Additional compatibility requirements for this migration:
 
