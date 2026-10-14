@@ -222,3 +222,12 @@ The current browser data module (`taleforge-data.js`) directly reads the intende
 Branch-only migration candidate `20261014180000_revoke_unapproved_internal_client_writes.sql` revokes only client write privileges from the 41-table explicit list, including separately granted column-level INSERT/UPDATE/REFERENCES. It intentionally preserves SELECT so this write-hardening change cannot silently break a potentially intentional read contract. Regression test coverage was added in `scripts/aevora-readonly-access-audit-contract.test.mjs`.
 
 **Security review remains open:** decide table-by-table whether the status-filtered SELECT policies are intentional public product APIs or an unintended disclosure of internal story-generation intelligence and unpublished concepts. If confirmed internal-only, a separate migration should remove client relation and column SELECT grants and drop the named SELECT policies; do not combine that read-surface decision with this write-only mitigation without an explicit compatibility review. No production DDL was executed.
+
+
+## Branch-only server-side read-lock candidate added (2026-10-14)
+
+Because the 41-table inventory has explicit status-filtered client SELECT policies and no direct references in the current browser data module, I prepared a separate migration candidate, `20261014190000_lock_internal_story_design_read_surfaces.sql`. It explicitly lists all 41 relations, enables RLS, revokes relation-level and column-level privileges from `PUBLIC`, `anon`, and `authenticated`, and drops their client-facing SELECT/ALL policies. Service-role workers retain their existing grants; the migration does not alter reader-facing `series`, `chapters`, or `genres` tables.
+
+The earlier `20261014180000_revoke_unapproved_internal_client_writes.sql` remains as a narrower defense-in-depth step. Contract tests now assert table-list coverage, relation and column revokes, and removal of client-facing SELECT policy paths.
+
+This is a **prepared candidate, not a production authorization decision**. Before any rollout, validate all RPC/view/Edge Function dependencies and confirm that these 41 relations are not intended as public APIs. Current browser code evidence is supportive but not a complete dependency graph. Both new migrations remain branch-only; no production DDL or deployment was performed.
