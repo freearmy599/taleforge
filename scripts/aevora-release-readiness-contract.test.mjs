@@ -12,6 +12,8 @@ const generator = await readFile("supabase/functions/generate-chapter/index.ts",
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
+const publicationAuthorizationDesign = await readFile("docs/aevora/PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md", "utf8");
+const rolloutPlan = await readFile("docs/aevora/PHASE1-PRODUCTION-ROLLOUT-SEQUENCE-20261014.md", "utf8");
 const concurrencyScript = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const migrationFixture = await readFile("scripts/aevora-readiness-migration-fixture.sql", "utf8");
 const migrationAssertions = await readFile("scripts/aevora-readiness-migration-assertions.sql", "utf8");
@@ -445,4 +447,19 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(reviewOrchestrator, /const callReason = \(call\.data as Record<string, unknown> \| null\)\?\.reason/);
   assert.match(reviewOrchestrator, /call\.status === 429 \|\| call\.status === 503 \|\| callReason === "provider_quota_blocked" \|\| callReason === "provider_temporarily_unavailable"/);
   assert.match(reviewOrchestrator, /providerThrottleObserved = true;/);
+});
+
+
+test("publication authorization remains a separate, unimplemented release gate", () => {
+  assert.match(publicationAuthorizationDesign, /Status: design proposal only; not implemented or deployed/i);
+  assert.match(publicationAuthorizationDesign, /authenticated human approver identity and authorization source/i);
+  assert.match(publicationAuthorizationDesign, /revocation\/configuration changes must invalidate authorization/i);
+  assert.match(publicationAuthorizationDesign, /No current branch artifact provides a separately audited publication-approval workflow/i);
+  assert.match(rolloutPlan, /Keep \`auto_publish=false\` for every series/i);
+  assert.match(rolloutPlan, /publication-authorization-design-20261014\.md/i);
+  const readinessStart = migration.indexOf("create or replace function public.taleforge_mark_release_automation_ready");
+  const readinessEnd = migration.indexOf("revoke all on function public.taleforge_mark_release_automation_ready", readinessStart);
+  assert.doesNotMatch(migration.slice(readinessStart, readinessEnd), /auto_publish = true/i);
+  assert.doesNotMatch(migration, /create or replace function public\.taleforge_authorize_release_publication/i,
+    "no publication approval RPC may appear before its principal and threat model are agreed");
 });
