@@ -38,7 +38,7 @@ REVOKE ALL PRIVILEGES ON TABLE public.taleforge_system_health_snapshot FROM PUBL
 
 -- The view can carry independent column-level SELECT grants. Revoke those too;
 -- a relation-level REVOKE alone does not remove per-column privileges.
-DO $
+DO $$
 DECLARE
   column_list text;
 BEGIN
@@ -58,7 +58,7 @@ BEGIN
     END IF;
   END IF;
 END
-$;
+$$;
 
 REVOKE ALL PRIVILEGES ON TABLE
   public.character_continuity_events,
