@@ -374,7 +374,8 @@ Deno.serve(async (req) => {
         });
 
         if (!call.ok) {
-          if (call.status === 429 || call.status === 503 || call.data?.reason === "provider_quota_blocked" || call.data?.reason === "provider_temporarily_unavailable") {
+          const callReason = (call.data as Record<string, unknown> | null)?.reason;
+          if (call.status === 429 || call.status === 503 || callReason === "provider_quota_blocked" || callReason === "provider_temporarily_unavailable") {
             providerThrottleObserved = true;
           }
           blocked = true;
