@@ -422,6 +422,7 @@ test("chapter revision records Gemini 429/503 cooldowns without overwriting malf
 test("generation and review orchestration stop further AI work after a provider throttle even if cooldown persistence fails", () => {
   assert.match(generationOrchestrator, /let providerThrottleObserved=false;for\(const schedule of ordered\)\{if\(providerThrottleObserved\)/);
   assert.match(generationOrchestrator, /action:"provider_throttle_observed"/);
+  assert.match(generationOrchestrator, /const generated=\[\];for\(const b of missing\)\{if\(providerThrottleObserved\)\{generated\.push\(\{chapter_number:b\.chapter_number,action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /if\(revisionQuotaBlocked\|\|revisionTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
   assert.match(generationOrchestrator, /if\(providerQuotaBlocked\|\|providerTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
   assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
