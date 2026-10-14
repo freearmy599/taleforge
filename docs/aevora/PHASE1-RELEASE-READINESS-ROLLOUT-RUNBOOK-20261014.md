@@ -19,6 +19,17 @@ Coordinate the `automation_ready_at` schema gate with the autonomous-series runn
 - [ ] Internal API keys, service-role invocation, cron callers, and response contracts are verified for every Edge Function being deployed.
 - [ ] Before/after SQL checks and rollback commands are peer-reviewed. No migration batch is inferred safe from the migration ledger alone.
 
+## Existing schedule impact discovered by read-only inventory
+
+A read-only aggregate join on 2026-10-14 found **six** current schedules, all `interval` mode, attached to `ongoing` series, with `enabled=true`, `auto_generate=true`, and `auto_publish=false`. None of those six series had a non-dry autonomous-creation run, and none had a `created` autonomous-run audit row.
+
+Consequences:
+
+- The readiness migration's fail-closed cleanup would disable all six existing schedules because they have no readiness marker.
+- The autonomous-only readiness RPC cannot activate these six schedules; that is intentional, not a transient error.
+- A separate auditable approval mechanism for non-autonomous schedules is not implemented. Until such a path is designed, reviewed, and explicitly used, these six schedules must remain paused/manual-only after the migration.
+- Do not silently classify them as autonomous, fabricate creation-run evidence, or bulk-mark them ready. Before rollout, the product owner must accept this generation pause or approve a separate per-series approval design.
+
 ## Critical deployment-order hazard
 
 The migration replaces the enrollment trigger and adds the readiness column, while the currently deployed autonomous runner v6 still writes `enabled=true`, `auto_generate=true`, and `auto_publish=true` directly after its own bootstrap. If the migration is applied while that old runner can still execute, the old runner may re-enable a schedule with a NULL readiness marker. The branch scheduler and publisher block such a schedule, but the live versions do not yet enforce the marker.
