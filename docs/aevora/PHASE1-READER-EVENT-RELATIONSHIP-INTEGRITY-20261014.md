@@ -34,3 +34,17 @@ The visitor identifier is client supplied and length checks do not prove uniquen
 ## Production safety
 
 This is an audit checkpoint only. No production DDL, migrations, function deployments, schedule changes, chapter generation, or publication were performed.
+
+
+## Exact live policy and effective privilege recheck (read-only, 2026-10-14)
+
+A fresh catalog query confirmed the relationship gap and a more urgent table-level privilege drift:
+
+- RLS is enabled on `public.reader_events`, but FORCE RLS is false; owner is `postgres`.
+- The live policy `Public can record reader events` is INSERT-only at the policy-command level. It checks visitor ID length, an eligible supplied series, and a published supplied chapter—but it does not compare `chapters.series_id` with `reader_events.series_id`, nor require a series when a chapter is supplied.
+- The foreign keys only validate that each ID independently exists. They do not enforce the chapter/series pair relationship.
+- Despite the INSERT-only policy, effective table privileges currently report **SELECT, INSERT, and UPDATE = true** for both `anon` and `authenticated`. The policy has no SELECT/UPDATE policy, so RLS ordinarily denies those row operations; however, the grants are broader than intended and leave unnecessary privilege (and table-level UPDATE does not become safe just because a policy currently blocks row access).
+- Both `public.reader_events_id_seq` and `public.aevora_engineering_events_id_seq` currently report `USAGE` for `anon` and `authenticated`. The branch-only sequence cleanup is not live.
+- The branch-only `20261014150000_reader_events_insert_only.sql` and `20261014120000_lock_public_identity_sequence_grants.sql` are therefore relevant, but their absence from the migration ledger is not permission to apply them. Test identity inserts and sequence behavior in an isolated environment first.
+
+**Priority update:** the live raw-event access model is not yet at the intended least-privilege state. Keep the aggregate RPC gated on the relationship repair, table/column ACL cleanup, sequence ACL cleanup, anti-replay/spam controls, and role-based regression tests. No production grants, policies, sequences, or data were changed by this check.
