@@ -45,6 +45,7 @@ Before enabling `get_public_story_trending_scores()`, require the chapter/series
 6. A behavioral browser-source test now exercises failed-insert retry UUID reuse and distinct progress-value keys. GitHub Actions run [`38550465786`](https://github.com/freearmy599/taleforge/actions/runs/38550465786) passed the test alongside the full Edge validation workflow.
 7. This only prevents duplicate submissions that reuse the same UUID. It does **not** prevent spoofing, spam with fresh UUIDs, or authenticated-looking anonymous activity. The public trending aggregate remains gated until trusted intake and quotas are implemented and reviewed.
 8. Branch migration `20261014230000_reader_event_server_timestamp.sql` adds a `BEFORE INSERT` trigger that replaces `created_at` with statement time for `anon` and `authenticated` callers, while preserving trusted service-role timestamps. The disposable PostgreSQL assertions now attempt a far-future client timestamp and require it to be replaced. This narrows timestamp manipulation but does not authenticate event content or stop high-volume fresh-UUID submissions.
+9. The browser event vocabulary contract caught a mismatch: bookmark removal emitted `bookmark_remove`, while the database accepts `unbookmark`. The client now emits `unbookmark`, and GitHub Actions run [`38551343943`](https://github.com/freearmy599/taleforge/actions/runs/38551343943) passed the vocabulary regression check.
 
 ### Stage C — trusted intake and quotas
 
