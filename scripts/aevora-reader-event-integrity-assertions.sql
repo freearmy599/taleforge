@@ -175,18 +175,45 @@ VALUES ('visitor-timestamp-0001','story_open',
 
 RESET ROLE;
 DO $server_timestamp_assert$
+DECLARE
+  v_client_created_at timestamptz;
+  v_service_created_at timestamptz;
+BEGIN
+  SELECT created_at INTO v_client_created_at
+  FROM public.reader_events
+  WHERE event_uuid = '10000000-0000-0000-0000-000000000002';
+  IF v_client_created_at IS NULL
+     OR v_client_created_at > statement_timestamp() + interval '1 second'
+     OR v_client_created_at < statement_timestamp() - interval '1 minute' THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: client timestamp was not replaced with server statement time';
+  END IF;
+
+  SELECT created_at INTO v_service_created_at
+  FROM public.reader_events
+  WHERE event_uuid = '10000000-0000-0000-0000-000000000003';
+  IF v_service_created_at <> '2000-01-01 00:00:00+00'::timestamptz THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: trusted service timestamp was unexpectedly overwritten';
+  END IF;
+END;
+$server_timestamp_assert$;
+
+SET ROLE service_role;
+INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,event_uuid,created_at)
+VALUES ('visitor-service-timestamp-0001','story_open',
+        '00000000-0000-0000-0000-000000000101',NULL,
+        '10000000-0000-0000-0000-000000000003','2000-01-01 00:00:00+00');
+RESET ROLE;
+DO $service_timestamp_assert$
 DECLARE v_created_at timestamptz;
 BEGIN
   SELECT created_at INTO v_created_at
   FROM public.reader_events
-  WHERE event_uuid = '10000000-0000-0000-0000-000000000002';
-  IF v_created_at IS NULL
-     OR v_created_at > statement_timestamp() + interval '1 second'
-     OR v_created_at < statement_timestamp() - interval '1 minute' THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: client timestamp was not replaced with server statement time';
+  WHERE event_uuid = '10000000-0000-0000-0000-000000000003';
+  IF v_created_at <> '2000-01-01 00:00:00+00'::timestamptz THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: trusted service timestamp was unexpectedly overwritten';
   END IF;
 END;
-$server_timestamp_assert$;
+$service_timestamp_assert$;
 
 SET ROLE authenticated;
 INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id)
@@ -200,8 +227,8 @@ DECLARE
   v_count bigint;
 BEGIN
   SELECT count(*) INTO v_count FROM public.reader_events;
-  IF v_count <> 5 THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: expected five accepted events, found %', v_count;
+  IF v_count <> 6 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: expected six accepted events, found %', v_count;
   END IF;
   IF has_table_privilege('anon','public.reader_events','SELECT')
      OR has_table_privilege('authenticated','public.reader_events','SELECT') THEN
