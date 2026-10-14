@@ -211,3 +211,14 @@ Uncovered table names from the live metadata inventory:
 - `taleforge_subgenre_intelligence`
 
 Next, trace each uncovered table through application/Edge Function references and classify it as internal-only, intentional public read model, or feature requiring a future owner-scoped API. For confirmed internal-only tables, add them to a separately reviewed explicit migration list and regression contract. Do not automatically lock `taleforge_genre_taxonomy`, trope-library, or genre-profile tables until their reader-facing use has been ruled out. No production changes were made.
+
+
+## Read-surface classification of the 41 uncovered tables (read-only, 2026-10-14)
+
+A follow-up catalog query found that all 41 uncovered tables currently have effective `anon` and `authenticated` SELECT grants plus SELECT RLS policies. The policies are status-filtered rather than universally true, but several expose the autonomous story-design graph: concept candidates, arcs, character/faction causality, relationships, world rules/state models, story opportunities, advanced chapter plans, and story-specific depth designs.
+
+The current browser data module (`taleforge-data.js`) directly reads the intended reader surfaces `series`, `chapters`, `story_intelligence`, and the related `genres` relation. It does not reference these 41 `taleforge_*` relations. That lowers the evidence for a current frontend dependency, but does not alone prove no other consumer exists; worker and RPC references must be traced before revoking reads.
+
+Branch-only migration candidate `20261014180000_revoke_unapproved_internal_client_writes.sql` revokes only client write privileges from the 41-table explicit list, including separately granted column-level INSERT/UPDATE/REFERENCES. It intentionally preserves SELECT so this write-hardening change cannot silently break a potentially intentional read contract. Regression test coverage was added in `scripts/aevora-readonly-access-audit-contract.test.mjs`.
+
+**Security review remains open:** decide table-by-table whether the status-filtered SELECT policies are intentional public product APIs or an unintended disclosure of internal story-generation intelligence and unpublished concepts. If confirmed internal-only, a separate migration should remove client relation and column SELECT grants and drop the named SELECT policies; do not combine that read-surface decision with this write-only mitigation without an explicit compatibility review. No production DDL was executed.
