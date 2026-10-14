@@ -30,3 +30,24 @@ WHERE provider = 'gemini'
   );
 
 REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated;
+
+-- Column-level grants are independent of relation-level grants.
+DO $$
+DECLARE
+  column_list text;
+BEGIN
+  SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum)
+    INTO column_list
+  FROM pg_attribute
+  WHERE attrelid = 'public.taleforge_ai_provider_state'::regclass
+    AND attnum > 0
+    AND NOT attisdropped;
+
+  IF column_list IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE ALL PRIVILEGES (%s) ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated',
+      column_list
+    );
+  END IF;
+END
+$$;
