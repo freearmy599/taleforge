@@ -1,10 +1,12 @@
 -- Lock internal Aevora intelligence/control tables that currently have RLS enabled
--- but no policies. With no policies, row access is denied; broad table grants still
--- leave unnecessary TRUNCATE/DDL-adjacent capabilities. These are not client APIs.
+-- but no policies. With no policies, row access is denied; broad table grants are
+-- still unnecessary privilege. These are not client APIs.
 -- Do not add anon/authenticated policies to this list.
+-- Revoke per-column grants as well as relation-level grants.
 DO $$
 DECLARE
   table_name text;
+  column_list text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'automation_config',
@@ -38,6 +40,21 @@ BEGIN
     IF to_regclass(format('public.%I', table_name)) IS NOT NULL THEN
       EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', table_name);
       EXECUTE format('REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated', table_name);
+
+      SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum)
+        INTO column_list
+      FROM pg_attribute
+      WHERE attrelid = to_regclass(format('public.%I', table_name))
+        AND attnum > 0
+        AND NOT attisdropped;
+
+      IF column_list IS NOT NULL THEN
+        EXECUTE format(
+          'REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated',
+          column_list,
+          table_name
+        );
+      END IF;
     END IF;
   END LOOP;
 END
