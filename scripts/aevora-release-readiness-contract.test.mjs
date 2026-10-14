@@ -306,6 +306,10 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(migrationTestRunner, /aevora-readiness-rollback\.sql/);
   assert.match(migrationTestRunner, /aevora-readiness-rollback-assertions\.sql/);
   assert.match(rollbackScript, /set enabled = false, auto_generate = false, auto_publish = false/);
+  const failClosedCommit = rollbackScript.indexOf("commit;");
+  const rollbackDdl = rollbackScript.indexOf("drop trigger if exists trg_guard_chapter_publication_lifecycle");
+  assert.ok(failClosedCommit >= 0 && rollbackDdl > failClosedCommit,
+    "fail-closed schedule shutdown must commit before rollback DDL can fail");
   assert.match(rollbackScript, /drop table if exists public\.taleforge_release_readiness_authorizations/);
   assert.match(rollbackScript, /drop column if exists automation_ready_at/);
   assert.match(rollbackScript, /grant execute on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) to public/);
