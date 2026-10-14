@@ -31,3 +31,18 @@ A metadata-only follow-up using `has_function_privilege` confirmed 12 public-sch
 The previously unclassified `public.taleforge_score_story_opportunity(numeric,numeric,numeric,numeric,numeric)` was inspected via catalog metadata and function definition (no function invocation). It is an immutable, non-`SECURITY DEFINER` pure scoring helper returning a score and decision, with no trigger references. No client call path was identified in the repository review. The branch migration now revokes inherited/client `EXECUTE` from `PUBLIC`, `anon`, and `authenticated` for this helper as well as the seven previously listed internal planner/metrics functions.
 
 A read-only ACL check confirmed all eight target functions currently have explicit `service_role` EXECUTE grants. The proposed revokes therefore retain trusted `service_role` access; function owners retain owner privileges. This was verified against live metadata only. The migration remains branch-only and must still pass CI and an approved compatibility review before any production application.
+
+
+## Follow-up: complete function inventory and trigger-helper classification
+
+A fresh read-only catalog query confirms **12 public-schema functions** have effective EXECUTE for both `anon` and `authenticated`: eight internal planner/metrics/scoring functions plus four trigger-returning helpers. The branch migration `20261013110000_restrict_internal_invoker_rpc_execution.sql` now includes all twelve and revokes execution from `PUBLIC`, `anon`, and `authenticated`. The four trigger helpers have catalog trigger references; revoking direct EXECUTE does not prevent PostgreSQL from invoking them via their attached triggers. The migration has a regression contract, and the workflow run for commit `d35b7a5802494a52a4f6772119f2fa864fc0f33b` passed: https://github.com/freearmy599/taleforge/actions/runs/38514774575.
+
+This is still branch-only. Live metadata shows the current client EXECUTE grants remain until an approved migration is applied. The check did not invoke any function or mutate production.
+
+## Follow-up: schema-specific default privileges are a separate high-priority issue
+
+A read-only `pg_default_acl` inventory confirms that **both `postgres` and `supabase_admin`** have schema-specific default privileges in `public` granting ordinary client roles broad privileges on future objects. For future tables, each owner has entries granting `anon` and `authenticated` DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, and UPDATE. Both owners also have default EXECUTE grants for future public-schema functions to `anon` and `authenticated`; default sequence privileges include SELECT, UPDATE, and USAGE. These are templates for objects created by those owners, not proof that every existing object has those grants.
+
+This matters beyond current table cleanup: even if the prepared relation/function migrations are applied, later objects created by these owners may inherit broad client access. Do **not** issue a generic `ALTER DEFAULT PRIVILEGES` change yet. The two default-ACL owners may have different membership/ownership constraints and existing application migrations may rely on intentional public defaults. Before a fix, inventory which migration/deployment role creates objects, compare global versus schema-specific default ACLs, verify how Supabase expects these owner defaults to be managed, and prepare owner-scoped least-privilege defaults plus explicit grants for intentionally public objects. Test in an offline/disposable environment and obtain approval before production changes.
+
+No default ACL, role membership, grant, or existing object was changed during this review.
