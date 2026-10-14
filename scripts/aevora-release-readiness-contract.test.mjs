@@ -6,6 +6,7 @@ const scheduler = await readFile("supabase/functions/release-scheduler/index.ts"
 const generationOrchestrator = await readFile("supabase/functions/generation-orchestrator/index.ts", "utf8");
 const reviewOrchestrator = await readFile("supabase/functions/review-orchestrator/index.ts", "utf8");
 const generateChapter = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
+const reviseChapter = await readFile("supabase/functions/revise-chapter/index.ts", "utf8");
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
 const generator = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
@@ -269,6 +270,24 @@ test("AI quality review fails closed when Gemini provider cooldown state is miss
   const guardBlock = generateChapter.slice(providerGuard, geminiReviewCall);
   assert.match(guardBlock, /return reply\(/);
   assert.match(guardBlock, /new Date\(reviewProviderState\.cooldown_until\)\.getTime\(\)>Date\.now\(\)/);
+});
+
+test("revision worker fails closed before revision processing when Gemini provider state is unsafe", () => {
+  const providerGuard = reviseChapter.indexOf('const providerStateResult = await supabase');
+  const requestParsing = reviseChapter.indexOf('body = await req.json()');
+  const revisionLoop = reviseChapter.indexOf('for (\nlet attempt = 1;');
+  assert.ok(providerGuard >= 0 && requestParsing > providerGuard && revisionLoop > providerGuard,
+    "revision provider-state guard must run before request processing and the revision loop");
+  const guardBlock = reviseChapter.slice(providerGuard, requestParsing);
+  assert.match(guardBlock, /providerStateResult\.error \|\| !providerStateResult\.data/);
+  assert.match(guardBlock, /reason: "provider_state_unavailable"/);
+  assert.match(guardBlock, /Number\.isFinite\(cooldownUntil\)/);
+  assert.match(guardBlock, /reason: "invalid_cooldown_timestamp"/);
+  assert.match(guardBlock, /reason: "provider_cooldown"/);
+  assert.match(guardBlock, /return jsonResponse\([\s\S]*?503\)/);
+  const modelCall = reviseChapter.indexOf('await callGemini(geminiApiKey, prompt');
+  assert.ok(modelCall > requestParsing,
+    "Gemini revision call must occur only after the fail-closed provider-state guard");
 });
 
 test("review orchestrator fails closed before any reviewer call when provider state is unsafe", () => {
