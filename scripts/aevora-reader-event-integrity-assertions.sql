@@ -184,23 +184,20 @@ DECLARE
 BEGIN
   SELECT created_at INTO v_client_created_at
   FROM public.reader_events
-  WHERE event_uuid IN (
-    '10000000-0000-0000-0000-000000000002',
-    '10000000-0000-0000-0000-000000000004'
-  )
-  ORDER BY created_at ASC
-  LIMIT 1;
+  WHERE event_uuid = '10000000-0000-0000-0000-000000000002';
   IF v_client_created_at IS NULL
      OR v_client_created_at > statement_timestamp() + interval '1 second'
      OR v_client_created_at < statement_timestamp() - interval '1 minute' THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: client past/future timestamp was not replaced with server statement time';
+    RAISE EXCEPTION 'ASSERTION_FAILED: future client timestamp was not replaced with server statement time';
   END IF;
   IF (SELECT count(*) FROM public.reader_events
       WHERE event_uuid IN (
         '10000000-0000-0000-0000-000000000002',
         '10000000-0000-0000-0000-000000000004'
-      )) <> 2 THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: both timestamp test events must be present';
+      )
+      AND created_at BETWEEN statement_timestamp() - interval '1 minute'
+                         AND statement_timestamp() + interval '1 second') <> 2 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: both past/future client timestamps must be replaced with server statement time';
   END IF;
 END;
 $server_timestamp_assert$;
