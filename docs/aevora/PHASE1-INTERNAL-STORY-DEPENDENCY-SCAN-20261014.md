@@ -40,3 +40,12 @@ This narrows the direct client-source dependency risk, but does not close the ro
 - Effective schema privilege checks report `CREATE = false` for both `anon` and `authenticated` on `public`; this limits client ability to create shadow objects in that schema. The check does not replace the recommendation to keep trusted schemas first and `pg_temp` last in SECURITY DEFINER search paths.
 
 The dependency scan remains supportive, not a complete disposable-database compatibility test. No production changes were made.
+
+
+## Exact live function/trigger recheck (read-only, 2026-10-14)
+
+A fresh catalog scan of all public-schema function bodies against the exact 41-relation list returned 53 matched function overloads. All 53 are `SECURITY DEFINER`, owned by `postgres`; effective EXECUTE checks returned zero for `anon`, zero for `authenticated`, and 53 for `service_role`. None of the 53 functions is currently attached as a non-internal trigger function. The catalog scan also found no dependent public views/materialized views in the earlier dependency check.
+
+This materially reduces the direct-trigger and client-RPC compatibility risks for removing ordinary-client access to these tables. It does not eliminate risks from other schemas, cron SQL, dynamically constructed relation names, direct external clients, or application features not represented in this repository. SECURITY DEFINER does not by itself make a function safe; owners, search paths, dynamic SQL, data returned, and service-role caller behavior remain in the broader Phase 1 function review.
+
+**Disposition:** the read-lock migration has stronger supporting dependency evidence, but it is still not approved for production. A disposable-database replay with representative service-role worker calls and client-role denial tests remains a required gate.
