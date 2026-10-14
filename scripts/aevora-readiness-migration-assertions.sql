@@ -212,6 +212,36 @@ begin
 end;
 $lifecycle_assert$;
 
+-- Returning to ongoing must not reuse a previously consumed readiness decision.
+update public.series set status = 'ongoing'
+where id = '00000000-0000-0000-0000-000000000003';
+
+do $revival_assert$
+declare
+  v_schedule_id uuid;
+begin
+  select id into v_schedule_id
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000003';
+
+  begin
+    perform public.taleforge_mark_release_automation_ready(v_schedule_id);
+    raise exception 'ASSERTION_FAILED: old readiness evidence revived the series';
+  exception when others then
+    if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
+    if sqlerrm not like 'fresh audited approval is required to reactivate a previously ready series%' then raise; end if;
+  end;
+
+  if exists (
+    select 1 from public.release_schedules
+    where series_id = '00000000-0000-0000-0000-000000000003'
+      and (enabled or auto_generate or auto_publish or automation_ready_at is not null)
+  ) then
+    raise exception 'ASSERTION_FAILED: series was re-enabled after readiness revocation';
+  end if;
+end;
+$revival_assert$;
+
 -- Weekly cadence must already have a computed due time; readiness may not
 -- silently convert an invalid weekly schedule into an immediate release.
 insert into public.series(id, title, status, origin_type, originality_status)
