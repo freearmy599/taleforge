@@ -170,6 +170,11 @@ begin
 end;
 $lifecycle_assert$;
 
+-- Fault-injection only: production has a UNIQUE(series_id) constraint. Drop it
+-- after the faithful-schema assertions to prove defensive gates fail closed if
+-- that invariant is ever lost in a future schema regression.
+alter table public.release_schedules drop constraint release_schedules_series_id_key;
+
 -- Readiness itself must refuse ambiguous duplicate schedules.
 insert into public.series(id, title, status, origin_type, originality_status)
 values ('00000000-0000-0000-0000-000000000004', 'Ambiguous schedule fixture', 'ongoing', 'ai_original', 'pending');
