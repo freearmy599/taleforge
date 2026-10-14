@@ -44,7 +44,7 @@ A fresh catalog query confirmed the relationship gap and a more urgent table-lev
 - The live policy `Public can record reader events` is INSERT-only at the policy-command level. It checks visitor ID length, an eligible supplied series, and a published supplied chapter—but it does not compare `chapters.series_id` with `reader_events.series_id`, nor require a series when a chapter is supplied.
 - The foreign keys only validate that each ID independently exists. They do not enforce the chapter/series pair relationship.
 - Despite the INSERT-only policy, effective table privileges currently report **SELECT, INSERT, and UPDATE = true** for both `anon` and `authenticated`. The policy has no SELECT/UPDATE policy, so RLS ordinarily denies those row operations; however, the grants are broader than intended and leave unnecessary privilege (and table-level UPDATE does not become safe just because a policy currently blocks row access).
-- Both `public.reader_events_id_seq` and `public.aevora_engineering_events_id_seq` currently report `USAGE` for `anon` and `authenticated`. The branch-only sequence cleanup is not live.
+- Both `public.reader_events_id_seq` and `public.aevora_engineering_events_id_seq` currently report `USAGE` for `anon` and `authenticated`. The branch-only sequence cleanup is not live. The `reader_events.id` column is `GENERATED ALWAYS AS IDENTITY` (`pg_attribute.attidentity = 'a'`), not a serial/default expression; still verify ordinary-role inserts in a disposable database after sequence ACL changes.
 - The branch-only `20261014150000_reader_events_insert_only.sql` and `20261014120000_lock_public_identity_sequence_grants.sql` are therefore relevant, but their absence from the migration ledger is not permission to apply them. Test identity inserts and sequence behavior in an isolated environment first.
 
 **Priority update:** the live raw-event access model is not yet at the intended least-privilege state. Keep the aggregate RPC gated on the relationship repair, table/column ACL cleanup, sequence ACL cleanup, anti-replay/spam controls, and role-based regression tests. No production grants, policies, sequences, or data were changed by this check.
@@ -52,7 +52,7 @@ A fresh catalog query confirmed the relationship gap and a more urgent table-lev
 
 ## Branch candidate and duplicate-migration cleanup (2026-10-14)
 
-The branch now contains `20261014200000_validate_reader_event_series_chapter_pair.sql`, which recreates the INSERT policy with the required chapter/series match, requires a series when a chapter is supplied, and requires the chapter to be published while its series is ongoing/completed. Series-only events remain permitted.
+The branch now contains `20261014200000_reader_event_relationship_integrity.sql`, which recreates the INSERT policy with the required chapter/series match, requires a series when a chapter is supplied, and requires the chapter to be published while its series is ongoing/completed. Series-only events remain permitted.
 
 A duplicate migration with the same timestamp was briefly created during parallel continuation. It was removed immediately, and the regression test now targets the single canonical migration file. The final branch tree must contain only one migration for timestamp `20261014200000`; CI is being checked against the latest commits.
 
@@ -77,3 +77,8 @@ A further semantic issue exists in the prepared trending aggregate: the allowed 
 6. Recheck privacy/data-retention needs for visitor identifiers before collecting more detailed anti-abuse signals.
 
 No raw event rows were queried; this review used only schema, policy, index, trigger, and browser-code metadata. No production change was made.
+
+
+## Canonical migration-name verification (read-only, 2026-10-14)
+
+The current branch test reads `20261014200000_reader_event_relationship_integrity.sql`. This is the canonical file name; the earlier `validate_reader_event_series_chapter_pair` spelling in this document was stale and has been corrected. The migration timestamp uniqueness test passed on commit `bab0129c`. The policy candidate remains un-applied in production.
