@@ -33,7 +33,7 @@ Consequences:
 
 ## Critical deployment-order hazard
 
-The migration replaces the enrollment trigger and adds the readiness column, while the currently deployed autonomous runner v6 still writes `enabled=true`, `auto_generate=true`, and `auto_publish=true` directly after its own bootstrap. If the migration is applied while that old runner can still execute, the old runner may re-enable a schedule with a NULL readiness marker. The branch scheduler and publisher block such a schedule, but the live versions do not yet enforce the marker.
+The migration replaces the enrollment trigger and adds the readiness column, while the currently deployed autonomous runner v6 still writes `enabled=true`, `auto_generate=true`, and `auto_publish=true` directly after its own bootstrap. Once the migration's database guard is active, those legacy writes should be rejected while the readiness marker is NULL, leaving the new series bootstrap incomplete rather than re-enabling automation. However, the live scheduler, publisher, and generation workers do not independently enforce the new marker, and in-flight or direct internal invocations must not be assumed blocked merely because scheduled flags are disabled.
 
 Therefore **do not apply the migration while the old autonomous runner or old release/generation workers can execute uncoordinated**. A production rollout would need a separately approved and verified pause/fencing plan for the relevant cron dispatches, followed by schema and code deployment as one controlled window. This document does not authorize pausing or changing any cron job.
 
