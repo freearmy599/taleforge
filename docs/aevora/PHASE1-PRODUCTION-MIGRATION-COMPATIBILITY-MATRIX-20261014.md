@@ -66,7 +66,7 @@ The branch now also contains `20261014210000_release_automation_readiness_gate.s
 
 Additional compatibility requirements for this migration:
 
-- It adds `release_schedules.automation_ready_at` and intentionally leaves every existing row NULL; there is no blanket backfill. It also disables any unready row that still has `auto_generate` or `auto_publish` enabled, so legacy worker versions cannot continue scheduled work in the migration-first rollout gap.
+- It adds `release_schedules.automation_ready_at` and intentionally leaves every existing row NULL; there is no blanket backfill. It also disables every unready non-manual schedule that is enabled or has either automation flag set, so legacy worker versions cannot continue scheduled work in the migration-first rollout gap.
 - It replaces the series-enrollment trigger so new/unready schedules remain disabled.
 - It adds `taleforge_mark_release_automation_ready(uuid)`, restricted to `service_role`, which verifies the series, schedule configuration, lifecycle row, production policy, and bootstrap audit evidence before atomically setting the readiness marker and automation flags.
 - It must be deployed together with the tracked branch version of `autonomous-series-creation-runner`, the scheduler, and the publisher. The production runner remains v6 until a separately approved rollout.
