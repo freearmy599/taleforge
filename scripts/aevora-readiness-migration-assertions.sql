@@ -166,6 +166,21 @@ begin
 end;
 $pre_readiness_assert$;
 
+-- A newer unrelated run for the same series must not replace the exact run
+-- recorded by lifecycle metadata as the authorization evidence.
+insert into public.taleforge_autonomous_series_creation_runs(
+  id, series_id, status, dry_run, pipeline_snapshot
+) values (
+  '00000000-0000-0000-0000-000000000028',
+  '00000000-0000-0000-0000-000000000002',
+  'created', false,
+  jsonb_build_object(
+    'series_id', '00000000-0000-0000-0000-000000000002',
+    'lifecycle_initialized', false,
+    'release_schedule_initialized', false
+  )
+);
+
 select public.taleforge_mark_release_automation_ready(
   (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000002')
 );
