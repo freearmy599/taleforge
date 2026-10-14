@@ -52,7 +52,7 @@ The prepared narrative-internals migration drops public read policies on `talefo
 
 The earlier `information_schema.role_column_grants` result was initially interpreted as evidence of independent column grants. A direct catalog check of `pg_attribute.attacl` found **zero columns with explicit ACLs** on the sampled internal tables and health snapshot. In this project, the information-schema results reflect effective privileges from relation-level grants; they do not establish separately stored column ACLs.
 
-The confirmed finding is broad **relation-level** grants plus schema-specific default ACLs for future objects. The prepared migrations retain column-level `REVOKE ALL PRIVILEGES` statements as defensive cleanup; these are harmless when no explicit column ACL exists. No production change was made. The repeatable audit SQL is being corrected to inspect `pg_attribute.attacl` directly.
+The confirmed finding is broad **relation-level** grants plus schema-specific default ACLs for future objects. The prepared migrations retain column-level `REVOKE ALL PRIVILEGES` statements as defensive cleanup; these are harmless when no explicit column ACL exists. No production change was made. The repeatable audit SQL has been corrected to inspect `pg_attribute.attacl` directly.
 
 ## Safe remediation workflow
 
@@ -61,7 +61,7 @@ The confirmed finding is broad **relation-level** grants plus schema-specific de
 3. For trusted-server-only relations, revoke unnecessary client privileges while preserving service-role, owner, trigger, and scheduled-function behavior. Check table-level and column-level grants, sequences, functions, and default privileges.
 4. For reader-facing relations, add only narrowly scoped policies and tests for anonymous, user A, user B, and trusted server access. Include negative cross-owner cases.
 5. Add migration contract tests for the intended grant/policy matrix; do not treat the Supabase advisor's no-policy count as a vulnerability count.
-6. Re-run the metadata-only inventory using [`phase1-readonly-access-audit.sql`](./phase1-readonly-access-audit.sql); it covers relation grants, separately granted columns, default ACLs for future objects, and client-executable public functions without reading application rows.
+6. Re-run the metadata-only inventory using [`phase1-readonly-access-audit.sql`](./phase1-readonly-access-audit.sql); it covers relation grants, explicit per-column ACLs, default ACLs for future objects, and client-executable public functions without reading application rows.
 7. Verify Data API exposed schemas in Dashboard/API configuration. Do not run live probes or synthetic writes as part of this read-only phase.
 8. Run CI against the branch. Production migration, GRANT/REVOKE, policy/view changes, queue/schedule edits, generation, and publication remain outside this task without explicit approval.
 
