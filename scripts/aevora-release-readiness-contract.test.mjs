@@ -64,6 +64,10 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   assert.match(migration, /p\.policy_key = 'production'[\s\S]*?p\.enabled = true/i);
   assert.match(migration, /story lifecycle must exist before readiness/i);
   assert.match(migration, /release schedule configuration is invalid/i);
+  assert.match(migration, /series first, schedule second/i);
+  assert.match(migration, /where s\.id = v_series_id\s+for update/i);
+  assert.match(migration, /where rs\.id = p_schedule_id\s+and rs\.series_id = v_series\.id\s+for update/i);
+  assert.match(migration, /series must have exactly one release schedule before readiness/i);
   assert.doesNotMatch(migration, /update public\.release_schedules\s+set automation_ready_at\s*=\s*now\(\)\s*;/i,
     "existing schedules must not be blindly backfilled as ready");
 });
