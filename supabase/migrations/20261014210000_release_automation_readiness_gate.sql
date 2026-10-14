@@ -130,7 +130,7 @@ begin
               or not exists (
                 select 1 from pg_catalog.pg_timezone_names tz
                 where tz.name = v_schedule.timezone
-              ))
+              )))
      or v_schedule.schedule_mode not in ('interval', 'weekly') then
     raise exception 'release schedule configuration is invalid';
   end if;
