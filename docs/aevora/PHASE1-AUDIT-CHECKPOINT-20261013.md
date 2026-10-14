@@ -175,3 +175,8 @@ This remains a branch-only fix. No production deployment, migration, schedule mu
 - The actual Data API exposed-schema configuration is still unverified. Live pg_net response freshness remains an unresolved operational observation; no test dispatch or schedule mutation was made.
 - No production migration, GRANT/REVOKE, RLS/policy/view change, deployment, generation/publication, queue mutation, or schedule change was made. No billable Supabase branch was created.
 - Latest branch head at the time this checkpoint was edited: `9cf29288fd533b0a9dc33808425cba2cc6489515`; its CI run is pending: [38514039991](https://github.com/freearmy599/taleforge/actions/runs/38514039991). Phase 1 remains open until outstanding compatibility/configuration items are resolved and production changes, if any, are separately authorized.
+
+### Column-ACL interpretation correction — 2026-10-14
+
+The first pass used `information_schema.role_column_grants` / `column_privileges` and misread their effective privilege rows as independent column-level ACLs. A direct check of `pg_attribute.attacl` found **zero explicit column ACLs** on the sampled internal tables and health snapshot. The confirmed finding is broad relation-level grants and permissive default ACLs, not separately stored column grants. The branch migrations keep column-level revoke clauses as defensive cleanup, but prior wording suggesting explicit column ACLs were observed is superseded. The repeatable `phase1-readonly-access-audit.sql` now checks `pg_attribute.attacl` directly and includes the default-ACL owner to disambiguate entries.
+
