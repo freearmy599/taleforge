@@ -166,7 +166,7 @@ test("unwired reader-feature tables remain unavailable to direct client roles un
 test("server-only migration targets cover the complete 39-table client-grant inventory", () => {
   const extractTargets = (source, label) => {
     const match = source.match(/FOREACH\s+table_name\s+IN\s+ARRAY\s+ARRAY\[([\s\S]*?)\]/i);
-    assert.ok(match, \`\${label} must declare an explicit bounded table target list\`);
+    assert.ok(match, label + " must declare an explicit bounded table target list");
     return [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1]);
   };
   const internalTargets = extractTargets(internalTablesMigration, "internal policyless migration");
