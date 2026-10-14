@@ -98,7 +98,13 @@ test("public trending data is exposed only through a fixed-search-path aggregate
   assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH \(security_invoker = true\)/i);
   assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores, public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
   assert.match(trendingMigration, /GRANT SELECT ON TABLE public\.story_trending_scores, public\.story_intelligence\s+TO anon, authenticated/i);
-  assert.doesNotMatch(trendingMigration, /visitor_id|reader_events\.id|CREATE\s+POLICY|GRANT\s+SELECT\s+ON\s+TABLE\s+public\.reader_events/i);
+  const returnedColumns = trendingMigration.match(/RETURNS TABLE \(([\s\S]*?)\)\s*LANGUAGE/i)?.[1] ?? "";
+  assert.doesNotMatch(returnedColumns, /\bvisitor_id\b|\bid\b/i,
+    "raw visitor identifiers and event IDs must not be exposed in the public result contract");
+  assert.match(trendingMigration, /latest_follow_state AS \([\s\S]*?DISTINCT ON \(re\.visitor_id, re\.series_id\)[\s\S]*?event_type IN \('follow', 'unfollow'\)/i);
+  assert.match(trendingMigration, /latest_bookmark_state AS \([\s\S]*?DISTINCT ON \(re\.visitor_id, re\.chapter_id\)[\s\S]*?event_type IN \('bookmark', 'unbookmark'\)/i);
+  assert.match(trendingMigration, /re\.created_at <= pg_catalog\.now\(\)/i);
+  assert.doesNotMatch(trendingMigration, /CREATE\s+POLICY|GRANT\s+SELECT\s+ON\s+TABLE\s+public\.reader_events/i);
 });
 
 
