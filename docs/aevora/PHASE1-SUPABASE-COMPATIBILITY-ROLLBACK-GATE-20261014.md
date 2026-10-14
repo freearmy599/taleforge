@@ -155,3 +155,7 @@ The rollback assertions were extended to check the fixture baseline functions' S
 ### Disposable-target guard follow-up (2026-10-14)
 
 The CI-invoked migration-and-rollback runner now requires the explicit marker `AEVORA_DISPOSABLE_MIGRATION_REHEARSAL=I_UNDERSTAND_THIS_IS_DISPOSABLE`, rejects Supabase-hosted URLs, and requires the database URL to identify an `aevora_readiness` disposable database. The workflow supplies the marker only for its local PostgreSQL 17 service. A source-contract test checks both the guard and workflow opt-in. This reduces accidental execution against a live database but is not a substitute for actual CI execution; the latest commit has no visible reported workflow/status result, so the PostgreSQL rehearsal remains unverified.
+
+### Additional disposable harness guards (2026-10-14)
+
+The readiness-concurrency and reader-event-integrity rehearsal scripts now require their own explicit opt-in markers, reject Supabase-hosted URLs, and require an `aevora_` database name. The GitHub Actions disposable PostgreSQL job supplies those markers, and the release-readiness source-contract suite checks the scripts and workflow wiring. These guard changes await a fresh CI run; the earlier successful run validates the previous migration/rollback harness revision, not these newest guard additions.
