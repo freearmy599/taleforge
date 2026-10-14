@@ -155,3 +155,13 @@ A read-only aggregate query against the live catalog returned six release-schedu
 This is a useful baseline and means the aggregate snapshot did not show an immediately publishable auto-publish schedule at query time. It does **not** remove the trigger race: the current trigger can set `auto_publish=true` when a series is activated, and a later autonomous creation can introduce the intermediate state. The count is time-specific, not a guarantee about future writes, and it does not prove that generation workers or other callers are safe.
 
 Before a rollout, repeat the same aggregate and a detailed reviewed inventory as a dry run, including schedule mode, next release time, series status, lifecycle state, and the approved backfill disposition. Do not expose individual series identifiers in broad audit output unnecessarily.
+
+
+## Existing schedule disposition check (read-only, 2026-10-14)
+
+A row-level inventory was checked without changing live data:
+
+- All **6 of 6** existing schedules belong to `ai_original` series currently marked `ongoing`.
+- All **6** have `auto_generate=true`, `auto_publish=false`, and interval mode; all 6 have no non-dry-run row in `taleforge_autonomous_series_creation_runs`.
+- One of the six is explicitly titled as an autonomous pipeline test series. It must not be blindly reactivated as production content.
+- Therefore, the new autonomous readiness RPC cannot approve any of these six using the current provenance rule. A reviewed disposition is mandatory: identify production series versus test fixtures, inspect quality/review/lifecycle evidence, then either keep automation disabled, convert to a reviewed manual-only schedule, or create an explicitly audited legacy-approval path with provenance and approver evidence. Do not fabricate autonomous run records or bulk-mark these schedules ready.
