@@ -22,6 +22,8 @@ test("publisher independently checks non-manual schedule readiness", () => {
   assert.match(publisher, /from\("release_schedules"\)/);
   assert.match(publisher, /automation_ready_at/);
   assert.match(publisher, /AUTOMATION_NOT_READY/);
+  assert.match(publisher, /taleforge_autonomous_series_creation_runs/);
+  assert.match(publisher, /AUTOMATION_SCHEDULE_MISSING_OR_AMBIGUOUS/);
   const guard = publisher.indexOf("AUTOMATION_NOT_READY");
   const insert = publisher.indexOf("const chapterInsert =");
   assert.ok(guard >= 0, "publisher must reject unready automation");
