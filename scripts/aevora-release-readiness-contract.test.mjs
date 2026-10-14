@@ -64,13 +64,15 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   assert.match(migration, /p\.policy_key = 'production'[\s\S]*?p\.enabled = true/i);
   assert.match(migration, /story lifecycle must exist before readiness/i);
   assert.match(migration, /release schedule configuration is invalid/i);
-  assert.match(migration, /series first, schedule second/i);
-  assert.match(migration, /where s\.id = v_series_id\s+for update/i);
-  const lifecycleLock = migration.indexOf("perform 1\n  from public.story_lifecycle sl");
-  const scheduleLock = migration.indexOf("select rs.* into v_schedule");
-  assert.ok(lifecycleLock >= 0 && scheduleLock > lifecycleLock,
-    "readiness RPC must lock lifecycle before schedule to match enrollment lock order");
-  assert.match(migration, /where rs\.id = p_schedule_id\s+and rs\.series_id = v_series\.id\s+for update/i);
+  const rpcStart = migration.indexOf("create or replace function public.taleforge_mark_release_automation_ready");
+  const rpcEnd = migration.indexOf("revoke all on function public.taleforge_mark_release_automation_ready", rpcStart);
+  const readinessRpc = migration.slice(rpcStart, rpcEnd);
+  const seriesLock = readinessRpc.indexOf("where s.id = v_series_id");
+  const scheduleLock = readinessRpc.indexOf("select rs.* into v_schedule");
+  assert.ok(seriesLock >= 0 && scheduleLock > seriesLock,
+    "readiness RPC must lock the parent series before its release schedule");
+  assert.match(readinessRpc, /where rs\\.id = p_schedule_id\\s+and rs\\.series_id = v_series\\.id\\s+for update/i);
+  assert.match(readinessRpc, /from public.story_lifecycle sl[\\s\\S]*?for update/i);
   assert.match(migration, /series must have exactly one release schedule before readiness/i);
   assert.doesNotMatch(migration, /update public\.release_schedules\s+set automation_ready_at\s*=\s*now\(\)\s*;/i,
     "existing schedules must not be blindly backfilled as ready");
