@@ -56,6 +56,10 @@ begin
   if v_result->>'reason' is distinct from 'fixture_pre_migration_stub' then
     raise exception 'ASSERTION_FAILED: baseline creation-gate function body was not restored';
   end if;
+  if not has_function_privilege('anon', 'public.taleforge_check_autonomous_creation_gate(uuid,numeric)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.taleforge_check_autonomous_creation_gate(uuid,numeric)', 'EXECUTE') then
+    raise exception 'ASSERTION_FAILED: fixture baseline creation-gate EXECUTE grant was not restored';
+  end if;
 end;
 $rollback_function_baseline_assert$;
 
