@@ -491,6 +491,31 @@ Deno.test("weekly resolver handles normal timezone conversion, DST gaps, and bot
   }
 });
 
+Deno.test("partial or unconfirmed publication never advances the next release deadline", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  const failedResponse = source.indexOf("if(!responseConfirmed){");
+  const failedDatabaseConfirmation = source.indexOf('if(confirmError || !confirmedChapter || confirmedChapter.status!=="published")');
+  const allSelectedConfirmed = source.indexOf("const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0");
+  const scheduleAdvance = source.indexOf("if(!dryRun && nextRelease && allSelectedConfirmed)");
+  const advancementRpc = source.indexOf('supabase.rpc("aevora_advance_release_schedule_if_lease_owned",{');
+  assert(failedResponse >= 0 && failedDatabaseConfirmation > failedResponse,
+    "both publisher response and database status must be confirmed before counting a publication");
+  assert(allSelectedConfirmed > failedDatabaseConfirmation,
+    "publication confirmation must be complete before the advancement eligibility calculation");
+  const eligibility = source.slice(allSelectedConfirmed, scheduleAdvance);
+  assert(eligibility.includes("attemptedCount===publishCount")
+    && eligibility.includes("published.length===publishCount")
+    && eligibility.includes("!publicationFailed")
+    && eligibility.includes("!leaseLost"),
+    "advancement eligibility must require every selected chapter to be confirmed and no failure or lease loss");
+  assert(scheduleAdvance > allSelectedConfirmed && advancementRpc > scheduleAdvance,
+    "the atomic schedule-advancement RPC must be behind the all-selected-confirmed guard");
+  assert(source.includes('action:"publish_unconfirmed"'),
+    "unconfirmed publication must be surfaced rather than counted as success");
+  assert(source.includes('action:leaseLost?"lease_lost":publicationFailed?"publication_incomplete"'),
+    "partial publication failure must be surfaced in the scheduler result");
+});
+
 Deno.test("schedule advancement and lifecycle activation use atomic lease-fenced RPCs", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('supabase.rpc("aevora_advance_release_schedule_if_lease_owned",{'),
