@@ -136,3 +136,12 @@ Added a fixture-scoped rollback path and wired it into the existing disposable P
 Important boundary: this is a **disposable fixture rollback rehearsal**, not a production-grade rollback script. The fixture's pre-migration function bodies and grants are deliberately versioned test stand-ins; they do not prove exact production definitions or ACLs. The rollback policy intentionally does not restore any previous enabled/auto flags because provenance and approval cannot be inferred from pre-migration values. Failed-transaction recovery and Supabase-specific catalog/API behavior remain separate checks.
 
 The runner and SQL were committed to the branch, but this environment has not run PostgreSQL locally (no `psql`/server/container runtime available), and the latest commits currently show no reported CI status. Therefore the rehearsal is **implemented but not yet verified as passing**. Gate B remains open until the CI job executes successfully and its logs are inspected; production remains untouched.
+
+
+### Follow-up review — rollback ACL fidelity and static regression coverage
+
+A second review found that replacing the fixture's autonomous-creation gate function would preserve the migration's narrowed ACL unless the fixture's original PUBLIC EXECUTE grant was explicitly restored. The rollback now restores that grant and asserts that fixture API roles can execute the baseline stub. This grant is intentionally a fixture property only; it is not a recommendation for the production function's permissions.
+
+The readiness contract test now checks that the forward test runner includes both rollback steps, that rollback retains fail-closed schedule state, and that the standalone runner requires explicit opt-in, rejects Supabase URLs, and requires an aevora_readiness database identifier.
+
+These are source-level regression checks. They do not substitute for actually running PostgreSQL. The branch's latest inspected commit still has no reported CI status; Gate B remains open pending an actual run and log review.
