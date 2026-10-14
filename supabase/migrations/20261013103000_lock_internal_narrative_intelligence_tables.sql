@@ -36,6 +36,30 @@ DROP POLICY IF EXISTS "public can read system registry" ON public.taleforge_syst
 -- Disable direct client access until a separately reviewed allowlisted public projection exists.
 REVOKE ALL PRIVILEGES ON TABLE public.taleforge_system_health_snapshot FROM PUBLIC, anon, authenticated;
 
+-- The view can carry independent column-level SELECT grants. Revoke those too;
+-- a relation-level REVOKE alone does not remove per-column privileges.
+DO $
+DECLARE
+  column_list text;
+BEGIN
+  IF to_regclass('public.taleforge_system_health_snapshot') IS NOT NULL THEN
+    SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum)
+      INTO column_list
+    FROM pg_attribute
+    WHERE attrelid = to_regclass('public.taleforge_system_health_snapshot')
+      AND attnum > 0
+      AND NOT attisdropped;
+
+    IF column_list IS NOT NULL THEN
+      EXECUTE format(
+        'REVOKE ALL PRIVILEGES (%s) ON TABLE public.taleforge_system_health_snapshot FROM PUBLIC, anon, authenticated',
+        column_list
+      );
+    END IF;
+  END IF;
+END
+$;
+
 REVOKE ALL PRIVILEGES ON TABLE
   public.character_continuity_events,
   public.world_continuity_events,
