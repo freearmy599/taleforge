@@ -45,6 +45,7 @@ create table public.release_schedules (
   auto_generate boolean not null default false,
   auto_publish boolean not null default false,
   next_release_at timestamptz,
+  last_release_at timestamptz,
   preferred_weekday integer,
   preferred_time time,
   created_at timestamptz not null default now(),
