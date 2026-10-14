@@ -40,7 +40,7 @@ where series_id = '00000000-0000-0000-0000-000000000001';
 
 -- Manual mode may remain enabled for human-controlled workflows, but cannot
 -- accidentally retain automatic generation or publication flags.
-do $
+do $manual_assert$
 begin
   begin
     update public.release_schedules
@@ -52,7 +52,7 @@ begin
     if sqlerrm not like 'manual schedules cannot enable automatic generation or publication%' then raise; end if;
   end;
 end;
-$;
+$manual_assert$;
 
 -- Direct service-role writes cannot set the readiness marker outside the RPC.
 select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
