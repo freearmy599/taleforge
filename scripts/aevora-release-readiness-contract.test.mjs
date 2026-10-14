@@ -11,6 +11,7 @@ const generator = await readFile("supabase/functions/generate-chapter/index.ts",
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
+const concurrencyScript = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const migrationFixture = await readFile("scripts/aevora-readiness-migration-fixture.sql", "utf8");
 const migrationAssertions = await readFile("scripts/aevora-readiness-migration-assertions.sql", "utf8");
 
@@ -174,6 +175,15 @@ test("ready schedules cannot be reassigned and duplicate schedules revoke readin
 
 test("database trigger forbids automatic flags on manual schedules", () => {
   assert.match(migration, /new\.schedule_mode = 'manual'[\s\S]*?new\.auto_generate = true or new\.auto_publish = true[\s\S]*?manual schedules cannot enable automatic generation or publication/i);
+});
+
+test("schedule inserts serialize on the parent series before ambiguity checks", () => {
+  assert.match(migration, /create or replace function public\.taleforge_lock_release_schedule_parent\(\)/);
+  assert.match(migration, /before insert or update of series_id on public\.release_schedules[\s\S]*?execute function public\.taleforge_lock_release_schedule_parent\(\)/i);
+  assert.match(migration, /from public\.series s[\s\S]*?where s\.id = new\.series_id[\s\S]*?for update/i);
+  assert.match(migration, /release schedules cannot be reassigned to another series/i);
+  assert.match(concurrencyScript, /Concurrent schedule writers must serialize on the parent series row/i);
+  assert.match(concurrencyScript, /release schedule writer concurrency assertion passed/i);
 });
 
 test("enrollment trigger does not enable an unready schedule", () => {
