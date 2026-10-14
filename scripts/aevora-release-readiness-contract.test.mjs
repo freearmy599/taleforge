@@ -106,7 +106,7 @@ test("legacy service-role writes cannot re-enable automation without readiness",
   assert.match(migration, /new\.automation_ready_at is null[\s\S]*?new\.auto_generate = true or new\.auto_publish = true[\s\S]*?new\.enabled = true and new\.schedule_mode <> 'manual'[\s\S]*?raise exception 'automation readiness is required/i);
   assert.match(migration, /before insert or update of automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public\.release_schedules/i);
   assert.match(migration, /update public\.release_schedules\s+set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?where automation_ready_at is null/i);
-  const cleanup = migration.indexOf("update public.release_schedules\\nset enabled = false");
+  const cleanup = migration.indexOf("update public.release_schedules\nset enabled = false");
   const protectionTrigger = migration.indexOf("create trigger trg_protect_release_automation_readiness");
   assert.ok(cleanup >= 0 && protectionTrigger > cleanup,
     "legacy schedule cleanup must precede creation of the fail-closed write trigger");
