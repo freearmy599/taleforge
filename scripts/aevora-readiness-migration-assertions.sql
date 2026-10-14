@@ -462,7 +462,7 @@ begin
     raise exception 'ASSERTION_FAILED: ready schedule reassignment unexpectedly succeeded';
   exception when others then
     if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
-    if sqlerrm not like 'ready or automatic release schedules cannot be reassigned to another series%' then raise; end if;
+    if sqlerrm not like 'release schedules cannot be reassigned to another series%' then raise; end if;
   end;
 end;
 $reassign_assert$;
