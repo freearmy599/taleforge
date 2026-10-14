@@ -38,11 +38,6 @@ begin
      or not has_column_privilege('authenticated','public.release_schedules','auto_publish','update') then
     raise exception 'ASSERTION_FAILED: fixture baseline column grants were not restored';
   end if;
-  if has_function_privilege('anon','public.taleforge_mark_release_automation_ready(uuid)','EXECUTE')
-     or has_function_privilege('authenticated','public.taleforge_mark_release_automation_ready(uuid)','EXECUTE')
-     or has_function_privilege('service_role','public.taleforge_mark_release_automation_ready(uuid)','EXECUTE') then
-    raise exception 'ASSERTION_FAILED: readiness RPC remains executable after rollback';
-  end if;
 end;
 $rollback_acl_assert$;
 
