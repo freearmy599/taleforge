@@ -215,3 +215,67 @@ if ! grep -q "weekly_autonomous_creation_cap_reached" /tmp/aevora-creation-gate-
   exit 1
 fi
 echo "autonomous creation policy concurrency assertion passed"
+
+
+# Concurrent schedule writers must serialize on the parent series row. The
+# second insert must observe the first committed row, then revoke automation
+# across the ambiguous pair rather than leave either schedule ready.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+insert into public.series(id, title, status, origin_type, originality_status)
+values ('00000000-0000-0000-0000-000000000005', 'Concurrent schedule fixture', 'draft', 'ai_original', 'pending');
+delete from public.release_schedules
+where series_id = '00000000-0000-0000-0000-000000000005';
+SQL
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-schedule-writer-a.log 2>&1 <<'SQL' &
+begin;
+insert into public.release_schedules(
+  id, series_id, enabled, auto_generate, auto_publish, schedule_mode,
+  interval_hours, timezone, chapters_ahead, automation_ready_at
+) values (
+  '00000000-0000-0000-0000-000000000501',
+  '00000000-0000-0000-0000-000000000005',
+  false, false, false, 'interval', 24, 'Asia/Kolkata', 3, null
+);
+select pg_sleep(1);
+commit;
+SQL
+schedule_writer_a_pid=$!
+sleep 0.2
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-schedule-writer-b.log 2>&1 <<'SQL' &
+begin;
+insert into public.release_schedules(
+  id, series_id, enabled, auto_generate, auto_publish, schedule_mode,
+  interval_hours, timezone, chapters_ahead, automation_ready_at
+) values (
+  '00000000-0000-0000-0000-000000000502',
+  '00000000-0000-0000-0000-000000000005',
+  false, false, false, 'interval', 24, 'Asia/Kolkata', 3, null
+);
+commit;
+SQL
+schedule_writer_b_pid=$!
+wait "$schedule_writer_a_pid"
+wait "$schedule_writer_b_pid"
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+do $assert$
+declare
+  v_count integer;
+  v_unsafe integer;
+begin
+  select count(*), count(*) filter (
+    where enabled or auto_generate or auto_publish or automation_ready_at is not null
+  )
+  into v_count, v_unsafe
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000005';
+
+  if v_count <> 2 or v_unsafe <> 0 then
+    raise exception 'ASSERTION_FAILED: concurrent duplicate schedules were not both left inert (count %, unsafe %)', v_count, v_unsafe;
+  end if;
+end;
+$assert$;
+select 'release schedule writer concurrency assertion passed' as result;
+SQL
