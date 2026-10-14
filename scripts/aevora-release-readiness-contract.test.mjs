@@ -112,6 +112,8 @@ test("legacy service-role writes cannot re-enable automation without readiness",
     "legacy schedule cleanup must precede creation of the fail-closed write trigger");
   assert.match(migration, /new\.enabled = true and new\.schedule_mode <> 'manual'/i,
     "enabled manual schedules with both automatic flags false remain allowed");
+  assert.doesNotMatch(migration, /current_user not in \('postgres', 'service_role'\)/i,
+    "service-role callers must not bypass the atomic readiness marker setter");
 });
 
 test("enrollment trigger does not enable an unready schedule", () => {
