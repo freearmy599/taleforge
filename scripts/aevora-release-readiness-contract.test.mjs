@@ -127,7 +127,7 @@ test("readiness migration preserves the live enrollment interval default", () =>
 
 test("legacy service-role writes cannot re-enable automation without readiness", () => {
   assert.match(migration, /new\.automation_ready_at is null[\s\S]*?new\.auto_generate = true or new\.auto_publish = true[\s\S]*?new\.enabled = true and new\.schedule_mode <> 'manual'[\s\S]*?raise exception 'automation readiness is required/i);
-  assert.match(migration, /before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public\.release_schedules/i);
+  assert.match(migration, /before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode, interval_hours, timezone, chapters_ahead, preferred_weekday, preferred_time on public\.release_schedules/i);
   assert.match(migration, /update public\.release_schedules\s+set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?where automation_ready_at is null/i);
   const cleanup = migration.indexOf("update public.release_schedules\nset enabled = false");
   const protectionTrigger = migration.indexOf("create trigger trg_protect_release_automation_readiness");
@@ -251,6 +251,14 @@ test("scheduled review orchestration fails closed before invoking AI reviewers",
   assert.match(reviewOrchestrator.slice(readinessBlock, firstReviewCall), /continue;/);
 });
 
+
+test("approved schedule cadence changes revoke readiness while next-release advancement remains allowed", () => {
+  assert.match(migration, /ready schedule's cadence\/configuration is part of the approved/i);
+  assert.match(migration, /new\.interval_hours is distinct from old\.interval_hours/);
+  assert.match(migration, /new\.preferred_weekday is distinct from old\.preferred_weekday/);
+  assert.match(migration, /new\.automation_ready_at := null;[\s\S]*?new\.enabled := false;[\s\S]*?new\.auto_generate := false;[\s\S]*?new\.auto_publish := false;/);
+  assert.match(migration, /next_release_at is deliberately excluded because the scheduler advances it/i);
+});
 
 test("manual-only review and dry-run inspection remain compatible with readiness gating", () => {
   assert.match(reviewOrchestrator, /if \(!dryRun\) \{/);
