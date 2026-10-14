@@ -1,7 +1,17 @@
 \set ON_ERROR_STOP on
-create role anon nologin;
-create role authenticated nologin;
-create role service_role nologin bypassrls;
+do $roles$
+begin
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'anon') then
+    execute 'create role anon nologin';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'authenticated') then
+    execute 'create role authenticated nologin';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'service_role') then
+    execute 'create role service_role nologin bypassrls';
+  end if;
+end;
+$roles$;
 
 create schema auth;
 create function auth.role() returns text
