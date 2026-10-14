@@ -80,3 +80,12 @@ Current branch scheduler and publisher guards skip draft/cancelled/hiatus but do
 - Production rollout remains a separately approved operation.
 
 No production query in this work changed data. No migration, deployment, schedule update, generation, or publication was executed.
+
+
+## Read-only production schedule baseline (2026-10-14)
+
+A read-only aggregate query against the live catalog returned six release-schedule rows: six enabled, six with automatic generation enabled, zero with automatic publication enabled, zero enabled auto-publish schedules with a null `next_release_at`, zero completed-series schedules still auto-publish-enabled, and zero schedules with missing lifecycle rows.
+
+This is a useful baseline and means the aggregate snapshot did not show an immediately publishable auto-publish schedule at query time. It does **not** remove the trigger race: the current trigger can set `auto_publish=true` when a series is activated, and a later autonomous creation can introduce the intermediate state. The count is time-specific, not a guarantee about future writes, and it does not prove that generation workers or other callers are safe.
+
+Before a rollout, repeat the same aggregate and a detailed reviewed inventory as a dry run, including schedule mode, next release time, series status, lifecycle state, and the approved backfill disposition. Do not expose individual series identifiers in broad audit output unnecessarily.
