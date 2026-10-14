@@ -72,6 +72,8 @@ test("autonomous runner keeps schedule inert until audited bootstrap and atomic 
   assert.ok(auditUpdate > inertWrite, "bootstrap audit must follow the disabled schedule write");
   assert.ok(readinessCall > auditUpdate, "readiness RPC must run only after audit update");
   assert.match(runner.slice(auditUpdate, readinessCall), /if \(auditError\)/);
+  assert.match(runner.slice(auditUpdate, readinessCall), /autonomous_creation_run_id: result\?\.run_id \?\? null/);
+
 });
 
 test("runner does not return raw internal exception messages", () => {
