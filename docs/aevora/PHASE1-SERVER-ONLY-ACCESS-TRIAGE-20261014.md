@@ -4,7 +4,7 @@ Status: read-only production inspection; remediation plan only. No production pr
 
 ## Newly confirmed public-view and underlying-policy review
 
-A broad read-only inventory found **120 public-schema relations (tables and views combined) with grants to `anon` and/or `authenticated`**. The aggregate grant counts include view grants and must not be interpreted as 120 exposed base tables or 120 confirmed vulnerabilities. Each relation needs classification by object type, view security mode, underlying tables, and RLS policy.
+A broad read-only inventory found **120 public-schema relations with grants to `anon` and/or `authenticated`**: 117 base tables and 3 views. Of the base tables, 39 have RLS enabled but no policies, and zero base tables with client grants were found with RLS disabled in this targeted inventory. The aggregate grant counts include view grants and must not be interpreted as 120 confirmed vulnerabilities. Each relation still needs classification by object type, view security mode, underlying tables, and RLS policy. RLS-enabled/no-policy tables are generally default-deny for row access, but broad grants remain unnecessary privilege and may break intended reader/writer flows.
 
 Three names that initially appeared to have RLS disabled are actually **views** with `security_invoker=true`, not base tables:
 - `public.story_intelligence`
