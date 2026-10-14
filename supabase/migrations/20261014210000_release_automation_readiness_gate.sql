@@ -5,6 +5,11 @@ begin;
 alter table public.release_schedules
   add column if not exists automation_ready_at timestamptz;
 
+-- Release schedules are internal control-plane state. Existing RLS has no
+-- client policies for this table, so remove unnecessary API-role table grants
+-- rather than relying on RLS alone to block direct schedule manipulation.
+revoke all privileges on table public.release_schedules from public, anon, authenticated;
+
 create index if not exists release_schedules_ready_due_idx
   on public.release_schedules (next_release_at, id)
   where enabled = true and auto_publish = true and automation_ready_at is not null;
