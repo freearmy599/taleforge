@@ -238,6 +238,22 @@ begin
 end;
 $ambiguous_state_assert$;
 
+-- A ready schedule cannot be reassigned to a different series.
+do $reassign_assert$
+begin
+  begin
+    update public.release_schedules
+    set series_id = '00000000-0000-0000-0000-000000000003'
+    where series_id = '00000000-0000-0000-0000-000000000002'
+      and automation_ready_at is not null;
+    raise exception 'ASSERTION_FAILED: ready schedule reassignment unexpectedly succeeded';
+  exception when others then
+    if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
+    if sqlerrm not like 'ready or automatic release schedules cannot be reassigned to another series%' then raise; end if;
+  end;
+end;
+$reassign_assert$;
+
 -- Simulate a historical duplicate schedule. Terminal transitions must
 -- disable and de-authorize every schedule for the series, not an arbitrary row.
 insert into public.release_schedules(
@@ -247,6 +263,31 @@ insert into public.release_schedules(
   '00000000-0000-0000-0000-000000000002',
   false, 'interval', 24, 'Asia/Kolkata', 3, false, false, null
 );
+
+-- Inserting a duplicate immediately revokes the previously ready schedule.
+do $duplicate_insert_assert$
+declare
+  v_count bigint;
+  v_enabled_count bigint;
+  v_generate_count bigint;
+  v_publish_count bigint;
+  v_ready_count bigint;
+begin
+  select count(*),
+         count(*) filter (where enabled),
+         count(*) filter (where auto_generate),
+         count(*) filter (where auto_publish),
+         count(*) filter (where automation_ready_at is not null)
+    into v_count, v_enabled_count, v_generate_count, v_publish_count, v_ready_count
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000002';
+
+  if v_count <> 2 or v_enabled_count <> 0 or v_generate_count <> 0
+     or v_publish_count <> 0 or v_ready_count <> 0 then
+    raise exception 'ASSERTION_FAILED: duplicate schedule insert did not revoke readiness';
+  end if;
+end;
+$duplicate_insert_assert$;
 
 -- Completed status revokes readiness and disables every automatic flag.
 update public.series
