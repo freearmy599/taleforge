@@ -211,3 +211,22 @@ Workflow [38592872695](https://github.com/freearmy599/taleforge/actions/runs/385
 - The tests confirm source-level guard ordering and cooldown error-handling branches; they do not simulate live provider calls or prove the production deployment matches the branch.
 
 Residual quota risk remains explicit: when a provider returns 429/503 but the shared cooldown write itself fails, the current invocation returns a blocked/retryable response, but subsequent invocations may not see a durable cooldown. This cannot be declared fully closed from static tests alone; the orchestration retry policy and durable provider-state availability need review. Production rollout remains blocked by Gate A, deployment ordering, exact production rollback baseline, and the six per-schedule dispositions. No production state was changed.
+
+### Read-only production Edge Function inventory/source comparison (2026-10-14)
+
+The Supabase Edge Function inventory and deployed source were inspected read-only. No function was deployed, edited, or invoked for generation/publication. This evidence confirms that branch CI does **not** imply that the hardened branch is running in production.
+
+| Production function | Live version | Deployed source SHA-256 | Material difference found in deployed source |
+|---|---:|---|---|
+| `release-scheduler` | 12 | `9dfb47e3d8ae3fae2c2b2fbe885fbc58b245735d829b1e3ab0d51affa4802e8c` | Version marker is `release-scheduler-v5-contiguous-approved-release`; source contains no scheduler lease claim/renew/release calls and no `automation_ready_at` readiness gate. |
+| `release-publisher` | 21 | `04a63046cb090b546eab6f09dad643ee30fa5c2ef1a3727c5bd4b653e3e79f2c` | Version marker is `release-publisher-v5-outbox`; source contains no `automation_ready_at` readiness gate. Existing-chapter response sets `published: true` while also returning `status: existingChapter.status`, so the response can claim publication without proving that status is `published`. |
+| `generate-chapter` | 59 | `9f6d57c77bba109cd079dd9441963e3f4ab3aed6ab8e0db2aab1ff2129522131` | Provider-state lookup exists, but the deployed generation guard does not reject a malformed cooldown timestamp; branch source adds finite-timestamp validation and the internal API-key allowlist check. |
+| `revise-chapter` | 40 | `d187fc6977e6a442f7bf85afa4f3216cb3723cd6e7b0683839108a6a2f669614` | Provider-state lookup and active-cooldown guard exist, but deployed source does not validate malformed timestamps and does not contain the branch's internal API-key allowlist check. |
+| `generation-orchestrator` | 35 | `2f96e3cca526f2c6801860fe7b6cf5456b528ba56ed964f4d5afd71c8569f8e6` | Provider-state lookup fails closed on lookup errors, but an invalid date parses to a non-finite timestamp and the current helper does not treat that as an error; branch source adds malformed-timestamp rejection. No readiness/lease behavior from the prepared branch was observed in this deployed function. |
+| `review-orchestrator` | 11 | `3a8d7b11608b26cc1bf98d2d66b9799c2602be726376c23ec9e728b68fa3a0b5` | Provider-state lookup and active-cooldown guard exist, but deployed source does not reject malformed cooldown timestamps and does not contain the branch's internal API-key allowlist check. |
+
+These findings are a direct source comparison, not proof of external exploitability. The inventory reports `verify_jwt=true` for the listed functions, so authentication implications require a separate call-path review. Nevertheless, the missing branch controls and scheduler/publisher safety gates are confirmed deployment drift and are blockers for any automated-release rollout.
+
+**Gate disposition:** keep automated publishing and generation rollout blocked until the deployed function versions are reconciled through a reviewed, ordered rollout plan with pre/post verification and recovery steps. Do not deploy the entire branch blindly: review each function and migration dependency, preserve the existing fail-closed schedule posture, and verify status-safe publisher behavior before any schedule is re-enabled. This inventory did not inspect or change production schedules or database grants.
+
+Read-only source inventory performed through Supabase MCP on project `sxmbnlgufqhcwxcpcsvb`; source hashes above identify the retrieved deployed versions. No production SQL, migration, function deployment, schedule mutation, generation, publication, or billable development branch was initiated.
