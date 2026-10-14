@@ -78,7 +78,7 @@ test("readiness migration preserves the live enrollment interval default", () =>
 });
 
 test("enrollment trigger does not enable an unready schedule", () => {
-  assert.match(migration, /values \(\s*new\.id, false, 'interval', 24, 'UTC',[\s\S]*?false, false, null\s*\)/i);
+  assert.match(migration, /values \(\s*new\.id, false, 'interval', 8, 'UTC',[\s\S]*?false, false, null\s*\)/i);
   assert.match(migration, /auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?updated_at = now\(\)/i);
 });
 
