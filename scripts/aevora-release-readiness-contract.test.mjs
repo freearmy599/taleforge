@@ -44,6 +44,11 @@ test("autonomous runner keeps schedule inert until audited bootstrap and atomic 
   assert.match(runner.slice(auditUpdate, readinessCall), /if \(auditError\)/);
 });
 
+test("runner does not return raw internal exception messages", () => {
+  assert.match(runner, /function errText\(_e: unknown\) \{ return "Internal runner diagnostics were withheld\."; \}/);
+  assert.doesNotMatch(runner, /function errText\(e: unknown\) \{ return e instanceof Error \? e\.message/);
+});
+
 test("database readiness RPC is service-role-only and verifies bootstrap evidence", () => {
   assert.match(migration, /add column if not exists automation_ready_at timestamptz/i);
   assert.match(migration, /auth\.role\(\) is distinct from 'service_role'/i);
