@@ -373,11 +373,22 @@ Deno.serve(async (req) => {
           result: sanitizeReviewResult(call.data),
         });
 
+        const callReason = (call.data as Record<string, unknown> | null)?.reason;
+        if (
+          call.status === 429 ||
+          call.status === 503 ||
+          callReason === "provider_quota_blocked" ||
+          callReason === "provider_temporarily_unavailable" ||
+          callReason === "provider_state_unavailable" ||
+          callReason === "provider_cooldown" ||
+          callReason === "invalid_cooldown_timestamp"
+        ) {
+          // Stop subsequent outputs too, including when a downstream worker
+          // reports a provider block in a nominally successful HTTP response.
+          providerThrottleObserved = true;
+        }
+
         if (!call.ok) {
-          const callReason = (call.data as Record<string, unknown> | null)?.reason;
-          if (call.status === 429 || call.status === 503 || callReason === "provider_quota_blocked" || callReason === "provider_temporarily_unavailable") {
-            providerThrottleObserved = true;
-          }
           blocked = true;
           break;
         }
