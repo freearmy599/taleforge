@@ -515,6 +515,35 @@ end;
 $terminal_assert$;
 
 
+-- The database boundary blocks both direct inserts and status transitions
+-- that would publish a chapter after its series becomes terminal.
+do $chapter_lifecycle_guard_assert$
+declare
+  v_chapter_id uuid;
+begin
+  begin
+    insert into public.chapters(series_id, status)
+    values ('00000000-0000-0000-0000-000000000002', 'published');
+    raise exception 'ASSERTION_FAILED: direct publication into a completed series was accepted';
+  exception when others then
+    if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
+    if sqlerrm not like 'series must be ongoing before chapter publication%' then raise; end if;
+  end;
+
+  insert into public.chapters(series_id, status)
+  values ('00000000-0000-0000-0000-000000000002', 'draft')
+  returning id into v_chapter_id;
+
+  begin
+    update public.chapters set status = 'published' where id = v_chapter_id;
+    raise exception 'ASSERTION_FAILED: draft-to-published transition on completed series was accepted';
+  exception when others then
+    if sqlerrm like 'ASSERTION_FAILED:%' then raise; end if;
+    if sqlerrm not like 'series must be ongoing before chapter publication%' then raise; end if;
+  end;
+end;
+$chapter_lifecycle_guard_assert$;
+
 -- A normal release-time advance must preserve readiness, but changing approved
 -- cadence must revoke it and disable automation until fresh approval.
 insert into public.series(id, title, status, origin_type, originality_status)
