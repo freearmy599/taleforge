@@ -134,3 +134,10 @@ The branch-only diagnostic-view column-grant fix and its contract test passed CI
 - Latest audit documentation commit: `ca4fd8b3f41e6e8a0984a223349ac3a1405ac781`; GitHub Actions run `38523636057` completed successfully.
 
 This evidence does not authorize a production rollout. The raw diagnostic view and underlying true policies remain live until a separately approved migration is applied.
+
+
+## Follow-up migration syntax correction (branch-only, 2026-10-14)
+
+During review of the diagnostic-view column-grant repair, I found that the newly inserted anonymous PL/pgSQL block had malformed dollar quoting (`DO $` / `$;`) rather than the required `DO $$` / `$$;`. The branch migration has been corrected in commit `bcdb687f45a3446210da6daebd879436fb5b926c`. I added a contract test in commit `dd0fae745955c305b33916662ef286a4080adf0c` that checks dollar-quoted block balance and rejects the malformed single-dollar form.
+
+The syntax correction and test are on the branch only; CI for the latest commits must pass before considering the migration candidate review-ready. This is another reason the migration remains **not approved for production application**. No live database DDL was executed.
