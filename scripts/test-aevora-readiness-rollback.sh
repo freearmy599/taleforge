@@ -12,6 +12,11 @@ if [[ "$DATABASE_URL" =~ supabase\.(co|com) ]] || [[ "$DATABASE_URL" =~ pooler\.
   exit 2
 fi
 
+if [[ "$DATABASE_URL" != *"aevora_readiness"* ]]; then
+  echo "Refusing rollback rehearsal: database URL must identify an explicitly named aevora_readiness disposable database." >&2
+  exit 2
+fi
+
 # The fixture creates/replaces objects in public/auth. Explicit opt-in is mandatory.
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-readiness-migration-fixture.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014210000_release_automation_readiness_gate.sql
