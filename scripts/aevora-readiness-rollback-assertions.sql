@@ -21,6 +21,25 @@ begin
   if not exists (select 1 from pg_catalog.pg_trigger where tgrelid='public.series'::regclass and tgname='trg_enroll_series_in_production' and not tgisinternal) then
     raise exception 'ASSERTION_FAILED: baseline enrollment trigger missing after rollback';
   end if;
+  if exists (
+    select 1 from pg_catalog.pg_proc p
+    join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('taleforge_enroll_series_in_production', 'taleforge_check_autonomous_creation_gate')
+      and p.prosecdef
+  ) then
+    raise exception 'ASSERTION_FAILED: fixture baseline function SECURITY DEFINER property was not restored';
+  end if;
+  if exists (
+    select 1 from pg_catalog.pg_proc p
+    join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+    cross join lateral unnest(coalesce(p.proconfig, array[]::text[])) cfg
+    where n.nspname = 'public'
+      and p.proname in ('taleforge_enroll_series_in_production', 'taleforge_check_autonomous_creation_gate')
+      and cfg like 'search_path=%'
+  ) then
+    raise exception 'ASSERTION_FAILED: fixture baseline function search_path setting was not restored';
+  end if;
   if exists (select 1 from pg_catalog.pg_trigger where not tgisinternal and tgname in ('trg_lock_release_schedule_parent','trg_revoke_ambiguous_release_schedules','trg_protect_release_automation_readiness','trg_guard_chapter_publication_lifecycle')) then
     raise exception 'ASSERTION_FAILED: candidate trigger remains after rollback';
   end if;
