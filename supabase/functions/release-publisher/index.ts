@@ -38,9 +38,8 @@ Deno.serve(async (req) => { if (req.method === "OPTIONS") { return new Response(
 // uniquely configured, enabled, auto-publishing, and explicitly ready.
 const { data: automationSchedules, error: automationScheduleError } = await supabase
   .from("release_schedules")
-  .select("id,enabled,auto_publish,schedule_mode,automation_ready_at")
+  .select("id,enabled,auto_generate,auto_publish,schedule_mode,automation_ready_at")
   .eq("series_id", output.series_id)
-  .neq("schedule_mode", "manual")
   .order("id", { ascending: true })
   .limit(2);
 if (automationScheduleError) {
@@ -64,13 +63,18 @@ if (isAutonomousSeries && (automationSchedules ?? []).length !== 1) {
   return jsonResponse({ success: false, error: "Autonomous series has no unique release automation schedule.",
     code: "AUTOMATION_SCHEDULE_MISSING_OR_AMBIGUOUS" }, 409);
 }
-if ((automationSchedules ?? []).length > 0) {
-  if (automationSchedules.length !== 1) {
-    return jsonResponse({ success: false, error: "Release automation schedule is ambiguous.",
-      code: "AUTOMATION_SCHEDULE_AMBIGUOUS" }, 409);
-  }
+if ((automationSchedules ?? []).length > 1) {
+  return jsonResponse({ success: false, error: "Release automation schedule is ambiguous.",
+    code: "AUTOMATION_SCHEDULE_AMBIGUOUS" }, 409);
+}
+if ((automationSchedules ?? []).length === 1) {
   const automationSchedule = automationSchedules[0];
-  if (automationSchedule.enabled !== true || automationSchedule.auto_publish !== true
+  if (automationSchedule.schedule_mode === "manual") {
+    if (automationSchedule.auto_generate === true || automationSchedule.auto_publish === true) {
+      return jsonResponse({ success: false, error: "Manual schedules cannot enable automatic generation or publication.",
+        code: "MANUAL_SCHEDULE_AUTOMATION_CONFLICT" }, 409);
+    }
+  } else if (automationSchedule.enabled !== true || automationSchedule.auto_publish !== true
     || !isAutomationReady(automationSchedule.automation_ready_at)) {
     return jsonResponse({ success: false, error: "Release automation is not ready for publication.",
       code: "AUTOMATION_NOT_READY" }, 409);
