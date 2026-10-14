@@ -90,7 +90,7 @@ $manual_assert$;
 -- Direct service-role writes cannot set the readiness marker outside the RPC.
 -- Even the former caller-settable GUC must not bypass the transaction authorization record.
 select pg_catalog.set_config('request.jwt.claim.role', 'service_role', false);
-do $
+do $readiness_marker_assert$
 begin
   perform pg_catalog.set_config('aevora.release_readiness_rpc', 'on', true);
   begin
@@ -103,7 +103,7 @@ begin
     if sqlerrm not like 'automation_ready_at can only be set by the readiness RPC%' then raise; end if;
   end;
 end;
-$$;
+$readiness_marker_assert$;
 
 -- A new ongoing series is enrolled inertly, then activated only with audited evidence.
 insert into public.series(id, title, status, origin_type, originality_status)
