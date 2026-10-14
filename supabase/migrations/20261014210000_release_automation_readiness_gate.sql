@@ -100,10 +100,11 @@ begin
     raise exception 'service role required';
   end if;
 
-  select rs.* into v_schedule
+  -- Lock order matches the enrollment trigger: series first, schedule second.
+  -- Read the parent ID without locking, then lock and revalidate both rows.
+  select rs.series_id into v_schedule.series_id
   from public.release_schedules rs
-  where rs.id = p_schedule_id
-  for update;
+  where rs.id = p_schedule_id;
 
   if not found then
     raise exception 'release schedule not found';
@@ -116,6 +117,20 @@ begin
 
   if not found or v_series.status <> 'ongoing' then
     raise exception 'series must exist and be ongoing';
+  end if;
+
+  select rs.* into v_schedule
+  from public.release_schedules rs
+  where rs.id = p_schedule_id
+    and rs.series_id = v_series.id
+  for update;
+
+  if not found then
+    raise exception 'release schedule changed during readiness verification';
+  end if;
+
+  if (select count(*) from public.release_schedules rs where rs.series_id = v_series.id) <> 1 then
+    raise exception 'series must have exactly one release schedule before readiness';
   end if;
 
   if v_schedule.schedule_mode = 'manual'
