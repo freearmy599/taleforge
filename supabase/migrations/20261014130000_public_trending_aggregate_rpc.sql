@@ -84,3 +84,10 @@ WITH (security_invoker = true)
 AS
 SELECT *
 FROM public.get_public_story_trending_scores();
+
+-- These discovery views are read APIs only; remove default write/table-level
+-- privileges while preserving public SELECT for the intended reader experience.
+REVOKE ALL PRIVILEGES ON TABLE public.story_trending_scores, public.story_intelligence
+FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.story_trending_scores, public.story_intelligence
+TO anon, authenticated;
