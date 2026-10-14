@@ -82,7 +82,7 @@ test("runner does not return raw internal exception messages", () => {
 });
 
 test("autonomous creation policy caps are serialized for the full creation transaction", () => {
-  assert.match(migration, /create or replace function public\.taleforge_check_autonomous_creation_gate\(\s*p_opportunity_id uuid,\s*p_concept_overall_score numeric default null\)[\s\S]*?from public\.taleforge_autonomous_creation_policy\s+where policy_key = 'production'\s+for update/i);
+  assert.match(migration, /create or replace function public\.taleforge_check_autonomous_creation_gate\(\s*p_opportunity_id uuid,\s*p_concept_overall_score numeric default null\s*\)[\s\S]*?from public\.taleforge_autonomous_creation_policy\s+where policy_key = 'production'\s+for update/i);
   assert.match(migration, /revoke all on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) to service_role/i);
 });
