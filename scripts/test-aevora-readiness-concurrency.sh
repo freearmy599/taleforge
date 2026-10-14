@@ -218,8 +218,8 @@ echo "autonomous creation policy concurrency assertion passed"
 
 
 # Concurrent schedule writers must serialize on the parent series row. The
-# second insert must observe the first committed row, then revoke automation
-# across the ambiguous pair rather than leave either schedule ready.
+# schema's unique series_id constraint must reject the second insert after it
+# waits for the first writer; no duplicate/ambiguous schedule may persist.
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 insert into public.series(id, title, status, origin_type, originality_status)
 values ('00000000-0000-0000-0000-000000000005', 'Concurrent schedule fixture', 'draft', 'ai_original', 'pending');
@@ -243,8 +243,7 @@ SQL
 schedule_writer_a_pid=$!
 sleep 0.2
 
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-schedule-writer-b.log 2>&1 <<'SQL' &
-begin;
+if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /tmp/aevora-schedule-writer-b.log 2>&1 <<'SQL'
 insert into public.release_schedules(
   id, series_id, enabled, auto_generate, auto_publish, schedule_mode,
   interval_hours, timezone, chapters_ahead, automation_ready_at
@@ -253,11 +252,19 @@ insert into public.release_schedules(
   '00000000-0000-0000-0000-000000000005',
   false, false, false, 'interval', 24, 'Asia/Kolkata', 3, null
 );
-commit;
 SQL
-schedule_writer_b_pid=$!
+then
+  echo "ASSERTION_FAILED: concurrent second schedule insert bypassed the unique series_id constraint" >&2
+  wait "$schedule_writer_a_pid"
+  exit 1
+fi
 wait "$schedule_writer_a_pid"
-wait "$schedule_writer_b_pid"
+
+if ! grep -q "duplicate key value violates unique constraint" /tmp/aevora-schedule-writer-b.log; then
+  cat /tmp/aevora-schedule-writer-a.log /tmp/aevora-schedule-writer-b.log >&2
+  echo "ASSERTION_FAILED: second schedule writer failed for an unexpected reason" >&2
+  exit 1
+fi
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 do $assert$
@@ -272,8 +279,8 @@ begin
   from public.release_schedules
   where series_id = '00000000-0000-0000-0000-000000000005';
 
-  if v_count <> 2 or v_unsafe <> 0 then
-    raise exception 'ASSERTION_FAILED: concurrent duplicate schedules were not both left inert (count %, unsafe %)', v_count, v_unsafe;
+  if v_count <> 1 or v_unsafe <> 0 then
+    raise exception 'ASSERTION_FAILED: concurrent schedule insert left unexpected or active rows (count %, unsafe %)', v_count, v_unsafe;
   end if;
 end;
 $assert$;
