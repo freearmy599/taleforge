@@ -1,6 +1,26 @@
 \set ON_ERROR_STOP on
 
 -- Table and identity-sequence grants must be narrow for client roles.
+DO $event_uuid_index_assert$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_attribute
+    WHERE attrelid = 'public.reader_events'::regclass
+      AND attname = 'event_uuid' AND NOT attisdropped
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: event_uuid column missing';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_indexes
+    WHERE schemaname = 'public'
+      AND tablename = 'reader_events'
+      AND indexname = 'reader_events_event_uuid_uidx'
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: reader event idempotency index missing';
+  END IF;
+END;
+$event_uuid_index_assert$;
+
 DO $acl_assert$
 BEGIN
   IF NOT has_table_privilege('anon','public.reader_events','INSERT')
@@ -38,10 +58,26 @@ $acl_assert$;
 -- individually valid foreign keys.
 SET ROLE anon;
 
-INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id)
+INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,event_uuid)
 VALUES ('visitor-valid-anon-0001','story_open',
         '00000000-0000-0000-0000-000000000101',
-        '00000000-0000-0000-0000-000000000111');
+        '00000000-0000-0000-0000-000000000111',
+        '10000000-0000-0000-0000-000000000001');
+
+DO $duplicate_event_uuid_assert$
+BEGIN
+  BEGIN
+    INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,event_uuid)
+    VALUES ('visitor-valid-anon-0001','story_open',
+            '00000000-0000-0000-0000-000000000101',
+            '00000000-0000-0000-0000-000000000111',
+            '10000000-0000-0000-0000-000000000001');
+    RAISE EXCEPTION 'ASSERTION_FAILED: duplicate event UUID was accepted';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+END;
+$duplicate_event_uuid_assert$;
 
 DO $mismatched_pair_assert$
 BEGIN
