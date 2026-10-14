@@ -218,13 +218,19 @@ begin
   end if;
 
   if v_schedule.schedule_mode = 'manual'
+     or v_schedule.chapters_ahead is null
+     or v_schedule.chapters_ahead < 1
+     or v_schedule.chapters_ahead > 12
      or (v_schedule.schedule_mode = 'interval'
-         and (v_schedule.interval_hours is null or v_schedule.interval_hours <= 0))
+         and (v_schedule.interval_hours is null
+              or v_schedule.interval_hours < 1
+              or v_schedule.interval_hours > 168))
      or (v_schedule.schedule_mode = 'weekly'
          and (v_schedule.preferred_weekday is null
               or v_schedule.preferred_weekday < 0
               or v_schedule.preferred_weekday > 6
               or v_schedule.preferred_time is null
+              or v_schedule.next_release_at is null
               or nullif(btrim(v_schedule.timezone), '') is null
               or not exists (
                 select 1 from pg_catalog.pg_timezone_names tz
