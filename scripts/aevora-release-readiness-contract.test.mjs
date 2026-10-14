@@ -85,6 +85,7 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   assert.match(migration, /revoke all on table public\.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role/i);
   assert.match(migration, /security definer\s+set search_path = ''[\s\S]*?taleforge_release_readiness_authorizations/i);
   assert.match(migration, /a\.transaction_id = pg_catalog\.pg_current_xact_id\(\)[\s\S]*?a\.schedule_id = new\.id/i);
+  assert.doesNotMatch(migration, /current_setting\(['"]aevora\.release_readiness_rpc['"]/i, "caller-settable GUCs must not authorize readiness marker writes");
   assert.match(migration, /auth\.role\(\) is distinct from 'service_role'/i,
     "the atomic readiness RPC itself must still require service_role");
   assert.match(migration, /lifecycle_initialized/);
