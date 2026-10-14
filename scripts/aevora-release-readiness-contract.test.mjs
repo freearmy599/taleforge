@@ -22,6 +22,14 @@ test("scheduler fails closed on a missing readiness marker before publisher invo
   assert.match(scheduler.slice(guard, publisherCall), /continue;/);
 });
 
+test("publisher rejects ambiguous schedules and automatic flags on manual schedules", () => {
+  assert.match(publisher, /\.order\("id", \{ ascending: true \}\)\s*\.limit\(2\)/);
+  assert.match(publisher, /if \(\(automationSchedules \?\? \[\]\)\.length > 1\)/);
+  assert.match(publisher, /schedule_mode === "manual"/);
+  assert.match(publisher, /auto_generate === true \|\| automationSchedule\.auto_publish === true/);
+  assert.match(publisher, /MANUAL_SCHEDULE_AUTOMATION_CONFLICT/);
+});
+
 test("publisher independently checks non-manual schedule readiness", () => {
   assert.match(publisher, /import \{ isAutomationReady \} from "\.\.\/release-scheduler\/readiness\.ts";/);
   assert.match(publisher, /from\("release_schedules"\)/);
