@@ -251,7 +251,7 @@ begin
     raise exception 'ASSERTION_FAILED: readiness authorization row was not cleaned up after RPC';
   end if;
 end;
-$;
+$$;
 
 -- A legacy service-role writer cannot turn on publication after generation
 -- readiness: the trigger revokes readiness and leaves all automatic flags off.
