@@ -26,6 +26,12 @@ create table public.series (
   originality_status text
 );
 
+create table public.chapters (
+  id uuid primary key default gen_random_uuid(),
+  series_id uuid not null references public.series(id),
+  status text not null default 'draft'
+);
+
 create table public.release_schedules (
   id uuid primary key default gen_random_uuid(),
   series_id uuid not null unique references public.series(id) on delete cascade,
