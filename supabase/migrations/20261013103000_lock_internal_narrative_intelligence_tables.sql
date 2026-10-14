@@ -32,6 +32,10 @@ DROP POLICY IF EXISTS "public can read system dependencies" ON public.taleforge_
 DROP POLICY IF EXISTS "public can read system health" ON public.taleforge_system_health;
 DROP POLICY IF EXISTS "public can read system registry" ON public.taleforge_system_registry;
 
+-- The invoker-security status view includes internal blocking_reason/evidence fields.
+-- Disable direct client access until a separately reviewed allowlisted public projection exists.
+REVOKE ALL PRIVILEGES ON TABLE public.taleforge_system_health_snapshot FROM PUBLIC, anon, authenticated;
+
 REVOKE ALL PRIVILEGES ON TABLE
   public.character_continuity_events,
   public.world_continuity_events,
