@@ -2,7 +2,7 @@
 
 ## Status and boundary
 
-Design checkpoint only. This file does not implement or authorize a schema change. No production event rows were read, no intake endpoint was called, and no database mutation was performed. The current public trending aggregate must remain gated until the abuse controls and relationship repair are tested together.
+Design checkpoint for the still-unimplemented abuse controls. Branch-only relationship and INSERT-only migrations now have disposable-PostgreSQL regression coverage, but this does not authorize production schema changes. No production event rows were read, no intake endpoint was called, and no database mutation was performed. The current public trending aggregate must remain gated until deduplication, rate limiting, and relationship integrity are addressed together.
 
 ## Verified schema contract (read-only catalog inspection)
 
@@ -15,7 +15,19 @@ The current `public.reader_events` columns are:
 - `progress_percent smallint NULL`, constrained to 0–100 when present.
 - `created_at timestamptz NOT NULL DEFAULT now()`.
 
-The table has no client event UUID, idempotency token, or unique constraint that deduplicates repeated logical events. Indexes support time/visitor/series/event queries but do not enforce a replay contract. The relationship-policy candidate addresses only the chapter/series mismatch; it does not provide authenticity, deduplication, or rate limiting.
+The table has no client event UUID, idempotency token, or unique constraint that deduplicates repeated logical events. Indexes support time/visitor/series/event queries but do not enforce a replay contract. The branch relationship migration now requires every event to identify an eligible series, requires any supplied chapter to belong to that same series and be published, and preserves series-only events. It still does not provide authenticity, deduplication, or rate limiting.
+
+## Branch-only runtime verification (2026-10-14)
+
+The branch now rehearses the identity-sequence ACL migration, INSERT-only table grants, and relationship policy together on disposable PostgreSQL 17. The regression script verifies:
+
+- Ordinary roles retain INSERT but lose raw SELECT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER privileges.
+- Direct client access to the identity sequence is revoked while identity-generated inserts continue to work.
+- Matching published chapter/series pairs, eligible series-only events, and completed-series events are accepted.
+- Mismatched pairs, chapter events without a series, events without a series, unpublished chapters, ineligible series, and undersized visitor IDs are rejected.
+- The raw event table remains unreadable to anon/authenticated roles.
+
+GitHub Actions run [38547727704](https://github.com/freearmy599/taleforge/actions/runs/38547727704) passed the disposable PostgreSQL replay and the branch's prepared Edge Function/source-contract validation. This is not a Supabase-managed environment test, and it does not address spoofed-but-valid event payloads, random-UUID replay, per-visitor quotas, or trusted intake.
 
 ## Recommended staged design
 
