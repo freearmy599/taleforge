@@ -98,10 +98,12 @@ test("readiness migration preserves the live enrollment interval default", () =>
   assert.match(migration, /new\.id, false, 'interval', 8, 'UTC'/i);
 });
 
-test("legacy service-role writes cannot re-enable a schedule without readiness", () => {
-  assert.match(migration, /new\.automation_ready_at is null[\s\S]*?new\.enabled = true[\s\S]*?new\.auto_generate = true[\s\S]*?new\.auto_publish = true[\s\S]*?raise exception 'automation readiness is required/i);
-  assert.match(migration, /before insert or update of automation_ready_at, enabled, auto_generate, auto_publish on public\.release_schedules/i);
+test("legacy service-role writes cannot re-enable automation without readiness", () => {
+  assert.match(migration, /new\.automation_ready_at is null[\s\S]*?new\.auto_generate = true or new\.auto_publish = true[\s\S]*?new\.enabled = true and new\.schedule_mode <> 'manual'[\s\S]*?raise exception 'automation readiness is required/i);
+  assert.match(migration, /before insert or update of automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public\.release_schedules/i);
   assert.match(migration, /update public\.release_schedules\s+set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?where automation_ready_at is null/i);
+  assert.match(migration, /new\.enabled = true and new\.schedule_mode <> 'manual'/i,
+    "enabled manual schedules with both automatic flags false remain allowed");
 });
 
 test("enrollment trigger does not enable an unready schedule", () => {
