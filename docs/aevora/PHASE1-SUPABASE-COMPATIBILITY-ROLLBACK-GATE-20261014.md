@@ -260,3 +260,19 @@ Added static contract coverage and disposable PostgreSQL assertions that generat
 The CI runs for this change are in progress at the time this note was written: [38594910734](https://github.com/freearmy599/taleforge/actions/runs/38594910734), [38594932813](https://github.com/freearmy599/taleforge/actions/runs/38594932813), and [38595002326](https://github.com/freearmy599/taleforge/actions/runs/38595002326). Do not treat this change as verified until the latest branch run completes successfully.
 
 No production migration, function deployment, SQL execution, schedule mutation, generation, publication, or billable Supabase development branch was performed.
+
+### Verification result — generation/publication separation (2026-10-14)
+
+The corrected implementation and fixtures passed [CI run 38596043959](https://github.com/freearmy599/taleforge/actions/runs/38596043959) on commit `b8524f56e09edcf9318f962d98f414394fb2e205`.
+
+- Edge Function type-check and source-contract job: **success**.
+- Release-readiness contract suite: **36 passed, 0 failed**.
+- Disposable PostgreSQL migration/runtime assertions: **success**.
+- Concurrent series-completion, chapter-publication/completion, autonomous-creation cap, schedule-writer, and stale-worker readiness-revocation rehearsals: **success**.
+- Reader-event integrity and INSERT-only grant checks: **success**.
+
+The failed intermediate runs were useful regression signals: the first test insertion accidentally changed the state expected by a later reassignment assertion, and the concurrency fixture was still toggling `auto_publish` after the readiness RPC no longer enables it. The fixture was corrected to mutate `auto_generate`, a flag that readiness actually enables, so the stale-worker test continues to exercise a real concurrent state change. The final CI run above is the passing evidence; earlier failed runs are superseded.
+
+Generation readiness now intentionally leaves publication disabled. A separate publication-authorization mechanism remains unimplemented and must be designed, tested, and reviewed before any series can be approved for automatic publication. Do not enable `auto_publish` directly as a workaround.
+
+This verification remains branch and disposable-fixture evidence only. Gate A production catalog/grant evidence, exact production rollback baseline, per-schedule dispositions, and a human-approved rollout window remain open. No production SQL, migration, function deployment, schedule mutation, generation, publication, or billable Supabase branch was performed.
