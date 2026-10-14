@@ -169,9 +169,13 @@ VALUES ('visitor-completed-0001','chapter_complete',
 
 -- A client-supplied future timestamp must be replaced by statement time.
 INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,event_uuid,created_at)
-VALUES ('visitor-timestamp-0001','story_open',
+VALUES ('visitor-timestamp-future-0001','story_open',
         '00000000-0000-0000-0000-000000000101',NULL,
         '10000000-0000-0000-0000-000000000002','2099-01-01 00:00:00+00');
+INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,event_uuid,created_at)
+VALUES ('visitor-timestamp-past-0001','story_open',
+        '00000000-0000-0000-0000-000000000101',NULL,
+        '10000000-0000-0000-0000-000000000004','2000-01-01 00:00:00+00');
 
 RESET ROLE;
 DO $server_timestamp_assert$
@@ -180,13 +184,24 @@ DECLARE
 BEGIN
   SELECT created_at INTO v_client_created_at
   FROM public.reader_events
-  WHERE event_uuid = '10000000-0000-0000-0000-000000000002';
+  WHERE event_uuid IN (
+    '10000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000004'
+  )
+  ORDER BY created_at ASC
+  LIMIT 1;
   IF v_client_created_at IS NULL
      OR v_client_created_at > statement_timestamp() + interval '1 second'
      OR v_client_created_at < statement_timestamp() - interval '1 minute' THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: client timestamp was not replaced with server statement time';
+    RAISE EXCEPTION 'ASSERTION_FAILED: client past/future timestamp was not replaced with server statement time';
   END IF;
-
+  IF (SELECT count(*) FROM public.reader_events
+      WHERE event_uuid IN (
+        '10000000-0000-0000-0000-000000000002',
+        '10000000-0000-0000-0000-000000000004'
+      )) <> 2 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: both timestamp test events must be present';
+  END IF;
 END;
 $server_timestamp_assert$;
 
@@ -220,8 +235,8 @@ DECLARE
   v_count bigint;
 BEGIN
   SELECT count(*) INTO v_count FROM public.reader_events;
-  IF v_count <> 6 THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: expected six accepted events, found %', v_count;
+  IF v_count <> 7 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: expected seven accepted events, found %', v_count;
   END IF;
   IF has_table_privilege('anon','public.reader_events','SELECT')
      OR has_table_privilege('authenticated','public.reader_events','SELECT') THEN
