@@ -64,3 +64,23 @@ Cron dispatch jobs execute SQL successfully, but this does not prove the corresp
 - No security-advisor finding is marked resolved without confirming its intended access model.
 - Scheduled dispatch success is distinguished from HTTP response success and application-level business postconditions.
 - A read-only audit can identify stale telemetry without making generation, publication, or queue changes.
+
+
+## Default-privilege templates — verified 2026-10-14
+
+A fresh read-only catalog inspection found 27 `pg_default_acl` entries. These are future-object templates, not proof of current table/function exposure. The important results are:
+
+- In `public`, both object creators `postgres` and `supabase_admin` have schema-specific default ACLs that grant `anon` and `authenticated` broad table privileges (including SELECT/INSERT/UPDATE/DELETE and other relation privileges), sequence privileges (USAGE/SELECT/UPDATE), and function EXECUTE on newly created objects.
+- Similar broad client-role templates appear for objects created by `postgres` in `storage`, and by `supabase_admin` in `graphql_public` and `graphql`. Whether those schemas are exposed through the project's Data API is not verified here.
+- The global defaults (namespace OID 0) observed for `supabase_admin` do **not** grant these client roles privileges in the returned ACL. The concern is the per-schema defaults above, not a blanket claim that global defaults are unsafe.
+- The `auth`, `realtime`, `extensions`, and `cron` entries in this snapshot do not show grants to `anon` or `authenticated` in their returned default ACLs; preserve platform-managed configuration and do not change these templates as part of this application audit.
+
+This creates a **future-object privilege drift risk**: a newly created table or function can inherit client grants before anyone adds a policy or reviews whether it should be server-only. It does not, by itself, make existing objects exposed, and broad defaults are not proof that every new object is reachable through PostgREST.
+
+### Remediation approach
+
+1. Confirm the actual Data API exposed-schema list in Supabase Dashboard/API settings, especially whether `graphql_public` or other non-public schemas are exposed. The SQL catalog does not establish this configuration.
+2. Agree on an application-owned migration-owner strategy. For new Aevora server-only tables/functions, explicitly revoke client grants in the creating migration and add contract tests. Do not blindly alter defaults owned by `supabase_admin`: Supabase/platform ownership can make changes ineffective or risky.
+3. For `public`, determine whether the defaults are intentional for all future objects or only public-facing ones. If least-privilege defaults are adopted, update defaults only after verifying migration roles and explicitly granting the required access on the intended public API objects.
+4. Add a migration-review check that flags new server-only objects without explicit least-privilege grants. Keep the existing read-only audit for global and per-schema default ACLs.
+5. No default ACL was changed, and no production migration, grant, schema exposure setting, or API configuration was modified.
