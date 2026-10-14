@@ -33,6 +33,8 @@ name: Aevora Edge source validation
       - ".github/workflows/aevora-control-plane-audit.yml"
       - "supabase/migrations/**"
       - "scripts/aevora-*.mjs"
+      - "scripts/aevora-readiness-migration-*.sql"
+      - "scripts/test-aevora-readiness-migration.sh"
       - ".github/workflows/aevora-edge-validation.yml"
 
 permissions:
