@@ -44,7 +44,7 @@ async function readTable(table: string, select: string): Promise<unknown[]> {
   // Never report a partial first page as a complete health snapshot. A missing
   // or oversized count is treated as uncertainty rather than silently truncated.
   const contentRange = response.headers.get("content-range") ?? "";
-  const totalMatch = contentRange.match(/\\/(\\d+)$/);
+  const totalMatch = contentRange.match(/\/(\d+)$/);
   const reportedTotal = totalMatch ? Number(totalMatch[1]) : Number.NaN;
   if (rows.length >= 500 || !Number.isSafeInteger(reportedTotal) || reportedTotal > rows.length) {
     console.error("[aevora-control-plane-audit] table snapshot may be truncated", table);
