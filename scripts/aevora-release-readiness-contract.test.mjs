@@ -417,3 +417,15 @@ test("chapter revision records Gemini 429/503 cooldowns without overwriting malf
   assert.match(reviseChapter, /Math\.max\(proposedUntil, existingUntil\)/);
   assert.match(reviseChapter, /Gemini cooldown could not be persisted/);
 });
+
+
+test("generation and review orchestration stop further AI work after a provider throttle even if cooldown persistence fails", () => {
+  assert.match(generationOrchestrator, /let providerThrottleObserved=false;for\(const schedule of ordered\)\{if\(providerThrottleObserved\)/);
+  assert.match(generationOrchestrator, /action:"provider_throttle_observed"/);
+  assert.match(generationOrchestrator, /if\(revisionQuotaBlocked\|\|revisionTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
+  assert.match(generationOrchestrator, /if\(providerQuotaBlocked\|\|providerTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
+  assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
+  assert.match(reviewOrchestrator, /if \(providerThrottleObserved\) \{\s*results\.push\(\{ output_id: output\.id, chapter_number: output\.chapter_number, action: "provider_throttle_observed"/);
+  assert.match(reviewOrchestrator, /call\.status === 429 \|\| call\.status === 503 \|\| call\.data\?\.reason === "provider_quota_blocked" \|\| call\.data\?\.reason === "provider_temporarily_unavailable"/);
+  assert.match(reviewOrchestrator, /providerThrottleObserved = true;/);
+});
