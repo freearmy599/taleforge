@@ -18,6 +18,7 @@ const rollbackScript = await readFile("scripts/aevora-readiness-rollback.sql", "
 const rollbackAssertions = await readFile("scripts/aevora-readiness-rollback-assertions.sql", "utf8");
 const migrationTestRunner = await readFile("scripts/test-aevora-readiness-migration.sh", "utf8");
 const rollbackTestRunner = await readFile("scripts/test-aevora-readiness-rollback.sh", "utf8");
+const migrationWorkflow = await readFile(".github/workflows/aevora-edge-validation.yml", "utf8");
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
   assert.match(scheduler, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
@@ -305,6 +306,10 @@ test("disposable readiness migration harness rehearses rollback and stays fail-c
   assert.match(migrationTestRunner, /aevora-readiness-migration-assertions\.sql/);
   assert.match(migrationTestRunner, /aevora-readiness-rollback\.sql/);
   assert.match(migrationTestRunner, /aevora-readiness-rollback-assertions\.sql/);
+  assert.match(migrationTestRunner, /AEVORA_DISPOSABLE_MIGRATION_REHEARSAL/);
+  assert.match(migrationTestRunner, /Refusing migration rehearsal against a Supabase URL/);
+  assert.match(migrationTestRunner, /aevora_readiness/);
+  assert.match(migrationWorkflow, /AEVORA_DISPOSABLE_MIGRATION_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE/);
   assert.match(rollbackScript, /set enabled = false, auto_generate = false, auto_publish = false/);
   const failClosedCommit = rollbackScript.indexOf("commit;");
   const rollbackDdl = rollbackScript.indexOf("drop trigger if exists trg_guard_chapter_publication_lifecycle");
