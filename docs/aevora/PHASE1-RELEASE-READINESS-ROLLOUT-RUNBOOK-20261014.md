@@ -21,7 +21,7 @@ Coordinate the `automation_ready_at` schema gate with the autonomous-series runn
 
 ## Existing schedule impact discovered by read-only inventory
 
-A read-only aggregate join on 2026-10-14 found **six** current schedules, all `interval` mode, attached to `ongoing` series, with `enabled=true`, `auto_generate=true`, and `auto_publish=false`. None of those six series had a non-dry autonomous-creation run, and none had a `created` autonomous-run audit row.
+A read-only aggregate join on 2026-10-14 found **six** current schedules, all `interval` mode, attached to `ongoing` series, with `enabled=true`, `auto_generate=true`, and `auto_publish=false`. None of those six series had a non-dry autonomous-creation run, and none had a `created` autonomous-run audit row. A separate grouped query found all six series have `origin_type='ai_original'` and `originality_status='pending'`.
 
 Consequences:
 
