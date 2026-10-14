@@ -17,7 +17,9 @@ set enabled = false,
     auto_publish = false,
     updated_at = now()
 where automation_ready_at is null
-  and (auto_generate = true or auto_publish = true);
+  and (auto_generate = true
+       or auto_publish = true
+       or (enabled = true and schedule_mode <> 'manual'));
 
 create table if not exists public.taleforge_release_readiness_authorizations (
   transaction_id xid8 not null,
