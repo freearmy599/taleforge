@@ -108,3 +108,17 @@ A fresh catalog query covered 173 relations in `public` and checked effective ta
 5. Confirm actual Data API exposed schemas and column-level grants; re-query effective grants after any separately authorized rollout.
 
 This is a read-only finding record. No production data, RLS policies, grants, views, functions, schema settings, cron jobs, or Edge Functions were changed. Phase 1 remains open.
+
+
+## Column-level privilege verification and branch repair (read-only audit + branch-only fix, 2026-10-14)
+
+The explicit column ACL check confirmed that the client exposure is not only a table-level grant issue:
+
+- `taleforge_system_health_snapshot` has effective SELECT on every inspected output column for both `anon` and `authenticated`, including `blocking_reason` and `evidence`. Its underlying `taleforge_system_health` relation also has a public true SELECT policy. Treat these internal diagnostic fields as exposed through the current database access model; do not fetch row contents during audit.
+- Internal narrative relations with public true policies have broad client column privileges; some, including reconciliation findings/runs, narrative depth plans, memory snapshots, thread events/progression/threads, novelty evaluations, system dependencies/health/registry, have effective client INSERT/UPDATE privileges as well as SELECT. Their row policies and current exposed-schema configuration need to be reconciled, but the ACL is plainly broader than the intended internal-only model.
+- Branch migration `20261013103000_lock_internal_narrative_intelligence_tables.sql` already removes the named public policies, relation-level client grants, and separately granted column privileges for the 13 internal base tables. The audit found a gap: its separate relation-level revoke for `taleforge_system_health_snapshot` did not remove independent column-level grants.
+- I fixed that gap **on the branch only** by adding a catalog-driven column-level revoke for the diagnostic view and a contract test that protects both relation- and column-level revocation. The SQL migration has not been run against production. CI is pending for the new change at the time of this update.
+
+The intended public alternative should be a deliberately allowlisted status projection that omits internal evidence and blocking diagnostics, with only the necessary public fields and row filters. Do not grant access to the raw snapshot to preserve a UI convenience; map each UI dependency to the sanitized contract instead.
+
+No production grants, policies, views, functions, schema settings, data, or Edge Functions were changed.
