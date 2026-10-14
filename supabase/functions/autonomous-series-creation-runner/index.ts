@@ -12,7 +12,7 @@ function reply(body: unknown, status = 200) {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
-function errText(e: unknown) { return e instanceof Error ? e.message : String(e); }
+function errText(_e: unknown) { return "Internal runner diagnostics were withheld."; }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
