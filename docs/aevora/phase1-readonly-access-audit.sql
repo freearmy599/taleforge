@@ -87,3 +87,21 @@ JOIN pg_roles r ON r.rolname = client_roles.role_name
 WHERE n.nspname = 'public'
   AND has_function_privilege(r.rolname, p.oid, 'EXECUTE')
 ORDER BY p.proname, identity_arguments, r.rolname;
+
+-- 5) Existing public-schema sequence ACLs. Identity sequences should not be
+-- directly exposed to ordinary clients; distinguish these from future defaults.
+SELECT
+  n.nspname AS schema_name,
+  c.relname AS sequence_name,
+  pg_get_userbyid(c.relowner) AS sequence_owner,
+  CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE grantee.rolname END AS grantee,
+  acl.privilege_type,
+  acl.is_grantable
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+CROSS JOIN LATERAL aclexplode(c.relacl) AS acl
+LEFT JOIN pg_roles grantee ON grantee.oid = acl.grantee
+WHERE n.nspname = 'public'
+  AND c.relkind = 'S'
+  AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
+ORDER BY sequence_name, grantee, acl.privilege_type;
