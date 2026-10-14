@@ -125,3 +125,29 @@ test("revision-successor conflict report is read-only and excludes story content
   assert.doesNotMatch(executableSql, /output_text|chapter_content/i);
   assert.match(executableSql, /generation_status\s*=\s*'approved'/i);
 });
+
+
+test("public trending aggregate preserves the exact existing discovery-view output contract", () => {
+  const expectedColumns = [
+    "series_id uuid",
+    "title text",
+    "subtitle text",
+    "description text",
+    "status text",
+    "published_at timestamptz",
+    "trending_score numeric",
+    "opens bigint",
+    "completions bigint",
+    "follows bigint",
+    "bookmarks bigint",
+    "latest_activity timestamptz",
+  ];
+  const returnBlock = trendingMigration.match(/RETURNS TABLE\s*\(([\s\S]*?)\)\s*LANGUAGE sql/i);
+  assert.ok(returnBlock, "trending RPC must declare an explicit table return contract");
+  const actualColumns = returnBlock[1]
+    .split(",")
+    .map((column) => column.trim().replace(/\s+/g, " ").toLowerCase());
+  assert.deepEqual(actualColumns, expectedColumns, "RPC output names, types, and order must match the observed discovery view contract");
+  assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH \(security_invoker = true\)/i);
+  assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.reader_events FROM PUBLIC, anon, authenticated/i.test(trendingMigration) ? /REVOKE ALL PRIVILEGES ON TABLE public\.reader_events FROM PUBLIC, anon, authenticated/i : /never-match-this/);
+});
