@@ -253,6 +253,16 @@ const readerEventIntegrityMigration = await readFile(
   "utf8",
 );
 
+const readerEventIntegrityDoc = await readFile(
+  new URL("../docs/aevora/PHASE1-READER-EVENT-RELATIONSHIP-INTEGRITY-20261014.md", import.meta.url),
+  "utf8",
+);
+
+test("reader-event integrity documentation references the canonical migration", () => {
+  assert.match(readerEventIntegrityDoc, /20261014200000_reader_event_relationship_integrity\.sql/);
+  assert.doesNotMatch(readerEventIntegrityDoc, /20261014200000_validate_reader_event_series_chapter_pair\.sql/);
+});
+
 test("reader-event insert policy requires a published chapter to match its eligible series", () => {
   assert.match(readerEventIntegrityMigration, /DROP POLICY IF EXISTS "Public can record reader events"/i);
   assert.match(readerEventIntegrityMigration, /CREATE POLICY "Public can record reader events"[\s\S]*?FOR INSERT[\s\S]*?TO anon, authenticated/i);
