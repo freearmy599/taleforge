@@ -88,4 +88,5 @@ Recovery must first leave all automation disabled. Restore exact prior function/
 - Gate A catalog/ACL evidence remains blocked.
 - The fixture rollback is not an exact production rollback baseline.
 - Six legacy schedules still require individual disposition.
+- Publication authorization has a separate design proposal, but its approver identity/authorization source remains unresolved and no implementation exists.
 - Production deployment, migration, schedule changes, generation, and publication remain unauthorized by this review.
