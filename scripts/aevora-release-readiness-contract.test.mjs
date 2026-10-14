@@ -78,14 +78,15 @@ test("runner does not return raw internal exception messages", () => {
 
 test("database readiness RPC is service-role-only and verifies bootstrap evidence", () => {
   assert.match(migration, /add column if not exists automation_ready_at timestamptz/i);
-  assert.match(migration, /pg_catalog\.current_setting\('aevora\.release_readiness_rpc', true\).*<> 'on'/i);
+  assert.match(migration, /create table if not exists public\.taleforge_release_readiness_authorizations[\s\S]*?primary key \(transaction_id, schedule_id\)/i);
+  assert.match(migration, /revoke all on table public\.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role/i);
+  assert.match(migration, /security definer\s+set search_path = ''[\s\S]*?taleforge_release_readiness_authorizations/i);
+  assert.match(migration, /a\.transaction_id = pg_catalog\.pg_current_xact_id\(\)[\s\S]*?a\.schedule_id = new\.id/i);
   assert.match(migration, /auth\.role\(\) is distinct from 'service_role'/i,
     "the atomic readiness RPC itself must still require service_role");
   assert.match(migration, /lifecycle_initialized/);
   assert.match(migration, /release_schedule_initialized/);
   assert.match(migration, /automation_ready_at = coalesce\(automation_ready_at, now\(\)\)/);
-  assert.match(migration, /set_config\('aevora\.release_readiness_rpc', 'on', true\)/i);
-  assert.match(migration, /set_config\('aevora\.release_readiness_rpc', 'off', true\)/i);
   assert.match(migration, /revoke all on function public\.taleforge_mark_release_automation_ready\(uuid\) from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.taleforge_mark_release_automation_ready\(uuid\) to service_role/i);
   assert.match(migration, /p\.policy_key = 'production'[\s\S]*?p\.enabled = true/i);
