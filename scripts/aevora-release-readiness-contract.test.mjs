@@ -478,3 +478,27 @@ test("legacy schedule disposition register keeps all six rows on hold without in
   assert.match(legacyDispositionRegister, /publication authorization is distinct from generation authorization/i);
   assert.match(legacyDispositionRegister, /does not authorize a migration, grant change, deployment, cron mutation, schedule update, generation, or publication/i);
 });
+
+
+test("production rollout runbook requires pause, exact baseline, leaf-first order, and fail-closed recovery", () => {
+  assert.match(rolloutPlan, /Gate A evidence/i);
+  assert.match(rolloutPlan, /production-specific recovery procedure/i);
+  assert.match(rolloutPlan, /Pause all invocation sources identified in preflight/i);
+  assert.match(rolloutPlan, /Confirm no in-flight generation, review, or publication worker remains active/i);
+  const publisherOrder = rolloutPlan.indexOf("1. \`release-publisher\`");
+  const generatorOrder = rolloutPlan.indexOf("2. \`generate-chapter\` and \`revise-chapter\`");
+  const reviewWorkersOrder = rolloutPlan.indexOf("3. AI review workers");
+  const reviewOrchestratorOrder = rolloutPlan.indexOf("4. \`review-orchestrator\`");
+  const generationOrchestratorOrder = rolloutPlan.indexOf("5. \`generation-orchestrator\`");
+  const runnerOrder = rolloutPlan.indexOf("6. \`autonomous-series-creation-runner\`");
+  const schedulerOrder = rolloutPlan.indexOf("7. \`release-scheduler\`");
+  assert.ok(publisherOrder >= 0 && generatorOrder > publisherOrder &&
+    reviewWorkersOrder > generatorOrder && reviewOrchestratorOrder > reviewWorkersOrder &&
+    generationOrchestratorOrder > reviewOrchestratorOrder && runnerOrder > generationOrchestratorOrder &&
+    schedulerOrder > runnerOrder, "rollout must deploy guarded leaf functions before orchestration and scheduler");
+  assert.match(rolloutPlan, /keep all invocation sources paused until the entire set is verified/i);
+  assert.match(rolloutPlan, /Do not use a production invocation as an unreviewed smoke test/i);
+  assert.match(rolloutPlan, /Recovery must first leave all automation disabled/i);
+  assert.match(rolloutPlan, /If any precondition is missing, stop before migration/i);
+  assert.match(rolloutPlan, /Production deployment, migration, schedule changes, generation, and publication remain unauthorized/i);
+});
