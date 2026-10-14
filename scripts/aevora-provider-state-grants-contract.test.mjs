@@ -214,7 +214,7 @@ test("public content tables keep RLS and expose only SELECT to ordinary clients"
   assert.match(publicContentMigration, /ALTER TABLE public\.%I ENABLE ROW LEVEL SECURITY/i);
   assert.match(publicContentMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/i);
   assert.match(publicContentMigration, /REVOKE ALL PRIVILEGES \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/i);
-  assert.match(publicContentMigration, /GRANT SELECT ON TABLE public\\.series, public\\.chapters, public\\.stories, public\\.genres, public\\.tags, public\\.story_tags TO anon, authenticated/i);
+  assert.match(publicContentMigration, /GRANT SELECT ON TABLE public\.series, public\.chapters, public\.stories, public\.genres, public\.tags, public\.story_tags TO anon, authenticated/i);
   assert.doesNotMatch(publicContentMigration, /GRANT\s+(INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER|MAINTAIN|ALL)\b/i);
   assert.doesNotMatch(publicContentMigration, /CREATE\s+POLICY/i);
 });
