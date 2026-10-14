@@ -14,6 +14,7 @@ const runner = await readFile("supabase/functions/autonomous-series-creation-run
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
 const publicationAuthorizationDesign = await readFile("docs/aevora/PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md", "utf8");
 const rolloutPlan = await readFile("docs/aevora/PHASE1-PRODUCTION-ROLLOUT-SEQUENCE-20261014.md", "utf8");
+const legacyDispositionRegister = await readFile("docs/aevora/PHASE1-LEGACY-SCHEDULE-DISPOSITION-REGISTER-20261014.md", "utf8");
 const concurrencyScript = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const migrationFixture = await readFile("scripts/aevora-readiness-migration-fixture.sql", "utf8");
 const migrationAssertions = await readFile("scripts/aevora-readiness-migration-assertions.sql", "utf8");
@@ -463,4 +464,17 @@ test("publication authorization remains a separate, unimplemented release gate",
   assert.doesNotMatch(migration.slice(readinessStart, readinessEnd), /auto_publish = true/i);
   assert.doesNotMatch(migration, /create or replace function public\.taleforge_authorize_release_publication/i,
     "no publication approval RPC may appear before its principal and threat model are agreed");
+});
+
+
+test("legacy schedule disposition register keeps all six rows on hold without inventing identity or approval", () => {
+  assert.match(legacyDispositionRegister, /six legacy schedule disposition register/i);
+  assert.match(legacyDispositionRegister, /Evidence template only — no schedule is approved/i);
+  assert.equal((legacyDispositionRegister.match(/\| Legacy row [A-F] \|/g) ?? []).length, 6);
+  assert.equal((legacyDispositionRegister.match(/HOLD — no automation approval/g) ?? []).length, 6);
+  assert.match(legacyDispositionRegister, /not a mapping to database row order/i);
+  assert.match(legacyDispositionRegister, /Pending fresh inventory/);
+  assert.match(legacyDispositionRegister, /pending originality is not a pass/i);
+  assert.match(legacyDispositionRegister, /publication authorization is distinct from generation authorization/i);
+  assert.match(legacyDispositionRegister, /does not authorize a migration, grant change, deployment, cron mutation, schedule update, generation, or publication/i);
 });
