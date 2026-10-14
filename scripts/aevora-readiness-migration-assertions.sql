@@ -253,7 +253,7 @@ update public.series
 set status = 'completed'
 where id = '00000000-0000-0000-0000-000000000002';
 
-do $
+do $terminal_assert$
 declare
   v_count bigint;
   v_enabled_count bigint;
@@ -275,6 +275,6 @@ begin
     raise exception 'ASSERTION_FAILED: completed series retained enabled or ready duplicate schedules';
   end if;
 end;
-$;
+$terminal_assert$;
 
 select 'release readiness migration integration assertions passed' as result;
