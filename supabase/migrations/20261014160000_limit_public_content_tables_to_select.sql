@@ -10,7 +10,10 @@ BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'series',
     'chapters',
-    'stories'
+    'stories',
+    'genres',
+    'tags',
+    'story_tags'
   ]
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', table_name);
@@ -34,4 +37,4 @@ BEGIN
 END
 $$;
 
-GRANT SELECT ON TABLE public.series, public.chapters, public.stories TO anon, authenticated;
+GRANT SELECT ON TABLE public.series, public.chapters, public.stories, public.genres, public.tags, public.story_tags TO anon, authenticated;
