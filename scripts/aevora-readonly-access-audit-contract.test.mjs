@@ -46,8 +46,8 @@ test("default ACL inventory distinguishes future-object privileges by owner", ()
 });
 
 test("existing sequence ACL inventory is read-only and distinguishes client roles", () => {
-  assert.match(sql, /c\\.relkind\\s*=\\s*'S'/i);
-  assert.match(sql, /aclexplode\\(c\\.relacl\\)/i);
+  assert.match(sql, /c\.relkind\s*=\s*'S'/i);
+  assert.match(sql, /aclexplode\(c\.relacl\)/i);
   assert.match(sql, /sequence_owner/i);
-  assert.match(sql, /grantee\\.rolname\\s+IN\\s+\\('anon',\\s*'authenticated'\\)/i);
+  assert.match(sql, /grantee\.rolname\s+IN\s+\('anon',\s*'authenticated'\)/i);
 });
