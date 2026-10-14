@@ -2,7 +2,7 @@
 
 ## Purpose and safety boundary
 
-This is a **read-only reconciliation plan**, not an authorization to deploy. The live Supabase migration ledger contains 232 entries and ends at `20261010161919_aevora_release_scheduler_leases`. The 19 branch migrations below are not recorded in that ledger. Their absence does not prove that every corresponding schema change is absent from production: live catalog checks already show partial drift (for example, production lease functions exist but still use the older search path). Do not apply these migrations as a batch or use `IF NOT EXISTS` as a substitute for compatibility review.
+This is a **read-only reconciliation plan**, not an authorization to deploy. The live Supabase migration ledger contains 232 entries and ends at `20261010161919_aevora_release_scheduler_leases`. The 20 branch migrations below are not recorded in that ledger. Their absence does not prove that every corresponding schema change is absent from production: live catalog checks already show partial drift (for example, production lease functions exist but still use the older search path). Do not apply these migrations as a batch or use `IF NOT EXISTS` as a substitute for compatibility review.
 
 No production schema, grants, data, cron job, Edge Function, schedule, generation, or publication was changed for this review.
 
@@ -29,6 +29,7 @@ No production schema, grants, data, cron job, Edge Function, schedule, generatio
 | `20261014200000_reader_event_relationship_integrity.sql` | Requires every event to identify an eligible series and supplied chapters to match that series and be published | **High**: can reject malformed legacy client payloads; eligible series-only events remain valid. | Rehearse accepted/rejected event pairs, chapter-only payloads, unpublished content, role privileges, and browser event payload compatibility in a disposable database. |
 | `20261014210000_release_automation_readiness_gate.sql` | Adds a server-controlled readiness marker, atomic service-only readiness RPC, and inert enrollment defaults | **Critical**: disables existing unready non-manual schedules and requires a coordinated runner/scheduler/publisher/generation rollout. | Rehearse the migration and concurrency tests; confirm callers, schedule disposition, policy state, lifecycle/run evidence, rollback, and manual-review activation behavior. Keep production rollout separately approved. |
 | `20261014220000_reader_event_idempotency_key.sql` | Adds nullable client event UUIDs and a partial unique index for retry idempotency | **Medium–high**: does not prevent spoofing or spam with fresh UUIDs; browser clients must reuse a key when retrying. | Replay duplicate-key and legacy-null cases; verify identity/insert-only grants and client error handling; keep the public trending RPC gated until rate limiting and trusted intake are designed. |
+| `20261014230000_reader_event_server_timestamp.sql` | Forces server statement time for anonymous/authenticated reader inserts | **Medium–high**: prevents client backdating/future-dating but does not prevent event spam or fresh-UUID abuse. | Replay client-supplied past/future timestamps under anon/authenticated roles; confirm trusted service-role timestamps remain available and trigger execution/search path are safe. |
 
 ## Cross-migration dependencies and order
 
@@ -54,12 +55,12 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 - [ ] Disposable-environment migration replay, role-based tests, TypeScript/tests, and advisors pass.
 - [ ] Rollback/recovery plan and an explicit deployment approval exist.
 
-**Current decision: NO-GO for applying the 19 migrations as a batch.** Several are promising hardening changes, but the live ledger/catalog drift, caller compatibility, the provider-state data update, revision-successor mutation, public SECURITY DEFINER aggregate, and missing `supabase_admin` privilege path must be resolved first.
+**Current decision: NO-GO for applying the 20 migrations as a batch.** Several are promising hardening changes, but the live ledger/catalog drift, caller compatibility, the provider-state data update, revision-successor mutation, public SECURITY DEFINER aggregate, and missing `supabase_admin` privilege path must be resolved first.
 
 ## Verification snapshot
 
 - Live migration ledger: 232 entries; latest recorded version `20261010161919`.
-- All 19 migration versions listed above are absent from that ledger.
+- All 20 migration versions listed above are absent from that ledger.
 - Branch commit reviewed: `075d8bff532fc4b95b80f56fb31a8ef964c17875`.
 - GitHub Actions type-check run `38522406714`: **success**.
 - This document records review only. It does not authorize or perform a production change.
@@ -67,7 +68,7 @@ The order below is a **review sequence**, not a ready-to-run deployment command:
 
 ## Readiness-gate migration addendum (2026-10-14)
 
-The current matrix contains **19 branch-only migration versions** absent from the recorded live ledger, including `20261014210000_release_automation_readiness_gate.sql` and `20261014220000_reader_event_idempotency_key.sql`. Neither migration is present in production or has been applied.
+The current matrix contains **20 branch-only migration versions** absent from the recorded live ledger, including the release-readiness gate, reader-event idempotency key, and server-controlled timestamp migrations. None of these branch-only changes has been applied to production.
 
 Additional compatibility requirements for this migration:
 
