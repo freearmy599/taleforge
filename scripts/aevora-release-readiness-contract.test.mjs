@@ -136,7 +136,7 @@ test("legacy service-role writes cannot re-enable automation without readiness",
 
 test("readiness fixture preserves the production unique schedule invariant before fault injection", () => {
   assert.match(migrationFixture, /series_id uuid not null unique references public\.series\(id\) on delete cascade/i);
-  assert.match(migrationAssertions, /production has UNIQUE\(series_id\) constraint/i);
+  assert.match(migrationAssertions, /Fault-injection only/i);
   assert.match(migrationAssertions, /alter table public\.release_schedules drop constraint release_schedules_series_id_key/i);
 });
 
