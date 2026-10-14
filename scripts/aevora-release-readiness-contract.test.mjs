@@ -68,9 +68,10 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   const rpcEnd = migration.indexOf("revoke all on function public.taleforge_mark_release_automation_ready", rpcStart);
   const readinessRpc = migration.slice(rpcStart, rpcEnd);
   const seriesLock = readinessRpc.indexOf("where s.id = v_series_id");
+  const lifecycleLock = readinessRpc.indexOf("from public.story_lifecycle sl");
   const scheduleLock = readinessRpc.indexOf("select rs.* into v_schedule");
-  assert.ok(seriesLock >= 0 && scheduleLock > seriesLock,
-    "readiness RPC must lock the parent series before its release schedule");
+  assert.ok(seriesLock >= 0 && lifecycleLock > seriesLock && scheduleLock > lifecycleLock,
+    "readiness RPC must lock series, lifecycle, then schedule in enrollment-trigger order");
   assert.match(readinessRpc, /where rs\\.id = p_schedule_id\\s+and rs\\.series_id = v_series\\.id\\s+for update/i);
   assert.match(readinessRpc, /from public.story_lifecycle sl[\\s\\S]*?for update/i);
   assert.match(migration, /series must have exactly one release schedule before readiness/i);
