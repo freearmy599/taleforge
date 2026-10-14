@@ -69,7 +69,7 @@ test("tracked audit Edge Function is GET-only and requires the scoped bearer tok
 });
 
 test("audit endpoint parses PostgREST total count without a malformed regex", () => {
-  assert.ok(edgeSource.includes(String.raw\`contentRange.match(/\/(\d+)$/)\`));
+  assert.ok(edgeSource.includes("contentRange.match(/\\/(\\d+)$/)"));
 });
 
 test("audit endpoint fails closed rather than reporting a partial 500-row snapshot", () => {
