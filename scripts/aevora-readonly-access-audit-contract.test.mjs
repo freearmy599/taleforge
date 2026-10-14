@@ -5,6 +5,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
+import vm from "node:vm";
 
 const sql = await readFile(
   new URL("../docs/aevora/phase1-readonly-access-audit.sql", import.meta.url),
@@ -279,6 +280,60 @@ test("reader event idempotency keys are unique and reused on retry", () => {
   assert.match(readingProgressSource, /payload\.event_uuid=eventUuid/);
   assert.match(readingProgressSource, /error\.code==="23505"/);
   assert.match(readingProgressSource, /pendingEventIds\.set\(eventKey,eventUuid\)/);
+});
+
+test("reader-event retries reuse the same UUID and distinct progress values get distinct UUIDs", async () => {
+  const storage = new Map();
+  let now = 1_000_000;
+  let uuidCounter = 0;
+  const submitted = [];
+  const responses = [
+    { error: { code: "NETWORK_ERROR" } },
+    { error: null },
+    { error: null },
+  ];
+  const localStorage = {
+    getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+    setItem(key, value) { storage.set(key, String(value)); },
+    removeItem(key) { storage.delete(key); },
+  };
+  const randomUUID = () => `00000000-0000-4000-8000-${String(++uuidCounter).padStart(12, "0")}`;
+  const supabase = {
+    from(table) {
+      assert.equal(table, "reader_events");
+      return {
+        async insert(payload) {
+          submitted.push({ ...payload });
+          return responses.shift() ?? { error: null };
+        },
+      };
+    },
+  };
+  const window = { taleForgeSupabase: supabase, crypto: { randomUUID } };
+  vm.runInNewContext(readingProgressSource, {
+    window,
+    localStorage,
+    crypto: { randomUUID },
+    Date: { now: () => now },
+    Math,
+    JSON,
+    Map,
+    console: { debug() {} },
+  });
+
+  const track = window.taleForgeProgress.track;
+  await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 40 });
+  now += 15_001;
+  await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 40 });
+  now += 15_001;
+  await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 41 });
+
+  assert.equal(submitted.length, 3);
+  assert.ok(submitted[0].event_uuid, "UUID is attached when browser crypto is available");
+  assert.equal(submitted[1].event_uuid, submitted[0].event_uuid,
+    "retry after a failed insert must reuse the original event UUID");
+  assert.notEqual(submitted[2].event_uuid, submitted[1].event_uuid,
+    "a distinct progress value must use a distinct idempotency key");
 });
 
 test("reader-event insert policy requires a published chapter to match its eligible series", () => {
