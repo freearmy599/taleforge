@@ -57,7 +57,7 @@ begin
       chapters_ahead, auto_generate, auto_publish, automation_ready_at
     )
     values (
-      new.id, false, 'interval', 24, 'UTC',
+      new.id, false, 'interval', 8, 'UTC',
       12, false, false, null
     );
   elsif new.status in ('completed', 'hiatus', 'cancelled') then
@@ -72,7 +72,7 @@ begin
     update public.release_schedules
     set enabled = false,
         schedule_mode = case when schedule_mode = 'manual' then 'interval' else schedule_mode end,
-        interval_hours = coalesce(interval_hours, 24),
+        interval_hours = coalesce(interval_hours, 8),
         chapters_ahead = greatest(1, least(coalesce(chapters_ahead, 12), 20)),
         auto_generate = false,
         auto_publish = false,
