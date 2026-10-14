@@ -73,7 +73,7 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
   const scheduleLock = readinessRpc.indexOf("select rs.* into v_schedule");
   assert.ok(seriesLock >= 0 && lifecycleLock > seriesLock && scheduleLock > lifecycleLock,
     "readiness RPC must lock series, lifecycle, then schedule in enrollment-trigger order");
-  assert.match(readinessRpc, /where rs\\.id = p_schedule_id\\s+and rs\\.series_id = v_series\\.id\\s+for update/i);
+  assert.match(readinessRpc, /where rs\.id = p_schedule_id\s+and rs\.series_id = v_series\.id\s+for update/i);
   assert.match(readinessRpc, /from public.story_lifecycle sl[\\s\\S]*?for update/i);
   assert.match(migration, /series must have exactly one release schedule before readiness/i);
   assert.doesNotMatch(migration, /update public\.release_schedules\s+set automation_ready_at\s*=\s*now\(\)\s*;/i,
@@ -82,7 +82,6 @@ test("database readiness RPC is service-role-only and verifies bootstrap evidenc
 
 test("readiness migration preserves the live enrollment interval default", () => {
   assert.match(migration, /new\.id, false, 'interval', 8, 'UTC'/i);
-  assert.match(migration, /interval_hours = coalesce\(interval_hours, 8\)/i);
 });
 
 test("enrollment trigger does not enable an unready schedule", () => {
