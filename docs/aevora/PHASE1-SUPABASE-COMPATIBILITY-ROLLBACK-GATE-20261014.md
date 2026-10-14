@@ -198,3 +198,16 @@ Workflow [38592755535](https://github.com/freearmy599/taleforge/actions/runs/385
 This is static source-contract evidence plus disposable PostgreSQL integration evidence. It does not exercise a live Gemini request or prove the deployed production function is the same version as the branch. One residual operational risk remains: if a Gemini throttle response occurs but persisting the shared cooldown itself fails, this invocation stops, but future invocations may not observe a newly recorded cooldown. This must be addressed or explicitly accepted in the provider-state failure policy before quota-protection is treated as fully closed.
 
 Production rollout remains blocked by Gate A Supabase-specific ACL/RLS evidence, exact production rollback baseline and deployment ordering, and auditable disposition of the six legacy schedules. No production change, deployment, schedule mutation, generation, publication, or billable Supabase branch was performed.
+
+
+### Verification update — revision cooldown assertions strengthened (2026-10-14)
+
+Workflow [38592872695](https://github.com/freearmy599/taleforge/actions/runs/38592872695) passed on commit `88e5aa51a7cfd53ce096fbbe468cd3e5a1290ec2`.
+
+- Edge source/type-check job: **success**.
+- Disposable PostgreSQL migration, rollback/restore, concurrency, and reader-event integrity job: **success**.
+- Release-readiness contract suite: **34 passed, 0 failed**.
+- Tightened the revision-worker contract to anchor its ordering assertion to the request-level provider-state query, rather than the earlier helper used to persist throttle state.
+- The tests confirm source-level guard ordering and cooldown error-handling branches; they do not simulate live provider calls or prove the production deployment matches the branch.
+
+Residual quota risk remains explicit: when a provider returns 429/503 but the shared cooldown write itself fails, the current invocation returns a blocked/retryable response, but subsequent invocations may not see a durable cooldown. This cannot be declared fully closed from static tests alone; the orchestration retry policy and durable provider-state availability need review. Production rollout remains blocked by Gate A, deployment ordering, exact production rollback baseline, and the six per-schedule dispositions. No production state was changed.
