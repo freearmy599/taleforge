@@ -68,6 +68,14 @@ test("tracked audit Edge Function is GET-only and requires the scoped bearer tok
   assert.doesNotMatch(edgeSource, /\.insert\s*\(|\.update\s*\(|\.delete\s*\(|\.upsert\s*\(/);
 });
 
+test("audit endpoint fails closed rather than reporting a partial 500-row snapshot", () => {
+  assert.match(edgeSource, /Prefer: "count=exact"/);
+  assert.match(edgeSource, /content-range/);
+  assert.match(edgeSource, /rows\.length >= 500/);
+  assert.match(edgeSource, /reportedTotal > rows\.length/);
+  assert.match(edgeSource, /Audit data source snapshot is incomplete/);
+});
+
 test("audit endpoint strips a standard Bearer prefix using whitespace matching", () => {
   assert.ok(edgeSource.includes('replace(/^Bearer\\s+/i, "")'));
   assert.equal(edgeSource.includes('replace(/^Bearer\\\\s+/i, "")'), false,
