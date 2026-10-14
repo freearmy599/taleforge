@@ -12,6 +12,18 @@ The table's event-type CHECK constraint limits values to the expected reader eve
 
 The branch-only migration `20261014150000_reader_events_insert_only.sql` narrows ordinary clients to INSERT only. It preserves the existing INSERT RLS policy and trusted `service_role` grants. It does not solve spam or prove that submitted events correspond to real reader behavior.
 
+## Branch implementation checkpoint (2026-10-14)
+
+The branch-only aggregate migration now:
+- Derives active follows from the latest per-visitor/per-series `follow` or `unfollow` event.
+- Derives active bookmarks from the latest per-visitor/per-chapter `bookmark` or `unbookmark` event, requiring the chapter to remain published and belong to the same series.
+- Excludes future-dated events from the 30-day scoring window and ignores future-dated state transitions.
+- Keeps raw reader-event rows unavailable for anonymous/authenticated SELECT; only the aggregate view/function is exposed.
+
+Disposable PostgreSQL regression assertions cover follow/unfollow, bookmark/unbookmark, future-dated opens, public output counts, and raw-event ACLs. GitHub Actions run [`38552076374`](https://github.com/freearmy599/taleforge/actions/runs/38552076374) passed. These are branch-only changes and have not been applied to production.
+
+The remaining major blocker is still trusted intake and quotas. Fresh UUID spam and rotating anonymous visitor IDs can manipulate the aggregate, so do not enable this public trending path in production yet.
+
 ## Recommended design before treating engagement scores as trustworthy
 
 1. **Choose the authoritative intake path.** Prefer a small Edge Function or database RPC that validates the event vocabulary, published-content relation, visitor/session identity, and allowed frequency. If direct anonymous INSERT remains, enforce the same rules in a database trigger so clients cannot bypass them.
