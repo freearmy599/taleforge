@@ -135,8 +135,8 @@ BEGIN
   IF v_count <> 4 THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: expected four accepted events, found %', v_count;
   END IF;
-  IF NOT has_table_privilege('anon','public.reader_events','SELECT') IS FALSE
-     OR NOT has_table_privilege('authenticated','public.reader_events','SELECT') IS FALSE THEN
+  IF has_table_privilege('anon','public.reader_events','SELECT')
+     OR has_table_privilege('authenticated','public.reader_events','SELECT') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: raw reader event SELECT became available';
   END IF;
 END;
