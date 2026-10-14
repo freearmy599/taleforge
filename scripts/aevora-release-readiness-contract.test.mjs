@@ -83,6 +83,15 @@ test("enrollment trigger does not enable an unready schedule", () => {
 });
 
 
+test("unready ongoing enrollment disables automation without rewriting schedule preferences", () => {
+  const triggerStart = migration.indexOf("elsif new.status = 'ongoing' and ready_at is null then");
+  const triggerEnd = migration.indexOf("end if;", triggerStart);
+  assert.ok(triggerStart >= 0 && triggerEnd > triggerStart);
+  const triggerBranch = migration.slice(triggerStart, triggerEnd);
+  assert.match(triggerBranch, /set enabled = false,[\s\S]*?auto_generate = false,[\s\S]*?auto_publish = false/i);
+  assert.doesNotMatch(triggerBranch, /schedule_mode\s*=|interval_hours\s*=|chapters_ahead\s*=/i);
+});
+
 test("completed series are terminal at both scheduler and publisher boundaries", () => {
   assert.match(scheduler, /\["draft","cancelled","hiatus","completed"\]\.includes\(series\.status\)/);
   assert.match(publisher, /series\.status === "completed"/);
