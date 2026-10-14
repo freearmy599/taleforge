@@ -34,6 +34,10 @@ This is a triage list, not a complete inventory or an assertion that all names a
 
 A further group of internal relations had no table-level grants to `PUBLIC`, `anon`, or `authenticated` in the targeted metadata result. Keep them in the inventory, but avoid unnecessary DDL; validate inherited/schema/function paths and the actual exposed-schema configuration before drawing conclusions.
 
+## Privilege severity clarification
+
+The metadata query showed the same broad table-level privilege set on the client-granted, RLS-enabled/no-policy base tables: `DELETE`, `INSERT`, `REFERENCES`, `SELECT`, `TRIGGER`, `TRUNCATE`, and `UPDATE` for both `anon` and `authenticated`. RLS does not filter `TRUNCATE` or table-level `REFERENCES`/trigger privileges. That does **not** prove an anonymous REST request can invoke each operation: PostgREST exposure and API operation support are separate gates, and no live write/probe was performed. Still, this is a strong least-privilege finding for the internal tables. The prepared branch migrations now revoke relation-level and column-level privileges from `PUBLIC`, `anon`, and `authenticated` for the server-only target lists; they have not been applied to production.
+
 ## Compatibility gate: public system-health status view
 
 The prepared narrative-internals migration drops public read policies on `taleforge_system_health` and `taleforge_system_registry` and revokes client table privileges. The existing `taleforge_system_health_snapshot` is a `security_invoker=true` view over internal health state; it therefore may become unavailable to anonymous/authenticated callers when that migration is applied. That is safer than exposing unrestricted `blocking_reason` and JSONB `evidence`, but could break an intentional public status panel. Do not apply this migration until the intended audience is confirmed. If a public status panel is required, design and test a separate minimal allowlisted projection (only safe status fields, no diagnostic evidence) with explicit view security and grants; do not simply restore broad access to the underlying health table.
