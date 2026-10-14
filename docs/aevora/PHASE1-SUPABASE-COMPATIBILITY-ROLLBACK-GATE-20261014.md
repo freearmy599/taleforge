@@ -73,3 +73,33 @@ This gate closes only when all of the following are true:
 - No production state was changed during verification.
 
 Until then, Phase 1 remains open and production rollout is not authorized by these tests or documents.
+
+
+## Read-only advisor evidence addendum (2026-10-14)
+
+Supabase advisors were queried without applying SQL or changing project state.
+
+### Security advisor
+
+The `rls_enabled_no_policy` informational lint returned 91 findings. Its sample includes `public.release_schedules`, `public.story_attachment_metrics`, `public.publication_sync_outbox`, and `public.aevora_release_scheduler_leases`. RLS enabled without policies can be the intended deny-by-default state for server-only tables; this finding alone does not establish a vulnerability or prove grants are correct.
+
+Reference: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+
+### Performance advisor
+
+- 68 unindexed foreign-key findings (INFO).
+- 55 unused-index findings (INFO).
+- 2 RLS initialization-plan findings (WARN): `chief_editor_series_health` and `chief_editor_alerts`.
+- 1 duplicate-index finding (WARN): two indexes on `taleforge_narrative_memory_consolidations`.
+
+References:
+- https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys
+- https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
+- https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan
+- https://supabase.com/docs/guides/database/database-linter?lint=0009_duplicate_index
+
+These are advisory inventory results only. No policies or indexes were changed; unused-index findings must not prompt automatic drops without workload evidence.
+
+### Evidence boundary
+
+The direct SQL catalog check remains blocked, so exact table/column grants, function security modes, and EXECUTE privileges are still unverified. Advisor results do not close Gate A. The inspected CI workflow confirms successful forward migration replay, runtime assertions, concurrency checks, and reader-event integrity/grant tests; the visible workflow steps do not establish a dedicated rollback-and-restore rehearsal. Gate B therefore remains open.
