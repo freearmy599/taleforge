@@ -67,6 +67,7 @@ const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",
 if(be||!b)return reply({success:false,error:"Blueprint could not be loaded."},404);
 const {data:s,error:se}=await db.from("series").select("id,title,subtitle,description,mood,intensity,age_rating,status").eq("id",b.series_id).single();
 if(se||!s)return reply({success:false,error:"Series could not be loaded."},404);
+if(["completed","cancelled","hiatus"].includes(s.status))return reply({success:false,blocked:true,retryable:false,error:"Series status does not permit new chapter generation."},409);
 
 // Direct trusted calls must not bypass the schedule-level generation gate.
 const {data:seriesSchedules,error:seriesScheduleError}=await db.from("release_schedules")
