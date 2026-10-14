@@ -171,3 +171,30 @@ test("future-object default privilege migration is owner-guarded and removes cli
   assert.match(defaultPrivilegesMigration, /requires a privileged owner operation/i);
   assert.doesNotMatch(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin/i);
 });
+
+
+const internalNarrativeMigration = await readFile(
+  new URL("../supabase/migrations/20261013103000_lock_internal_narrative_intelligence_tables.sql", import.meta.url),
+  "utf8",
+);
+
+test("internal narrative migration revokes both relation and column grants on diagnostic view", () => {
+  assert.match(
+    internalNarrativeMigration,
+    /REVOKE ALL PRIVILEGES ON TABLE public\.taleforge_system_health_snapshot FROM PUBLIC, anon, authenticated/i,
+  );
+  assert.match(
+    internalNarrativeMigration,
+    /REVOKE ALL PRIVILEGES \(%s\) ON TABLE public\.taleforge_system_health_snapshot FROM PUBLIC, anon, authenticated/i,
+  );
+  assert.match(internalNarrativeMigration, /pg_attribute/i);
+  assert.match(internalNarrativeMigration, /attisdropped/i);
+  assert.match(
+    internalNarrativeMigration,
+    /DROP POLICY IF EXISTS "public can read system health" ON public\.taleforge_system_health/i,
+  );
+  assert.doesNotMatch(
+    internalNarrativeMigration,
+    /GRANT\s+(SELECT|ALL PRIVILEGES)\s+ON\s+(TABLE\s+)?public\.taleforge_system_health_snapshot\s+TO\s+(PUBLIC|anon|authenticated)/i,
+  );
+});
