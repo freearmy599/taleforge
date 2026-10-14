@@ -69,14 +69,20 @@ const {data:s,error:se}=await db.from("series").select("id,title,subtitle,descri
 if(se||!s)return reply({success:false,error:"Series could not be loaded."},404);
 
 // Direct trusted calls must not bypass the schedule-level generation gate.
-const {data:automaticSchedules,error:automaticScheduleError}=await db.from("release_schedules")
+const {data:seriesSchedules,error:seriesScheduleError}=await db.from("release_schedules")
   .select("id,enabled,auto_generate,automation_ready_at,schedule_mode")
-  .eq("series_id",b.series_id).eq("auto_generate",true).order("id",{ascending:true}).limit(2);
-if(automaticScheduleError)return reply({success:false,retryable:true,error:"Could not verify scheduled generation readiness."},503);
-if((automaticSchedules??[]).length>0){
-  if(automaticSchedules.length!==1)return reply({success:false,error:"Automatic generation schedule is ambiguous."},409);
-  const automaticSchedule=automaticSchedules[0];
-  if(automaticSchedule.enabled!==true||automaticSchedule.schedule_mode==="manual"||!isAutomationReady(automaticSchedule.automation_ready_at))
+  .eq("series_id",b.series_id).order("id",{ascending:true}).limit(2);
+if(seriesScheduleError)return reply({success:false,retryable:true,error:"Could not verify scheduled generation readiness."},503);
+const {data:autonomousRuns,error:autonomousRunError}=await db.from("taleforge_autonomous_series_creation_runs")
+  .select("id").eq("series_id",b.series_id).eq("dry_run",false).limit(1);
+if(autonomousRunError)return reply({success:false,retryable:true,error:"Could not verify autonomous-series provenance."},503);
+const isAutonomousSeries=(autonomousRuns??[]).length>0;
+if((seriesSchedules??[]).length>1||(isAutonomousSeries&&(seriesSchedules??[]).length!==1))
+  return reply({success:false,blocked:true,retryable:false,error:"Series automation schedule is missing or ambiguous."},409);
+if((seriesSchedules??[]).length===1){
+  const schedule=seriesSchedules[0];
+  const requiresAutomation=isAutonomousSeries||schedule.schedule_mode!=="manual";
+  if(requiresAutomation&&(schedule.enabled!==true||schedule.auto_generate!==true||!isAutomationReady(schedule.automation_ready_at)))
     return reply({success:false,blocked:true,retryable:false,error:"Scheduled generation is not ready; no chapter generation was attempted."},423);
 }
 const {data:contextResult,error:contextError}=await db.rpc("taleforge_build_generation_context",{p_blueprint_id:b.id});
