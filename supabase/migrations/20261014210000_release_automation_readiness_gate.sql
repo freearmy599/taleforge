@@ -30,6 +30,44 @@ create table if not exists public.taleforge_release_readiness_authorizations (
 alter table public.taleforge_release_readiness_authorizations enable row level security;
 revoke all on table public.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role;
 
+-- Serialize schedule creation against readiness activation and other schedule
+-- writers by taking the parent series row lock before the schedule row exists.
+-- Schedule reassignment is not a supported operation; create a new reviewed
+-- schedule instead, so lock ordering remains series -> lifecycle -> schedule.
+create or replace function public.taleforge_lock_release_schedule_parent()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if tg_op = 'UPDATE' and new.series_id is distinct from old.series_id then
+    raise exception 'release schedules cannot be reassigned to another series';
+  end if;
+
+  if tg_op = 'INSERT' then
+    perform 1
+    from public.series s
+    where s.id = new.series_id
+    for update;
+
+    if not found then
+      raise exception 'parent series must exist before a release schedule is created';
+    end if;
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.taleforge_lock_release_schedule_parent() from public, anon, authenticated, service_role;
+
+drop trigger if exists trg_lock_release_schedule_parent on public.release_schedules;
+create trigger trg_lock_release_schedule_parent
+before insert or update of series_id on public.release_schedules
+for each row
+execute function public.taleforge_lock_release_schedule_parent();
+
 create or replace function public.taleforge_revoke_ambiguous_release_schedules()
 returns trigger
 language plpgsql
