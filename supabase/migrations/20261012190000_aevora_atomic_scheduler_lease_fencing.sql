@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.aevora_advance_release_schedule_if_lease_owned
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   v_lease_token uuid;
@@ -56,7 +56,7 @@ CREATE OR REPLACE FUNCTION public.aevora_activate_story_lifecycle_if_lease_owned
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   v_lease_token uuid;
