@@ -110,17 +110,17 @@ ORDER BY sequence_name, grantee, acl.privilege_type;
 -- These schemas may be managed by Supabase extensions; inventory only, do not
 -- change their defaults without verifying exposure and platform ownership.
 SELECT
-  n.nspname AS schema_name,
+  CASE WHEN d.defaclnamespace = 0 THEN '<global>' ELSE n.nspname END AS schema_name,
   pg_get_userbyid(d.defaclrole) AS default_acl_owner,
   CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE grantee.rolname END AS grantee,
   acl.privilege_type,
   acl.is_grantable,
   d.defaclobjtype AS object_type
 FROM pg_default_acl d
-JOIN pg_namespace n ON n.oid = d.defaclnamespace
+LEFT JOIN pg_namespace n ON n.oid = d.defaclnamespace
 CROSS JOIN LATERAL aclexplode(d.defaclacl) AS acl
 LEFT JOIN pg_roles grantee ON grantee.oid = acl.grantee
-WHERE n.nspname <> 'public'
+WHERE (d.defaclnamespace = 0 OR n.nspname <> 'public')
   AND d.defaclobjtype IN ('r', 'S', 'f')
   AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
 ORDER BY object_type, schema_name, default_acl_owner, grantee, acl.privilege_type;
