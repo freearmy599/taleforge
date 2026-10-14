@@ -20,7 +20,7 @@ SELECT
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 LEFT JOIN pg_policies p ON p.schemaname = n.nspname AND p.tablename = c.relname
-LEFT JOIN information_schema.role_table_grants g
+LEFT JOIN information_schema.table_privileges g
   ON g.table_schema = n.nspname
  AND g.table_name = c.relname
  AND g.grantee IN ('PUBLIC', 'anon', 'authenticated')
@@ -38,7 +38,7 @@ SELECT
   grantee,
   privilege_type,
   count(DISTINCT column_name) AS columns_with_privilege
-FROM information_schema.role_column_grants
+FROM information_schema.column_privileges
 WHERE table_schema = 'public'
   AND grantee IN ('PUBLIC', 'anon', 'authenticated')
 GROUP BY table_schema, table_name, grantee, privilege_type
