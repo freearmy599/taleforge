@@ -100,6 +100,20 @@ Next implementation gate: broaden concurrent schedule-writer/readiness-claim int
 
 
 
+## Legacy schedule disposition inventory (read-only, 2026-10-14)
+
+A row-level, read-only inventory of the six current schedules was run after the source-contract and disposable-PostgreSQL migration checks:
+
+- **6/6** schedules are enabled, use interval mode, have `auto_generate=true`, and `auto_publish=false`.
+- **6/6** point to an `ongoing` series, have exactly one schedule for that series, and have a `story_lifecycle` row.
+- **0/6** have a non-dry-run autonomous creation run, so none can satisfy the current autonomous-only readiness RPC evidence contract as written.
+- All six currently use a 24-hour interval. Five use `Asia/Kolkata`; one uses `UTC`.
+- One schedule's `next_release_at` was already in the past at the read-only snapshot; this is inventory context, not authorization to trigger or catch up generation.
+
+**Rollout consequence:** do not blindly mark these six rows ready, and do not assume the autonomous-run evidence check can be waived. A production rollout of the strict marker gate would intentionally block these legacy scheduled-generation rows until each receives a reviewed disposition. Before rollout, implement or formally select a trusted, auditable approval route for non-autonomous/creator-studio schedules, and record per-row decisions (retain scheduled generation, convert to manual-only, or retire). Any accepted readiness action must preserve the current interval/timezone and keep `auto_publish=false` unless separately approved.
+
+The inventory is time-bound and may change. It did not mutate schedules, invoke workers, create chapters, or publish content.
+
 ## Follow-up safety review (2026-10-14)
 
 - The readiness migration now preserves the deployed enrollment trigger's **8-hour default interval** and UTC timezone for schedules it creates or normalizes. The autonomous runner explicitly configures its own intended 24-hour cadence and Asia/Kolkata timezone. The readiness change must not silently rewrite unrelated schedule cadence.
