@@ -25,6 +25,13 @@ language plpgsql
 set search_path = ''
 as $function$
 begin
+  -- A NULL marker means the schedule is not authorized for autonomous work.
+  -- Reject legacy service-role writes too, so an old runner cannot re-enable it.
+  if new.automation_ready_at is null
+     and (new.enabled = true or new.auto_generate = true or new.auto_publish = true) then
+    raise exception 'automation readiness is required before enabling a release schedule';
+  end if;
+
   if new.automation_ready_at is distinct from old.automation_ready_at
      and current_user not in ('postgres', 'service_role')
      and coalesce(auth.role(), '') <> 'service_role' then
@@ -36,7 +43,7 @@ $function$;
 
 drop trigger if exists trg_protect_release_automation_readiness on public.release_schedules;
 create trigger trg_protect_release_automation_readiness
-before insert or update of automation_ready_at on public.release_schedules
+before insert or update of automation_ready_at, enabled, auto_generate, auto_publish on public.release_schedules
 for each row
 execute function public.taleforge_protect_release_automation_readiness();
 
