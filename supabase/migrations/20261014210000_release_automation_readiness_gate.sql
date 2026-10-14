@@ -9,6 +9,7 @@ alter table public.release_schedules
 -- client policies for this table, so remove unnecessary API-role table grants
 -- rather than relying on RLS alone to block direct schedule manipulation.
 revoke all privileges on table public.release_schedules from public, anon, authenticated;
+revoke all privileges (id, series_id, enabled, schedule_mode, interval_hours, preferred_weekday, preferred_time, timezone, next_release_at, chapters_ahead, auto_generate, auto_publish, last_release_at, created_at, updated_at, automation_ready_at) on table public.release_schedules from public, anon, authenticated;
 
 create index if not exists release_schedules_ready_due_idx
   on public.release_schedules (next_release_at, id)
