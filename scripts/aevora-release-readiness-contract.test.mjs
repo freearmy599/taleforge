@@ -68,3 +68,10 @@ test("enrollment trigger does not enable an unready schedule", () => {
   assert.match(migration, /values \(\s*new\.id, false, 'interval', 24, 'UTC',[\s\S]*?false, false, null\s*\)/i);
   assert.match(migration, /auto_generate = false,[\s\S]*?auto_publish = false,[\s\S]*?updated_at = now\(\)/i);
 });
+
+
+test("completed series are terminal at both scheduler and publisher boundaries", () => {
+  assert.match(scheduler, /\["draft","cancelled","hiatus","completed"\]\.includes\(series\.status\)/);
+  assert.match(publisher, /series\.status === "completed"/);
+  assert.match(publisher, /\["draft", "cancelled", "hiatus", "completed"\]\.includes\(currentSeries\.status\)/);
+});
