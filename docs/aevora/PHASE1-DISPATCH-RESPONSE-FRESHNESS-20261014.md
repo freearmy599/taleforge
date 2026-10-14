@@ -25,3 +25,8 @@ There is a freshness gap between recent successful cron SQL executions and the n
 6. Do not send test HTTP requests, trigger any Edge Function, or change live jobs as part of diagnosis.
 
 No live job, schedule, function, grant, table, or production task state was changed.
+
+
+## Recheck at approximately 2026-10-14 05:12 UTC
+
+A newer read-only aggregate snapshot found 246 rows in `net._http_response`, with the newest response at `2026-10-14 05:05:00.365511+00`. In the same query, `cron.job_run_details` had 294 runs in the preceding six hours, with the newest start at `2026-10-14 05:05:00.312733+00`. Thus the earlier visible freshness gap was **not present at this later snapshot**: the latest observed response and latest cron start were within the same second. This does not prove request-by-request correlation or Edge Function business success; aggregate timestamps cannot attribute each response to a specific job, and response cleanup may remove older rows. No command text, response bodies, credentials, or request payloads were retrieved, and no jobs or functions were triggered.
