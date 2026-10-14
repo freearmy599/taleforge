@@ -25,6 +25,7 @@ create table if not exists public.taleforge_release_readiness_authorizations (
   created_at timestamptz not null default now(),
   primary key (transaction_id, schedule_id)
 );
+alter table public.taleforge_release_readiness_authorizations enable row level security;
 revoke all on table public.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role;
 
 create or replace function public.taleforge_revoke_ambiguous_release_schedules()
