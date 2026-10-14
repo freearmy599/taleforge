@@ -27,6 +27,32 @@ create table if not exists public.taleforge_release_readiness_authorizations (
 );
 revoke all on table public.taleforge_release_readiness_authorizations from public, anon, authenticated, service_role;
 
+create or replace function public.taleforge_revoke_ambiguous_release_schedules()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if (select count(*) from public.release_schedules rs where rs.series_id = new.series_id) > 1 then
+    update public.release_schedules
+    set enabled = false,
+        auto_generate = false,
+        auto_publish = false,
+        automation_ready_at = null,
+        updated_at = now()
+    where series_id = new.series_id;
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists trg_revoke_ambiguous_release_schedules on public.release_schedules;
+create trigger trg_revoke_ambiguous_release_schedules
+after insert or update of series_id on public.release_schedules
+for each row
+execute function public.taleforge_revoke_ambiguous_release_schedules();
+
 create or replace function public.taleforge_protect_release_automation_readiness()
 returns trigger
 language plpgsql
@@ -34,6 +60,14 @@ security definer
 set search_path = ''
 as $function$
 begin
+  if tg_op = 'UPDATE'
+     and new.series_id is distinct from old.series_id
+     and (old.automation_ready_at is not null
+          or old.auto_generate = true
+          or old.auto_publish = true) then
+    raise exception 'ready or automatic release schedules cannot be reassigned to another series';
+  end if;
+
   -- Manual schedules must never carry automatic generation/publication flags.
   if new.schedule_mode = 'manual'
      and (new.auto_generate = true or new.auto_publish = true) then
@@ -64,7 +98,7 @@ $function$;
 
 drop trigger if exists trg_protect_release_automation_readiness on public.release_schedules;
 create trigger trg_protect_release_automation_readiness
-before insert or update of automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public.release_schedules
+before insert or update of series_id, automation_ready_at, enabled, auto_generate, auto_publish, schedule_mode on public.release_schedules
 for each row
 execute function public.taleforge_protect_release_automation_readiness();
 
