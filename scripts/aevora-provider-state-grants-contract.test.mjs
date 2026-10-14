@@ -42,9 +42,10 @@ test("Gemini provider state is server-side only", () => {
 
 test("publication outbox and attachment metrics remain server-side only", () => {
   for (const table of ["publication_sync_outbox", "story_attachment_metrics"]) {
-    assert.ok(metricsOutboxMigration.includes(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY`), `${table} must have RLS enabled`);
-    assert.ok(metricsOutboxMigration.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM PUBLIC, anon, authenticated`), `${table} must revoke all client and PUBLIC table privileges`);
+    assert.ok(metricsOutboxMigration.includes(`'${table}'`), `${table} must be in the server-only target list`);
   }
+  assert.ok(metricsOutboxMigration.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"), "all target tables must have RLS enabled");
+  assert.ok(metricsOutboxMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "all target tables must revoke relation-level privileges");
   assert.ok(metricsOutboxMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "outbox and metrics column grants must also be revoked");
   assert.equal(/CREATE POLICY/i.test(metricsOutboxMigration), false, "server-only telemetry and outbox tables must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(metricsOutboxMigration), false, "server-only tables must not re-grant client access");
