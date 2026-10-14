@@ -14,6 +14,10 @@ const migration = await readFile("supabase/migrations/20261014210000_release_aut
 const concurrencyScript = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const migrationFixture = await readFile("scripts/aevora-readiness-migration-fixture.sql", "utf8");
 const migrationAssertions = await readFile("scripts/aevora-readiness-migration-assertions.sql", "utf8");
+const rollbackScript = await readFile("scripts/aevora-readiness-rollback.sql", "utf8");
+const rollbackAssertions = await readFile("scripts/aevora-readiness-rollback-assertions.sql", "utf8");
+const migrationTestRunner = await readFile("scripts/test-aevora-readiness-migration.sh", "utf8");
+const rollbackTestRunner = await readFile("scripts/test-aevora-readiness-rollback.sh", "utf8");
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
   assert.match(scheduler, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
@@ -294,4 +298,19 @@ test("manual-only review and dry-run inspection remain compatible with readiness
   const invocation = reviewOrchestrator.indexOf("callFunction(supabaseUrl, serviceRoleKey, step.functionName, output.id)");
   assert.ok(dryRunBranch >= 0 && invocation > dryRunBranch,
     "dry-run branch must finish before any AI review invocation");
+});
+
+
+test("disposable readiness migration harness rehearses rollback and stays fail-closed", () => {
+  assert.match(migrationTestRunner, /aevora-readiness-migration-assertions\.sql/);
+  assert.match(migrationTestRunner, /aevora-readiness-rollback\.sql/);
+  assert.match(migrationTestRunner, /aevora-readiness-rollback-assertions\.sql/);
+  assert.match(rollbackScript, /set enabled = false, auto_generate = false, auto_publish = false/);
+  assert.match(rollbackScript, /drop table if exists public\.taleforge_release_readiness_authorizations/);
+  assert.match(rollbackScript, /drop column if exists automation_ready_at/);
+  assert.match(rollbackScript, /grant execute on function public\.taleforge_check_autonomous_creation_gate\(uuid, numeric\) to public/);
+  assert.match(rollbackAssertions, /fixture baseline creation-gate EXECUTE grant was not restored/);
+  assert.match(rollbackAssertions, /rollback re-enabled a schedule without independent approval evidence/);
+  assert.match(rollbackTestRunner, /AEVORA_DISPOSABLE_ROLLBACK_REHEARSAL/);
+  assert.match(rollbackTestRunner, /Refusing rollback rehearsal against a Supabase URL/);
 });
