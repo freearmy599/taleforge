@@ -143,6 +143,25 @@ insert into public.taleforge_autonomous_series_creation_runs(
 insert into public.taleforge_autonomous_creation_policy(policy_key, enabled)
 values ('production', true);
 
+do $pre_readiness_assert$
+declare
+  v_status text;
+  v_schedule_count bigint;
+begin
+  select status into v_status
+  from public.series
+  where id = '00000000-0000-0000-0000-000000000002';
+
+  select count(*) into v_schedule_count
+  from public.release_schedules
+  where series_id = '00000000-0000-0000-0000-000000000002';
+
+  if v_status is distinct from 'ongoing' or v_schedule_count <> 1 then
+    raise exception 'ASSERTION_FAILED: pre-readiness fixture invalid (status %, schedule count %)', v_status, v_schedule_count;
+  end if;
+end;
+$pre_readiness_assert$;
+
 select public.taleforge_mark_release_automation_ready(
   (select id from public.release_schedules where series_id='00000000-0000-0000-0000-000000000002')
 );
