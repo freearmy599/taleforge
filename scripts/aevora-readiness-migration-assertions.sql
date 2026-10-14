@@ -63,6 +63,17 @@ begin
 end;
 $authorization_acl_assert$;
 
+-- Trigger function execution must not be directly granted to API roles.
+do $chapter_trigger_acl_assert$
+begin
+  if has_function_privilege('anon', 'public.taleforge_guard_chapter_publication_lifecycle()', 'EXECUTE')
+     or has_function_privilege('authenticated', 'public.taleforge_guard_chapter_publication_lifecycle()', 'EXECUTE')
+     or has_function_privilege('service_role', 'public.taleforge_guard_chapter_publication_lifecycle()', 'EXECUTE') then
+    raise exception 'ASSERTION_FAILED: chapter publication trigger function is directly executable by an API role';
+  end if;
+end;
+$chapter_trigger_acl_assert$;
+
 -- An old service-role runner cannot re-enable an unready interval schedule.
 do $$
 begin
