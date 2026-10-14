@@ -240,3 +240,19 @@ Read-only inspection of the live `Public can record reader events` INSERT policy
 Branch migration candidate `20261014200000_reader_event_relationship_integrity.sql` replaces the policy so that a supplied chapter requires a non-null series and an existence check joining the published chapter to the exact supplied series; the series must remain in an eligible published lifecycle state. Series-only events remain supported, as do events with neither identifier if that is how the existing telemetry contract is used. The existing visitor-ID length check is preserved. The candidate does not change table grants or attempt to solve replay/spam abuse.
 
 A source-level contract test checks the key policy clauses. This is not yet a database integration test: a disposable test database should exercise accepted/rejected combinations before production consideration. Replay protection, deduplication, and rate limiting remain a separate unresolved abuse-control requirement. This migration is branch-only; no production policy or data was changed.
+
+
+## Dependency scan for the 41-table read-lock candidate (read-only, 2026-10-14)
+
+A catalog dependency scan found no ordinary views depending on these 41 targets; direct catalog dependencies were indexes and toast relations. A separate routine-source scan found many internal narrative-planning and autonomous-series routines referencing the targets, including concept/arc/world builders, advanced chapter-plan builders, narrative-profile resolvers, and verification functions.
+
+For every matched routine in the catalog sample:
+- SECURITY DEFINER was enabled.
+- Effective EXECUTE was false for both anon and authenticated.
+- Effective EXECUTE was true for service_role.
+
+This is positive evidence that the database RPC layer is intended for trusted worker use rather than direct browser invocation. It does not prove Edge Function dependency safety by itself: dynamic SQL, application-side SQL strings, triggers, and any non-database clients still need source review. It also does not replace testing under the actual migration owner, because RLS bypass depends on object ownership and FORCE ROW LEVEL SECURITY state.
+
+The scan found several matched SECURITY DEFINER functions configured with search_path=public, while the majority used an explicitly empty search path. Client roles do not have CREATE on the public schema in the current role-privilege snapshot, which reduces the usual untrusted-object injection risk; nevertheless, search_path=public remains a hardening follow-up. Review those function bodies for unqualified relation/function references and pin trusted paths or qualify references in a separate, tested change. Do not mix broad function rewrites into the table read-lock migration.
+
+The 41-table read-lock remains branch-only and not production-ready until this dependency review is completed and the candidate is tested in an isolated database. No production DDL or worker execution was performed.
