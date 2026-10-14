@@ -118,27 +118,43 @@ begin
 end;
 $$;
 
+-- Simulate a historical duplicate schedule. Terminal transitions must
+-- disable and de-authorize every schedule for the series, not an arbitrary row.
+insert into public.release_schedules(
+  series_id, enabled, schedule_mode, interval_hours, timezone,
+  chapters_ahead, auto_generate, auto_publish, automation_ready_at
+) values (
+  '00000000-0000-0000-0000-000000000002',
+  false, 'interval', 24, 'Asia/Kolkata', 3, false, false, null
+);
+
 -- Completed status revokes readiness and disables every automatic flag.
 update public.series
 set status = 'completed'
 where id = '00000000-0000-0000-0000-000000000002';
 
-do $$
+do $
 declare
-  v_enabled boolean;
-  v_auto_generate boolean;
-  v_auto_publish boolean;
-  v_ready timestamptz;
+  v_count bigint;
+  v_enabled_count bigint;
+  v_generate_count bigint;
+  v_publish_count bigint;
+  v_ready_count bigint;
 begin
-  select enabled, auto_generate, auto_publish, automation_ready_at
-    into v_enabled, v_auto_generate, v_auto_publish, v_ready
+  select count(*),
+         count(*) filter (where enabled),
+         count(*) filter (where auto_generate),
+         count(*) filter (where auto_publish),
+         count(*) filter (where automation_ready_at is not null)
+    into v_count, v_enabled_count, v_generate_count, v_publish_count, v_ready_count
   from public.release_schedules
   where series_id = '00000000-0000-0000-0000-000000000002';
 
-  if v_enabled or v_auto_generate or v_auto_publish or v_ready is not null then
-    raise exception 'ASSERTION_FAILED: completed series retained release automation';
+  if v_count <> 2 or v_enabled_count <> 0 or v_generate_count <> 0
+     or v_publish_count <> 0 or v_ready_count <> 0 then
+    raise exception 'ASSERTION_FAILED: completed series retained enabled or ready duplicate schedules';
   end if;
 end;
-$$;
+$;
 
 select 'release readiness migration integration assertions passed' as result;
