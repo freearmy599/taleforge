@@ -59,8 +59,9 @@ The live query was metadata-only and returned aggregate counts, not column names
 3. For trusted-server-only relations, revoke unnecessary client privileges while preserving service-role, owner, trigger, and scheduled-function behavior. Check table-level and column-level grants, sequences, functions, and default privileges.
 4. For reader-facing relations, add only narrowly scoped policies and tests for anonymous, user A, user B, and trusted server access. Include negative cross-owner cases.
 5. Add migration contract tests for the intended grant/policy matrix; do not treat the Supabase advisor's no-policy count as a vulnerability count.
-6. Verify Data API exposed schemas in Dashboard/API configuration. Do not run live probes or synthetic writes as part of this read-only phase.
-7. Run CI against the branch. Production migration, GRANT/REVOKE, policy/view changes, queue/schedule edits, generation, and publication remain outside this task without explicit approval.
+6. Re-run the metadata-only inventory using [`phase1-readonly-access-audit.sql`](./phase1-readonly-access-audit.sql); it covers relation grants, separately granted columns, default ACLs for future objects, and client-executable public functions without reading application rows.
+7. Verify Data API exposed schemas in Dashboard/API configuration. Do not run live probes or synthetic writes as part of this read-only phase.
+8. Run CI against the branch. Production migration, GRANT/REVOKE, policy/view changes, queue/schedule edits, generation, and publication remain outside this task without explicit approval.
 
 ## Phase 1 exit conditions added
 
