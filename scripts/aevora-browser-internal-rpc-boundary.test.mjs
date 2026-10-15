@@ -90,6 +90,27 @@ test("browser-facing sources cannot directly invoke internal Aevora RPCs", async
   );
 });
 
+test("browser-facing sources cannot bypass the RPC inventory with computed function names", async () => {
+  const files = await collectBrowserSources();
+  const violations = [];
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    // Public and internal RPC names should be visible as direct string literals
+    // so code review and the denylist can classify the boundary. Computed names
+    // silently bypass the literal denylist and are not needed by current UI code.
+    const dynamicRpc = /\\.rpc\\(\\s*(?!['"`])[^,\\s)]+/gi;
+    for (const match of source.matchAll(dynamicRpc)) {
+      const line = source.slice(0, match.index).split("\\n").length;
+      violations.push(`${file.pathname}:${line}`);
+    }
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    `browser RPC function names must remain literal and auditable: ${violations.join(", ")}`,
+  );
+});
+
 test("the protected RPC inventory includes control-plane, readiness, and trigger helpers", () => {
   for (const rpc of [
     "taleforge_mark_release_automation_ready",
