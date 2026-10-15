@@ -71,3 +71,10 @@ The guard reads the release schedule from the database and executes before the c
 - Expanded the browser credential scan to discover all root-level HTML/JavaScript files in addition to the established list, so newly added root browser assets are included automatically.
 - Validation: [CI run 38689102099](https://github.com/freearmy599/taleforge/actions/runs/38689102099) passed the dedicated runner/control-plane authorization tests; [CI run 38689181875](https://github.com/freearmy599/taleforge/actions/runs/38689181875) passed explicit endpoint-classification checks; and [CI run 38689234213](https://github.com/freearmy599/taleforge/actions/runs/38689234213) passed the expanded browser-asset scan, all prepared Edge Function/type-check contracts, and disposable PostgreSQL readiness/concurrency/reader-event rehearsals.
 - These are source-contract and disposable-environment checks. They do not certify live production grants or authorize deployment; production remains NO-GO.
+
+## Default-ACL operator preflight
+
+- Extended the reusable read-only catalog audit with a seventh query that reports whether the current SQL executor is a member of the `postgres` and `supabase_admin` roles that own relevant default ACLs. It is explicitly labeled as a preflight signal, not permission to alter defaults.
+- Updated the audit contract to assert all seven statements remain read-only and that owner-membership preflight remains present.
+- Validation passed in [CI run 38689373437](https://github.com/freearmy599/taleforge/actions/runs/38689373437), including the read-only access audit contract, prepared Edge Function/type checks, and disposable PostgreSQL readiness/concurrency/reader-event rehearsals.
+- This improves evidence collection for the known `supabase_admin` default-ACL blocker; it does not repair or change any live grants. An approved operation by the appropriate owner remains required, and production rollout remains NO-GO.
