@@ -56,3 +56,9 @@ The guard reads the release schedule from the database and executes before the c
 - Extended the publisher security contract to assert that the persisted automatic-publication lock executes before both the existing-chapter/idempotent synchronization path and a new chapter insert. This protects against an automatic schedule reporting or synchronizing publication through an early-return path.
 - Validation passed in [CI run 38686233461](https://github.com/freearmy599/taleforge/actions/runs/38686233461): prepared Edge Function/type-check and source-contract tests passed, and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal passed.
 - The prior documentation-and-quota-audit validation also completed successfully in [CI run 38686218527](https://github.com/freearmy599/taleforge/actions/runs/38686218527).
+
+## Browser-side chapter-write bypass check
+
+- Extended the publisher security contract to scan browser-facing HTML/JavaScript and reject direct `.from("chapters").insert(...)` calls outside the guarded publisher path.
+- The expanded source contract passed in [CI run 38686357496](https://github.com/freearmy599/taleforge/actions/runs/38686357496). Both the prepared Edge Function/type-check job and all disposable PostgreSQL readiness/concurrency/reader-event rehearsals passed.
+- This check covers direct Supabase client inserts in the listed browser files; it does not replace production RLS/ACL catalog verification, which remains a release gate.
