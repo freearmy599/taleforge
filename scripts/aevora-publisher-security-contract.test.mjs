@@ -79,3 +79,21 @@ test("automated publication fails closed until separate audited authorization ex
 test("publisher version identifies publication-authorization fail-closed hardening", () => {
   assert.match(publisher, /release-publisher-v11-publication-authorization-fail-closed/);
 });
+
+
+test("generation and scheduling workers cannot bypass the publisher with direct chapter inserts", async () => {
+  const guardedPaths = [
+    "../supabase/functions/generate-chapter/index.ts",
+    "../supabase/functions/release-scheduler/index.ts",
+    "../supabase/functions/autonomous-series-creation-runner/index.ts",
+    "../supabase/functions/revise-chapter/index.ts",
+  ];
+  for (const relativePath of guardedPaths) {
+    const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
+    assert.doesNotMatch(
+      source,
+      /\.from\(["']chapters["']\)\s*\.insert\s*\(/,
+      `${relativePath} must not insert published chapters outside release-publisher`,
+    );
+  }
+});
