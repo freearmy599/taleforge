@@ -90,3 +90,25 @@ test("review-orchestrator stops the current output's remaining review steps on a
   assert.match(guarded, /blocked\s*=\s*true/, "the current output must be marked blocked");
   assert.match(guarded, /callReason\s*===\s*["']provider_cooldown["']/, "nominal HTTP success with a provider block must stop remaining calls");
 });
+
+
+test("generation-orchestrator stops revision and generation AI calls after any provider throttle signal", async () => {
+  const source = await readFile(new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url), "utf8");
+  assert.match(source, /let providerThrottleObserved\s*=\s*false/, "orchestrator must track provider throttle state");
+  assert.match(source, /if\(providerThrottleObserved\)\{results\.push\(\{schedule_id:schedule\.id,series_id:schedule\.series_id,action:"provider_throttle_observed"/,
+    "a throttle in one series must block subsequent series");
+  const revisionLoop = source.indexOf("for(const c of actionableCandidates)");
+  const revisionCall = source.indexOf('invokeFunction(supabaseUrl,key,"revise-chapter"', revisionLoop);
+  assert.ok(revisionLoop >= 0 && revisionCall > revisionLoop, "revision loop and AI call must exist");
+  assert.ok(source.indexOf("if(providerThrottleObserved)", revisionLoop) < revisionCall,
+    "revision AI call must be guarded by the run-wide throttle flag");
+  const generationLoop = source.indexOf("for(const b of missing)");
+  const generationCall = source.indexOf('invokeFunction(supabaseUrl,key,"generate-chapter"', generationLoop);
+  assert.ok(generationLoop >= 0 && generationCall > generationLoop, "generation loop and AI call must exist");
+  assert.ok(source.indexOf("if(providerThrottleObserved)", generationLoop) < generationCall,
+    "generation AI call must be guarded by the run-wide throttle flag");
+  assert.match(source, /if\(revisionProviderBlock\)providerThrottleObserved=true/,
+    "revision provider-block responses must stop later AI work");
+  assert.match(source, /if\(reviewProviderBlocked\)providerThrottleObserved=true/,
+    "review provider-block responses must stop later AI work");
+});
