@@ -16,6 +16,16 @@ REVOKE ALL ON TABLE aevora_private.reader_event_quota_buckets FROM PUBLIC, anon,
 CREATE INDEX IF NOT EXISTS reader_event_quota_buckets_expiry_idx
   ON aevora_private.reader_event_quota_buckets (window_start);
 
+-- Prevent cleanup work from running on every incoming event. One caller per
+-- minute may claim this gate; each cleanup still deletes at most 1000 rows.
+CREATE TABLE IF NOT EXISTS aevora_private.reader_event_quota_cleanup_state (
+  singleton_id smallint PRIMARY KEY CHECK (singleton_id = 1),
+  last_cleaned_at timestamptz NOT NULL DEFAULT '-infinity'
+);
+REVOKE ALL ON TABLE aevora_private.reader_event_quota_cleanup_state FROM PUBLIC, anon, authenticated;
+INSERT INTO aevora_private.reader_event_quota_cleanup_state(singleton_id)
+VALUES (1) ON CONFLICT (singleton_id) DO NOTHING;
+
 CREATE OR REPLACE FUNCTION public.aevora_ingest_reader_event(
   p_visitor_id text,
   p_event_uuid uuid,
@@ -122,12 +132,37 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, aevora_private
 AS $function$
-DECLARE v_deleted integer;
+DECLARE
+  v_deleted integer := 0;
+  v_now timestamptz := statement_timestamp();
 BEGIN
+  -- The read is cheap on every request. Only a request that observes an
+  -- expired cleanup window tries the non-blocking global lock.
+  IF NOT EXISTS (
+    SELECT 1
+    FROM aevora_private.reader_event_quota_cleanup_state
+    WHERE singleton_id = 1
+      AND last_cleaned_at <= v_now - interval '1 minute'
+  ) THEN
+    RETURN 0;
+  END IF;
+
+  IF NOT pg_catalog.pg_try_advisory_xact_lock(19017, 811) THEN
+    RETURN 0;
+  END IF;
+
+  UPDATE aevora_private.reader_event_quota_cleanup_state
+  SET last_cleaned_at = v_now
+  WHERE singleton_id = 1
+    AND last_cleaned_at <= v_now - interval '1 minute';
+  IF NOT FOUND THEN
+    RETURN 0;
+  END IF;
+
   WITH expired AS (
     SELECT ctid
     FROM aevora_private.reader_event_quota_buckets
-    WHERE window_start < statement_timestamp() - interval '2 days'
+    WHERE window_start < v_now - interval '2 days'
     ORDER BY window_start
     LIMIT 1000
   )
