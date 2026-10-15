@@ -57,9 +57,24 @@ AS $function$
     SELECT DISTINCT ON (re.visitor_id, re.series_id)
       re.visitor_id, re.series_id, re.event_type, re.created_at
     FROM public.reader_events AS re
+    JOIN public.series AS eligible_series
+      ON eligible_series.id = re.series_id
+     AND eligible_series.status IN ('ongoing', 'completed')
     WHERE re.series_id IS NOT NULL
       AND re.event_type IN ('follow', 'unfollow')
       AND re.created_at <= pg_catalog.now()
+      -- SECURITY DEFINER bypasses ordinary reader RLS; validate historical
+      -- follow events independently just like the recent engagement stream.
+      AND (
+        re.chapter_id IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM public.chapters AS c
+          WHERE c.id = re.chapter_id
+            AND c.series_id = re.series_id
+            AND c.status = 'published'
+        )
+      )
     ORDER BY re.visitor_id, re.series_id, re.created_at DESC, re.id DESC
   ),
   latest_bookmark_state AS (
