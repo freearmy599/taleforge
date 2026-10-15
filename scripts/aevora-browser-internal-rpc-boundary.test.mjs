@@ -29,6 +29,10 @@ const forbiddenBrowserRpcs = [
   "taleforge_score_story_opportunity",
   "taleforge_mark_release_automation_ready",
   "taleforge_check_autonomous_creation_gate",
+  "taleforge_update_updated_at",
+  "touch_story_lifecycle_updated_at",
+  "update_series_chapter_count",
+  "update_updated_at",
 ];
 
 async function collectBrowserSources() {
@@ -87,7 +91,15 @@ test("browser-facing sources cannot directly invoke internal Aevora RPCs", async
   );
 });
 
-test("the protected RPC inventory includes readiness and autonomous-creation gates", () => {
-  assert.ok(forbiddenBrowserRpcs.includes("taleforge_mark_release_automation_ready"));
-  assert.ok(forbiddenBrowserRpcs.includes("taleforge_check_autonomous_creation_gate"));
+test("the protected RPC inventory includes control-plane, readiness, and trigger helpers", () => {
+  for (const rpc of [
+    "taleforge_mark_release_automation_ready",
+    "taleforge_check_autonomous_creation_gate",
+    "taleforge_update_updated_at",
+    "touch_story_lifecycle_updated_at",
+    "update_series_chapter_count",
+    "update_updated_at",
+  ]) {
+    assert.ok(forbiddenBrowserRpcs.includes(rpc), `missing protected RPC: ${rpc}`);
+  }
 });
