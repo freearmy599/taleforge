@@ -111,6 +111,8 @@ jobs:
         run: node --test scripts/aevora-publisher-security-contract.test.mjs
       - name: Run dynamic browser chapter write-boundary tests
         run: node --test scripts/aevora-browser-chapter-write-boundary.test.mjs
+      - name: Run browser internal RPC boundary tests
+        run: node --test scripts/aevora-browser-internal-rpc-boundary.test.mjs
       - name: Run release readiness contract tests
         run: node --test scripts/aevora-release-readiness-contract.test.mjs
       - name: Run revision worker security contract tests
