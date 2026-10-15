@@ -101,3 +101,16 @@ No production changes, deployments, migrations, schedule changes, generation, or
 - Still unresolved: direct public INSERTs permit a caller to submit a new valid-looking visitor ID and fresh event UUID repeatedly. Neither a unique UUID nor a server timestamp authenticates a visitor or limits contribution volume.
 - Safe next architecture decision: move event intake behind a narrowly scoped server endpoint, then revoke direct ordinary-role INSERT only after every existing browser write path is migrated and tested. The endpoint should validate the event vocabulary, series/chapter relationship, signed or server-issued visitor token, per-token/IP contribution quotas, replay key, and abuse logging before inserting with a trusted server role. Do not deploy this change until the endpoint, client compatibility, and rollback are tested together.
 - No production changes were made. Keep public trending closed until that intake boundary and quota policy are implemented and verified.
+
+
+## Browser intake migration inventory — 2026-10-15
+
+A targeted source review of the primary reader paths (`reading-progress.js`, `chapter.html`, `series.html`, `index.html`, and `stories.html`) found that the event-table INSERT is centralized in `reading-progress.js` inside `track(event_type, data)`. The inspected call sites route through that helper rather than inserting directly:
+
+- `index.html` and `stories.html`: `story_open` with a series ID.
+- `series.html`: `follow` / `unfollow` with a series ID.
+- `chapter.html`: `chapter_start`, `reading_progress`, `chapter_complete`, and `bookmark` / `unbookmark` with series and chapter IDs; progress events also include a rounded percentage.
+- The helper builds `visitor_id`, `event_type`, `series_id`, `chapter_id`, and `progress_percent`, and adds optional `event_uuid` when browser UUID support exists. It does not send `created_at`; the branch timestamp trigger remains a defense-in-depth control.
+- Client-side throttling and progress dedupe are in-memory only. The visitor ID is stored in local storage and is forgeable; neither mechanism is an authorization or quota boundary.
+
+This makes a single helper the obvious compatibility seam for a future trusted-intake endpoint: preserve the `track(event_type, data)` call interface while replacing the direct table insert with a POST to the dedicated endpoint. Before revoking direct INSERT grants, add endpoint contract tests for all eight event types, idempotent retries, malformed payloads, matching series/chapter pairs, and quota rejection; then update the browser contract and test rollback/compatibility. This is an inventory and implementation plan only—no endpoint, grant change, or production change was made.
