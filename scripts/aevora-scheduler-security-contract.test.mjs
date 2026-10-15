@@ -162,3 +162,21 @@ test("automatic-publication preflight exits before publisher, lifecycle, or sche
   assert.ok(scheduleAdvance > continueAfterBlock,
     "no schedule advancement may happen before the fail-closed branch exits");
 });
+
+
+test("dry-run mode cannot claim leases, call the publisher, transition lifecycle, or advance schedules", () => {
+  const claim = source.indexOf('supabase.rpc("aevora_claim_release_scheduler_lease"');
+  const publisher = source.indexOf('url+"/functions/v1/release-publisher"');
+  const activate = source.indexOf('supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned"');
+  const advance = source.indexOf('supabase.rpc("aevora_advance_release_schedule_if_lease_owned"');
+  assert.ok(claim >= 0 && publisher > claim && activate > publisher && advance > activate,
+    "expected lease, publisher, lifecycle, and schedule-advance operations in the scheduler");
+  assert.match(source.slice(claim - 100, claim), /if\(!dryRun && schedule\.auto_publish\)\{/,
+    "lease claim must be gated behind non-dry-run automatic publication");
+  assert.match(source.slice(publisher - 600, publisher), /if\(!dryRun\)/,
+    "publisher invocation must remain inside a non-dry-run path");
+  assert.match(source.slice(advance - 120, advance), /if\(!dryRun && nextRelease && allSelectedConfirmed\)/,
+    "schedule advancement must be gated by non-dry-run mode and confirmed publications");
+  assert.match(source.slice(activate - 180, activate), /if\(!dryRun && schedule\.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost\)/,
+    "lifecycle activation must be gated by non-dry-run mode and successful publication");
+});
