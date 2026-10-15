@@ -28,7 +28,7 @@ SELECT
     SELECT 1
     FROM pg_trigger t
     WHERE t.tgrelid = to_regclass('public.reader_events')
-      AND t.tgname = 'taleforge_force_reader_event_client_timestamp'
+      AND t.tgname = 'trg_reader_event_server_timestamp'
       AND NOT t.tgisinternal
   ) AS server_timestamp_trigger_installed,
   EXISTS (
