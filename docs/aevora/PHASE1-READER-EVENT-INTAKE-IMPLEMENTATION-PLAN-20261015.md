@@ -2,7 +2,7 @@
 
 ## Status
 
-Branch-only implementation prepared and source/disposable-database verification green at [CI run 38738919711](https://github.com/freearmy599/taleforge/actions/runs/38738919711). Browser cutover and production rollout remain pending. Added a public Edge Function, a SECURITY DEFINER RPC with server-only execute grants, an isolated quota table, source-contract tests, and disposable PostgreSQL assertions. The branch's existing direct browser insert remains active where its current database policies permit it; the endpoint is not yet wired into the browser. No production setting or deployment was changed. Public trending remains gated.
+Branch-only implementation prepared and source/disposable-database verification green in the prior baseline [CI run 38743257548](https://github.com/freearmy599/taleforge/actions/runs/38743257548). The browser tracker has an opt-in endpoint switch wired but disabled by default; browser cutover and production rollout remain pending. Added a public Edge Function, a SECURITY DEFINER RPC with server-only execute grants, isolated quota storage, source-contract tests, and disposable PostgreSQL assertions. Direct browser INSERT remains available for compatibility until a separately authorized cutover. No production setting or deployment was changed. Public trending remains gated.
 
 ## Design decision
 
@@ -18,9 +18,9 @@ Return a minimal success response and stable machine-readable errors. Do not ech
 
 ## Atomic quota / insert boundary
 
-The endpoint should call one narrowly scoped SECURITY DEFINER RPC (or equivalent transaction) that performs, atomically:
+The endpoint calls one narrowly scoped SECURITY DEFINER RPC that performs, atomically:
 1. Validate the event and series/chapter relationship against current database state.
-2. Enforce server-controlled per-source short-window and daily limits, plus event-specific contribution caps.
+2. Enforce global short-window and daily limits keyed by a hash of the browser-provided visitor hint, plus per-event daily contribution caps. These are abuse barriers, not source authentication; visitor IDs can be rotated.
 3. Apply idempotency for a supplied event UUID.
 4. Insert the event with server-assigned timestamp.
 5. Return only accepted/duplicate/limited/invalid outcomes, without raw row data.
@@ -31,7 +31,7 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 
 ## Compatibility and rollout sequence
 
-1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, and the per-minute limit boundary. Concurrency-specific quota stress testing has passed in the disposable PostgreSQL rehearsal. End-to-end invocation of the deployed Edge endpoint remains outstanding.
+1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, global per-minute/daily limits, and a per-event daily cap. Concurrency-specific quota stress testing passed in [CI run 38743257548](https://github.com/freearmy599/taleforge/actions/runs/38743257548); the expanded per-event cap rehearsal is pending the current CI run. End-to-end invocation of the deployed Edge endpoint remains outstanding.
 2. [Verified in CI run 38740534812] Implemented the Edge Function and source-contract tests for methods, body size, allowlist, progress validation, safe errors, no credential leakage, and no raw-payload logging. The request handler is isolated for Deno tests, which cover validation, RPC mapping, stable outcomes, and redacted failures.
 3. [Verified in CI run 38738919711] Type-check the function and execute disposable PostgreSQL rehearsals. Parallel fresh-UUID requests at the per-minute boundary produced exactly 30 accepted and one limited; repeated UUID concurrency remained idempotent. A fixture collision was corrected by separating UUID namespaces.
 4. [Prepared and contract-tested] The existing `window.taleForgeProgress.track(event_type, data)` interface is preserved. A branch-only opt-in flag now routes events through the Edge endpoint without direct-INSERT fallback when enabled; it remains disabled by default until endpoint deployment/verification.
@@ -53,7 +53,7 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 
 ## Go/no-go
 
-NO-GO for production. No production migration, deployment, schedule mutation, chapter generation, publication, or billable Supabase branch is authorized by this plan. The next verification pass must establish successful CI and disposable-database behavior, including concurrent quota requests. The public browser cutover and production approval remain separate gates.
+NO-GO for production. No production migration, deployment, schedule mutation, chapter generation, publication, or billable Supabase branch is authorized by this plan. The next verification pass must establish successful CI and disposable-database behavior, including concurrent quota requests and per-event daily cap boundaries. The public browser cutover and production approval remain separate gates.
 
 
 ## Verification update — 2026-10-15
@@ -85,3 +85,8 @@ Remaining gates are unchanged: deployed endpoint smoke test, controlled browser 
 - Disposable PostgreSQL coverage races the same UUID across distinct visitor hints and expects one `accepted` plus one `duplicate`; 31 independent fresh-UUID requests for one visitor hint must produce exactly 30 `accepted` and one `limited`; a separate daily-boundary loop resets only the minute bucket and expects exactly 1000 `accepted` and one `limited` in the same day window.
 - The private quota bucket and cleanup-state tables are checked for no ordinary-role schema/table access. Cleanup is claimed at most once per minute through a non-blocking advisory lock, with at most 1000 expired rows deleted per cleanup attempt.
 - These source and disposable-database tests are green in [CI run 38742040284](https://github.com/freearmy599/taleforge/actions/runs/38742040284). This verifies branch logic only; the browser switch remains disabled and no production migration or deployment has occurred.
+
+
+## Event-specific quota hardening — 2026-10-15
+
+The branch-only RPC now maintains separate daily quota buckets per event type, with a cap of 250 events per type per visitor hint per day in addition to the 30/minute and 1000/day global limits. The disposable SQL assertions now check that the global daily boundary still allows 1000 events spread across four event classes, while one event class is capped at 250. This prevents one event category from consuming the entire daily contribution budget. These are visitor-hint limits and do not prove unique people or prevent an attacker from rotating IDs. Verification is pending the latest CI runs; production remains NO-GO.
