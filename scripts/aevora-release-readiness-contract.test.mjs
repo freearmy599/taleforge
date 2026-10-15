@@ -38,6 +38,26 @@ test("scheduler fails closed on a missing readiness marker before publisher invo
   assert.match(scheduler.slice(guard, publisherCall), /continue;/);
 });
 
+test("scheduler only accepts an explicit, identified published result from the publisher", () => {
+  const start = scheduler.indexOf("function isConfirmedPublicationResponse(");
+  const end = scheduler.indexOf("\\nconst corsHeaders", start);
+  assert.ok(start >= 0 && end > start, "publication response predicate must be a self-contained helper");
+  const helperSource = scheduler.slice(start, end).replaceAll(":any", "").replaceAll(":boolean", "");
+  const isConfirmed = runInNewContext(`${helperSource}; isConfirmedPublicationResponse`);
+  const validResponse = { ok: true };
+  assert.equal(isConfirmed(validResponse, { success: true, published: true, status: "published", chapter_id: "chapter-1" }), true);
+  assert.equal(isConfirmed(validResponse, { success: true, published: true, status: "draft", chapter_id: "chapter-1" }), false);
+  assert.equal(isConfirmed(validResponse, { success: true, published: true, status: "published", chapter_id: "" }), false);
+  assert.equal(isConfirmed(validResponse, { success: false, published: true, status: "published", chapter_id: "chapter-1" }), false);
+  assert.equal(isConfirmed({ ok: false }, { success: true, published: true, status: "published", chapter_id: "chapter-1" }), false);
+  const dbConfirm = scheduler.indexOf('from("chapters")', scheduler.indexOf("const responseConfirmed="));
+  const publishedPush = scheduler.indexOf("published.push(", dbConfirm);
+  const advancement = scheduler.indexOf('rpc("aevora_advance_release_schedule_if_lease_owned"');
+  assert.ok(dbConfirm > scheduler.indexOf("const responseConfirmed="), "database confirmation must follow the publisher response");
+  assert.ok(publishedPush > dbConfirm && advancement > publishedPush, "the scheduler must confirm chapter status before counting success or advancing the schedule");
+  assert.match(scheduler, /confirmedChapter\.status!=="published"/);
+});
+
 test("publisher rejects ambiguous schedules and automatic flags on manual schedules", () => {
   assert.match(publisher, /\.order\("id", \{ ascending: true \}\)\s*\.limit\(2\)/);
   assert.match(publisher, /if \(\(automationSchedules \?\? \[\]\)\.length > 1\)/);
