@@ -93,9 +93,9 @@ INSERT INTO public.chapters(id,series_id,status) VALUES
 ('00000000-0000-0000-0000-000000000121','00000000-0000-0000-0000-000000000102','published');
 
 GRANT SELECT ON public.series, public.chapters TO anon, authenticated;
-GRANT ALL PRIVILEGES ON TABLE public.reader_events TO anon, authenticated;
+GRANT INSERT ON TABLE public.reader_events TO anon, authenticated;
 GRANT ALL PRIVILEGES ON TABLE public.reader_events TO service_role;
-GRANT USAGE, SELECT ON SEQUENCE public.reader_events_id_seq TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.reader_events_id_seq TO service_role;
 
 -- Seed four recent valid opens; assertions add follow/bookmark transitions and
 -- a future-dated event, then verify the aggregate's scoring and ACL contract.
