@@ -95,42 +95,53 @@ BEGIN
   v_minute := date_trunc('minute', v_now);
   v_day := date_trunc('day', v_now);
 
-  -- Serialize this visitor's quota decisions so concurrent requests cannot race
-  -- through both windows. This is a best-effort anonymous abuse barrier, not identity proof.
+  -- Serialize this visitor's quota decisions so the check-and-increment
+  -- below is atomic across concurrent requests for the same visitor hint.
   PERFORM pg_advisory_xact_lock(hashtextextended(v_visitor_hash, 7919));
+
+  -- Check every applicable bucket before mutating any of them. A rejected
+  -- request must not consume the global budget and starve other event types.
+  SELECT hit_count INTO v_hits
+  FROM aevora_private.reader_event_quota_buckets
+  WHERE visitor_key_hash = v_visitor_hash
+    AND quota_scope = '*' AND window_kind = 'minute' AND window_start = v_minute;
+  IF COALESCE(v_hits, 0) >= 30 THEN
+    RETURN jsonb_build_object('outcome', 'limited');
+  END IF;
+
+  SELECT hit_count INTO v_hits
+  FROM aevora_private.reader_event_quota_buckets
+  WHERE visitor_key_hash = v_visitor_hash
+    AND quota_scope = '*' AND window_kind = 'day' AND window_start = v_day;
+  IF COALESCE(v_hits, 0) >= 1000 THEN
+    RETURN jsonb_build_object('outcome', 'limited');
+  END IF;
+
+  SELECT hit_count INTO v_event_daily_hits
+  FROM aevora_private.reader_event_quota_buckets
+  WHERE visitor_key_hash = v_visitor_hash
+    AND quota_scope = p_event_type AND window_kind = 'day' AND window_start = v_day;
+  IF COALESCE(v_event_daily_hits, 0) >= 250 THEN
+    RETURN jsonb_build_object('outcome', 'limited');
+  END IF;
 
   INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
   VALUES (v_visitor_hash, '*', 'minute', v_minute, 1)
   ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
   DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
-  WHERE aevora_private.reader_event_quota_buckets.hit_count < 30
   RETURNING hit_count INTO v_hits;
-  IF v_hits IS NULL THEN
-    RETURN jsonb_build_object('outcome', 'limited');
-  END IF;
 
   INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
   VALUES (v_visitor_hash, '*', 'day', v_day, 1)
   ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
   DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
-  WHERE aevora_private.reader_event_quota_buckets.hit_count < 1000
   RETURNING hit_count INTO v_hits;
-  IF v_hits IS NULL THEN
-    RETURN jsonb_build_object('outcome', 'limited');
-  END IF;
 
-  -- Cap contribution by event type as well as by the global visitor budget.
-  -- This prevents one repeated event class from consuming the entire daily
-  -- budget or inflating a single aggregate dimension.
   INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
   VALUES (v_visitor_hash, p_event_type, 'day', v_day, 1)
   ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
   DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
-  WHERE aevora_private.reader_event_quota_buckets.hit_count < 250
   RETURNING hit_count INTO v_event_daily_hits;
-  IF v_event_daily_hits IS NULL THEN
-    RETURN jsonb_build_object('outcome', 'limited');
-  END IF;
 
   INSERT INTO public.reader_events(visitor_id, event_type, series_id, chapter_id, progress_percent, event_uuid)
   VALUES (p_visitor_id, p_event_type, p_series_id, p_chapter_id, p_progress_percent, p_event_uuid)
