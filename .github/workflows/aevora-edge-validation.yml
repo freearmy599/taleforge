@@ -61,6 +61,8 @@ jobs:
         run: deno check supabase/functions/aevora-control-plane-audit/index.ts
       - name: Type-check reader-event intake endpoint
         run: deno check supabase/functions/reader-event-intake/index.ts
+      - name: Exercise reader-event intake handler behavior
+        run: deno test supabase/functions/reader-event-intake/handler.test.ts
       - name: Type-check scheduler
         run: deno check supabase/functions/release-scheduler/index.ts
       - name: Type-check autonomous series creation runner
