@@ -289,3 +289,13 @@ A read-only aggregate check found one Gemini provider-state row with a diagnosti
 ### Explicit safety boundary
 
 All changes in this checkpoint are repository-only. No production migration, grant change, Edge Function deployment, live schedule mutation, generation, publication, or billable Supabase branch was initiated. Production rollout remains **NO-GO**.
+
+
+## Trending integration rehearsal checkpoint — 2026-10-15
+
+- Added a guarded disposable-PostgreSQL fixture and runner for the trending aggregate migration. The script refuses to run unless `AEVORA_DISPOSABLE_TRENDING_REHEARSAL=I_UNDERSTAND_THIS_IS_DISPOSABLE` is set and requires an explicit `DATABASE_URL`.
+- CI now applies the aggregate migration to an isolated database and executes SQL assertions for current follow/unfollow and bookmark/unbookmark state, future-dated events, recent opens, and the closed ACL contract.
+- Added adversarial events with a chapter from a different series and with an unpublished chapter. The integration assertions verify that these do not inflate recent opens or active follows, covering the extra validation required because the aggregation function is `SECURITY DEFINER`.
+- The fixture models client reader-event access as INSERT-only (not SELECT) and checks that `anon` and `authenticated` cannot select either ranking view or raw reader events, while `service_role` retains the necessary read access.
+- Verified CI run [38716707701](https://github.com/freearmy599/taleforge/actions/runs/38716707701) succeeded on commit `3b2cc62f7159b4688a4a2e3bd56568564a11b2d6`, including both prepared Edge Function type checks and the disposable PostgreSQL rehearsal.
+- This adds branch-level runtime coverage for the proposed migration; it does not establish that the migration is applied to production or resolve the separate live default-privilege ownership issue. Production remains **NO-GO**.
