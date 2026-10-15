@@ -39,7 +39,7 @@ CREATE OR REPLACE FUNCTION public.aevora_ingest_reader_event(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, aevora_private
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   v_now timestamptz := statement_timestamp();
@@ -164,7 +164,7 @@ CREATE OR REPLACE FUNCTION public.aevora_prune_reader_event_quota_buckets()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, aevora_private
+SET search_path = pg_catalog
 AS $function$
 DECLARE
   v_deleted integer := 0;
