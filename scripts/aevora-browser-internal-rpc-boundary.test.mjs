@@ -103,3 +103,22 @@ test("the protected RPC inventory includes control-plane, readiness, and trigger
     assert.ok(forbiddenBrowserRpcs.includes(rpc), `missing protected RPC: ${rpc}`);
   }
 });
+
+test("the browser RPC denylist covers every explicit internal-function EXECUTE revoke", async () => {
+  const migrationUrl = new URL(
+    "../supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql",
+    import.meta.url,
+  );
+  const migration = await readFile(migrationUrl, "utf8");
+  const revokedFunctions = [...migration.matchAll(
+    /REVOKE\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.([a-z_][a-z0-9_]*)\\s*\\(/gi,
+  )].map((match) => match[1].toLowerCase());
+
+  assert.ok(revokedFunctions.length > 0, "internal RPC migration must contain explicit EXECUTE revokes");
+  for (const rpc of revokedFunctions) {
+    assert.ok(
+      forbiddenBrowserRpcs.includes(rpc),
+      `migration revokes ${rpc}, but the browser-boundary denylist does not cover it`,
+    );
+  }
+});
