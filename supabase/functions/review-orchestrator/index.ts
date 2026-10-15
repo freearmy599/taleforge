@@ -4,6 +4,12 @@ import { isAutomationReady } from "../release-scheduler/readiness.ts";
 
 const VERSION = "review-orchestrator-v4-fail-closed-provider-state";
 
+type ExistingReviewRow = {
+  review_type: string;
+  status: string | null;
+  score: number | null;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -283,8 +289,13 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const reviewMap = new Map(
-        (existingReviews ?? []).map((review) => [review.review_type, review])
+      const reviewMap = new Map<string, ExistingReviewRow>(
+        (existingReviews ?? []).map(
+          (review: ExistingReviewRow): [string, ExistingReviewRow] => [
+            review.review_type,
+            review,
+          ],
+        ),
       );
 
       const reviewPlan = [
