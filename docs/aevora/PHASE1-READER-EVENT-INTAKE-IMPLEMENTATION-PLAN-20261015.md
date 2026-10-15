@@ -112,3 +112,14 @@ The change is branch-only. The browser switch remains disabled, direct INSERT re
 ## Latest verification record — 2026-10-15
 
 The intake search-path hardening, exact JSON media-type validation, request-handler behavior tests, reader-event quota/idempotency rehearsal, and read-only rollout-preflight contracts passed in [CI run 38746893516](https://github.com/freearmy599/taleforge/actions/runs/38746893516) at implementation/test commit `e90a3483542e07a746c95054416d8abf40243c61`. The current branch adds a documentation-only checkpoint commit after that tested source commit. The public endpoint is still not deployed, the browser switch remains off, direct INSERT remains open for compatibility, and public trending remains gated. Production rollout remains NO-GO.
+
+
+## Malformed-stream regression verification — 2026-10-15
+
+Commit `c5534f7e4548efed5d38f2213de2667837f3abc0` adds explicit handler tests for non-object JSON, empty bodies, invalid UTF-8, and request streams that error while being read. The tests assert rejection before the database RPC and ensure stream diagnostics are not exposed to clients.
+
+CI run [38747672914](https://github.com/freearmy599/taleforge/actions/runs/38747672914) passed both jobs on that exact commit:
+- Edge source validation: all prepared Edge Function type checks, reader-event handler behavior tests, source/security contract suites, Gemini quota guard contracts, scheduler/publisher contracts, and rollout-readiness contracts passed.
+- Disposable PostgreSQL rehearsal: readiness migration invariants, concurrent series completion, reader-event integrity and INSERT-only grants, and trending aggregate/ACL assertions passed.
+
+This is branch and disposable-database verification only. No production database was queried or changed; no Edge Function was deployed; browser cutover remains disabled; direct browser INSERT grants remain open for compatibility; public trending remains gated. Production remains NO-GO pending the separately authorized rollout and governance gates.
