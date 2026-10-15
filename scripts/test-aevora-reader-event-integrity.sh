@@ -82,7 +82,8 @@ quota_pids=()
 quota_wait_failures=0
 for i in $(seq 1 31); do
   suffix="$(printf '%012d' "$i")"
-  event_uuid="30000000-0000-0000-0000-$suffix"
+  # Keep this stress run's keys disjoint from the sequential quota fixture above.
+  event_uuid="40000000-0000-0000-0000-$suffix"
   (
     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq >"$quota_dir/$i" 2>&1 <<SQL
 SET ROLE service_role;
