@@ -71,3 +71,36 @@ if [[ "$second_status" -eq 0 ]] || ! grep -qi 'duplicate key value violates uniq
   exit 1
 fi
 echo "Concurrent reader-event idempotency assertion passed."
+
+# Race 31 independent sessions against one fresh anonymous quota key. The
+# database advisory lock must make the 30/minute boundary exact under load.
+quota_dir="$(mktemp -d)"
+cleanup_quota() { rm -rf "$quota_dir"; }
+trap 'cleanup_concurrent; cleanup_quota' EXIT
+quota_visitor="reader-rpc-concurrent-quota-0001"
+for i in $(seq 1 31); do
+  suffix="$(printf '%012d' "$i")"
+  event_uuid="30000000-0000-0000-0000-$suffix"
+  (
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq >"$quota_dir/$i" <<SQL
+SET ROLE service_role;
+SELECT public.aevora_ingest_reader_event(
+  '$quota_visitor',
+  '$event_uuid',
+  'story_open',
+  '00000000-0000-0000-0000-000000000101',
+  NULL,
+  NULL
+)->>'outcome';
+SQL
+  ) &
+done
+wait
+accepted_count="$(grep -hxc 'accepted' "$quota_dir"/* | awk '{s += $1} END {print s+0}')"
+limited_count="$(grep -hxc 'limited' "$quota_dir"/* | awk '{s += $1} END {print s+0}')"
+if [[ "$accepted_count" -ne 30 || "$limited_count" -ne 1 ]]; then
+  echo "Concurrent quota boundary failed: expected 30 accepted and 1 limited, got $accepted_count accepted and $limited_count limited." >&2
+  cat "$quota_dir"/* >&2
+  exit 1
+fi
+echo "Concurrent reader-event quota assertion passed: 30 accepted, 1 limited."
