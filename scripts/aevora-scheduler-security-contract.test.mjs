@@ -14,7 +14,7 @@ const source = await readFile(
 );
 
 test("scheduler version records diagnostic redaction", () => {
-  assert.ok(source.includes('release-scheduler-v16-dst-fold-cadence'));
+  assert.ok(source.includes('release-scheduler-v17-publication-authorization-preflight'));
 });
 
 test("scheduler exception helper never returns provider or database exception text", () => {
