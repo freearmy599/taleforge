@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 
 const scheduler = await readFile("supabase/functions/release-scheduler/index.ts", "utf8");
 const generationOrchestrator = await readFile("supabase/functions/generation-orchestrator/index.ts", "utf8");
@@ -435,6 +436,28 @@ test("chapter revision records Gemini 429/503 cooldowns without overwriting malf
   assert.match(reviseChapter, /Gemini cooldown could not be persisted/);
 });
 
+
+test("provider-block detector recognizes nested review-worker blocks without classifying ordinary review failures", () => {
+  const helperStart = generationOrchestrator.indexOf("function containsProviderBlock(");
+  const helperEnd = generationOrchestrator.indexOf("\\nconst ", helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-block helpers must be present as a self-contained source segment");
+  const helperSource = generationOrchestrator.slice(helperStart, helperEnd)
+    .replaceAll(":any", "")
+    .replaceAll(":boolean", "");
+  const helpers = runInNewContext(`${helperSource}; ({ containsProviderBlock, isProviderBlockResult })`);
+  assert.equal(helpers.isProviderBlockResult({
+    ok: false, status: 422, data: { success: false, results: [
+      { blocked: true, steps: [{ http_status: 200, result: { reason: "provider_state_unavailable" } }] },
+    ] },
+  }), true, "nested provider-state blocks must stop later schedules");
+  assert.equal(helpers.isProviderBlockResult({
+    ok: false, status: 422, data: { success: false, results: [
+      { blocked: true, steps: [{ http_status: 200, result: { decision: "rejected", score: 42 } }] },
+    ] },
+  }), false, "ordinary quality/review failures must not be misclassified as provider blocks");
+  assert.equal(helpers.isProviderBlockResult({ ok: false, status: 503, data: { error: "temporarily unavailable" } }), true);
+  assert.equal(helpers.isProviderBlockResult({ ok: true, status: 200, data: { success: true } }), false);
+});
 
 test("generation and review orchestration stop further AI work after a provider throttle even if cooldown persistence fails", () => {
   assert.match(generationOrchestrator, /let providerThrottleObserved=false;for\(const schedule of ordered\)\{if\(providerThrottleObserved\)/);
