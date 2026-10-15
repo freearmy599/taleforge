@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const source = await readFile(new URL("../supabase/functions/reader-event-intake/index.ts", import.meta.url), "utf8");
+const source = await readFile(new URL("../supabase/functions/reader-event-intake/handler.ts", import.meta.url), "utf8");
+const entrypoint = await readFile(new URL("../supabase/functions/reader-event-intake/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../supabase/migrations/20261015120000_reader_event_intake_rpc.sql", import.meta.url), "utf8");
 const tracker = await readFile(new URL("../reading-progress.js", import.meta.url), "utf8");
 const clientConfig = await readFile(new URL("../supabase-client.js", import.meta.url), "utf8");
@@ -25,7 +26,8 @@ test("intake rejects unknown keys and validates event vocabulary, UUIDs and prog
 });
 
 test("service credentials never leave the Edge Function and diagnostics are redacted", () => {
-  assert.match(source, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(entrypoint, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(entrypoint, /createReaderEventIntakeHandler/);
   assert.match(source, /console\.error\("\[reader-event-intake\] database RPC unavailable", response\.status\)/);
   assert.doesNotMatch(source, /console\.(?:log|error|debug)\([^\n]*(?:raw|body|SERVICE_ROLE_KEY|error\.message)/i);
   assert.doesNotMatch(source, /return json\([^\n]*error\.message/i);
