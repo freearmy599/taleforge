@@ -94,7 +94,7 @@ test("existing sequence ACL inventory is read-only and distinguishes client role
 });
 
 
-test("public trending data is exposed only through a fixed-search-path aggregate function", () => {
+test("prepared trending aggregate is fixed-search-path and gated to service role", () => {
   assert.match(trendingMigration, /CREATE OR REPLACE FUNCTION public\.get_public_story_trending_scores\(\)/i);
   assert.match(trendingMigration, /SECURITY DEFINER/i);
   assert.match(trendingMigration, /SET search_path = pg_catalog/i);
@@ -107,10 +107,11 @@ test("public trending data is exposed only through a fixed-search-path aggregate
   assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores FROM PUBLIC, anon, authenticated/i);
   assert.match(trendingMigration, /GRANT SELECT ON TABLE public\.story_trending_scores TO service_role/i);
   assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
-  assert.match(trendingMigration, /GRANT SELECT ON TABLE public.story_intelligence\s+TO anon, authenticated/i);
+  assert.match(trendingMigration, /GRANT SELECT ON TABLE public.story_intelligence\s+TO service_role/i);
+  assert.doesNotMatch(trendingMigration, /GRANT SELECT ON TABLE public.story_intelligence\s+TO (?:PUBLIC|anon|authenticated)/i);
   const returnedColumns = trendingMigration.match(/RETURNS TABLE \(([\s\S]*?)\)\s*LANGUAGE/i)?.[1] ?? "";
   assert.doesNotMatch(returnedColumns, /\bvisitor_id\b|\bid\b/i,
-    "raw visitor identifiers and event IDs must not be exposed in the public result contract");
+    "raw visitor identifiers and event IDs must not be exposed in the aggregate result contract");
   assert.match(trendingMigration, /latest_follow_state AS \([\s\S]*?DISTINCT ON \(re\.visitor_id, re\.series_id\)[\s\S]*?event_type IN \('follow', 'unfollow'\)/i);
   assert.match(trendingMigration, /latest_bookmark_state AS \([\s\S]*?DISTINCT ON \(re\.visitor_id, re\.chapter_id\)[\s\S]*?event_type IN \('bookmark', 'unbookmark'\)/i);
   assert.match(trendingMigration, /re\.created_at <= pg_catalog\.now\(\)/i);
