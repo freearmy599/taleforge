@@ -33,6 +33,10 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /hit_count < 30/);
   assert.match(migration, /hit_count < 1000/);
+  assert.match(migration, /reader_event_quota_cleanup_state/);
+  assert.match(migration, /last_cleaned_at <= v_now - interval '1 minute'/);
+  assert.match(migration, /pg_try_advisory_xact_lock\(19017, 811\)/);
+  assert.match(migration, /ORDER BY window_start\s+LIMIT 1000/i);
   assert.match(migration, /ON CONFLICT \(event_uuid\) WHERE event_uuid IS NOT NULL DO NOTHING/i);
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.aevora_ingest_reader_event\(text, uuid, text, uuid, uuid, integer\) FROM PUBLIC, anon, authenticated/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.aevora_ingest_reader_event\(text, uuid, text, uuid, uuid, integer\) TO service_role/i);
