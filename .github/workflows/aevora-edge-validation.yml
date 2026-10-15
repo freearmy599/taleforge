@@ -113,6 +113,8 @@ jobs:
         run: node --test scripts/aevora-browser-chapter-write-boundary.test.mjs
       - name: Run browser internal RPC boundary tests
         run: node --test scripts/aevora-browser-internal-rpc-boundary.test.mjs
+      - name: Run public trending RPC security contract tests
+        run: node --test scripts/aevora-public-trending-rpc-contract.test.mjs
       - name: Run release readiness contract tests
         run: node --test scripts/aevora-release-readiness-contract.test.mjs
       - name: Run revision worker security contract tests
