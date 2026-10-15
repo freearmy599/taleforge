@@ -101,10 +101,13 @@ test("public trending data is exposed only through a fixed-search-path aggregate
   assert.match(trendingMigration, /created_at > pg_catalog\.now\(\) - interval '30 days'/i);
   assert.match(trendingMigration, /WHERE s\.status = ANY \(ARRAY\['ongoing'::text, 'completed'::text\]\)/i);
   assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON FUNCTION public\.get_public_story_trending_scores\(\) FROM PUBLIC, anon, authenticated/i);
-  assert.match(trendingMigration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO anon, authenticated, service_role/i);
+  assert.match(trendingMigration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO service_role/i);
+  assert.doesNotMatch(trendingMigration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO (?:PUBLIC|anon|authenticated)/i);
   assert.match(trendingMigration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH \(security_invoker = true\)/i);
-  assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores, public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
-  assert.match(trendingMigration, /GRANT SELECT ON TABLE public\.story_trending_scores, public\.story_intelligence\s+TO anon, authenticated/i);
+  assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores FROM PUBLIC, anon, authenticated/i);
+  assert.match(trendingMigration, /GRANT SELECT ON TABLE public\.story_trending_scores TO service_role/i);
+  assert.match(trendingMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
+  assert.match(trendingMigration, /GRANT SELECT ON TABLE public.story_intelligence\s+TO anon, authenticated/i);
   const returnedColumns = trendingMigration.match(/RETURNS TABLE \(([\s\S]*?)\)\s*LANGUAGE/i)?.[1] ?? "";
   assert.doesNotMatch(returnedColumns, /\bvisitor_id\b|\bid\b/i,
     "raw visitor identifiers and event IDs must not be exposed in the public result contract");
