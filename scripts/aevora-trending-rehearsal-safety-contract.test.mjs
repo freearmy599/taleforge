@@ -8,7 +8,7 @@ const fixture = await readFile(new URL("./aevora-trending-state-fixture.sql", im
 const assertions = await readFile(new URL("./aevora-trending-state-assertions.sql", import.meta.url), "utf8");
 
 test("trending rehearsal requires an explicit disposable database opt-in", () => {
-  assert.match(runner, /:\s*\\"?\$\{DATABASE_URL:\?DATABASE_URL must point to a disposable PostgreSQL database\}/);
+  assert.ok(runner.includes(': "${DATABASE_URL:?DATABASE_URL must point to a disposable PostgreSQL database}"'));
   assert.match(runner, /AEVORA_DISPOSABLE_TRENDING_REHEARSAL/);
   assert.match(runner, /I_UNDERSTAND_THIS_IS_DISPOSABLE/);
   assert.match(runner, /Refusing to run trending integration rehearsal/);
