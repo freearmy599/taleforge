@@ -33,7 +33,7 @@ test("provider-state lookup failure preserves existing cooldown state", () => {
   assert.match(handler, /if\s*\(stateError\s*\|\|\s*!data\)/);
   assert.match(
     handler,
-    /provider cooldown state could not be verified; existing state preserved/,
+    /Gemini cooldown state could not be verified; existing state preserved/,
   );
   assert.match(
     handler,
