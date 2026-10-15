@@ -32,7 +32,23 @@ AS $function$
       re.event_type,
       re.progress_percent,
       re.created_at,
-      EXTRACT(epoch FROM pg_catalog.now() - re.created_at) / 86400.0 AS age_days
+      EXTRACT(epoch FROM pg_catalog.now() - re.created_at) / 86400.0 AS age_days,
+      -- Anonymous IDs are hints, not verified identities. Limit accidental or
+      -- low-effort replay inflation: one open per series/day, one start/progress
+      -- per chapter/day, and one completion per chapter in the 30-day window.
+      row_number() OVER (
+        PARTITION BY
+          re.visitor_id,
+          re.series_id,
+          re.event_type,
+          CASE WHEN re.event_type = 'story_open' THEN NULL::uuid ELSE re.chapter_id END,
+          CASE
+            WHEN re.event_type IN ('story_open', 'chapter_start', 'reading_progress')
+              THEN date_trunc('day', re.created_at)
+            ELSE NULL::timestamptz
+          END
+        ORDER BY re.created_at DESC, re.id DESC
+      ) AS contribution_rank
     FROM public.reader_events AS re
     WHERE re.series_id IS NOT NULL
       AND re.created_at > pg_catalog.now() - interval '30 days'
@@ -109,6 +125,7 @@ AS $function$
       count(*) FILTER (WHERE e.event_type = 'chapter_complete') AS completions,
       max(e.created_at) AS latest_activity
     FROM recent_events AS e
+    WHERE e.contribution_rank = 1
     GROUP BY e.series_id
   ),
   follow_state_scores AS (
