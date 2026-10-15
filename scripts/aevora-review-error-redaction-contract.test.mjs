@@ -62,6 +62,26 @@ const orchestrator = await readFile(
   "utf8",
 );
 
+const reviseChapter = await readFile(
+  new URL("../supabase/functions/revise-chapter/index.ts", import.meta.url),
+  "utf8",
+);
+
+test("revision rechecks Gemini provider state before every model call", () => {
+  assert.ok(reviseChapter.includes("async function getGeminiProviderBlock("));
+  assert.ok(reviseChapter.includes('return {reason:"provider_state_unavailable"}'));
+  assert.ok(reviseChapter.includes('reason:"invalid_cooldown_timestamp"'));
+  assert.ok(reviseChapter.includes('reason:"provider_cooldown"'));
+  const primaryCall = reviseChapter.indexOf("rawResponse = await callGemini(");
+  const primaryGuard = reviseChapter.lastIndexOf("await getGeminiProviderBlock(supabase)", primaryCall);
+  assert.ok(primaryGuard >= 0 && primaryCall - primaryGuard < 1000, "each main revision attempt must recheck provider state immediately before Gemini");
+  const continuationCall = reviseChapter.indexOf("continuation = cleanGeminiOutput(await callGemini(");
+  const continuationGuard = reviseChapter.lastIndexOf("await getGeminiProviderBlock(supabase)", continuationCall);
+  assert.ok(continuationGuard >= 0 && continuationCall - continuationGuard < 1000, "each continuation request must recheck provider state immediately before Gemini");
+  assert.ok(reviseChapter.indexOf("if(providerBlock)") > primaryGuard);
+  assert.ok(reviseChapter.indexOf("if(continuationProviderBlock)") > continuationGuard);
+});
+
 test("review orchestrator blocks all review calls when provider state is unavailable, malformed, or cooling down", () => {
   assert.ok(orchestrator.includes('const VERSION = "review-orchestrator-v4-fail-closed-provider-state"'));
   assert.ok(orchestrator.includes('.from("taleforge_ai_provider_state")'));
