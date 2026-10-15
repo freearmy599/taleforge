@@ -18,6 +18,8 @@ A database migration and several Edge Function deployments cannot be treated as 
 4. **Rollback proof:** review a production-specific recovery procedure against the captured baseline. The existing rollback rehearsal is fixture-scoped and must not be run against production.
 5. **Schedule disposition:** each of the six legacy schedules must have a recorded decision. Default to manual-only. Generation approval and publication approval are separate decisions.
 6. **Change window and operator:** have a human operator authorized to pause/resume invocation sources, observe results, and execute the approved recovery procedure.
+7. **Invocation-effect evidence:** for every active cron job, record its target, schedule, explicit request payload mode, recent execution status, and whether the endpoint response confirms dry-run/no mutation. A successful cron SQL statement is not proof that the HTTP function succeeded safely; a missing `dry_run: true` value must be treated as a real mutating invocation unless the endpoint contract proves otherwise.
+8. **Live readiness compatibility:** verify the production schema actually contains `automation_ready_at` and verify the currently deployed generation/release functions check it before any generation, publication, or schedule advancement. Source changes on the repair branch do not protect deployed workers.
 
 If any precondition is missing, stop before migration.
 
@@ -90,3 +92,8 @@ Recovery must first leave all automation disabled. Restore exact prior function/
 - Six legacy schedules still require individual disposition.
 - Publication authorization has a separate design proposal, but its approver identity/authorization source remains unresolved and no implementation exists.
 - Production deployment, migration, schedule changes, generation, and publication remain unauthorized by this review.
+
+
+## Additional read-only preflight controls — 2026-10-15
+
+The preflight must distinguish scheduler infrastructure success from application safety. For each cron invocation, inspect only sanitized metadata and recent run outcomes; never expose the raw `cron.job.command` because it may contain credentials. Confirm whether the request explicitly selects dry-run mode and compare its target with the deployed Edge Function version/source hash. If a live worker lacks the readiness gate or the database lacks the readiness column, the rollout remains blocked until an authorized containment decision is made. Do not silently pause jobs, disable schedules, or apply the readiness migration under this plan; those are production changes requiring the designated operator and approved change window.
