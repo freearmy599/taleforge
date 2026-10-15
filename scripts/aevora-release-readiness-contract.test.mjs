@@ -629,3 +629,13 @@ test("rollback harness requires explicit disposable opt-in and executes fail-clo
   assert.match(rollbackAssertions, /baseline creation-gate function body was not restored/i);
   assert.match(rollbackAssertions, /fixture baseline release_schedules grants were not restored/i);
 });
+
+
+test("autonomous creation response reflects generation-only readiness", () => {
+  assert.match(migration, /'publication_enabled', false/);
+  assert.match(migration, /'publication_approval_required', true/);
+  assert.match(migration, /auto_generate = true,\s*auto_publish = false/);
+  assert.match(runner, /release_schedule:\s*\{[^}]*auto_generate:\s*true,\s*auto_publish:\s*false,\s*automation_ready:\s*true,\s*publication_approval_required:\s*true/);
+  assert.match(runner, /Automated publication remains disabled until separate audited publication authorization is implemented/);
+  assert.doesNotMatch(runner, /release_schedule:\s*\{[^}]*auto_publish:\s*true/);
+});
