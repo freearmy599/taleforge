@@ -648,7 +648,7 @@ test("Edge Functions never enable automated publication by assignment", async ()
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
       if (entry.isDirectory()) await collect(child);
-      else if (entry.isFile() && entry.name.endsWith(".ts")) files.push(child);
+      else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts")) files.push(child);
     }
   }
   await collect(root);
