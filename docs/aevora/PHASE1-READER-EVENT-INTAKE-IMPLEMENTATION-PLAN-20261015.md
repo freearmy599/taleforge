@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning artifact only. No endpoint, database object, production setting, or browser write path is changed by this document. The branch's existing direct browser insert is still active where its current database policies permit it. Public trending remains gated.
+Branch-only implementation prepared; verification pending. Added a public Edge Function, a SECURITY DEFINER RPC with server-only execute grants, an isolated quota table, source-contract tests, and disposable PostgreSQL assertions. The branch's existing direct browser insert remains active where its current database policies permit it; the endpoint is not yet wired into the browser. No production setting or deployment was changed. Public trending remains gated.
 
 ## Design decision
 
@@ -31,9 +31,9 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 
 ## Compatibility and rollout sequence
 
-1. Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, concurrent quota races, idempotency races, invalid relationships, payload limits, and exact limit boundaries.
-2. Implement the Edge Function and source-contract tests for methods, body size, allowlist, progress validation, safe errors, no credential leakage, and no raw-payload logging.
-3. Type-check the function and execute disposable PostgreSQL rehearsals. Exercise parallel requests at the quota boundary; exactly the configured number may succeed.
+1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, and the per-minute limit boundary. Concurrency-specific quota stress testing and end-to-end Edge invocation tests remain outstanding.
+2. [Prepared] Implement the Edge Function and source-contract tests for methods, body size, allowlist, progress validation, safe errors, no credential leakage, and no raw-payload logging.
+3. [Pending CI] Type-check the function and execute disposable PostgreSQL rehearsals. Exercise parallel requests at the quota boundary; exactly the configured number may succeed.
 4. Add a compatibility test for the existing `window.taleForgeProgress.track(event_type, data)` interface, then add a branch-only opt-in switch so browser reads/UI do not depend on intake availability.
 5. Test rollout and rollback together. Do not revoke direct inserts until the endpoint is deployed and verified in the intended environment, browser traffic has been migrated, and a tested rollback path exists. The final production cutover requires separate explicit authorization.
 6. Only after direct-insert bypass is closed and abuse controls are verified may the public trending gate be reconsidered.
@@ -53,4 +53,4 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 
 ## Go/no-go
 
-NO-GO for production. No production migration, deployment, schedule mutation, chapter generation, publication, or billable Supabase branch is authorized by this plan. The next implementation commit must contain the migration/RPC, Edge Function, tests, and workflow integration together, followed by successful CI and disposable-database verification.
+NO-GO for production. No production migration, deployment, schedule mutation, chapter generation, publication, or billable Supabase branch is authorized by this plan. The next verification pass must establish successful CI and disposable-database behavior, including concurrent quota requests. The public browser cutover and production approval remain separate gates.
