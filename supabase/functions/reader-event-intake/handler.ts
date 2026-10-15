@@ -21,7 +21,10 @@ function isUuid(value: unknown): value is string {
 }
 async function readBoundedBody(req: Request): Promise<string | null> {
   const declared = Number(req.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return null;
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    try { await req.body?.cancel(); } catch { /* request may already be closing */ }
+    return null;
+  }
   const reader = req.body?.getReader();
   if (!reader) return null;
   const chunks: Uint8Array[] = [];
