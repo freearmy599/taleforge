@@ -67,11 +67,9 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'duplicate');
   END IF;
 
-  -- Retain only two days of hashed quota buckets. This opportunistic cleanup
-  -- is bounded to once per five-minute epoch boundary, not every request.
-  IF mod(extract(epoch FROM v_now)::bigint, 300) = 0 THEN
-    PERFORM public.aevora_prune_reader_event_quota_buckets();
-  END IF;
+  -- Bounded opportunistic cleanup runs on each valid request. The indexed
+  -- delete below removes at most 1000 expired rows per invocation.
+  PERFORM public.aevora_prune_reader_event_quota_buckets();
 
   v_visitor_hash := md5(p_visitor_id);
   v_minute := date_trunc('minute', v_now);
@@ -126,8 +124,16 @@ SET search_path = pg_catalog, aevora_private
 AS $function$
 DECLARE v_deleted integer;
 BEGIN
-  DELETE FROM aevora_private.reader_event_quota_buckets
-  WHERE window_start < statement_timestamp() - interval '2 days';
+  WITH expired AS (
+    SELECT ctid
+    FROM aevora_private.reader_event_quota_buckets
+    WHERE window_start < statement_timestamp() - interval '2 days'
+    ORDER BY window_start
+    LIMIT 1000
+  )
+  DELETE FROM aevora_private.reader_event_quota_buckets q
+  USING expired
+  WHERE q.ctid = expired.ctid;
   GET DIAGNOSTICS v_deleted = ROW_COUNT;
   RETURN v_deleted;
 END;
