@@ -16,7 +16,8 @@ test("public trending RPC is a narrowly scoped SECURITY DEFINER with fixed searc
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.get_public_story_trending_scores\(\)/i);
   assert.match(migration, /LANGUAGE\s+sql\s+STABLE\s+SECURITY\s+DEFINER\s+SET\s+search_path\s*=\s*pg_catalog/i);
   assert.match(migration, /REVOKE ALL PRIVILEGES ON FUNCTION public\.get_public_story_trending_scores\(\) FROM PUBLIC, anon, authenticated/i);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO anon, authenticated, service_role/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO service_role/i);
+  assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.get_public_story_trending_scores\(\) TO (?:PUBLIC|anon|authenticated)/i);
   assert.match(migration, /WITH\s*\(security_invoker\s*=\s*true\)/i);
 });
 
@@ -42,8 +43,11 @@ test("trending counts are bounded to valid public series and published chapter e
   assert.match(migration, /ORDER BY[\s\S]{0,180}re\.created_at\s+DESC,\s+re\.id\s+DESC/i);
 });
 
-test("discovery views grant public read-only access without public write privileges", () => {
-  assert.match(migration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores, public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
-  assert.match(migration, /GRANT SELECT ON TABLE public\.story_trending_scores, public\.story_intelligence\s+TO anon, authenticated/i);
+test("trending stays gated while story intelligence remains public read-only", () => {
+  assert.match(migration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores FROM PUBLIC, anon, authenticated/i);
+  assert.match(migration, /GRANT SELECT ON TABLE public\.story_trending_scores TO service_role/i);
+  assert.match(migration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
+  assert.match(migration, /GRANT SELECT ON TABLE public\.story_intelligence\s+TO anon, authenticated/i);
+  assert.doesNotMatch(migration, /GRANT SELECT ON TABLE public\.story_trending_scores\s+TO (?:PUBLIC|anon|authenticated)/i);
   assert.doesNotMatch(migration, /GRANT\s+(?:INSERT|UPDATE|DELETE|ALL PRIVILEGES)\s+ON\s+TABLE\s+public\.(?:story_trending_scores|story_intelligence)\s+TO\s+(?:PUBLIC|anon|authenticated)/i);
 });
