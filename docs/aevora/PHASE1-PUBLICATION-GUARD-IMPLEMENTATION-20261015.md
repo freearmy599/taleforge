@@ -79,3 +79,13 @@ The guard reads the release schedule from the database and executes before the c
 - The first SQL-only commit exposed a stale six-statement test expectation and its CI run failed; the follow-up updated the expected count to seven, and [CI run 38689373437](https://github.com/freearmy599/taleforge/actions/runs/38689373437) passed. The initial failed run is retained as correction history, not counted as passing evidence.
 - Validation passed in [CI run 38689373437](https://github.com/freearmy599/taleforge/actions/runs/38689373437), including the read-only access audit contract, prepared Edge Function/type checks, and disposable PostgreSQL readiness/concurrency/reader-event rehearsals.
 - This improves evidence collection for the known `supabase_admin` default-ACL blocker; it does not repair or change any live grants. An approved operation by the appropriate owner remains required, and production rollout remains NO-GO.
+
+
+## Manual-mode and scheduler rejection regression coverage
+
+- Extended the publisher security contract to explicitly distinguish persisted manual schedules from automated schedules. Missing/ambiguous schedule state must fail closed; manual schedules are handled explicitly; conflicting automation flags on a manual schedule return `MANUAL_SCHEDULE_AUTOMATION_CONFLICT`; generation-only readiness cannot authorize automatic publication.
+- The full validation passed in [CI run 38691792890](https://github.com/freearmy599/taleforge/actions/runs/38691792890), including prepared Edge Function type checks, all source-contract tests, and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal.
+- Added a scheduler cross-file regression that evaluates the scheduler's publication-confirmation helper and proves an authorization-lock response cannot be counted as a confirmed publication, even if the transport-level response is otherwise marked okay. Schedule advancement remains gated on confirmation of every selected publication.
+- Validation passed in [CI run 38691855485](https://github.com/freearmy599/taleforge/actions/runs/38691855485), including the scheduler and publisher security contracts, all prepared Edge Function type checks, and the disposable PostgreSQL rehearsal.
+
+These passing checks strengthen the branch-only safety net. They do not implement the missing human approval workflow, prove live Supabase grants, or authorize deployment. Production remains NO-GO.
