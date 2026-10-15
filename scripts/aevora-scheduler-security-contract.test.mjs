@@ -183,6 +183,9 @@ test("dry-run mode cannot claim leases, call the publisher, transition lifecycle
     "lease renewal must remain inside the gated publication path");
   assert.match(source.slice(advance - 120, advance), /if\(!dryRun && nextRelease && allSelectedConfirmed\)/,
     "schedule advancement must be gated by non-dry-run mode and confirmed publications");
-  assert.match(source.slice(activate - 180, activate), /if\(!dryRun && schedule\.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost\)/,
+  const lifecycleGate = source.lastIndexOf('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost){', activate);
+  assert.ok(lifecycleGate >= 0 && lifecycleGate < activate,
     "lifecycle activation must be gated by non-dry-run mode and successful publication");
+  assert.ok(source.slice(lifecycleGate, activate).includes("aevora_activate_story_lifecycle_if_lease_owned"),
+    "lifecycle activation must use the lease-owned atomic RPC");
 });
