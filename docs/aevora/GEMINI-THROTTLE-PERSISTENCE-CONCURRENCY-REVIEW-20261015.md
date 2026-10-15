@@ -16,6 +16,12 @@ In `supabase/functions/generation-orchestrator/index.ts`, `recordGeminiThrottle`
 
 This is a read/modify/write sequence rather than one atomic database operation. The repository's tracked migrations include the server-only grant lock for `taleforge_ai_provider_state`, but do not define the table's canonical creation/schema migration. Therefore a new RPC must not be authored against assumed constraints or column types without first verifying the canonical live schema and repository history.
 
+## Schema provenance evidence collection
+
+A read-only catalog inventory is now prepared at [`phase1-provider-state-schema-provenance.sql`](./phase1-provider-state-schema-provenance.sql). It records the table owner and RLS flags, exact columns/types/defaults, constraints, indexes and unique conflict targets, triggers, relation/column ACLs, schema default privileges, and existing provider/cooldown routines. It issues catalog `SELECT` statements only; it does not read provider row payloads or mutate data.
+
+Run it only through an already-authorized read-only SQL session and retain the result in the approved audit location. Do not paste credentials into chat or create a billable Supabase branch to run it. Compare the result with tracked migration history before authoring any RPC. If production access is not authorized, the blocker remains open; repository evidence alone is not a substitute for live ownership/default-privilege verification.
+
 ## Safe repair path
 
 1. Obtain the canonical schema for `taleforge_ai_provider_state` from the repository's source of truth and a read-only production schema audit, when authorized. Do not query or mutate production as part of this branch-only task.
