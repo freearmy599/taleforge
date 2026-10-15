@@ -339,3 +339,10 @@ All changes in this checkpoint are repository-only. No production migration, gra
 - Extracted a dependency-injected request handler so Deno tests can exercise the public intake boundary without calling a live Supabase project or exposing credentials. Coverage includes body/method/content validation, payload allowlisting, UUID/progress validation, no-RPC-on-invalid requests, RPC field mapping, stable outcome codes, and redacted failures.
 - Added the handler suite to the required CI workflow. During the same pass, strict TypeScript checks surfaced implicit/unknown inference in generation buffer callbacks, review maps, world-element ID maps, and publication review rows; explicit structural types fixed these without changing business behavior.
 - [CI run 38740534812](https://github.com/freearmy599/taleforge/actions/runs/38740534812) passed both Edge/source validation and disposable PostgreSQL rehearsal on the current branch head. This remains branch-only; the intake flag is disabled by default and direct INSERT is not yet revoked.
+
+
+### Trending contribution caps — 2026-10-15
+
+- Added row-number deduplication in the `SECURITY DEFINER` trending aggregate: one open per visitor hint/series/day, one chapter start and latest progress per chapter/day, and one completion per visitor hint/chapter in the rolling 30-day stream. The follow/bookmark latest-state logic remains separate.
+- Disposable assertions inject repeated opens, starts, progress and completions and verify that repeats do not inflate open/completion counts or the total score. The first rehearsal caught a fixture portability issue (the repeated-open visitor existed only in the trending-specific fixture); the seed is now conditional on the baseline event being present.
+- [CI run 38741779604](https://github.com/freearmy599/taleforge/actions/runs/38741779604) passed both Edge/source validation and the disposable PostgreSQL rehearsals. Public trending remains gated and production remains **NO-GO**.
