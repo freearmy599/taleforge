@@ -89,3 +89,10 @@ The guard reads the release schedule from the database and executes before the c
 - Validation passed in [CI run 38691855485](https://github.com/freearmy599/taleforge/actions/runs/38691855485), including the scheduler and publisher security contracts, all prepared Edge Function type checks, and the disposable PostgreSQL rehearsal.
 
 These passing checks strengthen the branch-only safety net. They do not implement the missing human approval workflow, prove live Supabase grants, or authorize deployment. Production remains NO-GO.
+
+
+## Authorization-state lookup failure regression
+
+- Added a publisher contract proving that errors reading the persisted release schedule or autonomous-series provenance return a retryable failure before the publication authorization decision and before chapter-table access. The contract also verifies that raw internal diagnostics remain redacted.
+- Validation passed in [CI run 38693982344](https://github.com/freearmy599/taleforge/actions/runs/38693982344): prepared Edge Function type checks and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal both succeeded.
+- This is regression coverage for fail-closed behavior, not live production verification. It does not implement the separate human publication-approval workflow; production remains NO-GO.
