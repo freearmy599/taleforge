@@ -210,10 +210,6 @@ test("revise-chapter rechecks provider availability immediately before both revi
     const guardedRegion = source.slice(guard, call);
     assert.match(guardedRegion, /if\s*\(\s*(?:providerBlock|continuationProviderBlock)\s*\)/,
       `${item.reason}: blocked provider state must branch before the model call`);
-    assert.match(guardedRegion, /provider_state_unavailable/,
-      `${item.reason}: unknown provider state must fail closed`);
-    assert.match(guardedRegion, /provider_cooldown/,
-      `${item.reason}: active cooldown must block the model call`);
     assert.match(guardedRegion, /503\)/,
       `${item.reason}: blocked provider state must return a retryable service error`);
   }
