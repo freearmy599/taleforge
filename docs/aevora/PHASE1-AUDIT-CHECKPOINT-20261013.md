@@ -316,3 +316,11 @@ All changes in this checkpoint are repository-only. No production migration, gra
 - [CI run 38719014756](https://github.com/freearmy599/taleforge/actions/runs/38719014756) passed after these changes. This is repository-only verification. Public trending remains unavailable to `anon` and `authenticated` on the branch; no production change was made.
 
 - A new reader-event source contract verifies that direct browser INSERTs remain centralized in `reading-progress.js`, the `track(event_type, data)` compatibility seam carries the optional idempotency key, and the browser does not set `created_at`. The first CI attempt exposed an over-escaped test regex; it was corrected and the full workflow passed in run 38719462429.
+
+
+### Trusted reader-event quota rehearsal — 2026-10-15
+
+- The branch now has a server-only reader-event intake RPC with per-visitor-hint limits of 30/minute and 1000/day, event/relationship validation, idempotency, and a private quota store. The Edge Function is prepared but not deployed; the browser still uses direct INSERT and can bypass the new quotas until the browser cutover and direct-write revocation are staged together.
+- A concurrent test initially failed because the stress fixture reused UUIDs from the sequential quota test. The duplicate outcomes were expected; the test was corrected to use a separate UUID namespace. [CI run 38738581910](https://github.com/freearmy599/taleforge/actions/runs/38738581910) then passed both jobs, including 30 accepted / 1 limited under 31 concurrent requests.
+- Cleanup was further bounded: the RPC checks a singleton cleanup gate, uses a non-blocking advisory lock only when the one-minute window expires, and deletes at most 1000 expired quota rows per cleanup attempt. An initial SQL assertion attempted to inspect the private state as `service_role`; it was moved to the migration-owner test context. [CI run 38738919711](https://github.com/freearmy599/taleforge/actions/runs/38738919711) passed both source/type-checking and disposable PostgreSQL rehearsal.
+- This verifies branch behavior only. No production migration, function deployment, direct-write revocation, or public trending access was enabled. Production remains **NO-GO**.
