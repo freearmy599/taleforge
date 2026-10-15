@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS aevora_private.reader_event_quota_buckets (
   PRIMARY KEY (visitor_key_hash, window_kind, window_start)
 );
 REVOKE ALL ON TABLE aevora_private.reader_event_quota_buckets FROM PUBLIC, anon, authenticated;
+CREATE INDEX IF NOT EXISTS reader_event_quota_buckets_expiry_idx
+  ON aevora_private.reader_event_quota_buckets (window_start);
 
 CREATE OR REPLACE FUNCTION public.aevora_ingest_reader_event(
   p_visitor_id text,
@@ -63,6 +65,12 @@ BEGIN
     SELECT 1 FROM public.reader_events e WHERE e.event_uuid = p_event_uuid
   ) THEN
     RETURN jsonb_build_object('outcome', 'duplicate');
+  END IF;
+
+  -- Retain only two days of hashed quota buckets. This opportunistic cleanup
+  -- is bounded to once per five-minute epoch boundary, not every request.
+  IF mod(extract(epoch FROM v_now)::bigint, 300) = 0 THEN
+    PERFORM public.aevora_prune_reader_event_quota_buckets();
   END IF;
 
   v_visitor_hash := md5(p_visitor_id);
