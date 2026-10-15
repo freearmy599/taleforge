@@ -43,10 +43,32 @@ CREATE TABLE public.aevora_engineering_events (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   event text NOT NULL
 );
-CREATE TABLE public.story_intelligence (
-  series_id uuid PRIMARY KEY REFERENCES public.series(id) ON DELETE CASCADE,
-  synopsis text
-);
+-- Placeholder views model the live dependency chain so the disposable
+-- migration rehearsal verifies that replacing story_trending_scores preserves
+-- dependent-view compatibility and that both views can be gated consistently.
+CREATE VIEW public.story_trending_scores
+WITH (security_invoker = true)
+AS
+SELECT
+  s.id AS series_id,
+  s.title,
+  s.subtitle,
+  s.description,
+  s.status,
+  s.published_at,
+  0::numeric AS trending_score,
+  0::bigint AS opens,
+  0::bigint AS completions,
+  0::bigint AS follows,
+  0::bigint AS bookmarks,
+  NULL::timestamptz AS latest_activity
+FROM public.series AS s;
+
+CREATE VIEW public.story_intelligence
+WITH (security_invoker = true)
+AS
+SELECT series_id, title, trending_score
+FROM public.story_trending_scores;
 
 ALTER TABLE public.series ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
