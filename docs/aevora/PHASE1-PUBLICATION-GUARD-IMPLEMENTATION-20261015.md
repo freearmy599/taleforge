@@ -44,3 +44,9 @@ The guard reads the release schedule from the database and executes before the c
 ## Current release decision
 
 **NO-GO.** Do not deploy this branch, run production migrations, enable `auto_publish`, mutate schedules, generate chapters, or publish chapters as part of this work. A passing source-contract test alone is not sufficient evidence for a production authorization boundary.
+
+## Gemini quota-guard audit extension
+
+- Added `scripts/aevora-gemini-quota-guard-contract.test.mjs`, which scans every TypeScript Edge Function for direct Gemini API endpoints and requires the persisted provider-state table, explicit fail-closed state-unavailable handling, a cooldown rejection marker, and a current-time check.
+- Wired the contract into `.github/workflows/aevora-edge-validation.yml`; it passed in [CI run 38686126485](https://github.com/freearmy599/taleforge/actions/runs/38686126485). Both the prepared Edge Function/type-check job and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal completed successfully.
+- This is a static regression net, not proof of live provider quota state or a substitute for runtime/provider integration testing. No Gemini request was made by the test.
