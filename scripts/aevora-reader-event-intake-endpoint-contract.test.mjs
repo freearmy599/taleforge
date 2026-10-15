@@ -12,7 +12,7 @@ const supabaseConfig = await readFile(new URL("../supabase/config.toml", import.
 test("intake bounds request body and accepts POST JSON only", () => {
   assert.match(source, /MAX_BODY_BYTES = 2048/);
   assert.match(source, /req\.method !== "POST"/);
-  assert.match(source, /application\/json/);
+  assert.match(source, /mediaType !== "application\/json"/);
   assert.match(source, /payload_too_large/);
   assert.match(source, /reader\.cancel\(\)/);
 });
