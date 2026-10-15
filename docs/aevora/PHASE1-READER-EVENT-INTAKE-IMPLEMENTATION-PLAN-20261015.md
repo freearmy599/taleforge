@@ -90,3 +90,8 @@ Remaining gates are unchanged: deployed endpoint smoke test, controlled browser 
 ## Event-specific quota hardening — 2026-10-15
 
 The branch-only RPC now maintains separate daily quota buckets per event type, with a cap of 250 events per type per visitor hint per day in addition to the 30/minute and 1000/day global limits. The disposable SQL assertions now check that the global daily boundary still allows 1000 events spread across four event classes, while one event class is capped at 250. This prevents one event category from consuming the entire daily contribution budget. These are visitor-hint limits and do not prove unique people or prevent an attacker from rotating IDs. Verification is pending the latest CI runs; production remains NO-GO.
+
+
+## Rollout preflight visibility — 2026-10-15
+
+The read-only production rollout preflight now reports whether anon/authenticated can still INSERT directly into `reader_events`, whether RLS is enabled, and whether the server-timestamp trigger and event-UUID unique index are present. It still avoids returning cron command text and wraps reads in a read-only transaction. This is intended to make the legacy bypass visible before any separately authorized cutover; it does not execute against production as part of CI and does not change grants. CI verification is pending for this latest addition.
