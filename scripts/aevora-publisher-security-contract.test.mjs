@@ -171,3 +171,21 @@ test("publication lock uses persisted schedule state rather than caller-supplied
   assert.ok(guard >= 0 && insert > guard,
     "persisted schedule authorization must be checked before chapter-table operations");
 });
+
+
+test("publisher fails closed when schedule or autonomous-provenance state cannot be read", () => {
+  const scheduleError = publisher.indexOf("if (automationScheduleError)");
+  const provenanceError = publisher.indexOf("if (autonomousRunError)");
+  const authorizationGate = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
+  const chapterTableAccess = publisher.indexOf('.from("chapters")');
+  assert.ok(scheduleError >= 0 && provenanceError > scheduleError,
+    "both persisted schedule and autonomous provenance lookups must have explicit error handling");
+  assert.ok(authorizationGate > provenanceError && chapterTableAccess > authorizationGate,
+    "state lookup errors must be rejected before the authorization decision and any chapter-table path");
+  const scheduleFailure = publisher.slice(scheduleError, provenanceError);
+  const provenanceFailure = publisher.slice(provenanceError, authorizationGate);
+  assert.match(scheduleFailure, /retryable:\s*true[\s\S]*?Could not verify release automation readiness[\s\S]*?503/);
+  assert.match(provenanceFailure, /retryable:\s*true[\s\S]*?Could not verify autonomous-series provenance[\s\S]*?503/);
+  assert.match(publisher, /function getErrorMessage\(_error: unknown\): string\s*\{\s*return "Internal publication diagnostics were withheld\.";/,
+    "lookup failures must not expose raw database/provider diagnostics");
+});
