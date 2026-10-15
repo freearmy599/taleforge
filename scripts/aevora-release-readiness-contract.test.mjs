@@ -592,6 +592,10 @@ test("production rollout preflight is read-only and redacts cron command content
   assert.match(productionPreflight, /enabled_nonmanual_schedules_without_readiness/);
   assert.match(productionPreflight, /succeeded_runs_24h/);
   assert.match(productionPreflight, /dry_run_mode/);
+  assert.match(productionPreflight, /anon_can_direct_insert/);
+  assert.match(productionPreflight, /authenticated_can_direct_insert/);
+  assert.match(productionPreflight, /server_timestamp_trigger_installed/);
+  assert.match(productionPreflight, /event_uuid_unique_index_installed/);
   assert.doesNotMatch(productionPreflight, /SELECT\s+j\.command/i);
   const executableSql = productionPreflight.split("\n")
     .filter((line) => !line.trim().startsWith("--") && !line.trim().startsWith("\\"))
