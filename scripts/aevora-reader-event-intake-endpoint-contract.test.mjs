@@ -4,6 +4,9 @@ import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../supabase/functions/reader-event-intake/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../supabase/migrations/20261015120000_reader_event_intake_rpc.sql", import.meta.url), "utf8");
+const tracker = await readFile(new URL("../reading-progress.js", import.meta.url), "utf8");
+const clientConfig = await readFile(new URL("../supabase-client.js", import.meta.url), "utf8");
+const supabaseConfig = await readFile(new URL("../supabase/config.toml", import.meta.url), "utf8");
 
 test("intake bounds request body and accepts POST JSON only", () => {
   assert.match(source, /MAX_BODY_BYTES = 2048/);
@@ -43,8 +46,13 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   assert.match(migration, /REVOKE ALL ON TABLE aevora_private\.reader_event_quota_buckets FROM PUBLIC, anon, authenticated/i);
 });
 
-test("legacy browser tracker is not switched until rollout and rollback are separately tested", async () => {
-  const tracker = await readFile(new URL("../reading-progress.js", import.meta.url), "utf8");
+test("browser intake cutover is opt-in and preserves the tracker interface", () => {
+  assert.match(clientConfig, /window\.taleForgeReaderEventIntakeEnabled = false/);
+  assert.match(clientConfig, /window\.taleForgeSupabaseConfig/);
+  assert.match(tracker, /async function track\(event_type,data=\{\}\)/);
+  assert.match(tracker, /window\.taleForgeReaderEventIntakeEnabled===true/);
+  assert.match(tracker, /functions\/v1\/reader-event-intake/);
   assert.match(tracker, /supabase\.from\("reader_events"\)\.insert\(payload\)/);
-  assert.doesNotMatch(tracker, /reader-event-intake/);
+  assert.match(supabaseConfig, /\[functions\.reader-event-intake\]\s+verify_jwt = false/);
+  assert.match(supabaseConfig, /reader-event-intake/);
 });
