@@ -85,6 +85,8 @@ test("browser source files do not contain server-only credentials or internal ke
   const discoveredBrowserFiles = rootEntries
     .filter((entry) => entry.isFile() && /\.(?:html|js)$/i.test(entry.name))
     .map((entry) => entry.name);
+  assert.ok(discoveredBrowserFiles.includes("index.html"), "root HTML discovery must match the .html extension");
+  assert.ok(discoveredBrowserFiles.includes("supabase-client.js"), "root JavaScript discovery must match the .js extension");
   const filesToCheck = [...new Set([...browserFiles, ...discoveredBrowserFiles])];
   const secretMarkers = /SUPABASE_SERVICE_ROLE_KEY|service_role_key|serviceRoleKey|SUPABASE_SECRET_KEYS|AEVORA_INTERNAL_API_KEY_NAMES|GEMINI_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY/i;
   for (const path of filesToCheck) {
