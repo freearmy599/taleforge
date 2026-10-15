@@ -124,3 +124,14 @@ WHERE (d.defaclnamespace = 0 OR n.nspname <> 'public')
   AND d.defaclobjtype IN ('r', 'S', 'f')
   AND (acl.grantee = 0 OR grantee.rolname IN ('anon', 'authenticated'))
 ORDER BY object_type, schema_name, default_acl_owner, grantee, acl.privilege_type;
+
+-- 7) Report whether the current audit executor is a member of the roles that
+-- own public-schema defaults. Membership is a preflight signal, not authorization
+-- to change defaults; any repair still requires an approved owner-scoped operation.
+SELECT
+  current_user AS audit_executor,
+  owner_role.rolname AS default_acl_owner,
+  pg_has_role(current_user, owner_role.oid, 'MEMBER') AS executor_is_member_of_owner_role
+FROM pg_roles owner_role
+WHERE owner_role.rolname IN ('postgres', 'supabase_admin')
+ORDER BY owner_role.rolname;
