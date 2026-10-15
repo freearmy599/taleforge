@@ -83,7 +83,7 @@ test("revision rechecks Gemini provider state before every model call", () => {
 });
 
 test("review orchestrator blocks all review calls when provider state is unavailable, malformed, or cooling down", () => {
-  assert.ok(orchestrator.includes('const VERSION = "review-orchestrator-v4-fail-closed-provider-state"'));
+  assert.ok(orchestrator.includes('const VERSION = "review-orchestrator-v5-stop-on-provider-throttle"'));
   assert.ok(orchestrator.includes('.from("taleforge_ai_provider_state")'));
   assert.ok(orchestrator.includes('if (providerStateError || !providerState)'));
   assert.ok(orchestrator.includes('reason: "provider_state_unavailable"'));
@@ -99,4 +99,13 @@ test("review orchestrator blocks all review calls when provider state is unavail
     "provider-state and cooldown gates must run before request processing and review orchestration");
   assert.ok(orchestrator.includes("if (providerThrottleObserved)"),
     "a provider throttle observed mid-run must stop further review model calls");
+  const throttleGuard = orchestrator.indexOf("if (providerThrottleResponse)");
+  const throttleStop = orchestrator.indexOf("providerThrottleObserved = true;", throttleGuard);
+  const throttleBreak = orchestrator.indexOf("break;", throttleStop);
+  const genericFailure = orchestrator.indexOf("if (!call.ok)", throttleGuard);
+  assert.ok(throttleGuard >= 0 && throttleStop > throttleGuard && throttleBreak > throttleStop && genericFailure > throttleBreak,
+    "provider-throttle signals must stop remaining review steps for the current output before generic HTTP handling");
+  assert.ok(orchestrator.slice(throttleGuard, genericFailure).includes("blocked = true"),
+    "current output must be marked blocked when a provider throttle is observed");
+
 });
