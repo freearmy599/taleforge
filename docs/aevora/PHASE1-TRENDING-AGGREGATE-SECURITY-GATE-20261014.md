@@ -64,7 +64,9 @@ A source review found that the earlier branch migration granted the aggregate fu
 
 - get_public_story_trending_scores() EXECUTE is granted only to service_role; PUBLIC, anon, and authenticated remain revoked.
 - story_trending_scores SELECT is granted only to service_role; ordinary clients cannot read the ranking view yet.
-- story_intelligence remains an explicitly public, read-only surface.
-- Static contract tests and the disposable PostgreSQL ACL assertion now require this closed gate.
+- `story_intelligence` is also gated to `service_role`: it is a `security_invoker` view over `story_trending_scores`, so a public grant on the dependent view alone would not preserve reader access and would create a misleading permission contract.
+- Static contract tests and the disposable PostgreSQL ACL assertion now require both views to remain closed to ordinary clients.
 
 This intentionally defers public trending availability. Do not re-enable client access until trusted intake, per-visitor contribution caps/cooldowns, chapter-completion dedupe, compatibility checks, and rollout approval are complete. This is a branch-only correction; no production changes were made.
+
+A follow-up dependency review confirmed that `story_intelligence` uses `security_invoker` and depends on `story_trending_scores`. Its earlier public SELECT grant was therefore not compatible with the new gate: clients would still fail when accessing the underlying view. The branch now gates both views consistently until a separately reviewed public-safe projection is ready. No production changes were made.
