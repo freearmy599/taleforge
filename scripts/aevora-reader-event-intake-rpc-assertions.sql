@@ -15,6 +15,32 @@ BEGIN
 END;
 $rpc_acl_assert$;
 
+DO $cleanup_cooldown_assert$
+DECLARE
+  v_before timestamptz;
+  v_after timestamptz;
+  v_first_pruned integer;
+  v_second_pruned integer;
+BEGIN
+  SELECT last_cleaned_at INTO v_before
+  FROM aevora_private.reader_event_quota_cleanup_state
+  WHERE singleton_id = 1;
+  v_first_pruned := public.aevora_prune_reader_event_quota_buckets();
+  SELECT last_cleaned_at INTO v_after
+  FROM aevora_private.reader_event_quota_cleanup_state
+  WHERE singleton_id = 1;
+  IF v_first_pruned <> 0 OR v_after <= v_before THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: first cleanup claim did not advance the cleanup gate';
+  END IF;
+  v_second_pruned := public.aevora_prune_reader_event_quota_buckets();
+  IF v_second_pruned <> 0 OR (SELECT last_cleaned_at
+                              FROM aevora_private.reader_event_quota_cleanup_state
+                              WHERE singleton_id = 1) <> v_after THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: quota cleanup ran again inside the one-minute cooldown';
+  END IF;
+END;
+$cleanup_cooldown_assert$;
+
 SET ROLE service_role;
 DO $rpc_behavior_assert$
 DECLARE
@@ -22,8 +48,6 @@ DECLARE
   i integer;
   v_accepted integer := 0;
   v_limited integer := 0;
-  v_last_cleanup timestamptz;
-  v_pruned integer;
 BEGIN
   v_result := public.aevora_ingest_reader_event(
     'reader-rpc-behavior-visitor-0001',
@@ -35,16 +59,6 @@ BEGIN
   );
   IF v_result->>'outcome' <> 'accepted' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: valid reader-event RPC call was not accepted: %', v_result->>'outcome';
-  END IF;
-
-  SELECT last_cleaned_at INTO v_last_cleanup
-  FROM aevora_private.reader_event_quota_cleanup_state
-  WHERE singleton_id = 1;
-  v_pruned := public.aevora_prune_reader_event_quota_buckets();
-  IF v_pruned <> 0 OR (SELECT last_cleaned_at
-                       FROM aevora_private.reader_event_quota_cleanup_state
-                       WHERE singleton_id = 1) <> v_last_cleanup THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: quota cleanup ran again inside the one-minute cooldown';
   END IF;
 
   v_result := public.aevora_ingest_reader_event(
