@@ -46,7 +46,7 @@ const revisionConflictReport = await readFile(
 test("Phase 1 access audit contains only read-only SELECT statements", () => {
   const executableSql = sql.replace(/--[^\n]*/g, "").trim();
   const statements = executableSql.split(";").map((statement) => statement.trim()).filter(Boolean);
-  assert.equal(statements.length, 6, "expected six discrete metadata queries");
+  assert.equal(statements.length, 7, "expected seven discrete metadata queries");
   for (const [index, statement] of statements.entries()) {
     assert.match(statement, /^SELECT\b/i, `statement ${index + 1} must begin with SELECT`);
     assert.doesNotMatch(
@@ -67,6 +67,13 @@ test("explicit column ACL audit uses pg_attribute.attacl rather than effective c
 test("function inventory inspects effective EXECUTE without calling functions", () => {
   assert.match(sql, /has_function_privilege\(r\.rolname, p\.oid, 'EXECUTE'\)/i);
   assert.match(sql, /pg_get_function_identity_arguments\(p\.oid\)/i);
+});
+
+test("default ACL audit reports current executor membership for owner-scoped follow-up", () => {
+  assert.match(sql, /current_user AS audit_executor/i);
+  assert.match(sql, /pg_has_role\(current_user, owner_role\.oid, 'MEMBER'\)/i);
+  assert.match(sql, /owner_role\.rolname IN \('postgres', 'supabase_admin'\)/i);
+  assert.match(sql, /membership is a preflight signal/i);
 });
 
 test("default ACL inventory distinguishes future-object privileges by owner", () => {
