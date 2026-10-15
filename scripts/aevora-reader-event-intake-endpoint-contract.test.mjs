@@ -39,6 +39,8 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   assert.match(migration, /pg_advisory_xact_lock\(\s*pg_catalog\.hashtextextended\(p_event_uuid::text, 7918\)\s*\)/);
   assert.match(migration, /hit_count < 30/);
   assert.match(migration, /hit_count < 1000/);
+  assert.match(migration, /quota_scope text NOT NULL DEFAULT/);
+  assert.match(migration, /hit_count < 250/);
   assert.match(migration, /reader_event_quota_cleanup_state/);
   assert.match(migration, /last_cleaned_at <= v_now - interval '1 minute'/);
   assert.match(migration, /pg_try_advisory_xact_lock\(19017, 811\)/);
