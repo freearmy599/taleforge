@@ -641,21 +641,17 @@ test("autonomous creation response reflects generation-only readiness", () => {
 });
 
 
-test("executable sources never enable automated publication by assignment", async () => {
-  const roots = [
-    new URL("../supabase/functions/", import.meta.url),
-    new URL("../supabase/migrations/", import.meta.url),
-  ];
+test("Edge Functions never enable automated publication by assignment", async () => {
+  const root = new URL("../supabase/functions/", import.meta.url);
   const files = [];
-  async function collect(directory, extension) {
+  async function collect(directory) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
-      if (entry.isDirectory()) await collect(child, extension);
-      else if (entry.isFile() && entry.name.endsWith(extension)) files.push(child);
+      if (entry.isDirectory()) await collect(child);
+      else if (entry.isFile() && entry.name.endsWith(".ts")) files.push(child);
     }
   }
-  await collect(roots[0], ".ts");
-  await collect(roots[1], ".sql");
+  await collect(root);
   const violations = [];
   const enableAssignment = /\bauto_publish\s*:\s*true\b|\bauto_publish\s*(?<![=!<>])=\s*true\b(?!\s*=)/g;
   for (const file of files) {
@@ -666,5 +662,5 @@ test("executable sources never enable automated publication by assignment", asyn
     }
   }
   assert.deepEqual(violations, [],
-    "automated publication must remain disabled until a separately audited publication-authorization boundary exists");
+    "automated publication must remain disabled until a separately audited publication-authorization boundary exists; SQL migration invariants are tested separately");
 });
