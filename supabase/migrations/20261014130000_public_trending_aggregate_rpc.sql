@@ -1,4 +1,4 @@
--- Expose only per-series engagement aggregates to the public discovery views.
+-- Prepare the aggregate implementation but keep public ranking gated until trusted intake and abuse quotas pass review.
 -- The raw reader_events table remains INSERT-only for ordinary clients; it does not
 -- gain a SELECT policy. The function is fixed SQL with no parameters, uses a fixed
 -- search_path, and returns only public series metadata plus aggregated event counts.
@@ -161,7 +161,7 @@ AS $function$
 $function$;
 
 REVOKE ALL PRIVILEGES ON FUNCTION public.get_public_story_trending_scores() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.get_public_story_trending_scores() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_public_story_trending_scores() TO service_role;
 
 -- Keep the existing public-view contract and security_invoker behavior. The
 -- allowlisted definer function is the only path that can aggregate raw events.
@@ -173,7 +173,10 @@ FROM public.get_public_story_trending_scores();
 
 -- These discovery views are read APIs only; remove default write/table-level
 -- privileges while preserving public SELECT for the intended reader experience.
-REVOKE ALL PRIVILEGES ON TABLE public.story_trending_scores, public.story_intelligence
+REVOKE ALL PRIVILEGES ON TABLE public.story_trending_scores FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.story_trending_scores TO service_role;
+
+-- Story intelligence remains an intended public read surface; ranking stays gated.
+REVOKE ALL PRIVILEGES ON TABLE public.story_intelligence
 FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.story_trending_scores, public.story_intelligence
-TO anon, authenticated;
+GRANT SELECT ON TABLE public.story_intelligence TO anon, authenticated;
