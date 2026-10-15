@@ -124,3 +124,19 @@ test("release-publisher is the only Edge Function that directly inserts chapter 
   assert.match(writers[0], /supabase\/functions\/release-publisher\/index\.ts$/,
     "all chapter-row insertion must remain behind release-publisher authorization and status checks");
 });
+
+test("browser-facing source cannot bypass release-publisher with direct chapter inserts", async () => {
+  const browserFiles = [
+    "../404.html", "../admin.html", "../chapter.html", "../chief-editor.html",
+    "../index.html", "../library.html", "../notifications.html", "../series.html",
+    "../stories.html", "../story.html", "../taleforge-data.js", "../supabase-client.js",
+  ];
+  for (const relativePath of browserFiles) {
+    const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
+    assert.doesNotMatch(
+      source,
+      /\.from\(["']chapters["']\)\s*\.insert\s*\(/,
+      `${relativePath} must not insert chapter rows directly from browser-facing code`,
+    );
+  }
+});
