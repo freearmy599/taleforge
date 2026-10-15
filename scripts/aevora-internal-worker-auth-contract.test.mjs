@@ -126,6 +126,16 @@ test("control-plane audit validates its dedicated token before any privileged RE
 });
 
 
+test("public reader-event intake is explicitly bounded and keeps service credentials server-side", async () => {
+  const s = await source("supabase/functions/reader-event-intake/index.ts");
+  const handler = s.slice(s.indexOf("Deno.serve"));
+  assert.match(handler, /req\.method !== "POST"/);
+  assert.match(s, /MAX_BODY_BYTES = 2048/);
+  assert.match(s, /SERVICE_ROLE_KEY/);
+  assert.match(s, /aevora_ingest_reader_event/);
+  assert.doesNotMatch(s, /isTrustedInternalApiKey/);
+});
+
 test("every Edge Function entrypoint is explicitly classified by the authorization contract", async () => {
   const entries = await readdir(new URL("../supabase/functions/", import.meta.url), { withFileTypes: true });
   const actual = [];
@@ -142,6 +152,7 @@ test("every Edge Function entrypoint is explicitly classified by the authorizati
     ...workers,
     "autonomous-series-creation-runner",
     "aevora-control-plane-audit",
+    "reader-event-intake",
   ];
   assert.deepEqual(
     actual.sort(),
