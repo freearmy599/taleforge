@@ -13,6 +13,7 @@ const generator = await readFile("supabase/functions/generate-chapter/index.ts",
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
+const defaultPrivilegesMigration = await readFile("supabase/migrations/20261014170000_restrict_public_default_privileges.sql", "utf8");
 const publicationAuthorizationDesign = await readFile("docs/aevora/PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md", "utf8");
 const rolloutPlan = await readFile("docs/aevora/PHASE1-PRODUCTION-ROLLOUT-SEQUENCE-20261014.md", "utf8");
 const legacyDispositionRegister = await readFile("docs/aevora/PHASE1-LEGACY-SCHEDULE-DISPOSITION-REGISTER-20261014.md", "utf8");
@@ -26,6 +27,16 @@ const rollbackTestRunner = await readFile("scripts/test-aevora-readiness-rollbac
 const migrationWorkflow = await readFile(".github/workflows/aevora-edge-validation.yml", "utf8");
 const concurrencyTestRunner = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const readerEventTestRunner = await readFile("scripts/test-aevora-reader-event-integrity.sh", "utf8");
+
+test("default-privilege cleanup is restricted to public and skips owners the executor cannot administer", () => {
+  assert.match(defaultPrivilegesMigration, /ARRAY\['postgres', 'supabase_admin'\]/);
+  assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegesMigration, /requires a privileged owner operation/);
+  assert.doesNotMatch(defaultPrivilegesMigration, /IN SCHEMA (?:storage|graphql_public|graphql|realtime)/i, "managed schemas must not be swept into the public-schema repair");
+});
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
   assert.match(scheduler, /automationReadinessDisposition\(schedule\.automation_ready_at,dryRun\)/);
