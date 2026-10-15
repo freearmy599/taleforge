@@ -31,7 +31,7 @@ test("semantic continuity dry-run returns before queue-claim mutation", async ()
 
 test("generation orchestrator sanitizes downstream failures and provider diagnostics", async () => {
   const s = await source("supabase/functions/generation-orchestrator/index.ts");
-  assert.ok(s.includes("generation-orchestrator-v21-retryable-provider-overload"));
+  assert.ok(s.includes("generation-orchestrator-v22-provider-cooldown-hard-stop"));
   assert.ok((s.match(/\.order\("created_at",\{ascending:false\}\)\.order\("generation_attempt",\{ascending:false\}\)\.order\("id",\{ascending:false\}\)/g) || []).length === 3, "all latest-output lookups must deterministically break revision timestamp ties");
   assert.ok(s.includes('function errorMessage(_error:unknown){return "Internal orchestration diagnostics were withheld."}'));
   assert.ok(s.includes("if(!r.ok||d?.success===false){const safe:any="));
