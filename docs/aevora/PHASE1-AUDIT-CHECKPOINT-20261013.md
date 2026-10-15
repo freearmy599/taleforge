@@ -273,7 +273,7 @@ A read-only aggregate check found one Gemini provider-state row with a diagnosti
 
 ### Latest verified source-validation state
 
-- The latest successful workflow is [run 38713659342](https://github.com/freearmy599/taleforge/actions/runs/38713659342), commit `c70cb2f8da32fcd7a1f2924d14da544e3160f269`. Both prepared Edge Function type-checking and the disposable PostgreSQL readiness-migration rehearsal passed.
+- The latest successful workflow at this checkpoint is [run 38719014756](https://github.com/freearmy599/taleforge/actions/runs/38719014756), commit `19f4fa24bf6db236bf27c276939a30d3820f7273`. Both prepared Edge Function/source-contract validation and the disposable PostgreSQL rehearsals passed, including reader-event integrity and trending aggregate state/ACL assertions.
 - Browser-facing RPC-boundary coverage now rejects computed RPC function names so the inventory/denylist cannot be bypassed with a variable argument. This is source-level prevention; it does not itself prove that production browser bundles or deployed functions have changed.
 - Public trending has been deliberately gated closed on the repair branch. `get_public_story_trending_scores()` and both `story_trending_scores` and its dependent `story_intelligence` view are granted only to `service_role`; public `anon`/`authenticated` access is not enabled. This avoids advertising a public API that still lacks trusted intake and anti-abuse controls, and avoids a misleading grant on a security-invoker view whose dependency remains private.
 - Static contracts and disposable PostgreSQL ACL assertions now check the closed gate for both views. The latest green run confirms these branch tests/type checks, not a Supabase-managed production ACL change.
@@ -307,3 +307,10 @@ All changes in this checkpoint are repository-only. No production migration, gra
 - The contract checks the explicit disposable opt-in, the required database URL, fixture → migration → assertion ordering, INSERT-only client event grants, and the CI target being the named localhost PostgreSQL test database.
 - Updated pull-request path filters so changes to the trending fixture and rehearsal runner trigger this workflow.
 - After correcting the test to identify the final workflow step robustly, [CI run 38717122460](https://github.com/freearmy599/taleforge/actions/runs/38717122460) passed both the source/type-check job and the disposable PostgreSQL rehearsal on commit `49d5eb10652cdfd546f5546d85bf1aa09bb6866e`.
+
+
+### Follow-up verification — 2026-10-15
+
+- The disposable trending rehearsal now seeds invalid bookmark events pointing to a chapter in another series and to a draft chapter; active bookmark count must remain one. The static RPC contract checks the bookmark CTE's matching-series and published-chapter joins.
+- The published-library loader documents and preserves graceful fallback when the intentionally gated `story_intelligence` view is unavailable. The home/library query can still return published series and chapters without intelligence enrichment; trend-derived ranking/classification may be absent until the public-safe API is approved.
+- [CI run 38719014756](https://github.com/freearmy599/taleforge/actions/runs/38719014756) passed after these changes. This is repository-only verification. Public trending remains unavailable to `anon` and `authenticated` on the branch; no production change was made.
