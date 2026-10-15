@@ -19,6 +19,10 @@ The scheduler currently:
 
 The publisher's chapter insert is a separate database request. Therefore steps 2 and 3 leave a time-of-check/time-of-use gap. The publisher's current automatic-publication authorization guard prevents this path from being used for automated release today, but that guard must not be removed as a shortcut.
 
+## Schema provenance gate
+
+The tracked root-level `database-schema.sql` describes the older `stories` model, while `series-chapters-schema.sql` only documents the basic `series` and `chapters` tables. Neither is a complete canonical schema for the current generation-output, publication-review, blueprint, and synchronization-outbox tables. Do not draft or apply the publication RPC by treating these root files as authoritative for the newer tables. Before implementation, obtain an authorized read-only schema/constraint/trigger/owner/privilege inventory from the actual target database, or establish complete tracked canonical migrations for every table and constraint the transaction will touch. This is a prerequisite to choosing RPC parameter types, review qualification predicates, and outbox writes.
+
 ## Required design before enabling automated publication
 
 Implement and rehearse one narrowly scoped, server-only database RPC that owns the final publication transaction. It must:
