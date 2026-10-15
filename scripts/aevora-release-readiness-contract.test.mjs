@@ -29,6 +29,7 @@ const rollbackTestRunner = await readFile("scripts/test-aevora-readiness-rollbac
 const migrationWorkflow = await readFile(".github/workflows/aevora-edge-validation.yml", "utf8");
 const concurrencyTestRunner = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const readerEventTestRunner = await readFile("scripts/test-aevora-reader-event-integrity.sh", "utf8");
+const productionPreflight = await readFile("scripts/aevora-production-rollout-preflight.sql", "utf8");
 
 test("scheduler lease RPCs use hardened search paths and deny direct client execution", () => {
   for (const migrationSource of [leaseMigration, leaseFencingMigration]) {
@@ -584,6 +585,21 @@ test("legacy schedule disposition register keeps all six rows on hold without in
   assert.match(legacyDispositionRegister, /does not authorize a migration, grant change, deployment, cron mutation, schedule update, generation, or publication/i);
 });
 
+
+test("production rollout preflight is read-only and redacts cron command contents", () => {
+  assert.match(productionPreflight, /BEGIN TRANSACTION READ ONLY/i);
+  assert.match(productionPreflight, /COMMIT;/i);
+  assert.match(productionPreflight, /enabled_nonmanual_schedules_without_readiness/);
+  assert.match(productionPreflight, /succeeded_runs_24h/);
+  assert.match(productionPreflight, /dry_run_mode/);
+  assert.doesNotMatch(productionPreflight, /SELECT\\s+j\\.command/i);
+  const executableSql = productionPreflight.split("\n")
+    .filter((line) => !line.trim().startsWith("--") && !line.trim().startsWith("\\"))
+    .join("\n");
+  assert.doesNotMatch(executableSql,
+    /^\\s*(?:INSERT|UPDATE|DELETE|ALTER|DROP|TRUNCATE|CREATE|GRANT|REVOKE|CALL)\\b/im,
+    "the rollout preflight must not mutate production state");
+});
 
 test("production rollout runbook requires pause, exact baseline, leaf-first order, and fail-closed recovery", () => {
   assert.match(rolloutPlan, /Gate A evidence/i);
