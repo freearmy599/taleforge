@@ -4,7 +4,7 @@ import { resolveNextIntervalRelease } from "./interval-schedule.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { qualifyReviewedOutputs, matchesPublishedChapterOutput } from "./review-qualified-outputs.ts"; import { inspectPublishedChapterHistory } from "./published-history.ts";
 import { automationReadinessDisposition } from "./readiness.ts";
 
-const VERSION = "release-scheduler-v16-dst-fold-cadence";
+const VERSION = "release-scheduler-v17-publication-authorization-preflight";
 function isConfirmedPublicationResponse(r:any,d:any):boolean{return r.ok && d!==null && typeof d==="object" && d.success===true && d.published===true && d.status==="published" && typeof d.chapter_id==="string" && d.chapter_id.length>0;}
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
@@ -95,6 +95,15 @@ Deno.serve(async (req)=>{
       }
       if(!series || ["draft","cancelled","hiatus","completed"].includes(series.status)){
         results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"skipped",reason:"Series is not currently publishable."});
+        continue;
+      }
+      // Do not repeatedly claim a lease and invoke a publisher that must reject
+      // every automated release until commit-boundary publication authorization
+      // exists. Dry runs remain available for read-only diagnostics.
+      if(!dryRun && schedule.auto_publish){
+        results.push({schedule_id:schedule.id,series_id:schedule.series_id,
+          action:"publication_authorization_not_implemented",
+          reason:"Automated publication remains blocked until separately approved authorization is enforced at the database commit boundary."});
         continue;
       }
       const leaseToken=crypto.randomUUID();
@@ -512,7 +521,7 @@ Deno.serve(async (req)=>{
       }
     }
 
-    const failureActions=new Set(["error","schedule_error","lease_unavailable","lease_lost","lifecycle_config_invalid","lifecycle_verification_failed","lifecycle_transition_failed","publication_incomplete","publish_unconfirmed","schedule_advance_unconfirmed","schedule_config_invalid","published_chapter_gap","published_chapter_history_invalid","lease_release_warning"]);
+    const failureActions=new Set(["error","schedule_error","lease_unavailable","lease_lost","lifecycle_config_invalid","lifecycle_verification_failed","lifecycle_transition_failed","publication_incomplete","publish_unconfirmed","schedule_advance_unconfirmed","schedule_config_invalid","published_chapter_gap","published_chapter_history_invalid","lease_release_warning","publication_authorization_not_implemented"]);
     const hasScheduleFailures=results.some((result:any)=>failureActions.has(result.action));
     // A schedule may have committed chapters before a later lifecycle or schedule-advance failure.
     // Determine partial success from confirmed side effects, not only the final action label.
