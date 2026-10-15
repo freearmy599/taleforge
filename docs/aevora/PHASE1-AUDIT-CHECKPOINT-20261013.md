@@ -267,3 +267,25 @@ A read-only aggregate preflight for `20261013140000_aevora_revision_successor_id
 ## Provider-state migration preflight — 2026-10-14
 
 A read-only aggregate check found one Gemini provider-state row with a diagnostic that the prepared `20261013120000_lock_ai_provider_state_table.sql` would redact; one Gemini row currently has an active cooldown. The migration changes diagnostic text and client grants, but does not clear or shorten the cooldown. No diagnostic contents were queried, no provider state was changed, and no generation/review call was triggered. Preserve the active cooldown during any later approved migration.
+
+
+## Current hardening checkpoint — 2026-10-15
+
+### Latest verified source-validation state
+
+- The latest successful workflow is [run 38713659342](https://github.com/freearmy599/taleforge/actions/runs/38713659342), commit `c70cb2f8da32fcd7a1f2924d14da544e3160f269`. Both prepared Edge Function type-checking and the disposable PostgreSQL readiness-migration rehearsal passed.
+- Browser-facing RPC-boundary coverage now rejects computed RPC function names so the inventory/denylist cannot be bypassed with a variable argument. This is source-level prevention; it does not itself prove that production browser bundles or deployed functions have changed.
+- Public trending has been deliberately gated closed on the repair branch. `get_public_story_trending_scores()` and both `story_trending_scores` and its dependent `story_intelligence` view are granted only to `service_role`; public `anon`/`authenticated` access is not enabled. This avoids advertising a public API that still lacks trusted intake and anti-abuse controls, and avoids a misleading grant on a security-invoker view whose dependency remains private.
+- Static contracts and disposable PostgreSQL ACL assertions now check the closed gate for both views. The latest green run confirms these branch tests/type checks, not a Supabase-managed production ACL change.
+
+### Still blocking production release
+
+1. **Publication approval principal/source is unresolved.** The authorization design remains proposal-only. Do not invent the trusted human approver identity or authentication source; publication remains fail-closed.
+2. **Production default-privilege ownership gap remains.** Some default ACL entries are owned by `supabase_admin`; the current audit executor may not have authority to repair them. Any live repair requires a separately authorized owner-level operation.
+3. **Six legacy schedules remain HOLD / NOT APPROVED.** The disposition register still needs a fresh authorized read-only inventory and explicit per-series decisions. No schedule IDs or approvals should be inferred from template slots A–F.
+4. **Reader-event abuse controls remain incomplete.** Relationship validation, optional event UUIDs, and server timestamps reduce invalid links, repeated same-key inserts, and timestamp spoofing, but do not stop fresh-UUID spam or spoofed visitor IDs. Keep trending closed until trusted intake and reviewed per-visitor quotas/cooldowns and abuse-case tests exist.
+5. **Public discovery-view access is intentionally unavailable on this branch** until a public-safe projection and abuse controls are reviewed. This is a product behavior trade-off made to preserve the fail-closed security boundary, not a production change.
+
+### Explicit safety boundary
+
+All changes in this checkpoint are repository-only. No production migration, grant change, Edge Function deployment, live schedule mutation, generation, publication, or billable Supabase branch was initiated. Production rollout remains **NO-GO**.
