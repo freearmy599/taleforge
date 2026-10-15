@@ -4,9 +4,11 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 const root = new URL("../supabase/migrations/", import.meta.url);
+const repositoryRoot = new URL("../", import.meta.url);
+const browserProgressSource = await readFile(new URL("../reading-progress.js", import.meta.url), "utf8");
 async function readMigration(name) {
   return readFile(new URL(name, root), "utf8");
 }
@@ -40,4 +42,19 @@ test("client timestamps are replaced at the server boundary with a fixed search_
   assert.match(timestamp, /IF current_user IN \('anon', 'authenticated'\) THEN\s+NEW\.created_at := statement_timestamp\(\);/i);
   assert.match(timestamp, /REVOKE ALL ON FUNCTION public\.taleforge_force_reader_event_client_timestamp\(\)\s+FROM PUBLIC, anon, authenticated/i);
   assert.match(timestamp, /BEFORE INSERT ON public\.reader_events\s+FOR EACH ROW\s+EXECUTE FUNCTION public\.taleforge_force_reader_event_client_timestamp\(\)/i);
+});
+
+
+test("browser reader-event writes remain centralized in the progress tracker", async () => {
+  const entries = await readdir(repositoryRoot, { withFileTypes: true });
+  const browserFiles = entries.filter((entry) => entry.isFile() && /\\.(?:html|js|mjs)$/i.test(entry.name));
+  const insertSites = [];
+  for (const entry of browserFiles) {
+    const source = entry.name === "reading-progress.js" ? browserProgressSource : await readFile(new URL(entry.name, repositoryRoot), "utf8");
+    if (/\\.from\\(\\s*["']reader_events["']\\s*\\)\\.insert\\s*\\(/i.test(source)) insertSites.push(entry.name);
+  }
+  assert.deepEqual(insertSites, ["reading-progress.js"], "all browser event inserts must pass through the one compatibility seam");
+  assert.match(browserProgressSource, /async function track\\(event_type,data=\\{\\}\\)/);
+  assert.match(browserProgressSource, /payload\\.event_uuid=eventUuid/);
+  assert.doesNotMatch(browserProgressSource, /created_at\\s*:/i, "client event payload must not set server timestamps");
 });
