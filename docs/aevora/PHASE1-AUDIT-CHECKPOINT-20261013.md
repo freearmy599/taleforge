@@ -299,3 +299,11 @@ All changes in this checkpoint are repository-only. No production migration, gra
 - The fixture models client reader-event access as INSERT-only (not SELECT) and checks that `anon` and `authenticated` cannot select either ranking view or raw reader events, while `service_role` retains the necessary read access.
 - Verified CI run [38716707701](https://github.com/freearmy599/taleforge/actions/runs/38716707701) succeeded on commit `3b2cc62f7159b4688a4a2e3bd56568564a11b2d6`, including both prepared Edge Function type checks and the disposable PostgreSQL rehearsal.
 - This adds branch-level runtime coverage for the proposed migration; it does not establish that the migration is applied to production or resolve the separate live default-privilege ownership issue. Production remains **NO-GO**.
+
+
+### Rehearsal harness guard verification — 2026-10-15
+
+- Added `scripts/aevora-trending-rehearsal-safety-contract.test.mjs` and wired it into the Edge validation workflow.
+- The contract checks the explicit disposable opt-in, the required database URL, fixture → migration → assertion ordering, INSERT-only client event grants, and the CI target being the named localhost PostgreSQL test database.
+- Updated pull-request path filters so changes to the trending fixture and rehearsal runner trigger this workflow.
+- After correcting the test to identify the final workflow step robustly, [CI run 38717122460](https://github.com/freearmy599/taleforge/actions/runs/38717122460) passed both the source/type-check job and the disposable PostgreSQL rehearsal on commit `49d5eb10652cdfd546f5546d85bf1aa09bb6866e`.
