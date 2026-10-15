@@ -220,6 +220,8 @@ test("revise-chapter rechecks provider availability immediately before both revi
   const helper = source.slice(helperStart, helperEnd);
   assert.match(helper, /if\s*\(error\s*\|\|\s*!data\)[\s\S]*?provider_state_unavailable/,
     "provider-state lookup errors or missing rows must fail closed");
+  assert.match(helper, /provider_cooldown/,
+    "an active cooldown must block both revision and continuation calls");
   assert.match(helper, /!Number\.isFinite\(until\)[\s\S]*?invalid_cooldown_timestamp/,
     "malformed cooldown timestamps must fail closed");
 });
