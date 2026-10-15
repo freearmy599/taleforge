@@ -19,7 +19,7 @@ This was a source-level review only. No database function was invoked, no reader
 - The return contract is explicitly declared as 12 columns.
 - The query limits returned series to `ongoing` and `completed`.
 - Raw `reader_events` access is not granted to ordinary clients by these migrations; the intake migration grants INSERT only.
-- The aggregate function has explicit EXECUTE grants, and the discovery views retain their intended SELECT grant.
+- The aggregate function and ranking view are now gated to `service_role` only; `story_intelligence` remains public read-only. This branch-only access gate supersedes the initial public-grant design until abuse controls pass review.
 - The event aggregation window is bounded to the last 30 days.
 
 These source-level properties do not by themselves prove the deployed role ownership, RLS behavior, or effective PostgREST behavior.
