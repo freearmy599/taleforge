@@ -96,3 +96,10 @@ These passing checks strengthen the branch-only safety net. They do not implemen
 - Added a publisher contract proving that errors reading the persisted release schedule or autonomous-series provenance return a retryable failure before the publication authorization decision and before chapter-table access. The contract also verifies that raw internal diagnostics remain redacted.
 - Validation passed in [CI run 38693982344](https://github.com/freearmy599/taleforge/actions/runs/38693982344): prepared Edge Function type checks and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal both succeeded.
 - This is regression coverage for fail-closed behavior, not live production verification. It does not implement the separate human publication-approval workflow; production remains NO-GO.
+
+## Additional quota and scheduler lease regression coverage — 2026-10-15
+
+- Added a source-contract assertion that the review orchestrator verifies persisted Gemini provider state before candidate selection or downstream review calls, and blocks on missing/error state or active cooldown. This guards the orchestration boundary in addition to each direct Gemini caller's individual quota guard.
+- Added a scheduler security contract asserting that a claimed lease is released from the schedule-processing `finally` block, and that unconfirmed release is surfaced as a scheduler failure rather than silently treated as success.
+- Validation passed in [CI run 38748724637](https://github.com/freearmy599/taleforge/actions/runs/38748724637), commit `37bcd33342341cfedd56449ee21bc8e1992df3d2`: Edge Function/source-contract job passed all 49 steps and the disposable PostgreSQL rehearsal passed all 11 steps.
+- These are regression guards for the prepared branch only. They do not change the publication authorization decision, authorize a production release, or prove live deployed behavior.
