@@ -5,7 +5,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 const workers = [
   "arc-planner",
@@ -116,4 +116,29 @@ test("control-plane audit validates its dedicated token before any privileged RE
   assert.match(s, /function constantTimeEqual\(a: string, b: string\)/, "dedicated audit token comparison helper must exist");
   assert.match(handler, /req\.method !== "GET"/, "audit endpoint must be read-only GET");
   assert.match(s, /"Cache-Control": "no-store"/, "audit snapshot must not be cached by intermediaries");
+});
+
+
+test("every Edge Function entrypoint is explicitly classified by the authorization contract", async () => {
+  const entries = await readdir(new URL("../supabase/functions/", import.meta.url), { withFileTypes: true });
+  const actual = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      await readFile(new URL(`../supabase/functions/${entry.name}/index.ts`, import.meta.url), "utf8");
+      actual.push(entry.name);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  const classified = [
+    ...workers,
+    "autonomous-series-creation-runner",
+    "aevora-control-plane-audit",
+  ];
+  assert.deepEqual(
+    actual.sort(),
+    [...classified].sort(),
+    "a new or removed Edge Function must be explicitly classified and covered by the appropriate authorization contract",
+  );
 });
