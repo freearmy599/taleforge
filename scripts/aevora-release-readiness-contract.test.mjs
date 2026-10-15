@@ -40,7 +40,7 @@ test("scheduler fails closed on a missing readiness marker before publisher invo
 
 test("scheduler only accepts an explicit, identified published result from the publisher", () => {
   const start = scheduler.indexOf("function isConfirmedPublicationResponse(");
-  const end = scheduler.indexOf("\\nconst corsHeaders", start);
+  const end = scheduler.indexOf("\nconst corsHeaders", start);
   assert.ok(start >= 0 && end > start, "publication response predicate must be a self-contained helper");
   const helperSource = scheduler.slice(start, end).replaceAll(":any", "").replaceAll(":boolean", "");
   const isConfirmed = runInNewContext(`${helperSource}; isConfirmedPublicationResponse`);
