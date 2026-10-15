@@ -115,6 +115,8 @@ jobs:
         run: node --test scripts/aevora-browser-internal-rpc-boundary.test.mjs
       - name: Run public trending RPC security contract tests
         run: node --test scripts/aevora-public-trending-rpc-contract.test.mjs
+      - name: Run disposable trending rehearsal safety contract tests
+        run: node --test scripts/aevora-trending-rehearsal-safety-contract.test.mjs
       - name: Run reader-event intake security contract tests
         run: node --test scripts/aevora-reader-event-intake-contract.test.mjs
       - name: Run release readiness contract tests
