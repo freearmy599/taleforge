@@ -10,6 +10,12 @@ The release publisher now rejects an interval/weekly schedule whose persisted `a
 
 The guard reads the release schedule from the database and executes before the chapter-insert path. A source-contract test asserts the rejection marker exists and that this guard precedes chapter insertion. Publisher version: `release-publisher-v11-publication-authorization-fail-closed`.
 
+## Additional branch-only hardening on 2026-10-15
+
+- Added a regression scan over every TypeScript file under `supabase/functions/` to assert that `release-publisher` is the only Edge Function that directly inserts rows into `chapters`. The scan and the existing publisher/readiness contracts passed in CI run [38684318333](https://github.com/freearmy599/taleforge/actions/runs/38684318333).
+- Corrected the autonomous-series runner's success response: it previously claimed `auto_publish=true` even though the readiness RPC deliberately sets `auto_publish=false`. The response now reports generation enabled, publication disabled, and separate publication approval required.
+- Added a contract test tying the runner response to the readiness migration's `publication_enabled=false` and `auto_publish=false` invariants. The publisher and release-readiness contract steps passed in CI run [38684363740](https://github.com/freearmy599/taleforge/actions/runs/38684363740); the full run's disposable PostgreSQL job was still in progress when this note was prepared.
+
 ## What this change does not do
 
 - It does not create the human publication-approval workflow or an approval ledger.
