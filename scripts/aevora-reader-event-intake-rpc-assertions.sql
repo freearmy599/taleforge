@@ -117,6 +117,8 @@ BEGIN
     RAISE EXCEPTION 'ASSERTION_FAILED: mismatched chapter/series event was not rejected';
   END IF;
 
+  v_accepted := 0;
+  v_limited := 0;
   FOR i IN 1..31 LOOP
     v_result := public.aevora_ingest_reader_event(
       'reader-rpc-quota-boundary-0001',
