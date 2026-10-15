@@ -76,5 +76,6 @@ The guard reads the release schedule from the database and executes before the c
 
 - Extended the reusable read-only catalog audit with a seventh query that reports whether the current SQL executor is a member of the `postgres` and `supabase_admin` roles that own relevant default ACLs. It is explicitly labeled as a preflight signal, not permission to alter defaults.
 - Updated the audit contract to assert all seven statements remain read-only and that owner-membership preflight remains present.
+- The first SQL-only commit exposed a stale six-statement test expectation and its CI run failed; the follow-up updated the expected count to seven, and [CI run 38689373437](https://github.com/freearmy599/taleforge/actions/runs/38689373437) passed. The initial failed run is retained as correction history, not counted as passing evidence.
 - Validation passed in [CI run 38689373437](https://github.com/freearmy599/taleforge/actions/runs/38689373437), including the read-only access audit contract, prepared Edge Function/type checks, and disposable PostgreSQL readiness/concurrency/reader-event rehearsals.
 - This improves evidence collection for the known `supabase_admin` default-ACL blocker; it does not repair or change any live grants. An approved operation by the appropriate owner remains required, and production rollout remains NO-GO.
