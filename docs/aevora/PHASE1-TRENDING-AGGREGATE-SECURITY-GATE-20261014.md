@@ -56,3 +56,15 @@ The separate reader-event migration revokes table and column privileges from `PU
 **Do not apply these migrations to production yet.** The source contains useful least-privilege controls, but owner/RLS behavior, API behavior, dependent-view compatibility, and event-abuse controls remain rollout gates. Next validation should use local/disposable SQL and contract tests, not a live dispatch, generation, or publication.
 
 No production migrations, permissions, schedules, Edge Functions, queue state, or reader events were changed during this review.
+
+
+## Fail-closed access gate added — 2026-10-15
+
+A source review found that the earlier branch migration granted the aggregate function and story_trending_scores view to ordinary client roles even though this document and the reader-event abuse-control design said public ranking must remain gated until trusted intake and quotas exist. That mismatch is now corrected on the branch:
+
+- get_public_story_trending_scores() EXECUTE is granted only to service_role; PUBLIC, anon, and authenticated remain revoked.
+- story_trending_scores SELECT is granted only to service_role; ordinary clients cannot read the ranking view yet.
+- story_intelligence remains an explicitly public, read-only surface.
+- Static contract tests and the disposable PostgreSQL ACL assertion now require this closed gate.
+
+This intentionally defers public trending availability. Do not re-enable client access until trusted intake, per-visitor contribution caps/cooldowns, chapter-completion dedupe, compatibility checks, and rollout approval are complete. This is a branch-only correction; no production changes were made.
