@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
 const scheduler = await readFile("supabase/functions/release-scheduler/index.ts", "utf8");
@@ -638,4 +638,33 @@ test("autonomous creation response reflects generation-only readiness", () => {
   assert.match(runner, /release_schedule:\s*\{[^}]*auto_generate:\s*true,\s*auto_publish:\s*false,\s*automation_ready:\s*true,\s*publication_approval_required:\s*true/);
   assert.match(runner, /Automated publication remains disabled until separate audited publication authorization is implemented/);
   assert.doesNotMatch(runner, /release_schedule:\s*\{[^}]*auto_publish:\s*true/);
+});
+
+
+test("executable sources never enable automated publication by assignment", async () => {
+  const roots = [
+    new URL("../supabase/functions/", import.meta.url),
+    new URL("../supabase/migrations/", import.meta.url),
+  ];
+  const files = [];
+  async function collect(directory, extension) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
+      if (entry.isDirectory()) await collect(child, extension);
+      else if (entry.isFile() && entry.name.endsWith(extension)) files.push(child);
+    }
+  }
+  await collect(roots[0], ".ts");
+  await collect(roots[1], ".sql");
+  const violations = [];
+  const enableAssignment = /\bauto_publish\s*:\s*true\b|\bauto_publish\s*(?<![=!<>])=\s*true\b(?!\s*=)/g;
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    for (const match of source.matchAll(enableAssignment)) {
+      const line = source.slice(0, match.index).split("\n").length;
+      violations.push(`${file.pathname}:${line}`);
+    }
+  }
+  assert.deepEqual(violations, [],
+    "automated publication must remain disabled until a separately audited publication-authorization boundary exists");
 });
