@@ -1,9 +1,9 @@
 /**
  * Dynamic browser-side chapter write boundary.
  *
- * Scans root-level browser entrypoints and common static asset directories so a
- * newly added HTML/JS entrypoint cannot silently bypass release-publisher.
- * Source-only: no network calls, database access, or publication side effects.
+ * Recursively scans repository HTML/JS entrypoints and static assets while
+ * skipping generated/dependency metadata directories. Source-only: no network
+ * calls, database access, or publication side effects.
  *
  * Run with: node --test scripts/aevora-browser-chapter-write-boundary.test.mjs
  */
@@ -12,13 +12,15 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 
 const repositoryRoot = new URL("../", import.meta.url);
-const assetDirectories = ["public", "assets", "js", "static"];
+const ignoredDirectories = new Set([
+  ".git", "node_modules", ".deno", ".next", "dist", "coverage",
+]);
 
 async function collectBrowserSources() {
   const files = [];
   const visited = new Set();
 
-  async function walk(directory, includeAllScripts = false) {
+  async function walk(directory) {
     const key = directory.href;
     if (visited.has(key)) return;
     visited.add(key);
@@ -32,24 +34,19 @@ async function collectBrowserSources() {
     }
 
     for (const entry of entries) {
+      if (entry.name.startsWith(".") && ignoredDirectories.has(entry.name)) continue;
       const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
       if (entry.isDirectory()) {
-        if (includeAllScripts) await walk(child, true);
+        if (!ignoredDirectories.has(entry.name)) await walk(child);
         continue;
       }
-      if (!entry.isFile()) continue;
-      const isBrowserSource = /\.(?:html|js|mjs)$/i.test(entry.name);
-      if (!isBrowserSource) continue;
-      // The repository root includes build/test tooling; only its browser entry
-      // files are scanned. Common asset directories are scanned recursively.
-      files.push(child);
+      if (entry.isFile() && /\.(?:html|js|mjs)$/i.test(entry.name)) {
+        files.push(child);
+      }
     }
   }
 
   await walk(repositoryRoot);
-  for (const directory of assetDirectories) {
-    await walk(new URL(`${directory}/`, repositoryRoot), true);
-  }
   return [...new Map(files.map((file) => [file.href, file])).values()];
 }
 
