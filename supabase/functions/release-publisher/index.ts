@@ -74,6 +74,11 @@ if ((automationSchedules ?? []).length === 1) {
       return jsonResponse({ success: false, error: "Manual schedules cannot enable automatic generation or publication.",
         code: "MANUAL_SCHEDULE_AUTOMATION_CONFLICT" }, 409);
     }
+  } else if (automationSchedule.auto_publish === true) {
+    // Fail closed until a separately audited, human-authorized publication
+    // approval is implemented and checked at the database commit boundary.
+    // Generation readiness is deliberately not publication authorization.
+    return jsonResponse({ success: false, error: "Automated publication is disabled until separate publication authorization is implemented.", code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED" }, 423);
   } else if (automationSchedule.enabled !== true || automationSchedule.auto_publish !== true
     || !isAutomationReady(automationSchedule.automation_ready_at)) {
     return jsonResponse({ success: false, error: "Release automation is not ready for publication.",
