@@ -87,8 +87,8 @@ BEGIN
     END IF;
   END IF;
 
-  -- Bounded opportunistic cleanup runs on each valid request. The indexed
-  -- delete below removes at most 1000 expired rows per invocation.
+  -- Cleanup is gated to at most once per minute and uses a non-blocking lock.
+  -- The indexed delete removes at most 1000 expired rows per cleanup attempt.
   PERFORM public.aevora_prune_reader_event_quota_buckets();
 
   v_visitor_hash := md5(p_visitor_id);
