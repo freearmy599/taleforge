@@ -37,6 +37,7 @@ test("every privileged Edge worker authenticates before parsing input or creatin
     const s = await source("supabase/functions/" + name + "/index.ts");
     const serve = s.indexOf("Deno.serve");
     assert.ok(serve >= 0, name + " must expose an Edge handler");
+    assert.equal(s.slice(0, serve).search(/createClient\\s*\\(/), -1, name + " must not create a database client at module load before request authentication");
     const handler = s.slice(serve);
     const guard = handler.indexOf("isTrustedInternalApiKey(");
     assert.ok(guard >= 0, name + " must call the shared internal API-key guard");
