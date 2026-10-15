@@ -14,7 +14,7 @@ A read-only `pg_get_viewdef`/catalog inspection confirmed these current public d
 
 The branch proposal `20261014130000_public_trending_aggregate_rpc.sql` declares the same 12 output names and order as the currently observed `story_trending_scores` view, then recreates that view as a security-invoker view over a fixed, parameterless `SECURITY DEFINER` aggregate function. The aggregate function reads `reader_events` internally and returns series-level aggregates only. This is the intended compatibility path for the separate insert-only client grant migration: callers need SELECT on the discovery view and EXECUTE on the fixed function, not SELECT on raw reader events.
 
-The migration does not recreate `story_intelligence`; it revokes and restores SELECT on that existing view. Since that view joins `story_trending_scores`, preserve the exact trending-view column contract and confirm the existing 22-column intelligence contract with an integration check before any rollout.
+The migration does not recreate `story_intelligence`; it changes its privileges. Because `story_intelligence` is a `security_invoker` view over `story_trending_scores`, gating the underlying ranking view means granting SELECT on `story_intelligence` alone does not restore client access. The current branch therefore gates both views to `service_role` until a separately reviewed public-safe projection and abuse controls are ready. Preserve the exact 12-column trending-view contract and confirm the existing 22-column intelligence contract with an integration check before any rollout.
 
 ## Remaining integrity limitation
 
@@ -26,3 +26,8 @@ This design is an access-boundary improvement, not an anti-abuse solution. Repea
 - Add static contract assertions for the exact 12 output columns and ensure no direct client SELECT is restored on `reader_events`.
 - Before rollout, use a disposable non-billable local/test database or reviewed CI integration environment to verify view creation, output column order, `story_intelligence` compatibility, and permissions. Do not create a billable Supabase branch.
 - No production view, function, grant, RLS policy, migration history, or reader-event row was changed.
+
+
+## Updated branch decision — 2026-10-15
+
+Compatibility of the column shape is not sufficient to authorize public exposure. Both `story_trending_scores` and its dependent `story_intelligence` view are now gated to `service_role` on the branch; public client access is intentionally deferred. The previous statement that ordinary clients should select the aggregate view describes the proposed future reader API, not the current branch permissions. No production changes were made.
