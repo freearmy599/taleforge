@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertMatch, assertNotMatch } from "jsr:@std/assert@1";
+import { assertEquals, assertNotMatch } from "jsr:@std/assert@1";
 import { createReaderEventIntakeHandler } from "./handler.ts";
 
 const seriesId = "00000000-0000-4000-8000-000000000101";
@@ -68,7 +68,7 @@ Deno.test("malformed, oversized, unknown and invalid payloads are rejected befor
   assertEquals((await handler(post(JSON.stringify(payload({ event_type: "reading_progress" }))))).status, 400);
   assertEquals((await handler(post(JSON.stringify(payload({ event_type: "reading_progress", progress_percent: 101 }))))).status, 400);
   assertEquals((await handler(post(JSON.stringify(payload({ event_type: "story_open", progress_percent: 5 }))))).status, 400);
-  assertEquals((await handler(post(JSON.stringify({ ...payload(), padding: "x".repeat(3000) }))).status, 413);
+  assertEquals((await handler(post(JSON.stringify({ ...payload(), padding: "x".repeat(3000) })))).status, 413);
   assertEquals(calls, 0, "invalid requests must not call the database RPC");
 });
 
