@@ -119,6 +119,8 @@ jobs:
         run: node --test scripts/aevora-provider-state-grants-contract.test.mjs
       - name: Run provider cooldown recording contract tests
         run: node --test scripts/aevora-provider-cooldown-recording-contract.test.mjs
+      - name: Run repository-wide Gemini quota guard contract tests
+        run: node --test scripts/aevora-gemini-quota-guard-contract.test.mjs
       - name: Run read-only access audit contract tests
         run: node --test scripts/aevora-readonly-access-audit-contract.test.mjs
       - name: Run internal worker authorization contract tests
