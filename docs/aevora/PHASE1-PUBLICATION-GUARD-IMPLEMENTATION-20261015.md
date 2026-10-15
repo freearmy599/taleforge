@@ -50,3 +50,9 @@ The guard reads the release schedule from the database and executes before the c
 - Added `scripts/aevora-gemini-quota-guard-contract.test.mjs`, which scans every TypeScript Edge Function for direct Gemini API endpoints and requires the persisted provider-state table, explicit fail-closed state-unavailable handling, a cooldown rejection marker, and a current-time check.
 - Wired the contract into `.github/workflows/aevora-edge-validation.yml`; it passed in [CI run 38686126485](https://github.com/freearmy599/taleforge/actions/runs/38686126485). Both the prepared Edge Function/type-check job and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal completed successfully.
 - This is a static regression net, not proof of live provider quota state or a substitute for runtime/provider integration testing. No Gemini request was made by the test.
+
+## Publication idempotency-path regression
+
+- Extended the publisher security contract to assert that the persisted automatic-publication lock executes before both the existing-chapter/idempotent synchronization path and a new chapter insert. This protects against an automatic schedule reporting or synchronizing publication through an early-return path.
+- Validation passed in [CI run 38686233461](https://github.com/freearmy599/taleforge/actions/runs/38686233461): prepared Edge Function/type-check and source-contract tests passed, and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal passed.
+- The prior documentation-and-quota-audit validation also completed successfully in [CI run 38686218527](https://github.com/freearmy599/taleforge/actions/runs/38686218527).
