@@ -9,3 +9,10 @@ export const taleForgeSupabase = createClient(
 );
 
 window.taleForgeSupabase = taleForgeSupabase;
+// Public configuration only; never expose the service-role credential to browser code.
+window.taleForgeSupabaseConfig = {
+  url: SUPABASE_URL,
+  publishableKey: SUPABASE_PUBLISHABLE_KEY,
+};
+// Keep the compatibility path until the intake endpoint is deployed and verified.
+window.taleForgeReaderEventIntakeEnabled = false;
