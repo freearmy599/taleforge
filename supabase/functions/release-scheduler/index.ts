@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { 
 import { automationReadinessDisposition } from "./readiness.ts";
 
 const VERSION = "release-scheduler-v16-dst-fold-cadence";
+function isConfirmedPublicationResponse(r:any,d:any):boolean{return r.ok && d!==null && typeof d==="object" && d.success===true && d.published===true && d.status==="published" && typeof d.chapter_id==="string" && d.chapter_id.length>0;}
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
@@ -334,9 +335,7 @@ Deno.serve(async (req)=>{
           });
           const t=await r.text(); let d:any;
           try{d=JSON.parse(t)}catch{d=t}
-          const responseConfirmed=r.ok && d!==null && typeof d==="object"
-            && d.success===true && d.published===true
-            && d.status==="published" && typeof d.chapter_id==="string" && d.chapter_id.length>0;
+          const responseConfirmed=isConfirmedPublicationResponse(r,d);
           if(!responseConfirmed){
             publicationFailed=true;
             results.push({schedule_id:schedule.id,series_id:schedule.series_id,action:"publish_unconfirmed",
