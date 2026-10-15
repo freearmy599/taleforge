@@ -34,6 +34,12 @@ VALUES
    '00000000-0000-0000-0000-000000000121',statement_timestamp() - interval '2 days'),
   ('visitor-draft-follow-0001','follow',
    '00000000-0000-0000-0000-000000000101',
+   '00000000-0000-0000-0000-000000000112',statement_timestamp() - interval '2 days'),
+  ('visitor-mismatch-bookmark-0001','bookmark',
+   '00000000-0000-0000-0000-000000000101',
+   '00000000-0000-0000-0000-000000000121',statement_timestamp() - interval '2 days'),
+  ('visitor-draft-bookmark-0001','bookmark',
+   '00000000-0000-0000-0000-000000000101',
    '00000000-0000-0000-0000-000000000112',statement_timestamp() - interval '2 days');
 RESET ROLE;
 
