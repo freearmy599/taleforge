@@ -442,6 +442,9 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /const generated=\[\];for\(const b of missing\)\{if\(providerThrottleObserved\)\{generated\.push\(\{chapter_number:b\.chapter_number,action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /if\(revisionQuotaBlocked\|\|revisionTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
   assert.match(generationOrchestrator, /function isProviderBlockResult\(result:any\):boolean/);
+  assert.match(generationOrchestrator, /function containsProviderBlock\(value:any,depth=0\):boolean/);
+  assert.match(generationOrchestrator, /Object\.values\(value\)\.some\(\(nested\)=>containsProviderBlock\(nested,depth\+1\)\)/);
+  assert.match(generationOrchestrator, /depth>7/);
   assert.match(generationOrchestrator, /const revisionProviderBlock=isProviderBlockResult\(revise\);if\(!revise\.ok\|\|revisionProviderBlock\)/);
   assert.match(generationOrchestrator, /if\(isProviderBlockResult\(recovery\)\)providerThrottleObserved=true/);
   assert.ok(generationOrchestrator.includes('if(providerThrottleObserved){rr.push({output_id:c.id,action:"provider_throttle_observed"'), "revision loop must stop after a prior provider block");
