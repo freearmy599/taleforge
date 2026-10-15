@@ -75,3 +75,18 @@ test("review-orchestrator fails closed before selecting outputs when Gemini prov
   assert.match(guard, /provider_cooldown/, "active cooldown must return the stable blocked reason");
   assert.match(guard, /return json\([\s\S]*?503\)/, "provider-state lookup failures must return a retryable service error");
 });
+
+test("review-orchestrator stops the current output's remaining review steps on any provider throttle signal", async () => {
+  const source = await readFile(new URL("../supabase/functions/review-orchestrator/index.ts", import.meta.url), "utf8");
+  const throttle = source.indexOf("const providerThrottleResponse =");
+  const blocked = source.indexOf("if (providerThrottleResponse)", throttle);
+  const stop = source.indexOf("providerThrottleObserved = true;", blocked);
+  const breakStep = source.indexOf("break;", stop);
+  const genericHttpFailure = source.indexOf("if (!call.ok)", blocked);
+  assert.ok(throttle >= 0 && blocked > throttle, "provider throttle response predicate must exist");
+  assert.ok(stop > blocked && breakStep > stop && genericHttpFailure > breakStep,
+    "provider throttle must set the global stop flag and break the current review plan before generic HTTP handling");
+  const guarded = source.slice(blocked, genericHttpFailure);
+  assert.match(guarded, /blocked\s*=\s*true/, "the current output must be marked blocked");
+  assert.match(guarded, /callReason\s*===\s*["']provider_cooldown["']/, "nominal HTTP success with a provider block must stop remaining calls");
+});
