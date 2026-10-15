@@ -69,8 +69,11 @@ test("automated publication fails closed until separate audited authorization ex
   assert.match(publisher, /Automated publication is disabled until separate publication authorization is implemented/);
   assert.match(publisher, /Generation readiness is deliberately not publication authorization/);
   const guardIndex = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
+  const existingChapterCheckIndex = publisher.indexOf(".from(\"chapters\") .select(\"*\")");
   const insertIndex = publisher.indexOf(".from(\"chapters\") .insert(chapterInsert)");
-  assert.ok(guardIndex >= 0 && insertIndex > guardIndex,
+  assert.ok(guardIndex >= 0 && existingChapterCheckIndex > guardIndex,
+    "the persisted auto_publish gate must run before existing-chapter/idempotent synchronization paths");
+  assert.ok(insertIndex > guardIndex,
     "the persisted auto_publish gate must run before a chapter insert can occur");
   assert.match(publisher, /const automationSchedule = automationSchedules\[0\]/,
     "the gate must be based on the schedule loaded from the database, not a request-body claim");
