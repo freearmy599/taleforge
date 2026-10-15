@@ -37,6 +37,10 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   assert.match(migration, /SECURITY DEFINER\s+SET search_path = pg_catalog, public, aevora_private/i);
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /pg_advisory_xact_lock\(\s*pg_catalog\.hashtextextended\(p_event_uuid::text, 7918\)\s*\)/);
+  const duplicateCheck = migration.indexOf("SELECT 1 FROM public.reader_events e WHERE e.event_uuid = p_event_uuid");
+  const quotaMutation = migration.indexOf("INSERT INTO aevora_private.reader_event_quota_buckets", duplicateCheck);
+  assert.ok(duplicateCheck >= 0 && quotaMutation > duplicateCheck,
+    "duplicate event UUIDs must be resolved before any quota counter is mutated");
   assert.match(migration, /COALESCE\(v_hits, 0\) >= 30/);
   assert.match(migration, /COALESCE\(v_hits, 0\) >= 1000/);
   assert.match(migration, /quota_scope text NOT NULL DEFAULT/);
