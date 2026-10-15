@@ -35,8 +35,12 @@ SELECT
   count(d.jobid) FILTER (
     WHERE d.start_time >= now() - interval '24 hours' AND d.status = 'failed'
   ) AS failed_runs_24h,
-  max(d.start_time) AS latest_run_start,
-  max(d.end_time) AS latest_run_end
+  max(d.start_time) FILTER (
+    WHERE d.start_time >= now() - interval '24 hours'
+  ) AS latest_run_start_24h,
+  max(d.end_time) FILTER (
+    WHERE d.start_time >= now() - interval '24 hours'
+  ) AS latest_run_end_24h
 FROM cron.job AS j
 LEFT JOIN cron.job_run_details AS d ON d.jobid = j.jobid
 WHERE j.command ILIKE '%generation-orchestrator%'
