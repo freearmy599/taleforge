@@ -156,11 +156,13 @@ test("chapter revision is authenticated, quota-guarded, and state-fenced", async
   const s = await source("supabase/functions/revise-chapter/index.ts");
   assert.ok(s.includes('revision-v19-null-status-idempotency'), "revision version marker must be present");
   const auth = s.indexOf('isTrustedInternalApiKey(req.headers.get("apikey")');
+  const providerGuard = s.indexOf("const providerStateResult = await supabase");
   const body = s.indexOf("body = await req.json()");
   const governance = s.indexOf('supabase.rpc("taleforge_ceo_execution_gate"');
   const modelCall = s.indexOf("rawResponse = await callGemini");
-  assert.ok(auth >= 0 && auth < body, "caller authentication must precede request-body parsing");
+  assert.ok(auth >= 0 && auth < providerGuard && providerGuard < body, "caller authentication must precede provider-state lookup, and provider state must be checked before request parsing or work");
   assert.ok(body < governance && governance < modelCall, "governance must authorize the revision before any Gemini call");
+  assert.ok(providerGuard < modelCall, "revision cooldown guard must run before every Gemini call");
   assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'), "revision must load shared Gemini provider state");
   assert.ok(s.includes('reason: "provider_state_unavailable"'), "revision must fail closed when provider state cannot be read");
   assert.ok(s.includes('reason: "invalid_cooldown_timestamp"'), "revision must fail closed on malformed cooldown timestamps");
