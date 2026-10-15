@@ -79,6 +79,20 @@ test("automated publication fails closed until separate audited authorization ex
     "the gate must be based on the schedule loaded from the database, not a request-body claim");
 });
 
+test("publisher distinguishes manual schedules from automated publication authorization", () => {
+  assert.match(publisher, /AUTOMATION_SCHEDULE_MISSING_OR_AMBIGUOUS/);
+  assert.match(publisher, /AUTOMATION_SCHEDULE_AMBIGUOUS/);
+  const manualIndex = publisher.indexOf('if (automationSchedule.schedule_mode === "manual")');
+  const automatedGuardIndex = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
+  assert.ok(manualIndex >= 0 && automatedGuardIndex > manualIndex,
+    "manual-mode validation must remain explicit and separate from the automated-publication lock");
+  const manualBranch = publisher.slice(manualIndex, automatedGuardIndex);
+  assert.match(manualBranch, /MANUAL_SCHEDULE_AUTOMATION_CONFLICT/,
+    "manual schedules must reject automatic flags rather than being treated as automated approvals");
+  assert.match(publisher, /automationSchedule.enabled !== true \|\| automationSchedule.auto_publish !== true[\s\S]*?AUTOMATION_NOT_READY/,
+    "generation-only readiness must not accidentally authorize automated publication");
+});
+
 test("publisher version identifies publication-authorization fail-closed hardening", () => {
   assert.match(publisher, /release-publisher-v11-publication-authorization-fail-closed/);
 });
