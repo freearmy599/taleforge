@@ -81,8 +81,13 @@ test("browser source files do not contain server-only credentials or internal ke
     "taleforge-data.js",
     "terms.html",
   ];
+  const rootEntries = await readdir(new URL("../", import.meta.url), { withFileTypes: true });
+  const discoveredBrowserFiles = rootEntries
+    .filter((entry) => entry.isFile() && /\\.(?:html|js)$/i.test(entry.name))
+    .map((entry) => entry.name);
+  const filesToCheck = [...new Set([...browserFiles, ...discoveredBrowserFiles])];
   const secretMarkers = /SUPABASE_SERVICE_ROLE_KEY|service_role_key|serviceRoleKey|SUPABASE_SECRET_KEYS|AEVORA_INTERNAL_API_KEY_NAMES|GEMINI_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY/i;
-  for (const path of browserFiles) {
+  for (const path of filesToCheck) {
     const s = await source(path);
     assert.doesNotMatch(s, secretMarkers, path + " must not embed server-only credential names or internal key configuration");
   }
