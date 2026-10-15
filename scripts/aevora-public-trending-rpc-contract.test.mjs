@@ -47,6 +47,8 @@ test("trending aggregate preserves the exact legacy 12-column view contract", ()
 test("trending counts are bounded to valid public series and published chapter events", () => {
   assert.match(migration, /WHERE\s+s\.status\s*=\s*ANY\s*\(ARRAY\['ongoing'::text,\s*'completed'::text\]\)/i);
   assert.match(migration, /re\.created_at\s*>\s*pg_catalog\.now\(\)\s*-\s*interval\s+'30 days'/i);
+  assert.match(migration, /row_number\(\) OVER \([\s\S]*?PARTITION BY\s+re\.visitor_id,\s+re\.series_id,\s+re\.event_type[\s\S]*?date_trunc\('day', re\.created_at\)[\s\S]*?ORDER BY re\.created_at DESC, re\.id DESC/i);
+  assert.match(migration, /FROM recent_events AS e\s+WHERE e\.contribution_rank = 1/i);
   assert.match(migration, /c\.status\s*=\s*'published'/i);
   assert.match(migration, /SECURITY DEFINER bypasses ordinary reader RLS/i);
   assert.match(migration, /re\.chapter_id\s+IS\s+NULL\s+OR\s+EXISTS\s*\([\s\S]*?c\.id\s*=\s*re\.chapter_id[\s\S]*?c\.series_id\s*=\s*re\.series_id[\s\S]*?c\.status\s*=\s*'published'/i);
