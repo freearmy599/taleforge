@@ -90,3 +90,31 @@ test("claimed scheduler leases are released in a finally block and release uncer
   assert.match(source, /"lease_release_warning"/, "release uncertainty must be surfaced in the scheduler result");
   assert.match(source, /failureActions=new Set\(\[[\s\S]*?"lease_release_warning"/, "lease release uncertainty must affect overall scheduler success");
 });
+
+
+test("scheduler lease RPCs pin SECURITY DEFINER search paths and deny client-role execution", async () => {
+  const foundation = await readFile(
+    new URL("../supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql", import.meta.url),
+    "utf8",
+  );
+  const fencing = await readFile(
+    new URL("../supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", import.meta.url),
+    "utf8",
+  );
+  const functions = [
+    ["aevora_claim_release_scheduler_lease", foundation],
+    ["aevora_renew_release_scheduler_lease", foundation],
+    ["aevora_release_scheduler_lease", foundation],
+    ["aevora_advance_release_schedule_if_lease_owned", fencing],
+    ["aevora_activate_story_lifecycle_if_lease_owned", fencing],
+  ];
+  for (const [name, migration] of functions) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const definition = migration.match(new RegExp("CREATE OR REPLACE FUNCTION public\\." + escaped + "\\([\\s\\S]*?\\$function\\$"));
+    assert.ok(definition, "missing lease RPC definition: " + name);
+    assert.match(definition[0], /SECURITY DEFINER/, name + " must be SECURITY DEFINER");
+    assert.match(definition[0], /SET search_path = pg_catalog/, name + " must pin search_path");
+    assert.match(migration, new RegExp("REVOKE ALL ON FUNCTION public\\." + escaped + "\\([\\s\\S]*?FROM PUBLIC, anon, authenticated;"), name + " must revoke client-role execution");
+    assert.match(migration, new RegExp("GRANT EXECUTE ON FUNCTION public\\." + escaped + "\\([\\s\\S]*?TO postgres, service_role;"), name + " must grant only trusted server roles");
+  }
+});
