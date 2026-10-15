@@ -27,9 +27,9 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014220000_re
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014230000_reader_event_server_timestamp.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261015120000_reader_event_intake_rpc.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-reader-event-integrity-assertions.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-reader-event-intake-rpc-assertions.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014130000_public_trending_aggregate_rpc.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-trending-state-assertions.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-reader-event-intake-rpc-assertions.sql
 
 # Exercise the partial unique index across two independent database sessions.
 # Session A holds the uncommitted UUID briefly; session B must wait and then
