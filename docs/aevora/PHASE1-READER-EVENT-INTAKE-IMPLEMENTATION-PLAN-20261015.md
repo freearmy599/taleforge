@@ -2,7 +2,7 @@
 
 ## Status
 
-Branch-only implementation prepared; verification pending. Added a public Edge Function, a SECURITY DEFINER RPC with server-only execute grants, an isolated quota table, source-contract tests, and disposable PostgreSQL assertions. The branch's existing direct browser insert remains active where its current database policies permit it; the endpoint is not yet wired into the browser. No production setting or deployment was changed. Public trending remains gated.
+Branch-only implementation prepared and source/disposable-database verification green at [CI run 38738919711](https://github.com/freearmy599/taleforge/actions/runs/38738919711). Browser cutover and production rollout remain pending. Added a public Edge Function, a SECURITY DEFINER RPC with server-only execute grants, an isolated quota table, source-contract tests, and disposable PostgreSQL assertions. The branch's existing direct browser insert remains active where its current database policies permit it; the endpoint is not yet wired into the browser. No production setting or deployment was changed. Public trending remains gated.
 
 ## Design decision
 
@@ -31,9 +31,9 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 
 ## Compatibility and rollout sequence
 
-1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, and the per-minute limit boundary. Concurrency-specific quota stress testing and end-to-end Edge invocation tests remain outstanding.
+1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, and the per-minute limit boundary. Concurrency-specific quota stress testing has passed in the disposable PostgreSQL rehearsal. End-to-end invocation of the deployed Edge endpoint remains outstanding.
 2. [Prepared] Implement the Edge Function and source-contract tests for methods, body size, allowlist, progress validation, safe errors, no credential leakage, and no raw-payload logging.
-3. [Pending CI] Type-check the function and execute disposable PostgreSQL rehearsals. Exercise parallel requests at the quota boundary; exactly the configured number may succeed.
+3. [Verified in CI run 38738919711] Type-check the function and execute disposable PostgreSQL rehearsals. Parallel fresh-UUID requests at the per-minute boundary produced exactly 30 accepted and one limited; repeated UUID concurrency remained idempotent. A fixture collision was corrected by separating UUID namespaces.
 4. Add a compatibility test for the existing `window.taleForgeProgress.track(event_type, data)` interface, then add a branch-only opt-in switch so browser reads/UI do not depend on intake availability.
 5. Test rollout and rollback together. Do not revoke direct inserts until the endpoint is deployed and verified in the intended environment, browser traffic has been migrated, and a tested rollback path exists. The final production cutover requires separate explicit authorization.
 6. Only after direct-insert bypass is closed and abuse controls are verified may the public trending gate be reconsidered.
@@ -54,3 +54,10 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 ## Go/no-go
 
 NO-GO for production. No production migration, deployment, schedule mutation, chapter generation, publication, or billable Supabase branch is authorized by this plan. The next verification pass must establish successful CI and disposable-database behavior, including concurrent quota requests. The public browser cutover and production approval remain separate gates.
+
+
+## Verification update — 2026-10-15
+
+CI run [38738919711](https://github.com/freearmy599/taleforge/actions/runs/38738919711) passed both prepared Edge Function/source-contract validation and the disposable PostgreSQL rehearsal after the cleanup-cooldown assertion was moved to the migration-owner context. The quota cleanup gate now checks a cheap singleton state row, claims a non-blocking advisory lock only when cleanup is due, and deletes at most 1000 expired rows per attempt, no more than once per minute. This bounds cleanup work without serializing every event through a global cleanup lock.
+
+Still pending: a real deployed Edge Function invocation test, browser tracker cutover, direct-INSERT revocation staged with rollback, production owner-level ACL repair, explicit publication authorization principal/source, and fresh authorized disposition of the six legacy schedules. No production action was taken.
