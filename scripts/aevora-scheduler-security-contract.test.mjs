@@ -6,6 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 
 const source = await readFile(
   new URL("../supabase/functions/release-scheduler/index.ts", import.meta.url),
@@ -51,6 +52,24 @@ test("schedule advancement requires every selected publication to be confirmed",
   assert.ok(source.includes('&& !publicationFailed && !leaseLost;'));
   assert.ok(source.includes('if(!dryRun && nextRelease && allSelectedConfirmed)'));
   assert.ok(source.includes('aevora_advance_release_schedule_if_lease_owned'));
+});
+
+test("publication-authorization rejection cannot be mistaken for a confirmed release", async () => {
+  const publisher = await readFile(
+    new URL("../supabase/functions/release-publisher/index.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(publisher, /PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED/);
+  const match = source.match(/function isConfirmedPublicationResponse\(r:any,d:any\):boolean\{[\s\S]*?\}/);
+  assert.ok(match, "scheduler must expose a strict publication-confirmation predicate");
+  const helper = match[0].replace("function isConfirmedPublicationResponse(r:any,d:any):boolean", "function isConfirmedPublicationResponse(r,d)");
+  const isConfirmed = runInNewContext(helper + "; isConfirmedPublicationResponse");
+  const blocked = { success: false, error: "Automated publication is disabled until separate publication authorization is implemented.", code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED" };
+  assert.equal(isConfirmed({ ok: false }, blocked), false);
+  assert.equal(isConfirmed({ ok: true }, blocked), false);
+  assert.equal(isConfirmed({ ok: true }, { success: true, published: true, status: "published" }), false);
+  assert.equal(isConfirmed({ ok: true }, { success: true, published: true, status: "published", chapter_id: "chapter-1" }), true);
+  assert.ok(source.includes("attemptedCount===publishCount && published.length===publishCount"), "schedule advancement must require every selected publication to be confirmed");
 });
 
 test("lifecycle activation is blocked after publication or lease failure", () => {
