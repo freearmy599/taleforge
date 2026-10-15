@@ -71,10 +71,17 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'invalid');
   END IF;
 
-  IF p_event_uuid IS NOT NULL AND EXISTS (
-    SELECT 1 FROM public.reader_events e WHERE e.event_uuid = p_event_uuid
-  ) THEN
-    RETURN jsonb_build_object('outcome', 'duplicate');
+  IF p_event_uuid IS NOT NULL THEN
+    -- Serialize the same idempotency key across different visitor hints too,
+    -- so a concurrent duplicate does not consume another visitor's quota.
+    PERFORM pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(p_event_uuid::text, 7918)
+    );
+    IF EXISTS (
+      SELECT 1 FROM public.reader_events e WHERE e.event_uuid = p_event_uuid
+    ) THEN
+      RETURN jsonb_build_object('outcome', 'duplicate');
+    END IF;
   END IF;
 
   -- Bounded opportunistic cleanup runs on each valid request. The indexed
