@@ -84,6 +84,23 @@ test("scheduler only accepts an explicit, identified published result from the p
   assert.match(scheduler, /confirmedChapter\.status!=="published"/);
 });
 
+test("scheduler renews and releases its lease, and advances only after every publication is confirmed", () => {
+  const claim = scheduler.indexOf('rpc("aevora_claim_release_scheduler_lease"');
+  const renew = scheduler.indexOf('rpc("aevora_renew_release_scheduler_lease"');
+  const publisherCall = scheduler.indexOf('fetch(url+"\\/functions\\/v1\\/release-publisher"');
+  const release = scheduler.indexOf('rpc("aevora_release_scheduler_lease"');
+  const finallyBlock = scheduler.lastIndexOf("}finally{");
+  const allConfirmed = scheduler.indexOf("const allSelectedConfirmed =");
+  const advanceGuard = scheduler.indexOf("if(!dryRun && nextRelease && allSelectedConfirmed)");
+  const advance = scheduler.indexOf('rpc("aevora_advance_release_schedule_if_lease_owned"');
+  assert.ok(claim >= 0 && renew > claim && publisherCall > renew, "lease must be claimed and renewed before publication");
+  assert.ok(allConfirmed > publisherCall && advanceGuard > allConfirmed && advance > advanceGuard, "schedule advancement must be gated on full batch confirmation");
+  assert.match(scheduler.slice(allConfirmed, advanceGuard), /attemptedCount===publishCount/);
+  assert.match(scheduler.slice(allConfirmed, advanceGuard), /published\.length===publishCount/);
+  assert.match(scheduler.slice(allConfirmed, advanceGuard), /!publicationFailed && !leaseLost/);
+  assert.ok(finallyBlock >= 0 && release > finallyBlock, "a claimed lease must be released from the finally path");
+});
+
 test("publisher rejects ambiguous schedules and automatic flags on manual schedules", () => {
   assert.match(publisher, /\.order\("id", \{ ascending: true \}\)\s*\.limit\(2\)/);
   assert.match(publisher, /if \(\(automationSchedules \?\? \[\]\)\.length > 1\)/);
