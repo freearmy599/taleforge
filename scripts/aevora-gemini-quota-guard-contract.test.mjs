@@ -60,3 +60,18 @@ test("generate-chapter provider-state guard covers both generation and quality-r
   assert.match(guardRegion, /provider_state_unavailable/, "missing provider state must block all request paths");
   assert.match(guardRegion, /provider_cooldown/, "active cooldown must block all request paths");
 });
+
+test("review-orchestrator fails closed before selecting outputs when Gemini provider state is unavailable or cooling down", async () => {
+  const source = await readFile(new URL("../supabase/functions/review-orchestrator/index.ts", import.meta.url), "utf8");
+  const stateLookup = source.indexOf('.from("taleforge_ai_provider_state")');
+  const candidateLookup = source.indexOf('.from("chapter_generation_outputs")');
+  const reviewCall = source.indexOf('callFunction(supabaseUrl, serviceRoleKey, step.functionName, output.id)');
+  assert.ok(stateLookup >= 0, "review-orchestrator must load persisted Gemini provider state");
+  assert.ok(candidateLookup > stateLookup, "provider-state validation must precede candidate-output selection");
+  assert.ok(reviewCall > stateLookup, "provider-state validation must precede every downstream review call");
+  const guard = source.slice(stateLookup, candidateLookup);
+  assert.match(guard, /providerStateError\s*\|\|\s*!providerState/, "missing/error state must block the review pipeline");
+  assert.match(guard, /provider_state_unavailable/, "unavailable state must return the stable blocked reason");
+  assert.match(guard, /provider_cooldown/, "active cooldown must return the stable blocked reason");
+  assert.match(guard, /return json\([\s\S]*?503\)/, "provider-state lookup failures must return a retryable service error");
+});
