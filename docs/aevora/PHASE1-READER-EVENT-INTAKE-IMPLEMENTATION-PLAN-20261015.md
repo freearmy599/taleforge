@@ -123,3 +123,9 @@ CI run [38747672914](https://github.com/freearmy599/taleforge/actions/runs/38747
 - Disposable PostgreSQL rehearsal: readiness migration invariants, concurrent series completion, reader-event integrity and INSERT-only grants, and trending aggregate/ACL assertions passed.
 
 This is branch and disposable-database verification only. No production database was queried or changed; no Edge Function was deployed; browser cutover remains disabled; direct browser INSERT grants remain open for compatibility; public trending remains gated. Production remains NO-GO pending the separately authorized rollout and governance gates.
+
+## Latest verification checkpoint — 2026-10-15
+
+- CI run [38748888964](https://github.com/freearmy599/taleforge/actions/runs/38748888964) completed successfully for the prior branch head: Edge Function validation passed all 49 steps and the disposable PostgreSQL rehearsal passed all 11 steps.
+- The quota cleanup implementation is gated by a singleton timestamp and a non-blocking advisory lock; each cleanup attempt deletes at most 1000 expired buckets and the gate prevents cleanup attempts more often than once per minute. Updated the SQL comment to accurately describe the implemented gate rather than implying cleanup work runs on every event.
+- This verification remains branch-only. The browser endpoint switch remains disabled by default; direct browser INSERT remains an active compatibility path; no production endpoint smoke test, deployment, grant change, or migration was performed. Public trending remains gated.
