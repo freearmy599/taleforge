@@ -59,6 +59,8 @@ jobs:
           deno-version: v2.x
       - name: Type-check control-plane audit endpoint
         run: deno check supabase/functions/aevora-control-plane-audit/index.ts
+      - name: Type-check reader-event intake endpoint
+        run: deno check supabase/functions/reader-event-intake/index.ts
       - name: Type-check scheduler
         run: deno check supabase/functions/release-scheduler/index.ts
       - name: Type-check autonomous series creation runner
@@ -121,6 +123,8 @@ jobs:
         run: node --test scripts/aevora-trending-rehearsal-safety-contract.test.mjs
       - name: Run reader-event intake security contract tests
         run: node --test scripts/aevora-reader-event-intake-contract.test.mjs
+      - name: Run reader-event intake endpoint contract tests
+        run: node --test scripts/aevora-reader-event-intake-endpoint-contract.test.mjs
       - name: Run release readiness contract tests
         run: node --test scripts/aevora-release-readiness-contract.test.mjs
       - name: Run revision worker security contract tests
