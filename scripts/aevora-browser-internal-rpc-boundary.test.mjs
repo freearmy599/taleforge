@@ -73,10 +73,9 @@ test("browser-facing sources cannot directly invoke internal Aevora RPCs", async
       // quote style. Dynamic RPC names are outside this static contract.
       const escaped = rpc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const pattern = new RegExp(
-        `\\.rpc\\(\\s*["'`]${escaped}["'`]\\s*(?:,|\\))`,
+        "\\\\.rpc\\\\(\\\\s*['\\\\x60]" + escaped + "['\\\\x60]\\\\s*(?:,|\\\\))",
         "i",
-      );
-      if (pattern.test(source)) violations.push(`${file.pathname}: ${rpc}`);
+      );      if (pattern.test(source)) violations.push(`${file.pathname}: ${rpc}`);
     }
   }
 
