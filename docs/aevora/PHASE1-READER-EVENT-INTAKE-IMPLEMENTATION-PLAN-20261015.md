@@ -77,3 +77,11 @@ The request handler was separated from the Deno entrypoint so behavior can be te
 [CI run 38740534812](https://github.com/freearmy599/taleforge/actions/runs/38740534812) passed both jobs on commit `6522bc6192421771054342eaf1ec93390b4de8b4`, including the new Deno behavior tests, all prepared Edge Function type checks, static security contracts, and disposable PostgreSQL rehearsals. Additional explicit type annotations in the generation, review, world-continuity, and publication-review functions resolved strict-check failures exposed during this pass without changing their runtime logic.
 
 Remaining gates are unchanged: deployed endpoint smoke test, controlled browser switch activation, telemetry/rollback verification, separately authorized direct-INSERT revocation, publication approval principal/source, owner-level production ACL repair, and per-schedule legacy dispositions. No production change was made.
+
+
+## Quota/idempotency boundary tests — 2026-10-15
+
+- The RPC now serializes non-null event UUIDs with a transaction-scoped advisory lock before checking for an existing event. This closes the concurrent duplicate race where two different visitor hints could both pass the initial duplicate check and consume separate quota buckets before the unique index rejected one insert.
+- Disposable PostgreSQL coverage races the same UUID across distinct visitor hints and expects one `accepted` plus one `duplicate`; 31 independent fresh-UUID requests for one visitor hint must produce exactly 30 `accepted` and one `limited`; a separate daily-boundary loop resets only the minute bucket and expects exactly 1000 `accepted` and one `limited` in the same day window.
+- The private quota bucket and cleanup-state tables are checked for no ordinary-role schema/table access. Cleanup is claimed at most once per minute through a non-blocking advisory lock, with at most 1000 expired rows deleted per cleanup attempt.
+- These source and disposable-database tests are green in [CI run 38742040284](https://github.com/freearmy599/taleforge/actions/runs/38742040284). This verifies branch logic only; the browser switch remains disabled and no production migration or deployment has occurred.
