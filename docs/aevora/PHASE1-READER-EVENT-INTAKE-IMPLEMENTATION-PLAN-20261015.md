@@ -100,3 +100,10 @@ The read-only production rollout preflight now reports whether anon/authenticate
 ## Latest branch verification — 2026-10-15
 
 Implementation commit `b896bb5392d92a5d21185b25444592a0099f6130` passed [CI run 38744825970](https://github.com/freearmy599/taleforge/actions/runs/38744825970). The disposable PostgreSQL rehearsal covers global and per-event quota boundaries, concurrent idempotency, non-consuming duplicate handling, and non-consuming rejected-event checks. The read-only preflight contract checks direct INSERT grants/policies, the actual timestamp-trigger name, the event UUID unique index, and no raw cron-command output. This remains source/fixture verification only; no production database was queried or changed, and no Edge Function was deployed.
+
+
+## SECURITY DEFINER search-path review — 2026-10-15
+
+A focused review found that the intake RPC's objects were already schema-qualified, but its SECURITY DEFINER search path still listed application schemas. Both the ingestion RPC and quota-pruning helper now use only `pg_catalog` as their configured search path; application tables, quota objects, and the helper call remain schema-qualified. The endpoint source contract asserts both SECURITY DEFINER functions use this minimal path and rejects adding writable application schemas to it.
+
+The change is branch-only. The browser switch remains disabled, direct INSERT remains open for compatibility, and public trending remains gated. Wait for the workflow that includes these exact commits before marking this hardening pass verified. Production remains NO-GO.
