@@ -47,6 +47,7 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.aevora_ingest_reader_event\(text, uuid, text, uuid, uuid, integer\) FROM PUBLIC, anon, authenticated/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.aevora_ingest_reader_event\(text, uuid, text, uuid, uuid, integer\) TO service_role/i);
   assert.match(migration, /REVOKE ALL ON TABLE aevora_private\.reader_event_quota_buckets FROM PUBLIC, anon, authenticated/i);
+  assert.match(migration, /REVOKE ALL ON TABLE aevora_private\.reader_event_quota_cleanup_state FROM PUBLIC, anon, authenticated/i);
 });
 
 test("browser intake cutover is opt-in and preserves the tracker interface", () => {
