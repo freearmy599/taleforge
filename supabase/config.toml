@@ -1,0 +1,4 @@
+# Public anonymous telemetry endpoint. The handler validates every field and applies
+# atomic server-side quotas; all other functions retain their platform defaults.
+[functions.reader-event-intake]
+verify_jwt = false
