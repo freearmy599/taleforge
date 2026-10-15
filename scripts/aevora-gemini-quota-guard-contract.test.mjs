@@ -112,3 +112,21 @@ test("generation-orchestrator stops revision and generation AI calls after any p
   assert.match(source, /if\(reviewProviderBlocked\)providerThrottleObserved=true/,
     "review provider-block responses must stop later AI work");
 });
+
+
+test("generation-orchestrator hard-stops non-dry-run work during an active Gemini cooldown", async () => {
+  const source = await readFile(new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url), "utf8");
+  const cooldownRead = source.indexOf("const geminiCooldown=await getGeminiCooldown(supabase)");
+  const activeGuard = source.indexOf("if(geminiCooldown.active&&!dryRun)return response");
+  const scheduleQuery = source.indexOf('let q=supabase.from("release_schedules")');
+  const deterministicRefresh = source.indexOf("await refreshDeterministicIntelligence(supabase)");
+  assert.ok(cooldownRead >= 0, "orchestrator must read persisted provider cooldown");
+  assert.ok(activeGuard > cooldownRead, "active cooldown must be checked after provider state is loaded");
+  assert.ok(scheduleQuery > activeGuard, "active cooldown must stop before schedule selection");
+  assert.ok(deterministicRefresh > activeGuard, "active cooldown must stop before deterministic intelligence refresh mutations");
+  const guard = source.slice(activeGuard, scheduleQuery);
+  assert.match(guard, /reason:"provider_cooldown"/, "active cooldown must return a stable blocked reason");
+  assert.match(guard, /503\)/, "active cooldown must return a retryable service-unavailable status");
+  assert.match(guard, /!dryRun/, "read-only dry runs may continue to report diagnostic state");
+  assert.match(source, /provider_cooldown:providerCooldownNote/, "dry-run diagnostics must expose the persisted cooldown state");
+});
