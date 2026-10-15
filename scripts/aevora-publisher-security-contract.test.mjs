@@ -154,3 +154,20 @@ test("browser-facing source cannot bypass release-publisher with direct chapter 
     );
   }
 });
+
+
+test("publication lock uses persisted schedule state rather than caller-supplied flags", () => {
+  const scheduleQueryStart = publisher.indexOf('.from("release_schedules")');
+  const scheduleQueryEnd = publisher.indexOf("const isAutonomousSeries", scheduleQueryStart);
+  assert.ok(scheduleQueryStart >= 0 && scheduleQueryEnd > scheduleQueryStart,
+    "publisher must load the schedule from the database before evaluating automation flags");
+  const query = publisher.slice(scheduleQueryStart, scheduleQueryEnd);
+  assert.match(query, /\.select\("id,enabled,auto_generate,auto_publish,schedule_mode,automation_ready_at"\)/);
+  assert.match(query, /\.eq\("series_id", output\.series_id\)/);
+  assert.doesNotMatch(query, /requestBody|body\.auto_publish|output\.auto_publish/,
+    "caller-controlled flags must not replace persisted schedule state");
+  const guard = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
+  const insert = publisher.indexOf('.from("chapters")');
+  assert.ok(guard >= 0 && insert > guard,
+    "persisted schedule authorization must be checked before chapter-table operations");
+});
