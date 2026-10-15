@@ -22,7 +22,7 @@ const idempotency = await readFile(
 test("publisher idempotency requires a matching, actually published chapter", () => {
   const match = idempotency.match(/export function matchesPublishedOutput\([\s\S]*?\n\}/);
   assert.ok(match, "published-output predicate must be present");
-  const helperSource = match[0].replace("export function", "function").replaceAll(": any", "");
+  const helperSource = match[0].replace("export function", "function").replaceAll(": any", "").replaceAll(": boolean", "");
   const matchesPublishedOutput = runInNewContext(`${helperSource}; matchesPublishedOutput`);
   const chapter = { status: "published", series_id: "series-1", chapter_number: 7, title: "A Turning Point", content: "The door opened." };
   const output = { series_id: "series-1", chapter_number: 7, title: "A Turning Point", content: "The door opened." };
