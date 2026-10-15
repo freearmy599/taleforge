@@ -171,8 +171,11 @@ test("dry-run mode cannot claim leases, call the publisher, transition lifecycle
   const advance = source.indexOf('supabase.rpc("aevora_advance_release_schedule_if_lease_owned"');
   assert.ok(claim >= 0 && publisher > claim && activate > publisher && advance > activate,
     "expected lease, publisher, lifecycle, and schedule-advance operations in the scheduler");
-  assert.match(source.slice(claim - 100, claim), /if\(!dryRun && schedule\.auto_publish\)\{/,
+  const claimGate = source.lastIndexOf("if(!dryRun && schedule.auto_publish){", claim);
+  assert.ok(claimGate >= 0 && claimGate < claim,
     "lease claim must be gated behind non-dry-run automatic publication");
+  assert.ok(source.slice(claimGate, claim).includes("let leaseClaim:any=null;"),
+    "lease claim setup must remain inside the non-dry-run gate");
   assert.match(source.slice(publisher - 600, publisher), /if\(!dryRun\)/,
     "publisher invocation must remain inside a non-dry-run path");
   assert.match(source.slice(advance - 120, advance), /if\(!dryRun && nextRelease && allSelectedConfirmed\)/,
