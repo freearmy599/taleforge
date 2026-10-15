@@ -36,6 +36,7 @@ test("service credentials never leave the Edge Function and diagnostics are reda
 test("database RPC is atomic, fixed-search-path and unavailable to public API roles", () => {
   assert.match(migration, /SECURITY DEFINER\s+SET search_path = pg_catalog, public, aevora_private/i);
   assert.match(migration, /pg_advisory_xact_lock/);
+  assert.match(migration, /pg_advisory_xact_lock\(\s*pg_catalog\.hashtextextended\(p_event_uuid::text, 7918\)\s*\)/);
   assert.match(migration, /hit_count < 30/);
   assert.match(migration, /hit_count < 1000/);
   assert.match(migration, /reader_event_quota_cleanup_state/);
