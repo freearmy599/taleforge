@@ -71,5 +71,5 @@ test("automated publication fails closed until separate audited authorization ex
 });
 
 test("publisher version identifies diagnostic-redaction hardening", () => {
-  assert.match(publisher, /release-publisher-v10-redacted-publication-diagnostics/);
+  assert.match(publisher, /release-publisher-v11-publication-authorization-fail-closed/);
 });
