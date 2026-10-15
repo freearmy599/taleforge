@@ -406,7 +406,8 @@ details: "Internal review diagnostics were withheld.",
 );
 }
 
-const reviewList = reviews || [];
+type ReviewRecord = { review_type: string };
+const reviewList: ReviewRecord[] = (reviews ?? []) as ReviewRecord[];
 
 const qualityReview =
 reviewList.find(
