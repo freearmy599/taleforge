@@ -21,7 +21,20 @@ VALUES
    '00000000-0000-0000-0000-000000000101',
    '00000000-0000-0000-0000-000000000111',statement_timestamp() - interval '1 hour'),
   ('visitor-future-event-0001','story_open',
-   '00000000-0000-0000-0000-000000000101',NULL,'2099-01-01 00:00:00+00');
+   '00000000-0000-0000-0000-000000000101',NULL,'2099-01-01 00:00:00+00'),
+  -- SECURITY DEFINER must independently reject a mismatched published chapter.
+  ('visitor-mismatch-open-0001','story_open',
+   '00000000-0000-0000-0000-000000000101',
+   '00000000-0000-0000-0000-000000000121',statement_timestamp() - interval '2 days'),
+  ('visitor-draft-open-0001','story_open',
+   '00000000-0000-0000-0000-000000000101',
+   '00000000-0000-0000-0000-000000000112',statement_timestamp() - interval '2 days'),
+  ('visitor-mismatch-follow-0001','follow',
+   '00000000-0000-0000-0000-000000000101',
+   '00000000-0000-0000-0000-000000000121',statement_timestamp() - interval '2 days'),
+  ('visitor-draft-follow-0001','follow',
+   '00000000-0000-0000-0000-000000000101',
+   '00000000-0000-0000-0000-000000000112',statement_timestamp() - interval '2 days');
 RESET ROLE;
 
 DO $trending_state_assert$
