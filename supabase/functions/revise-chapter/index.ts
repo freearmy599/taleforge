@@ -352,6 +352,18 @@ throw new Error(
 return generatedText;
 }
 
+async function getGeminiProviderBlock(supabase: any): Promise<{reason:string; cooldown_until?:string|null}|null> {
+  const {data,error}=await supabase.from("taleforge_ai_provider_state")
+    .select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
+  if(error||!data)return {reason:"provider_state_unavailable"};
+  if(data.cooldown_until){
+    const until=Date.parse(data.cooldown_until);
+    if(!Number.isFinite(until))return {reason:"invalid_cooldown_timestamp",cooldown_until:data.cooldown_until};
+    if(until>Date.now())return {reason:"provider_cooldown",cooldown_until:data.cooldown_until};
+  }
+  return null;
+}
+
 async function recordGeminiThrottle(supabase: any, error: unknown) {
 const message = error instanceof Error ? error.message : String(error);
 const isTemporaryOverload = message.includes("Gemini HTTP 503");
@@ -955,6 +967,11 @@ ${currentContent}
 
 let rawResponse: string;
 try {
+const providerBlock = await getGeminiProviderBlock(supabase);
+if(providerBlock){
+  console.warn("[revise-chapter] Gemini provider state blocked a revision attempt.",JSON.stringify({reason:providerBlock.reason}));
+  return jsonResponse({success:false,blocked:true,retryable:true,reason:providerBlock.reason,cooldown_until:providerBlock.cooldown_until??null,note:"Revision attempt skipped because provider availability could not be safely confirmed."},503);
+}
 rawResponse = await callGemini(geminiApiKey, prompt, attempt === 1 ? 0.42 : 0.38);
 } catch (providerError) {
 const cooldown = await recordGeminiThrottle(supabase, providerError);
@@ -1004,6 +1021,11 @@ revisionMinimum +
 revisedContent;
 let continuation: string;
 try {
+const continuationProviderBlock = await getGeminiProviderBlock(supabase);
+if(continuationProviderBlock){
+  console.warn("[revise-chapter] Gemini provider state blocked a continuation attempt.",JSON.stringify({reason:continuationProviderBlock.reason}));
+  return jsonResponse({success:false,blocked:true,retryable:true,reason:continuationProviderBlock.reason,cooldown_until:continuationProviderBlock.cooldown_until??null,note:"Continuation skipped because provider availability could not be safely confirmed."},503);
+}
 continuation = cleanGeminiOutput(await callGemini(geminiApiKey, continuationPrompt, 0.36));
 } catch (providerError) {
 const cooldown = await recordGeminiThrottle(supabase, providerError);
