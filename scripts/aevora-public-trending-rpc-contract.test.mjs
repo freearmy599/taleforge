@@ -33,6 +33,17 @@ test("public result exposes aggregate metrics, never visitor identifiers or raw 
   assert.doesNotMatch(migration, /GRANT\s+SELECT\s+ON\s+TABLE\s+public\.reader_events\s+TO\s+anon|GRANT\s+SELECT\s+ON\s+TABLE\s+public\.reader_events\s+TO\s+authenticated/i);
 });
 
+test("trending aggregate preserves the exact legacy 12-column view contract", () => {
+  const signature = migration.match(/RETURNS TABLE\s*\(([\s\S]*?)\)\s*LANGUAGE/i)?.[1];
+  assert.ok(signature, "function must declare an explicit return shape");
+  const names = signature.split(",").map((column) => column.trim().split(/\s+/)[0]);
+  assert.deepEqual(names, [
+    "series_id", "title", "subtitle", "description", "status", "published_at",
+    "trending_score", "opens", "completions", "follows", "bookmarks", "latest_activity",
+  ]);
+  assert.match(migration, /CREATE OR REPLACE VIEW public\.story_trending_scores\s+WITH\s*\(security_invoker\s*=\s*true\)\s+AS\s+SELECT\s+\*\s+FROM public\.get_public_story_trending_scores\(\)/i);
+});
+
 test("trending counts are bounded to valid public series and published chapter events", () => {
   assert.match(migration, /WHERE\s+s\.status\s*=\s*ANY\s*\(ARRAY\['ongoing'::text,\s*'completed'::text\]\)/i);
   assert.match(migration, /re\.created_at\s*>\s*pg_catalog\.now\(\)\s*-\s*interval\s+'30 days'/i);
