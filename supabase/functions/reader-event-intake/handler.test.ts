@@ -48,7 +48,8 @@ function makeHandler(
 }
 
 Deno.test("only POST JSON is accepted and OPTIONS has CORS headers", async () => {
-  const handler = makeHandler();
+  let upstreamCalls = 0;
+  const handler = makeHandler({ outcome: "accepted" }, 200, () => { upstreamCalls++; });
   const get = await handler(new Request("https://aevora.test", { method: "GET" }));
   assertEquals(get.status, 405);
   const options = await handler(new Request("https://aevora.test", { method: "OPTIONS" }));
@@ -60,6 +61,7 @@ Deno.test("only POST JSON is accepted and OPTIONS has CORS headers", async () =>
   assertEquals(malformedMedia.status, 415);
   const jsonWithCharset = await handler(post(JSON.stringify(payload()), { "content-type": "application/json; charset=utf-8" }));
   assertEquals(jsonWithCharset.status, 202);
+  assertEquals(upstreamCalls, 1, "only the valid POST may invoke the private RPC; GET, OPTIONS and rejected media types must not");
 });
 
 Deno.test("malformed, oversized, unknown and invalid payloads are rejected before RPC", async () => {
