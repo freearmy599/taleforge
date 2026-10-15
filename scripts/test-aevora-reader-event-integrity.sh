@@ -119,6 +119,21 @@ echo "Concurrent trusted intake UUID idempotency assertion passed."
 
 # Race 31 independent sessions against one fresh anonymous quota key. The
 # database advisory lock must make the 30/minute boundary exact under load.
+# Align to seconds 5-15 of a DB minute so slow CI startup cannot split this
+# one-window assertion across two legitimate fixed-minute quota buckets.
+quota_wait_seconds=0
+while true; do
+  database_second="$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq -c "SELECT floor(EXTRACT(SECOND FROM clock_timestamp()))::integer")"
+  if [[ "$database_second" -ge 5 && "$database_second" -le 15 ]]; then
+    break
+  fi
+  sleep 1
+  quota_wait_seconds=$((quota_wait_seconds + 1))
+  if [[ "$quota_wait_seconds" -ge 75 ]]; then
+    echo "Timed out waiting for a stable quota-test minute window." >&2
+    exit 1
+  fi
+done
 quota_dir="$(mktemp -d)"
 cleanup_quota() { rm -rf "$quota_dir"; }
 trap 'cleanup_concurrent; cleanup_quota' EXIT
