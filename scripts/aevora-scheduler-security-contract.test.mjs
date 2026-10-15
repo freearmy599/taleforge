@@ -118,3 +118,21 @@ test("scheduler lease RPCs pin SECURITY DEFINER search paths and deny client-rol
     assert.match(migration, new RegExp("GRANT EXECUTE ON FUNCTION public\\." + escaped + "\\([\\s\\S]*?TO postgres, service_role;"), name + " must grant only trusted server roles");
   }
 });
+
+
+test("automated publication remains fail-closed before any chapter idempotency or insert path until atomic authorization exists", async () => {
+  const publisher = await readFile(
+    new URL("../supabase/functions/release-publisher/index.ts", import.meta.url),
+    "utf8",
+  );
+  const authorizationBlock = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
+  const existingChapterPath = publisher.indexOf('const { data: existingChapter');
+  const insertChapterPath = publisher.indexOf('const { data: insertedChapter');
+  assert.ok(authorizationBlock >= 0, "automated publication must remain explicitly blocked");
+  assert.ok(existingChapterPath > authorizationBlock,
+    "authorization fail-closed gate must precede the existing-chapter/idempotency path");
+  assert.ok(insertChapterPath > authorizationBlock,
+    "authorization fail-closed gate must precede chapter insertion");
+  assert.match(publisher, /checked at the database commit boundary/,
+    "the publisher must document that authorization belongs at the database commit boundary");
+});
