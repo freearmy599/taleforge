@@ -595,6 +595,8 @@ test("production rollout preflight is read-only and redacts cron command content
   assert.match(productionPreflight, /anon_can_direct_insert/);
   assert.match(productionPreflight, /authenticated_can_direct_insert/);
   assert.match(productionPreflight, /server_timestamp_trigger_installed/);
+  assert.match(productionPreflight, /trg_reader_event_server_timestamp/);
+  assert.doesNotMatch(productionPreflight, /t\.tgname = 'taleforge_force_reader_event_client_timestamp'/);
   assert.match(productionPreflight, /event_uuid_unique_index_installed/);
   assert.doesNotMatch(productionPreflight, /SELECT\s+j\.command/i);
   const executableSql = productionPreflight.split("\n")
