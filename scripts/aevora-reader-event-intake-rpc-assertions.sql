@@ -52,8 +52,6 @@ DECLARE
   i integer;
   v_accepted integer := 0;
   v_limited integer := 0;
-  v_quota_count_before integer;
-  v_quota_count_after integer;
 BEGIN
   v_result := public.aevora_ingest_reader_event(
     'reader-rpc-behavior-visitor-0001',
@@ -67,10 +65,6 @@ BEGIN
     RAISE EXCEPTION 'ASSERTION_FAILED: valid reader-event RPC call was not accepted: %', v_result->>'outcome';
   END IF;
 
-  SELECT COALESCE(sum(hit_count), 0) INTO v_quota_count_before
-  FROM aevora_private.reader_event_quota_buckets
-  WHERE visitor_key_hash = md5('reader-rpc-behavior-visitor-0001');
-
   v_result := public.aevora_ingest_reader_event(
     'reader-rpc-behavior-visitor-0001',
     '20000000-0000-0000-0000-000000000001',
@@ -82,11 +76,33 @@ BEGIN
   IF v_result->>'outcome' <> 'duplicate' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: repeated reader-event UUID was not idempotent';
   END IF;
-  SELECT COALESCE(sum(hit_count), 0) INTO v_quota_count_after
-  FROM aevora_private.reader_event_quota_buckets
-  WHERE visitor_key_hash = md5('reader-rpc-behavior-visitor-0001');
-  IF v_quota_count_after <> v_quota_count_before THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: duplicate event consumed quota; before %, after %', v_quota_count_before, v_quota_count_after;
+  -- If the duplicate had consumed quota, this same visitor would have room
+  -- for only 28 more events in the current 30/minute window, not 29.
+  FOR i IN 1..29 LOOP
+    v_result := public.aevora_ingest_reader_event(
+      'reader-rpc-behavior-visitor-0001',
+      ('60000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+      'story_open',
+      '00000000-0000-0000-0000-000000000101',
+      NULL,
+      NULL
+    );
+    IF v_result->>'outcome' = 'accepted' THEN v_accepted := v_accepted + 1; END IF;
+    IF v_result->>'outcome' = 'limited' THEN v_limited := v_limited + 1; END IF;
+  END LOOP;
+  IF v_accepted <> 29 OR v_limited <> 0 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: duplicate event consumed quota; expected 29 additional accepted events, got % accepted/% limited', v_accepted, v_limited;
+  END IF;
+  v_result := public.aevora_ingest_reader_event(
+    'reader-rpc-behavior-visitor-0001',
+    '60000000-0000-0000-0000-000000000099',
+    'story_open',
+    '00000000-0000-0000-0000-000000000101',
+    NULL,
+    NULL
+  );
+  IF v_result->>'outcome' <> 'limited' THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: 31st non-duplicate event should be limited';
   END IF;
 
   v_result := public.aevora_ingest_reader_event(
