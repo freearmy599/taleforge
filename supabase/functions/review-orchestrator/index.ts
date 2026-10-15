@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 import { isAutomationReady } from "../release-scheduler/readiness.ts";
 
-const VERSION = "review-orchestrator-v4-fail-closed-provider-state";
+const VERSION = "review-orchestrator-v5-stop-on-provider-throttle";
 
 type ExistingReviewRow = {
   review_type: string;
