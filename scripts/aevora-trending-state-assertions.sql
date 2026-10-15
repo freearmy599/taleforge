@@ -41,9 +41,6 @@ VALUES
   ('visitor-draft-bookmark-0001','bookmark',
    '00000000-0000-0000-0000-000000000101',
    '00000000-0000-0000-0000-000000000112',statement_timestamp() - interval '2 days'),
-  -- A repeated open by the same visitor hint in the same series/day counts once.
-  ('fixture-open-visitor-0001','story_open',
-   '00000000-0000-0000-0000-000000000101',NULL,statement_timestamp() - interval '30 minutes'),
   -- Completion is capped to one contribution per visitor/chapter in the window.
   ('visitor-repeat-completion-0001','chapter_complete',
    '00000000-0000-0000-0000-000000000101',
@@ -58,6 +55,19 @@ VALUES
    '00000000-0000-0000-0000-000000000101',
    '00000000-0000-0000-0000-000000000111',statement_timestamp() - interval '2 hours');
 RESET ROLE;
+
+-- Add a replay only when the base fixture already has that visitor's open;
+-- this assertion script is also run against the reader-event fixture.
+INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,created_at)
+SELECT 'fixture-open-visitor-0001','story_open',
+       '00000000-0000-0000-0000-000000000101',NULL,
+       statement_timestamp() - interval '30 minutes'
+WHERE EXISTS (
+  SELECT 1 FROM public.reader_events
+  WHERE visitor_id = 'fixture-open-visitor-0001'
+    AND event_type = 'story_open'
+    AND series_id = '00000000-0000-0000-0000-000000000101'
+);
 
 INSERT INTO public.reader_events(visitor_id,event_type,series_id,chapter_id,progress_percent,created_at)
 VALUES
