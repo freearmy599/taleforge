@@ -29,6 +29,9 @@ async function getPublishedSeries(){
     const series=data||[];
     if(!series.length) return [];
     const ids=series.map(s=>s.id);
+    // Intelligence is optional enrichment: the Phase 1 security gate may intentionally
+    // deny client access to story_intelligence until trusted event intake is ready.
+    // Keep the published library usable when that query is unavailable.
     const [intelRes,chapRes]=await Promise.all([
       supabase.from("story_intelligence").select("series_id,intelligence_status,recent_chapters_7d,days_since_update,trending_score").in("series_id",ids),
       supabase.from("chapters").select("id,series_id,chapter_number,title,published_at").in("series_id",ids).eq("status","published").order("published_at",{ascending:false})
