@@ -19,6 +19,16 @@ SELECT
 SELECT
   has_table_privilege('anon', 'public.reader_events', 'INSERT') AS anon_can_direct_insert,
   has_table_privilege('authenticated', 'public.reader_events', 'INSERT') AS authenticated_can_direct_insert,
+  EXISTS (
+    SELECT 1 FROM pg_policies p
+    WHERE p.schemaname = 'public' AND p.tablename = 'reader_events'
+      AND p.cmd = 'INSERT' AND ('anon' = ANY(p.roles) OR 'public' = ANY(p.roles))
+  ) AS anon_insert_policy_present,
+  EXISTS (
+    SELECT 1 FROM pg_policies p
+    WHERE p.schemaname = 'public' AND p.tablename = 'reader_events'
+      AND p.cmd = 'INSERT' AND ('authenticated' = ANY(p.roles) OR 'public' = ANY(p.roles))
+  ) AS authenticated_insert_policy_present,
   COALESCE((
     SELECT c.relrowsecurity
     FROM pg_class c
