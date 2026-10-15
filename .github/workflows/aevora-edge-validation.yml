@@ -180,3 +180,12 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_reader_event_test"
           bash scripts/test-aevora-reader-event-integrity.sh
+
+      - name: Rehearse trending aggregate state and closed ACLs
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_trending_test
+          AEVORA_DISPOSABLE_TRENDING_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_trending_test"
+          bash scripts/test-aevora-trending-state.sh
