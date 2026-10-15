@@ -44,3 +44,19 @@ test("every direct Gemini API caller has fail-closed provider-state and cooldown
   assert.deepEqual(failures, [], failures.join("\n"));
   assert.ok(callers.length >= 10, `unexpectedly few direct Gemini callers were scanned: ${callers.length}`);
 });
+
+
+test("generate-chapter provider-state guard covers both generation and quality-review request paths", async () => {
+  const source = await readFile(new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url), "utf8");
+  const guardIndex = source.indexOf('.from("taleforge_ai_provider_state")');
+  const generationBranchIndex = source.indexOf("if(blueprintId&&!outputId){", guardIndex);
+  assert.notEqual(guardIndex, -1, "generate-chapter must load provider state");
+  assert.notEqual(generationBranchIndex, -1, "chapter-generation branch must remain present after the guard");
+  assert.ok(guardIndex < generationBranchIndex, "provider-state guard must run before branching between generation and output review");
+  const beforeGuard = source.slice(0, guardIndex);
+  const lastGenerationBranch = beforeGuard.lastIndexOf("if(blueprintId&&!outputId){");
+  assert.equal(lastGenerationBranch, -1, "provider-state lookup must not be nested inside the generation-only branch");
+  const guardRegion = source.slice(source.lastIndexOf("taleforge_ceo_execution_gate", guardIndex), generationBranchIndex);
+  assert.match(guardRegion, /provider_state_unavailable/, "missing provider state must block all request paths");
+  assert.match(guardRegion, /provider_cooldown/, "active cooldown must block all request paths");
+});
