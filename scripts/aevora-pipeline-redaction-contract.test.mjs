@@ -62,6 +62,10 @@ test("chapter generation does not return raw governance or database exception de
   assert.ok(s.includes("reason:\"provider_cooldown\""), "quality-review Gemini path must honor active cooldown");
   assert.ok(s.includes("reviewProviderStateError||!reviewProviderState"), "quality-review provider-state lookup must fail closed");
   assert.ok(s.includes("reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())"), "quality-review must reject malformed cooldown timestamps");
+  const reviewGuard = s.indexOf('.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle()');
+  const reviewPrompt = s.indexOf("const reviewPrompt=");
+  const reviewGeminiCall = s.indexOf("parseJson(await gemini(gkey,reviewPrompt,true))");
+  assert.ok(reviewGuard >= 0 && reviewPrompt > reviewGuard && reviewGeminiCall > reviewPrompt, "quality-review provider guard must execute before prompt construction and Gemini invocation");
   for (const rawDiagnostic of ["providerStateError?.message", "reviewProviderStateError?.message", "oe.message", "be?.message", "se?.message", "reviewError.message", "contextError?.message"]) {
     assert.equal(s.includes(rawDiagnostic), false, "chapter-generation logs must not expose raw database diagnostics: " + rawDiagnostic);
   }
