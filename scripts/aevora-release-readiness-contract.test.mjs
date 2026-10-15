@@ -664,3 +664,21 @@ test("Edge Functions never enable automated publication by assignment", async ()
   assert.deepEqual(violations, [],
     "automated publication must remain disabled until a separately audited publication-authorization boundary exists; SQL migration invariants are tested separately");
 });
+
+
+test("autonomous runner keeps a new schedule inert until the readiness RPC confirms bootstrap", () => {
+  const scheduleStart = runner.indexOf("const scheduleValues = {");
+  const scheduleEnd = runner.indexOf("};", scheduleStart);
+  const scheduleBlock = runner.slice(scheduleStart, scheduleEnd);
+  assert.match(scheduleBlock, /enabled:\s*false/);
+  assert.match(scheduleBlock, /auto_generate:\s*false/);
+  assert.match(scheduleBlock, /auto_publish:\s*false/);
+  assert.match(scheduleBlock, /schedule_mode:\s*"interval"/);
+  const writeIndex = runner.indexOf("const scheduleWrite = existingSchedule");
+  const confirmedIndex = runner.indexOf("if (scheduleWrite.error || !scheduleWrite.data?.id)", writeIndex);
+  const readinessIndex = runner.indexOf('db.rpc("taleforge_mark_release_automation_ready"', writeIndex);
+  assert.ok(writeIndex >= 0 && confirmedIndex > writeIndex && readinessIndex > confirmedIndex,
+    "readiness must not be requested until the disabled schedule write is confirmed");
+  assert.match(runner, /readinessResult\?\.ready !== true/);
+  assert.match(runner, /auto_publication_enabled:\s*false/);
+});
