@@ -99,6 +99,9 @@ BEGIN
   IF v_score <= 0 THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: recent valid engagement should produce a positive score';
   END IF;
+  IF v_score >= 32 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: repeated opens, starts, progress and completions exceeded the contribution cap; score %', v_score;
+  END IF;
 END;
 $trending_state_assert$;
 
