@@ -332,3 +332,10 @@ All changes in this checkpoint are repository-only. No production migration, gra
 - Added a function-specific Supabase config with JWT verification disabled only for this public telemetry endpoint. The handler performs its own bounded payload validation and calls the service-role-only atomic RPC; service-role credentials remain server-side.
 - The browser switch, no-fallback contract, SQL cleanup cooldown, and type annotations for newly exposed strict TypeScript errors all passed [CI run 38739996092](https://github.com/freearmy599/taleforge/actions/runs/38739996092). Both prepared Edge/source validation and disposable PostgreSQL rehearsal are green.
 - Remaining before any cutover: deployed endpoint smoke test, enable flag in a controlled release, verify telemetry/rollback, then separately revoke ordinary-role direct INSERT. No production action was taken; trending remains closed and production remains **NO-GO**.
+
+
+### Reader-event endpoint behavioral verification — 2026-10-15
+
+- Extracted a dependency-injected request handler so Deno tests can exercise the public intake boundary without calling a live Supabase project or exposing credentials. Coverage includes body/method/content validation, payload allowlisting, UUID/progress validation, no-RPC-on-invalid requests, RPC field mapping, stable outcome codes, and redacted failures.
+- Added the handler suite to the required CI workflow. During the same pass, strict TypeScript checks surfaced implicit/unknown inference in generation buffer callbacks, review maps, world-element ID maps, and publication review rows; explicit structural types fixed these without changing business behavior.
+- [CI run 38740534812](https://github.com/freearmy599/taleforge/actions/runs/38740534812) passed both Edge/source validation and disposable PostgreSQL rehearsal on the current branch head. This remains branch-only; the intake flag is disabled by default and direct INSERT is not yet revoked.
