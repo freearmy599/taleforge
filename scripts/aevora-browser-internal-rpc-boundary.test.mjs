@@ -77,7 +77,7 @@ test("browser-facing sources cannot directly invoke internal Aevora RPCs", async
       // quote style. Dynamic RPC names are outside this static contract.
       const escaped = rpc; // Names in the protected inventory are identifier-only.
       const pattern = new RegExp(
-        "\.rpc\(\s*[\'\"]" + escaped + "[\'\"]\s*(?:,|\\))",
+        String.raw`\.rpc\(\s*['"]${rpc}['"]\s*(?:,|\))`,
         "i",
       );
       if (pattern.test(source)) violations.push(`${file.pathname}: ${rpc}`);
