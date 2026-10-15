@@ -36,6 +36,8 @@ test("trending counts are bounded to valid public series and published chapter e
   assert.match(migration, /WHERE\s+s\.status\s*=\s*ANY\s*\(ARRAY\['ongoing'::text,\s*'completed'::text\]\)/i);
   assert.match(migration, /re\.created_at\s*>\s*pg_catalog\.now\(\)\s*-\s*interval\s+'30 days'/i);
   assert.match(migration, /c\.status\s*=\s*'published'/i);
+  assert.match(migration, /SECURITY DEFINER bypasses ordinary reader RLS/i);
+  assert.match(migration, /re\.chapter_id\s+IS\s+NULL\s+OR\s+EXISTS\s*\([\s\S]*?c\.id\s*=\s*re\.chapter_id[\s\S]*?c\.series_id\s*=\s*re\.series_id[\s\S]*?c\.status\s*=\s*'published'/i);
   assert.match(migration, /eligible_series\.status\s+IN\s*\('ongoing',\s*'completed'\)/i);
   assert.match(migration, /ORDER BY[\s\S]{0,180}re\.created_at\s+DESC,\s+re\.id\s+DESC/i);
 });
