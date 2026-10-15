@@ -76,3 +76,17 @@ test("lifecycle activation is blocked after publication or lease failure", () =>
   assert.ok(source.includes('lifecycleStatus==="preparing" && !publicationFailed && !leaseLost'));
   assert.ok(source.includes('action:"lifecycle_transition_failed"'));
 });
+
+test("claimed scheduler leases are released in a finally block and release uncertainty is surfaced as failure", () => {
+  const claim = source.indexOf('supabase.rpc("aevora_claim_release_scheduler_lease"');
+  const renewal = source.indexOf('supabase.rpc("aevora_renew_release_scheduler_lease"');
+  const release = source.indexOf('supabase.rpc("aevora_release_scheduler_lease"');
+  const finallyBlock = source.lastIndexOf("}finally{", release);
+  assert.ok(claim >= 0 && renewal > claim && release > renewal, "claim, renew, and release paths must all exist");
+  assert.ok(finallyBlock > claim, "lease cleanup must be inside the schedule-processing finally block");
+  const cleanup = source.slice(finallyBlock, source.indexOf("\n      }\n    }", finallyBlock));
+  assert.match(cleanup, /if\(leaseClaimed\)/, "only a lease claimed by this invocation should be released");
+  assert.match(cleanup, /released\?\.data!==true/, "an unconfirmed release must not be treated as success");
+  assert.match(source, /"lease_release_warning"/, "release uncertainty must be surfaced in the scheduler result");
+  assert.match(source, /failureActions=new Set\(\[[\s\S]*?"lease_release_warning"/, "lease release uncertainty must affect overall scheduler success");
+});
