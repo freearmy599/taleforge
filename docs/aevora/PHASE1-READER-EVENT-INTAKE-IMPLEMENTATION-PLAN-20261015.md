@@ -31,7 +31,7 @@ Do not add a client-supplied identity claim or assume rotating visitor IDs are p
 
 ## Compatibility and rollout sequence
 
-1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, global per-minute/daily limits, and a per-event daily cap. Concurrency-specific quota stress testing passed in [CI run 38743257548](https://github.com/freearmy599/taleforge/actions/runs/38743257548); the expanded per-event cap rehearsal is pending the current CI run. End-to-end invocation of the deployed Edge endpoint remains outstanding.
+1. [Prepared] Add isolated migration and SQL assertions for server-only quota objects, RPC privileges, idempotency, invalid relationships, global per-minute/daily limits, and a per-event daily cap. Concurrency-specific quota stress testing, including the expanded per-event cap, passed in [CI run 38746893516](https://github.com/freearmy599/taleforge/actions/runs/38746893516). End-to-end invocation of the deployed Edge endpoint remains outstanding.
 2. [Verified in CI run 38740534812] Implemented the Edge Function and source-contract tests for methods, body size, allowlist, progress validation, safe errors, no credential leakage, and no raw-payload logging. The request handler is isolated for Deno tests, which cover validation, RPC mapping, stable outcomes, and redacted failures.
 3. [Verified in CI run 38738919711] Type-check the function and execute disposable PostgreSQL rehearsals. Parallel fresh-UUID requests at the per-minute boundary produced exactly 30 accepted and one limited; repeated UUID concurrency remained idempotent. A fixture collision was corrected by separating UUID namespaces.
 4. [Prepared and contract-tested] The existing `window.taleForgeProgress.track(event_type, data)` interface is preserved. A branch-only opt-in flag now routes events through the Edge endpoint without direct-INSERT fallback when enabled; it remains disabled by default until endpoint deployment/verification.
@@ -94,7 +94,7 @@ The branch-only RPC now maintains separate daily quota buckets per event type, w
 
 ## Rollout preflight visibility — 2026-10-15
 
-The read-only production rollout preflight now reports whether anon/authenticated can still INSERT directly into `reader_events`, whether RLS is enabled, and whether the server-timestamp trigger and event-UUID unique index are present. It still avoids returning cron command text and wraps reads in a read-only transaction. This is intended to make the legacy bypass visible before any separately authorized cutover; it does not execute against production as part of CI and does not change grants. CI verification is pending for this latest addition.
+The read-only production rollout preflight now reports whether anon/authenticated can still INSERT directly into `reader_events`, whether RLS is enabled, and whether the server-timestamp trigger and event-UUID unique index are present. It still avoids returning cron command text and wraps reads in a read-only transaction. This is intended to make the legacy bypass visible before any separately authorized cutover; it does not execute against production as part of CI and does not change grants. The read-only preflight contracts and disposable PostgreSQL rehearsal passed in [CI run 38746893516](https://github.com/freearmy599/taleforge/actions/runs/38746893516).
 
 
 ## Latest branch verification — 2026-10-15
@@ -107,3 +107,8 @@ Implementation commit `b896bb5392d92a5d21185b25444592a0099f6130` passed [CI run 
 A focused review found that the intake RPC's objects were already schema-qualified, but its SECURITY DEFINER search path still listed application schemas. Both the ingestion RPC and quota-pruning helper now use only `pg_catalog` as their configured search path; application tables, quota objects, and the helper call remain schema-qualified. The endpoint source contract asserts both SECURITY DEFINER functions use this minimal path and rejects adding writable application schemas to it.
 
 The change is branch-only. The browser switch remains disabled, direct INSERT remains open for compatibility, and public trending remains gated. Wait for the workflow that includes these exact commits before marking this hardening pass verified. Production remains NO-GO.
+
+
+## Latest verification record — 2026-10-15
+
+The intake search-path hardening, exact JSON media-type validation, request-handler behavior tests, reader-event quota/idempotency rehearsal, and read-only rollout-preflight contracts passed in [CI run 38746893516](https://github.com/freearmy599/taleforge/actions/runs/38746893516) at implementation/test commit `e90a3483542e07a746c95054416d8abf40243c61`. The current branch adds a documentation-only checkpoint commit after that tested source commit. The public endpoint is still not deployed, the browser switch remains off, direct INSERT remains open for compatibility, and public trending remains gated. Production rollout remains NO-GO.
