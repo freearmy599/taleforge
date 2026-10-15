@@ -57,7 +57,7 @@ test("all discovered browser entrypoints and static JS assets cannot write chapt
   const violations = [];
   for (const file of files) {
     const source = await readFile(file, "utf8");
-    if (/\.from\(["']chapters["']\)\s*\.(?:insert|upsert|update|delete)\s*\(/i.test(source)) {
+    if (/\.from\(\s*["'`]?\s*(?:public\.)?chapters\s*["'`]?\s*\)\s*\.(?:insert|upsert|update|delete)\s*\(/i.test(source)) {
       violations.push(file.pathname);
     }
   }
