@@ -72,6 +72,51 @@ if [[ "$second_status" -eq 0 ]] || ! grep -qi 'duplicate key value violates uniq
 fi
 echo "Concurrent reader-event idempotency assertion passed."
 
+# Race the trusted intake RPC with the same UUID but different visitor hints.
+# Event-UUID serialization must make the loser return duplicate before quota use.
+rpc_race_uuid="50000000-0000-0000-0000-000000000099"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq >"$tmp_a" 2>&1 <<SQL &
+BEGIN;
+SET ROLE service_role;
+SELECT public.aevora_ingest_reader_event(
+  'visitor-rpc-race-first-0001',
+  '$rpc_race_uuid',
+  'story_open',
+  '00000000-0000-0000-0000-000000000101',
+  NULL,
+  NULL
+)->>'outcome';
+SELECT pg_sleep(1);
+COMMIT;
+SQL
+rpc_first_pid=$!
+sleep 0.2
+set +e
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq >"$tmp_b" 2>&1 <<SQL
+SET ROLE service_role;
+SELECT public.aevora_ingest_reader_event(
+  'visitor-rpc-race-second-0001',
+  '$rpc_race_uuid',
+  'story_open',
+  '00000000-0000-0000-0000-000000000101',
+  NULL,
+  NULL
+)->>'outcome';
+SQL
+rpc_second_status=$?
+set -e
+if ! wait "$rpc_first_pid"; then
+  echo "First trusted intake RPC session failed." >&2
+  cat "$tmp_a" "$tmp_b" >&2
+  exit 1
+fi
+if [[ "$rpc_second_status" -ne 0 ]] || ! grep -qx 'accepted' "$tmp_a" || ! grep -qx 'duplicate' "$tmp_b"; then
+  echo "Concurrent RPC idempotency failed: expected accepted/duplicate across distinct visitor hints." >&2
+  cat "$tmp_a" "$tmp_b" >&2
+  exit 1
+fi
+echo "Concurrent trusted intake UUID idempotency assertion passed."
+
 # Race 31 independent sessions against one fresh anonymous quota key. The
 # database advisory lock must make the 30/minute boundary exact under load.
 quota_dir="$(mktemp -d)"
