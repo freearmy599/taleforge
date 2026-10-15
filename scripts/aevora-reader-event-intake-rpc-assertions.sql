@@ -114,11 +114,49 @@ DO $daily_quota_assert$
 DECLARE
   v_visitor text := 'reader-rpc-daily-boundary-0001';
   v_result jsonb;
+  v_event_type text;
   i integer;
   v_accepted integer := 0;
   v_limited integer := 0;
 BEGIN
   FOR i IN 1..1001 LOOP
+    DELETE FROM aevora_private.reader_event_quota_buckets
+    WHERE visitor_key_hash = md5(v_visitor)
+      AND window_kind = 'minute';
+    v_event_type := CASE (i - 1) % 4
+      WHEN 0 THEN 'story_open'
+      WHEN 1 THEN 'chapter_start'
+      WHEN 2 THEN 'chapter_complete'
+      ELSE 'follow'
+    END;
+    v_result := public.aevora_ingest_reader_event(
+      v_visitor,
+      NULL,
+      v_event_type,
+      '00000000-0000-0000-0000-000000000101',
+      NULL,
+      NULL
+    );
+    IF v_result->>'outcome' = 'accepted' THEN v_accepted := v_accepted + 1; END IF;
+    IF v_result->>'outcome' = 'limited' THEN v_limited := v_limited + 1; END IF;
+  END LOOP;
+  IF v_accepted <> 1000 OR v_limited <> 1 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: global daily quota expected 1000 accepted/1 limited across four event classes, got %/%', v_accepted, v_limited;
+  END IF;
+END;
+$daily_quota_assert$;
+
+-- Verify an individual event class cannot exceed its own daily contribution cap
+-- while the visitor remains well below the global daily quota.
+DO $event_daily_quota_assert$
+DECLARE
+  v_visitor text := 'reader-rpc-event-daily-boundary-0001';
+  v_result jsonb;
+  i integer;
+  v_accepted integer := 0;
+  v_limited integer := 0;
+BEGIN
+  FOR i IN 1..251 LOOP
     DELETE FROM aevora_private.reader_event_quota_buckets
     WHERE visitor_key_hash = md5(v_visitor)
       AND window_kind = 'minute';
@@ -133,8 +171,8 @@ BEGIN
     IF v_result->>'outcome' = 'accepted' THEN v_accepted := v_accepted + 1; END IF;
     IF v_result->>'outcome' = 'limited' THEN v_limited := v_limited + 1; END IF;
   END LOOP;
-  IF v_accepted <> 1000 OR v_limited <> 1 THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: daily quota expected 1000 accepted/1 limited, got %/%', v_accepted, v_limited;
+  IF v_accepted <> 250 OR v_limited <> 1 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: event-specific daily quota expected 250 accepted/1 limited, got %/%', v_accepted, v_limited;
   END IF;
 END;
-$daily_quota_assert$;
+$event_daily_quota_assert$;
