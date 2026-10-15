@@ -141,3 +141,24 @@ test("automated publication remains fail-closed before any chapter idempotency o
   assert.match(publisher, /checked at the database commit boundary/,
     "the publisher must document that authorization belongs at the database commit boundary");
 });
+
+
+test("automatic-publication preflight exits before publisher, lifecycle, or schedule-advance side effects", () => {
+  const blocked = source.indexOf('action:"publication_authorization_not_implemented"');
+  const continueAfterBlock = source.indexOf("continue;", blocked);
+  const leaseClaim = source.indexOf('supabase.rpc("aevora_claim_release_scheduler_lease"', blocked);
+  const publisherCall = source.indexOf('url+"\/functions\/v1\/release-publisher"', blocked);
+  const lifecycleWrite = source.indexOf('supabase.from("series_lifecycle")', blocked);
+  const scheduleAdvance = source.indexOf('supabase.rpc("aevora_advance_release_schedule_if_lease_owned"', blocked);
+
+  assert.ok(blocked >= 0 && continueAfterBlock > blocked,
+    "blocked automatic publication must exit the current schedule iteration");
+  assert.ok(leaseClaim > continueAfterBlock,
+    "no lease claim may happen before the fail-closed branch exits");
+  assert.ok(publisherCall > continueAfterBlock,
+    "no publisher invocation may happen before the fail-closed branch exits");
+  assert.ok(lifecycleWrite > continueAfterBlock,
+    "no lifecycle write may happen before the fail-closed branch exits");
+  assert.ok(scheduleAdvance > continueAfterBlock,
+    "no schedule advancement may happen before the fail-closed branch exits");
+});
