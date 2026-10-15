@@ -86,7 +86,7 @@ test("review-orchestrator stops the current output's remaining review steps on a
   assert.ok(throttle >= 0 && blocked > throttle, "provider throttle response predicate must exist");
   assert.ok(stop > blocked && breakStep > stop && genericHttpFailure > breakStep,
     "provider throttle must set the global stop flag and break the current review plan before generic HTTP handling");
-  const guarded = source.slice(blocked, genericHttpFailure);
+  const guarded = source.slice(throttle, genericHttpFailure);
   assert.match(guarded, /blocked\s*=\s*true/, "the current output must be marked blocked");
   assert.match(guarded, /callReason\s*===\s*["']provider_cooldown["']/, "nominal HTTP success with a provider block must stop remaining calls");
 });
