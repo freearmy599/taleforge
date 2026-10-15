@@ -6,6 +6,8 @@
 
 The current publisher intentionally returns HTTP 423 with `PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED` for automatic-publication schedules. Keep this fail-closed guard in place until a separately reviewed database commit boundary exists. Do not infer that passing a lease token in an HTTP body alone solves the race.
 
+A branch-only scheduler preflight now also returns `publication_authorization_not_implemented` before claiming a lease for non-dry-run schedules with `auto_publish = true`. This avoids repeatedly taking and releasing leases only to have the publisher reject the same work. The result is counted as a scheduler failure, and dry-run diagnostics remain available. This is an operational fail-closed mitigation, not the missing commit-boundary implementation; it has not been deployed.
+
 ## Observed boundary
 
 The scheduler currently:
