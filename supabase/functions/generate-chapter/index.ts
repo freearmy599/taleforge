@@ -48,7 +48,7 @@ if(governance.error||governance.data?.authorized!==true){
  return reply({success:false,error:"Generation blocked by Clara Aurel governance gate.",governance:{authorized:governance.data?.authorized===true},details:governance.error?"Internal governance diagnostics were withheld.":null},423);
 }
 
-if(blueprintId&&!outputId){
+{
  const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
  if(providerStateError||!providerState){
   console.error("[generate-chapter] provider cooldown lookup failed; failing closed.");
