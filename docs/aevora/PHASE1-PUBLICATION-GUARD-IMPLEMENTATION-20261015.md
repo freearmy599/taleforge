@@ -17,6 +17,12 @@ The guard reads the release schedule from the database and executes before the c
 - Added a repository-wide source-contract test that rejects direct `auto_publish=true` assignments in production Edge Functions while excluding `*.test.ts` fixtures. The corrected full CI run [38684845075](https://github.com/freearmy599/taleforge/actions/runs/38684845075) passed both Edge Function type-check/security contracts and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal.
 - Added a contract test tying the runner response to the readiness migration's `publication_enabled=false` and `auto_publish=false` invariants. The publisher and release-readiness contract steps passed in CI run [38684363740](https://github.com/freearmy599/taleforge/actions/runs/38684363740); the disposable PostgreSQL job also completed successfully in the full run.
 
+## Additional verification on 2026-10-15
+
+- Added a regression contract that checks the autonomous-series runner initializes a new schedule with `enabled=false`, `auto_generate=false`, and `auto_publish=false`, and does not request readiness until the schedule write is confirmed.
+- Validation passed in [CI run 38685198646](https://github.com/freearmy599/taleforge/actions/runs/38685198646): all 40 prepared Edge Function/type-check and contract-test steps succeeded, and the disposable PostgreSQL readiness/concurrency rehearsal succeeded.
+- Earlier auto-publication assignment scan attempts failed because the initial scope included SQL invariants and intentional test fixtures. The scan was narrowed to executable Edge Function sources, the SQL readiness invariant remains covered by the existing migration contract, and the corrected run passed in [38684937000](https://github.com/freearmy599/taleforge/actions/runs/38684937000). The failed exploratory runs are not treated as current validation.
+
 ## What this change does not do
 
 - It does not create the human publication-approval workflow or an approval ledger.
