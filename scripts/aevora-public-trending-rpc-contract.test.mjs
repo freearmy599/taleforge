@@ -52,6 +52,7 @@ test("trending counts are bounded to valid public series and published chapter e
   assert.match(migration, /re\.chapter_id\s+IS\s+NULL\s+OR\s+EXISTS\s*\([\s\S]*?c\.id\s*=\s*re\.chapter_id[\s\S]*?c\.series_id\s*=\s*re\.series_id[\s\S]*?c\.status\s*=\s*'published'/i);
   assert.match(migration, /eligible_series\.status\s+IN\s*\('ongoing',\s*'completed'\)/i);
   assert.match(migration, /latest_follow_state AS \([\s\S]*?JOIN public\.series AS eligible_series[\s\S]*?re\.chapter_id IS NULL[\s\S]*?c\.series_id = re\.series_id[\s\S]*?c\.status = 'published'/i);
+  assert.match(migration, /latest_bookmark_state AS \([\s\S]*?JOIN public\.chapters AS c[\s\S]*?c\.id = re\.chapter_id[\s\S]*?c\.series_id = re\.series_id[\s\S]*?c\.status = 'published'[\s\S]*?JOIN public\.series AS eligible_series/i);
   assert.match(migration, /ORDER BY[\s\S]{0,180}re\.created_at\s+DESC,\s+re\.id\s+DESC/i);
 });
 
