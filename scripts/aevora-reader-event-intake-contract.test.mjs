@@ -47,14 +47,14 @@ test("client timestamps are replaced at the server boundary with a fixed search_
 
 test("browser reader-event writes remain centralized in the progress tracker", async () => {
   const entries = await readdir(repositoryRoot, { withFileTypes: true });
-  const browserFiles = entries.filter((entry) => entry.isFile() && /\\.(?:html|js|mjs)$/i.test(entry.name));
+  const browserFiles = entries.filter((entry) => entry.isFile() && /\.(?:html|js|mjs)$/i.test(entry.name));
   const insertSites = [];
   for (const entry of browserFiles) {
     const source = entry.name === "reading-progress.js" ? browserProgressSource : await readFile(new URL(entry.name, repositoryRoot), "utf8");
-    if (/\\.from\\(\\s*["']reader_events["']\\s*\\)\\.insert\\s*\\(/i.test(source)) insertSites.push(entry.name);
+    if (/\.from\(\s*["']reader_events["']\s*\)\.insert\s*\(/i.test(source)) insertSites.push(entry.name);
   }
   assert.deepEqual(insertSites, ["reading-progress.js"], "all browser event inserts must pass through the one compatibility seam");
-  assert.match(browserProgressSource, /async function track\\(event_type,data=\\{\\}\\)/);
-  assert.match(browserProgressSource, /payload\\.event_uuid=eventUuid/);
-  assert.doesNotMatch(browserProgressSource, /created_at\\s*:/i, "client event payload must not set server timestamps");
+  assert.match(browserProgressSource, /async function track\(event_type,data=\{\}\)/);
+  assert.match(browserProgressSource, /payload\.event_uuid=eventUuid/);
+  assert.doesNotMatch(browserProgressSource, /created_at\s*:/i, "client event payload must not set server timestamps");
 });
