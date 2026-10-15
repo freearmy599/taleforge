@@ -75,3 +75,8 @@ A follow-up dependency review confirmed that `story_intelligence` uses `security
 ## Additional historical-event filter — 2026-10-15
 
 A source review found that the aggregate's latest follow/unfollow state was calculated separately from the recent-engagement CTE and therefore also needed independent validation under `SECURITY DEFINER`. The branch now excludes historical follow events for ineligible series and rejects any follow event whose optional chapter reference does not resolve to a published chapter in that same series. A regression contract asserts this boundary. This closes a source-level inconsistency; it does not close fresh-UUID spam or spoofed visitor IDs, and it has not been deployed to production.
+
+
+## Bookmark relationship regression coverage — 2026-10-15
+
+The disposable trending fixture now also injects bookmark events that point to a published chapter in another series and to an unpublished chapter. The aggregate state assertion expects the valid active-bookmark count to remain exactly one. The source contract additionally checks that the bookmark-state CTE joins chapter ID, matching series ID, published status, and eligible series. This covers the third state-derived path under `SECURITY DEFINER`; fresh-UUID spam and spoofed visitor IDs remain separate unresolved abuse risks. Branch-only; not deployed.
