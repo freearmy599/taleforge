@@ -36,6 +36,11 @@ test("scheduler keeps lease ownership and publication confirmation checks", () =
   ]) assert.ok(source.includes(rpc), "missing lease RPC: " + rpc);
   assert.ok(source.includes("d.success===true && d.published===true"));
   assert.ok(source.includes('confirmedChapter.status!=="published"'));
+  const blocked = source.indexOf('action:"publication_authorization_not_implemented"');
+  const lease = source.indexOf("const leaseToken=crypto.randomUUID()");
+  assert.ok(blocked >= 0 && lease > blocked, "publication preflight must precede lease work");
+  const failures = source.slice(source.indexOf("const failureActions"), source.indexOf("const hasScheduleFailures"));
+  assert.ok(failures.includes('"publication_authorization_not_implemented"'), "blocked automation must be an unsuccessful result");
 });
 
 test("lease renewal is checked before each publisher invocation", () => {
