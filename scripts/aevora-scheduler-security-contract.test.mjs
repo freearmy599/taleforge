@@ -186,6 +186,6 @@ test("dry-run mode cannot claim leases, call the publisher, transition lifecycle
   const lifecycleGate = source.lastIndexOf('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost){', activate);
   assert.ok(lifecycleGate >= 0 && lifecycleGate < activate,
     "lifecycle activation must be gated by non-dry-run mode and successful publication");
-  assert.ok(source.slice(lifecycleGate, activate).includes("aevora_activate_story_lifecycle_if_lease_owned"),
+  assert.ok(source.slice(activate, activate + 300).includes("aevora_activate_story_lifecycle_if_lease_owned"),
     "lifecycle activation must use the lease-owned atomic RPC");
 });
