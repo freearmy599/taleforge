@@ -171,12 +171,14 @@ AS
 SELECT *
 FROM public.get_public_story_trending_scores();
 
--- These discovery views are read APIs only; remove default write/table-level
--- privileges while preserving public SELECT for the intended reader experience.
+-- Ranking and dependent discovery views remain gated until trusted intake and
+-- abuse quotas are ready; remove all ordinary-client access for now.
 REVOKE ALL PRIVILEGES ON TABLE public.story_trending_scores FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.story_trending_scores TO service_role;
 
--- Story intelligence remains an intended public read surface; ranking stays gated.
+-- story_intelligence is security_invoker and depends on story_trending_scores.
+-- Keeping its public SELECT grant would still fail at the dependency boundary,
+-- so gate both views consistently until the public ranking path is approved.
 REVOKE ALL PRIVILEGES ON TABLE public.story_intelligence
 FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON TABLE public.story_intelligence TO anon, authenticated;
+GRANT SELECT ON TABLE public.story_intelligence TO service_role;
