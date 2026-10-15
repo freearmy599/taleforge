@@ -70,6 +70,6 @@ test("automated publication fails closed until separate audited authorization ex
   assert.match(publisher, /Generation readiness is deliberately not publication authorization/);
 });
 
-test("publisher version identifies diagnostic-redaction hardening", () => {
+test("publisher version identifies publication-authorization fail-closed hardening", () => {
   assert.match(publisher, /release-publisher-v11-publication-authorization-fail-closed/);
 });
