@@ -346,3 +346,11 @@ All changes in this checkpoint are repository-only. No production migration, gra
 - Added row-number deduplication in the `SECURITY DEFINER` trending aggregate: one open per visitor hint/series/day, one chapter start and latest progress per chapter/day, and one completion per visitor hint/chapter in the rolling 30-day stream. The follow/bookmark latest-state logic remains separate.
 - Disposable assertions inject repeated opens, starts, progress and completions and verify that repeats do not inflate open/completion counts or the total score. The first rehearsal caught a fixture portability issue (the repeated-open visitor existed only in the trending-specific fixture); the seed is now conditional on the baseline event being present.
 - [CI run 38741779604](https://github.com/freearmy599/taleforge/actions/runs/38741779604) passed both Edge/source validation and the disposable PostgreSQL rehearsals. Public trending remains gated and production remains **NO-GO**.
+
+
+### Reader-event intake boundary review — 2026-10-15 (latest verified)
+
+- Tightened both intake SECURITY DEFINER functions to `SET search_path = pg_catalog`; all application tables and helper calls remain schema-qualified. The endpoint contract asserts both functions use the minimal path.
+- Tightened request media-type validation to parse the media type before any `;` parameters and require an exact `application/json` match. Added handler tests confirming `application/jsonx` is rejected and `application/json; charset=utf-8` is accepted.
+- Latest workflow [run 38746893516](https://github.com/freearmy599/taleforge/actions/runs/38746893516) passed both prepared Edge Function/type-checking and disposable PostgreSQL rehearsal on implementation/test commit `e90a3483542e07a746c95054416d8abf40243c61`. The rehearsal included reader-event integrity, closed trending ACLs, and the quota/idempotency assertions.
+- This is branch-only verification. The browser intake switch is still disabled, direct browser INSERT remains a bypass until a separately authorized cutover/revocation, public trending remains gated, and production rollout remains **NO-GO**. No production migration, deployment, data mutation, schedule mutation, generation, or publication occurred.
