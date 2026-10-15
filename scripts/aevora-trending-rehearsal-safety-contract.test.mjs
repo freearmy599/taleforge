@@ -26,8 +26,9 @@ test("trending rehearsal applies the fixture, branch migration, and runtime asse
 });
 
 test("CI invokes the rehearsal only against its named disposable PostgreSQL database", () => {
-  const step = workflow.match(/- name: Rehearse trending aggregate state and closed ACLs[\s\S]*?(?=\n      - name:|\n\n  [a-z-]+:)/)?.[0];
-  assert.ok(step, "workflow must include the trending aggregate rehearsal step");
+  const stepStart = workflow.indexOf("- name: Rehearse trending aggregate state and closed ACLs");
+  assert.ok(stepStart >= 0, "workflow must include the trending aggregate rehearsal step");
+  const step = workflow.slice(stepStart, stepStart + 1200);
   assert.match(step, /postgresql:\/\/postgres:postgres@localhost:5432\/aevora_trending_test/);
   assert.match(step, /AEVORA_DISPOSABLE_TRENDING_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE/);
   assert.match(step, /CREATE DATABASE aevora_trending_test/);
