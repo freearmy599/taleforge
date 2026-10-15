@@ -75,7 +75,6 @@ test("browser-facing sources cannot directly invoke internal Aevora RPCs", async
     for (const rpc of forbiddenBrowserRpcs) {
       // Match direct literal RPC calls regardless of client variable name or
       // quote style. Dynamic RPC names are outside this static contract.
-      const escaped = rpc; // Names in the protected inventory are identifier-only.
       const pattern = new RegExp(
         String.raw`\.rpc\(\s*['"]${rpc}['"]\s*(?:,|\))`,
         "i",
