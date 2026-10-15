@@ -14,7 +14,8 @@ The guard reads the release schedule from the database and executes before the c
 
 - Added a regression scan over every TypeScript file under `supabase/functions/` to assert that `release-publisher` is the only Edge Function that directly inserts rows into `chapters`. The scan and the existing publisher/readiness contracts passed in CI run [38684318333](https://github.com/freearmy599/taleforge/actions/runs/38684318333).
 - Corrected the autonomous-series runner's success response: it previously claimed `auto_publish=true` even though the readiness RPC deliberately sets `auto_publish=false`. The response now reports generation enabled, publication disabled, and separate publication approval required.
-- Added a contract test tying the runner response to the readiness migration's `publication_enabled=false` and `auto_publish=false` invariants. The publisher and release-readiness contract steps passed in CI run [38684363740](https://github.com/freearmy599/taleforge/actions/runs/38684363740); the full run's disposable PostgreSQL job was still in progress when this note was prepared.
+- Added a repository-wide source-contract test that rejects direct `auto_publish=true` assignments in production Edge Functions while excluding `*.test.ts` fixtures. The corrected full CI run [38684845075](https://github.com/freearmy599/taleforge/actions/runs/38684845075) passed both Edge Function type-check/security contracts and the disposable PostgreSQL readiness/concurrency/reader-event rehearsal.
+- Added a contract test tying the runner response to the readiness migration's `publication_enabled=false` and `auto_publish=false` invariants. The publisher and release-readiness contract steps passed in CI run [38684363740](https://github.com/freearmy599/taleforge/actions/runs/38684363740); the disposable PostgreSQL job also completed successfully in the full run.
 
 ## What this change does not do
 
