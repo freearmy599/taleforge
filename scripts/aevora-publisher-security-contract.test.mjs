@@ -64,6 +64,12 @@ test("publisher cannot report full success when synchronization is incomplete", 
   assert.match(publisher, /success: canonSyncResult\.confirmed && raceSynchronizationWarnings\.length === 0/);
 });
 
+test("automated publication fails closed until separate audited authorization exists", () => {
+  assert.match(publisher, /automationSchedule\.auto_publish === true[\s\S]*?PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED/);
+  assert.match(publisher, /Automated publication is disabled until separate publication authorization is implemented/);
+  assert.match(publisher, /Generation readiness is deliberately not publication authorization/);
+});
+
 test("publisher version identifies diagnostic-redaction hardening", () => {
   assert.match(publisher, /release-publisher-v10-redacted-publication-diagnostics/);
 });
