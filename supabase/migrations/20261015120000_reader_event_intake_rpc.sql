@@ -36,7 +36,7 @@ DECLARE
   v_inserted_id bigint;
 BEGIN
   IF p_visitor_id IS NULL OR length(p_visitor_id) < 16 OR length(p_visitor_id) > 100
-     OR p_event_type NOT IN ('story_open','chapter_start','reading_progress','chapter_complete','follow','unfollow','bookmark','unbookmark')
+     OR p_event_type IS NULL OR p_event_type NOT IN ('story_open','chapter_start','reading_progress','chapter_complete','follow','unfollow','bookmark','unbookmark')
      OR p_series_id IS NULL
      OR (p_progress_percent IS NOT NULL AND (p_progress_percent < 0 OR p_progress_percent > 100))
      OR (p_event_type = 'reading_progress' AND p_progress_percent IS NULL)
