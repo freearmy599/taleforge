@@ -77,7 +77,7 @@ test("browser-facing sources cannot directly invoke internal Aevora RPCs", async
       // quote style. Dynamic RPC names are outside this static contract.
       const escaped = rpc; // Names in the protected inventory are identifier-only.
       const pattern = new RegExp(
-        "\\.rpc\\(\\s*[\'\"]" + escaped + "[\'\"]\\s*(?:,|\\))",
+        "\.rpc\(\s*[\'\"]" + escaped + "[\'\"]\s*(?:,|\\))",
         "i",
       );
       if (pattern.test(source)) violations.push(`${file.pathname}: ${rpc}`);
@@ -111,7 +111,7 @@ test("the browser RPC denylist covers every explicit internal-function EXECUTE r
   );
   const migration = await readFile(migrationUrl, "utf8");
   const revokedFunctions = [...migration.matchAll(
-    /REVOKE\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.([a-z_][a-z0-9_]*)\\s*\\(/gi,
+    /REVOKE\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z_][a-z0-9_]*)\s*\(/gi,
   )].map((match) => match[1].toLowerCase());
 
   assert.ok(revokedFunctions.length > 0, "internal RPC migration must contain explicit EXECUTE revokes");
