@@ -43,11 +43,12 @@ test("trending counts are bounded to valid public series and published chapter e
   assert.match(migration, /ORDER BY[\s\S]{0,180}re\.created_at\s+DESC,\s+re\.id\s+DESC/i);
 });
 
-test("trending stays gated while story intelligence remains public read-only", () => {
+test("trending and dependent intelligence views remain gated to service role", () => {
   assert.match(migration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_trending_scores FROM PUBLIC, anon, authenticated/i);
   assert.match(migration, /GRANT SELECT ON TABLE public\.story_trending_scores TO service_role/i);
   assert.match(migration, /REVOKE ALL PRIVILEGES ON TABLE public\.story_intelligence\s+FROM PUBLIC, anon, authenticated/i);
-  assert.match(migration, /GRANT SELECT ON TABLE public\.story_intelligence\s+TO anon, authenticated/i);
+  assert.match(migration, /GRANT SELECT ON TABLE public\.story_intelligence\s+TO service_role/i);
+  assert.doesNotMatch(migration, /GRANT SELECT ON TABLE public\.story_intelligence\s+TO (?:PUBLIC|anon|authenticated)/i);
   assert.doesNotMatch(migration, /GRANT SELECT ON TABLE public\.story_trending_scores\s+TO (?:PUBLIC|anon|authenticated)/i);
   assert.doesNotMatch(migration, /GRANT\s+(?:INSERT|UPDATE|DELETE|ALL PRIVILEGES)\s+ON\s+TABLE\s+public\.(?:story_trending_scores|story_intelligence)\s+TO\s+(?:PUBLIC|anon|authenticated)/i);
 });
