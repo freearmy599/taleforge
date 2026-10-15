@@ -60,7 +60,8 @@ export function createReaderEventIntakeHandler({
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   if (!supabaseUrl || !serviceRoleKey) return json({ error: "intake_unavailable" }, 503);
-  if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) {
+  const mediaType = (req.headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+  if (mediaType !== "application/json") {
     return json({ error: "unsupported_media_type" }, 415);
   }
 
