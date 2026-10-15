@@ -56,6 +56,10 @@ Deno.test("only POST JSON is accepted and OPTIONS has CORS headers", async () =>
   assertEquals(options.headers.get("Access-Control-Allow-Origin"), "*");
   const media = await handler(post(JSON.stringify(payload()), { "content-type": "text/plain" }));
   assertEquals(media.status, 415);
+  const malformedMedia = await handler(post(JSON.stringify(payload()), { "content-type": "application/jsonx" }));
+  assertEquals(malformedMedia.status, 415);
+  const jsonWithCharset = await handler(post(JSON.stringify(payload()), { "content-type": "application/json; charset=utf-8" }));
+  assertEquals(jsonWithCharset.status, 202);
 });
 
 Deno.test("malformed, oversized, unknown and invalid payloads are rejected before RPC", async () => {
