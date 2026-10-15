@@ -70,3 +70,8 @@ A source review found that the earlier branch migration granted the aggregate fu
 This intentionally defers public trending availability. Do not re-enable client access until trusted intake, per-visitor contribution caps/cooldowns, chapter-completion dedupe, compatibility checks, and rollout approval are complete. This is a branch-only correction; no production changes were made.
 
 A follow-up dependency review confirmed that `story_intelligence` uses `security_invoker` and depends on `story_trending_scores`. Its earlier public SELECT grant was therefore not compatible with the new gate: clients would still fail when accessing the underlying view. The branch now gates both views consistently until a separately reviewed public-safe projection is ready. No production changes were made.
+
+
+## Additional historical-event filter — 2026-10-15
+
+A source review found that the aggregate's latest follow/unfollow state was calculated separately from the recent-engagement CTE and therefore also needed independent validation under `SECURITY DEFINER`. The branch now excludes historical follow events for ineligible series and rejects any follow event whose optional chapter reference does not resolve to a published chapter in that same series. A regression contract asserts this boundary. This closes a source-level inconsistency; it does not close fresh-UUID spam or spoofed visitor IDs, and it has not been deployed to production.
