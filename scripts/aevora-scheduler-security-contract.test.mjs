@@ -148,7 +148,7 @@ test("automatic-publication preflight exits before publisher, lifecycle, or sche
   const continueAfterBlock = source.indexOf("continue;", blocked);
   const leaseClaim = source.indexOf('supabase.rpc("aevora_claim_release_scheduler_lease"', blocked);
   const publisherCall = source.indexOf('url+"\/functions\/v1\/release-publisher"', blocked);
-  const lifecycleWrite = source.indexOf('supabase.from("series_lifecycle")', blocked);
+  const lifecycleWrite = source.indexOf('supabase.rpc("aevora_activate_story_lifecycle_if_lease_owned"', blocked);
   const scheduleAdvance = source.indexOf('supabase.rpc("aevora_advance_release_schedule_if_lease_owned"', blocked);
 
   assert.ok(blocked >= 0 && continueAfterBlock > blocked,
