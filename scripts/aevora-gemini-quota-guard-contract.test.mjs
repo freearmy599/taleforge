@@ -186,3 +186,44 @@ test("direct Gemini workers validate provider state before issuing their model r
       `${path}: active cooldown must block the request`);
   }
 });
+
+test("revise-chapter rechecks provider availability immediately before both revision and continuation model calls", async () => {
+  const source = await readFile(new URL("../supabase/functions/revise-chapter/index.ts", import.meta.url), "utf8");
+  const cases = [
+    {
+      guard: "const providerBlock = await getGeminiProviderBlock(supabase);",
+      call: "rawResponse = await callGemini(geminiApiKey, prompt",
+      reason: "Revision",
+    },
+    {
+      guard: "const continuationProviderBlock = await getGeminiProviderBlock(supabase);",
+      call: "continuation = cleanGeminiOutput(await callGemini(geminiApiKey, continuationPrompt",
+      reason: "Continuation",
+    },
+  ];
+
+  for (const item of cases) {
+    const guard = source.indexOf(item.guard);
+    const call = source.indexOf(item.call, guard);
+    assert.ok(guard >= 0, `${item.reason}: provider-state check must exist`);
+    assert.ok(call > guard, `${item.reason}: provider-state check must precede its Gemini call`);
+    const guardedRegion = source.slice(guard, call);
+    assert.match(guardedRegion, /if\s*\(\s*(?:providerBlock|continuationProviderBlock)\s*\)/,
+      `${item.reason}: blocked provider state must branch before the model call`);
+    assert.match(guardedRegion, /provider_state_unavailable/,
+      `${item.reason}: unknown provider state must fail closed`);
+    assert.match(guardedRegion, /provider_cooldown/,
+      `${item.reason}: active cooldown must block the model call`);
+    assert.match(guardedRegion, /503\)/,
+      `${item.reason}: blocked provider state must return a retryable service error`);
+  }
+
+  const helperStart = source.indexOf("async function getGeminiProviderBlock(");
+  const helperEnd = source.indexOf("async function recordGeminiThrottle(", helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, "shared provider-state helper must remain present");
+  const helper = source.slice(helperStart, helperEnd);
+  assert.match(helper, /if\s*\(error\s*\|\|\s*!data\)[\s\S]*?provider_state_unavailable/,
+    "provider-state lookup errors or missing rows must fail closed");
+  assert.match(helper, /!Number\.isFinite\(until\)[\s\S]*?invalid_cooldown_timestamp/,
+    "malformed cooldown timestamps must fail closed");
+});
