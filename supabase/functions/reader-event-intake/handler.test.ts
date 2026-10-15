@@ -147,3 +147,45 @@ Deno.test("missing credentials and fetch exceptions fail closed without diagnost
   assertEquals(response.status, 503);
   assertNotMatch(await response.text(), /private network details|test-service-role-secret/);
 });
+
+
+Deno.test("non-object JSON and invalid UTF-8 fail closed before RPC", async () => {
+  let calls = 0;
+  const handler = makeHandler({ outcome: "accepted" }, 200, () => { calls++; });
+
+  assertEquals((await handler(post("[]"))).status, 400);
+  assertEquals((await handler(post("null"))).status, 400);
+  assertEquals((await handler(post(""))).status, 400);
+
+  const invalidUtf8 = new Request("https://aevora.test/functions/v1/reader-event-intake", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: new Uint8Array([0xff, 0xfe]),
+  });
+  const invalidUtf8Response = await handler(invalidUtf8);
+  assertEquals(invalidUtf8Response.status, 400);
+  assertEquals((await invalidUtf8Response.json()).error, "invalid_body");
+  assertEquals(calls, 0, "invalid encodings and non-object JSON must not call the database RPC");
+});
+
+Deno.test("a failed request stream returns a stable error without calling RPC", async () => {
+  let calls = 0;
+  const handler = makeHandler({ outcome: "accepted" }, 200, () => { calls++; });
+  const brokenBody = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.error(new Error("private stream diagnostic"));
+    },
+  });
+  const req = new Request("https://aevora.test/functions/v1/reader-event-intake", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: brokenBody,
+    // Deno's Request implementation requires the duplex option for streaming bodies.
+    // @ts-ignore runtime compatibility across supported Deno versions
+    duplex: "half",
+  });
+  const response = await handler(req);
+  assertEquals(response.status, 400);
+  assertNotMatch(await response.text(), /private stream diagnostic/);
+  assertEquals(calls, 0);
+});
