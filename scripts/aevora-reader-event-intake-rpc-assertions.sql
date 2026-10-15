@@ -7,10 +7,14 @@ BEGIN
      OR NOT has_function_privilege('service_role', 'public.aevora_ingest_reader_event(text,uuid,text,uuid,uuid,integer)', 'EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: reader-event RPC execution grants are not server-only';
   END IF;
-  IF has_table_privilege('anon','aevora_private.reader_event_quota_buckets','SELECT')
+  IF has_schema_privilege('anon','aevora_private','USAGE')
+     OR has_schema_privilege('authenticated','aevora_private','USAGE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','SELECT')
      OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','SELECT')
-     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','INSERT') THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: public role can access private reader-event quota store';
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','INSERT')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','SELECT')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','SELECT') THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: public role can access private reader-event quota store or cleanup state';
   END IF;
 END;
 $rpc_acl_assert$;
