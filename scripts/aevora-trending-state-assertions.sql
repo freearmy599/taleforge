@@ -57,12 +57,14 @@ $trending_state_assert$;
 -- The view remains a read API and must not expose raw event rows.
 DO $trending_acl_assert$
 BEGIN
-  IF NOT has_table_privilege('anon','public.story_trending_scores','SELECT')
+  IF has_table_privilege('anon','public.story_trending_scores','SELECT')
+     OR has_table_privilege('authenticated','public.story_trending_scores','SELECT')
+     OR NOT has_table_privilege('service_role','public.story_trending_scores','SELECT')
      OR has_table_privilege('anon','public.story_trending_scores','INSERT')
      OR has_table_privilege('authenticated','public.story_trending_scores','UPDATE')
      OR has_table_privilege('anon','public.reader_events','SELECT')
      OR has_table_privilege('authenticated','public.reader_events','SELECT') THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: trending view/raw-event ACL contract failed';
+    RAISE EXCEPTION 'ASSERTION_FAILED: trending gate/raw-event ACL contract failed';
   END IF;
 END;
 $trending_acl_assert$;
