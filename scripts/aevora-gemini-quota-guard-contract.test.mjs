@@ -130,3 +130,59 @@ test("generation-orchestrator hard-stops non-dry-run work during an active Gemin
   assert.match(guard, /!dryRun/, "read-only dry runs may continue to report diagnostic state");
   assert.match(source, /provider_cooldown:providerCooldownNote/, "dry-run diagnostics must expose the persisted cooldown state");
 });
+
+
+test("review workers validate provider state before invoking Gemini", async () => {
+  const cases = [
+    {
+      path: "../supabase/functions/continuity-review/index.ts",
+      call: "aiReview = await callGemini(geminiApiKey, prompt);",
+    },
+    {
+      path: "../supabase/functions/originality-review/index.ts",
+      call: "aiReview = await callGemini(",
+    },
+    {
+      path: "../supabase/functions/safety-review/index.ts",
+      call: "aiReview = await callGemini(",
+    },
+  ];
+
+  for (const item of cases) {
+    const source = await readFile(new URL(item.path, import.meta.url), "utf8");
+    const stateGuard = source.lastIndexOf('.from("taleforge_ai_provider_state")');
+    const invocation = source.indexOf(item.call);
+    assert.ok(stateGuard >= 0, `${item.path}: persisted provider-state guard must exist`);
+    assert.ok(invocation > stateGuard,
+      `${item.path}: provider-state validation must occur before the review invokes Gemini`);
+    const guardedRegion = source.slice(stateGuard, invocation);
+    assert.match(guardedRegion, /provider_state_unavailable/,
+      `${item.path}: provider-state uncertainty must block the review`);
+    assert.match(guardedRegion, /provider_cooldown/,
+      `${item.path}: active cooldown must block the review`);
+  }
+});
+
+test("direct Gemini workers validate provider state before issuing their model request", async () => {
+  const cases = [
+    ["../supabase/functions/character-continuity/index.ts", "const resp=await fetch(`https://generativelanguage.googleapis.com"],
+    ["../supabase/functions/world-continuity/index.ts", "const resp=await fetch(`https://generativelanguage.googleapis.com"],
+    ["../supabase/functions/arc-planner/index.ts", "const resp=await fetch(`https://generativelanguage.googleapis.com"],
+    ["../supabase/functions/blueprint-planner/index.ts", "const resp=await fetch(`https://generativelanguage.googleapis.com"],
+    ["../supabase/functions/story-dna-planner/index.ts", "const resp=await fetch(`https://generativelanguage.googleapis.com"],
+  ];
+
+  for (const [path, requestMarker] of cases) {
+    const source = await readFile(new URL(path, import.meta.url), "utf8");
+    const stateGuard = source.lastIndexOf('.from("taleforge_ai_provider_state")');
+    const request = source.indexOf(requestMarker);
+    assert.ok(stateGuard >= 0, `${path}: persisted provider-state guard must exist`);
+    assert.ok(request > stateGuard,
+      `${path}: provider-state validation must precede the direct Gemini request`);
+    const guardedRegion = source.slice(stateGuard, request);
+    assert.match(guardedRegion, /provider_state_unavailable/,
+      `${path}: provider-state uncertainty must block the request`);
+    assert.match(guardedRegion, /provider_cooldown/,
+      `${path}: active cooldown must block the request`);
+  }
+});
