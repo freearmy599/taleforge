@@ -13,6 +13,8 @@ const generator = await readFile("supabase/functions/generate-chapter/index.ts",
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
 const runner = await readFile("supabase/functions/autonomous-series-creation-runner/index.ts", "utf8");
 const migration = await readFile("supabase/migrations/20261014210000_release_automation_readiness_gate.sql", "utf8");
+const leaseMigration = await readFile("supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql", "utf8");
+const leaseFencingMigration = await readFile("supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", "utf8");
 const defaultPrivilegesMigration = await readFile("supabase/migrations/20261014170000_restrict_public_default_privileges.sql", "utf8");
 const publicationAuthorizationDesign = await readFile("docs/aevora/PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md", "utf8");
 const rolloutPlan = await readFile("docs/aevora/PHASE1-PRODUCTION-ROLLOUT-SEQUENCE-20261014.md", "utf8");
@@ -27,6 +29,19 @@ const rollbackTestRunner = await readFile("scripts/test-aevora-readiness-rollbac
 const migrationWorkflow = await readFile(".github/workflows/aevora-edge-validation.yml", "utf8");
 const concurrencyTestRunner = await readFile("scripts/test-aevora-readiness-concurrency.sh", "utf8");
 const readerEventTestRunner = await readFile("scripts/test-aevora-reader-event-integrity.sh", "utf8");
+
+test("scheduler lease RPCs use hardened search paths and deny direct client execution", () => {
+  for (const migrationSource of [leaseMigration, leaseFencingMigration]) {
+    assert.match(migrationSource, /SECURITY DEFINER[\s\S]*?SET search_path = pg_catalog/);
+    assert.doesNotMatch(migrationSource, /SET search_path\s*=\s*public\s*(?:,|$)|SET search_path\s*=\s*pg_catalog\s*,\s*public/i);
+    assert.match(migrationSource, /REVOKE ALL ON FUNCTION public\.aevora_[a-z_]+\([^;]*\) FROM PUBLIC, anon, authenticated/i);
+    assert.match(migrationSource, /GRANT EXECUTE ON FUNCTION public\.aevora_[a-z_]+\([^;]*\) TO postgres, service_role/i);
+  }
+  assert.match(leaseMigration, /pg_catalog\.make_interval/);
+  assert.match(leaseMigration, /FROM public\.aevora_release_scheduler_leases/);
+  assert.match(leaseFencingMigration, /UPDATE public\.release_schedules/);
+  assert.match(leaseFencingMigration, /UPDATE public\.story_lifecycle/);
+});
 
 test("default-privilege cleanup is restricted to public and skips owners the executor cannot administer", () => {
   assert.match(defaultPrivilegesMigration, /ARRAY\['postgres', 'supabase_admin'\]/);
