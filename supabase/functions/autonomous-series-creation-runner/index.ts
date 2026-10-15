@@ -164,9 +164,9 @@ Deno.serve(async (req: Request) => {
       series: { id: seriesId, title: series.title, status: "ongoing", published_at: null, origin_type: series.origin_type, originality_status: series.originality_status },
       pipeline: { lifecycle: "preparing", arc_planner_tick: "existing scheduled job", blueprint_planner_tick: "existing scheduled job",
         generation_tick: "existing scheduled job", review_orchestrator: "invoked by generation orchestrator",
-        release_schedule: { interval_hours: 24, auto_generate: true, auto_publish: true, automation_ready: true } },
+        release_schedule: { interval_hours: 24, auto_generate: true, auto_publish: false, automation_ready: true, publication_approval_required: true } },
       audit_snapshot_saved: true, automation_ready: readinessResult.automation_ready_at,
-      note: "This starts the existing automated pipeline. Chapters are publishable only after quality, continuity, originality, safety, and publication review gates pass.",
+      note: "This starts the existing generation pipeline. Automated publication remains disabled until separate audited publication authorization is implemented; generated chapters must still pass quality, continuity, originality, safety, and publication review gates.",
       result,
     });
   } catch (e) {
