@@ -439,7 +439,7 @@ test("chapter revision records Gemini 429/503 cooldowns without overwriting malf
 
 test("provider-block detector recognizes nested review-worker blocks without classifying ordinary review failures", () => {
   const helperStart = generationOrchestrator.indexOf("function containsProviderBlock(");
-  const helperEnd = generationOrchestrator.indexOf("\\nconst ", helperStart);
+  const helperEnd = generationOrchestrator.indexOf("\\nasync function transitionBlueprintStatus", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-block helpers must be present as a self-contained source segment");
   const helperSource = generationOrchestrator.slice(helperStart, helperEnd)
     .replaceAll(":any", "")
