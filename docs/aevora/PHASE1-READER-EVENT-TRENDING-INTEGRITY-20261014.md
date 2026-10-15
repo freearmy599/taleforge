@@ -18,7 +18,7 @@ The branch-only aggregate migration now:
 - Derives active follows from the latest per-visitor/per-series `follow` or `unfollow` event.
 - Derives active bookmarks from the latest per-visitor/per-chapter `bookmark` or `unbookmark` event, requiring the chapter to remain published and belong to the same series.
 - Excludes future-dated events from the 30-day scoring window and ignores future-dated state transitions.
-- Keeps raw reader-event rows unavailable for anonymous/authenticated SELECT; only the aggregate view/function is exposed.
+- Keeps raw reader-event rows unavailable for anonymous/authenticated SELECT. The aggregate function and both dependent discovery views are currently gated to `service_role` on the branch; no public trending view is exposed until trusted intake and quotas are ready.
 
 Disposable PostgreSQL regression assertions cover follow/unfollow, bookmark/unbookmark, future-dated opens, public output counts, and raw-event ACLs. GitHub Actions run [`38552076374`](https://github.com/freearmy599/taleforge/actions/runs/38552076374) passed. These are branch-only changes and have not been applied to production.
 
@@ -36,3 +36,8 @@ The remaining major blocker is still trusted intake and quotas. Fresh UUID spam 
 ## Scope / decision gate
 
 This remains a design item for Phase 1 integrity. No event was inserted, updated, or deleted; no trigger, policy, grant, view, or production migration was changed. The branch-only insert-only grant migration should not be applied to production until migration drift and the full migration set are reviewed and explicitly approved.
+
+
+## Access gate update — 2026-10-15
+
+The aggregate function, `story_trending_scores`, and dependent `story_intelligence` are all branch-gated to `service_role`. This supersedes any earlier wording in this checkpoint that suggested the aggregate view was already exposed to ordinary clients. No production changes were made.
