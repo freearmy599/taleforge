@@ -406,7 +406,11 @@ details: "Internal review diagnostics were withheld.",
 );
 }
 
-type ReviewRecord = { review_type: string };
+type ReviewRecord = {
+  review_type: string;
+  status: string | null;
+  score: number | null;
+};
 const reviewList: ReviewRecord[] = (reviews ?? []) as ReviewRecord[];
 
 const qualityReview =
