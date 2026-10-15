@@ -101,8 +101,16 @@ done
 for quota_pid in "${quota_pids[@]}"; do
   if ! wait "$quota_pid"; then quota_wait_failures=$((quota_wait_failures + 1)); fi
 done
-accepted_count="$( (grep -hxc 'accepted' "$quota_dir"/* || true) | awk '{s += $1} END {print s+0}' )"
-limited_count="$( (grep -hxc 'limited' "$quota_dir"/* || true) | awk '{s += $1} END {print s+0}' )"
+accepted_count=0
+limited_count=0
+for result_file in "$quota_dir"/*; do
+  while IFS= read -r outcome; do
+    case "$outcome" in
+      accepted) accepted_count=$((accepted_count + 1)) ;;
+      limited) limited_count=$((limited_count + 1)) ;;
+    esac
+  done < "$result_file"
+done
 if [[ "$quota_wait_failures" -ne 0 || "$accepted_count" -ne 30 || "$limited_count" -ne 1 ]]; then
   echo "Concurrent quota boundary failed: expected 30 accepted and 1 limited with no SQL errors; got $accepted_count accepted, $limited_count limited, $quota_wait_failures failed sessions." >&2
   cat "$quota_dir"/* >&2
