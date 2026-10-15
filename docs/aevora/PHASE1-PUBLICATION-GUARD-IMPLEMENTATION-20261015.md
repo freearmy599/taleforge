@@ -62,3 +62,12 @@ The guard reads the release schedule from the database and executes before the c
 - Extended the publisher security contract to scan browser-facing HTML/JavaScript and reject direct `.from("chapters").insert(...)` calls outside the guarded publisher path.
 - The expanded source contract passed in [CI run 38686357496](https://github.com/freearmy599/taleforge/actions/runs/38686357496). Both the prepared Edge Function/type-check job and all disposable PostgreSQL readiness/concurrency/reader-event rehearsals passed.
 - This check covers direct Supabase client inserts in the listed browser files; it does not replace production RLS/ACL catalog verification, which remains a release gate.
+
+## Edge Function authorization inventory coverage
+
+- Expanded `scripts/aevora-internal-worker-auth-contract.test.mjs` to cover the autonomous series runner's two authorization modes: scheduled mode must present the server-held service-role credential, while admin mode must validate a user session and require an admin/owner application role before creating the privileged database client.
+- Added a separate contract for the read-only control-plane audit endpoint: its dedicated audit token must be configured and validated before privileged REST reads, with GET-only behavior and `Cache-Control: no-store`.
+- Added an inventory assertion requiring every `supabase/functions/*/index.ts` entrypoint to be explicitly classified under one of the appropriate authorization contracts. This closes a test-coverage gap where a newly added endpoint could otherwise be omitted from the static worker list without failing CI.
+- Expanded the browser credential scan to discover all root-level HTML/JavaScript files in addition to the established list, so newly added root browser assets are included automatically.
+- Validation: [CI run 38689102099](https://github.com/freearmy599/taleforge/actions/runs/38689102099) passed the dedicated runner/control-plane authorization tests; [CI run 38689181875](https://github.com/freearmy599/taleforge/actions/runs/38689181875) passed explicit endpoint-classification checks; and [CI run 38689234213](https://github.com/freearmy599/taleforge/actions/runs/38689234213) passed the expanded browser-asset scan, all prepared Edge Function/type-check contracts, and disposable PostgreSQL readiness/concurrency/reader-event rehearsals.
+- These are source-contract and disposable-environment checks. They do not certify live production grants or authorize deployment; production remains NO-GO.
