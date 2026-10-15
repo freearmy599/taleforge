@@ -92,3 +92,12 @@ A stable anonymous visitor ID is still forgeable and can be rotated; it is a ded
 Do not combine all controls into one unreviewable migration. Separate the relationship/ACL repair from the idempotency schema change, then introduce trusted intake and stateful aggregate semantics with regression coverage. Each stage needs a disposable-database test and a compatibility check against the live browser client before release.
 
 No production changes, deployments, migrations, schedule changes, generation, or publication were performed for this design checkpoint.
+
+
+## Updated access gate and remaining anti-abuse work — 2026-10-15
+
+- The aggregate RPC and both dependent discovery views are now gated to `service_role` on the branch. The older Stage A language above describes prerequisites, not a grant to expose public ranking today.
+- The latest follow/unfollow-state aggregation now independently filters historical events to eligible series and verifies optional chapter references against a published chapter in that same series. This matters because the aggregate runs as `SECURITY DEFINER` and cannot rely on ordinary reader RLS to filter historical rows.
+- Still unresolved: direct public INSERTs permit a caller to submit a new valid-looking visitor ID and fresh event UUID repeatedly. Neither a unique UUID nor a server timestamp authenticates a visitor or limits contribution volume.
+- Safe next architecture decision: move event intake behind a narrowly scoped server endpoint, then revoke direct ordinary-role INSERT only after every existing browser write path is migrated and tested. The endpoint should validate the event vocabulary, series/chapter relationship, signed or server-issued visitor token, per-token/IP contribution quotas, replay key, and abuse logging before inserting with a trusted server role. Do not deploy this change until the endpoint, client compatibility, and rollback are tested together.
+- No production changes were made. Keep public trending closed until that intake boundary and quota policy are implemented and verified.
