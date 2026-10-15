@@ -176,3 +176,55 @@ BEGIN
   END IF;
 END;
 $event_daily_quota_assert$;
+
+
+-- A rejected event-specific attempt must not consume the last global daily slot.
+DO $rejected_event_does_not_consume_global_quota$
+DECLARE
+  v_visitor text := 'reader-rpc-no-budget-consumption-0001';
+  v_hash text := md5(v_visitor);
+  v_day timestamptz := date_trunc('day', statement_timestamp());
+  v_minute timestamptz := date_trunc('minute', statement_timestamp());
+  v_result jsonb;
+  v_global_day_hits integer;
+BEGIN
+  INSERT INTO aevora_private.reader_event_quota_buckets(
+    visitor_key_hash, quota_scope, window_kind, window_start, hit_count
+  ) VALUES
+    (v_hash, '*', 'day', v_day, 999),
+    (v_hash, '*', 'minute', v_minute, 1),
+    (v_hash, 'story_open', 'day', v_day, 250);
+
+  v_result := public.aevora_ingest_reader_event(
+    v_visitor, NULL, 'story_open',
+    '00000000-0000-0000-0000-000000000101', NULL, NULL
+  );
+  IF v_result->>'outcome' <> 'limited' THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: exhausted event-specific bucket was not limited';
+  END IF;
+
+  SELECT hit_count INTO v_global_day_hits
+  FROM aevora_private.reader_event_quota_buckets
+  WHERE visitor_key_hash = v_hash AND quota_scope = '*'
+    AND window_kind = 'day' AND window_start = v_day;
+  IF v_global_day_hits <> 999 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: rejected event consumed global daily quota; expected 999, got %', v_global_day_hits;
+  END IF;
+
+  v_result := public.aevora_ingest_reader_event(
+    v_visitor, NULL, 'chapter_start',
+    '00000000-0000-0000-0000-000000000101', NULL, NULL
+  );
+  IF v_result->>'outcome' <> 'accepted' THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: different event class could not use remaining global quota slot';
+  END IF;
+
+  SELECT hit_count INTO v_global_day_hits
+  FROM aevora_private.reader_event_quota_buckets
+  WHERE visitor_key_hash = v_hash AND quota_scope = '*'
+    AND window_kind = 'day' AND window_start = v_day;
+  IF v_global_day_hits <> 1000 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: accepted event did not consume exactly one global daily slot';
+  END IF;
+END;
+$rejected_event_does_not_consume_global_quota$;
