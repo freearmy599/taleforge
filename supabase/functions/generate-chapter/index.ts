@@ -279,7 +279,7 @@ const providerTemporaryFailure=message.includes("Gemini HTTP 503");
 const providerCooldownFailure=providerQuotaFailure||providerTemporaryFailure;
 if(db && providerCooldownFailure){
  try{
-  const {data,stateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
+  const {data,error:stateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
   if(stateError||!data){
    console.error("[generate-chapter] Gemini cooldown state could not be verified; existing state preserved.");
   }else{
