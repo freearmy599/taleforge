@@ -13,6 +13,33 @@ SELECT
       AND column_name = 'automation_ready_at'
   ) AS passed;
 
+-- Report whether the legacy browser INSERT bypass is still open. Do not revoke
+-- these grants until endpoint smoke testing, controlled cutover, and rollback
+-- have all been separately verified and authorized.
+SELECT
+  has_table_privilege('anon', 'public.reader_events', 'INSERT') AS anon_can_direct_insert,
+  has_table_privilege('authenticated', 'public.reader_events', 'INSERT') AS authenticated_can_direct_insert,
+  COALESCE((
+    SELECT c.relrowsecurity
+    FROM pg_class c
+    WHERE c.oid = to_regclass('public.reader_events')
+  ), false) AS reader_events_rls_enabled,
+  EXISTS (
+    SELECT 1
+    FROM pg_trigger t
+    WHERE t.tgrelid = to_regclass('public.reader_events')
+      AND t.tgname = 'taleforge_force_reader_event_client_timestamp'
+      AND NOT t.tgisinternal
+  ) AS server_timestamp_trigger_installed,
+  EXISTS (
+    SELECT 1
+    FROM pg_index i
+    JOIN pg_class idx ON idx.oid = i.indexrelid
+    WHERE i.indrelid = to_regclass('public.reader_events')
+      AND idx.relname = 'reader_events_event_uuid_uidx'
+      AND i.indisunique
+  ) AS event_uuid_unique_index_installed;
+
 SELECT
   j.jobname,
   j.schedule,
