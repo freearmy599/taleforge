@@ -37,6 +37,8 @@ name: Aevora Edge source validation
       - "scripts/test-aevora-readiness-migration.sh"
       - "scripts/aevora-reader-event-integrity-*.sql"
       - "scripts/aevora-trending-state-assertions.sql"
+      - "scripts/aevora-trending-state-fixture.sql"
+      - "scripts/test-aevora-trending-state.sh"
       - "scripts/test-aevora-reader-event-integrity.sh"
       - ".github/workflows/aevora-edge-validation.yml"
 
