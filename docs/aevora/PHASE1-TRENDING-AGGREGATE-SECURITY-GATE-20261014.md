@@ -80,3 +80,10 @@ A source review found that the aggregate's latest follow/unfollow state was calc
 ## Bookmark relationship regression coverage — 2026-10-15
 
 The disposable trending fixture now also injects bookmark events that point to a published chapter in another series and to an unpublished chapter. The aggregate state assertion expects the valid active-bookmark count to remain exactly one. The source contract additionally checks that the bookmark-state CTE joins chapter ID, matching series ID, published status, and eligible series. This covers the third state-derived path under `SECURITY DEFINER`; fresh-UUID spam and spoofed visitor IDs remain separate unresolved abuse risks. Branch-only; not deployed.
+
+
+## Anonymous contribution caps — 2026-10-15
+
+The aggregate's recent-event stream now caps repeated contributions by the client-provided visitor hint: one `story_open` per series/day, one `chapter_start` and latest `reading_progress` per chapter/day, and one `chapter_complete` per chapter per visitor in the 30-day window. The scoring CTE filters to the newest event in each contribution bucket, ordered by server timestamp and event ID. Follow/unfollow and bookmark/unbookmark continue to use their separate latest-state CTEs. Disposable SQL assertions inject repeat opens, starts, progress and completions and require the open/completion counts and overall score to stay within the capped result. CI run [38741779604](https://github.com/freearmy599/taleforge/actions/runs/38741779604) passed both jobs after making the replay fixture portable across the reader-event and trending-only databases.
+
+These caps reduce replay inflation but are not proof of distinct readers: visitor IDs remain forgeable, the public trending views remain gated, and direct browser INSERT remains available until the intake cutover is deployed and authorized.
