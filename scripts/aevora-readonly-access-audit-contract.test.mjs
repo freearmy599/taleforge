@@ -25,6 +25,10 @@ const readingProgressSource = await readFile(
   new URL("../reading-progress.js", import.meta.url),
   "utf8",
 );
+const publishedLibrarySource = await readFile(
+  new URL("../taleforge-data.js", import.meta.url),
+  "utf8",
+);
 const chapterReaderSource = await readFile(
   new URL("../chapter.html", import.meta.url),
   "utf8",
@@ -415,4 +419,11 @@ test("Supabase migration timestamps are unique within the branch", async () => {
   }
   const duplicates = [...seen.entries()].filter(([, matches]) => matches.length > 1);
   assert.deepEqual(duplicates, [], "each migration timestamp must be unique to avoid ordering ambiguity");
+});
+
+
+test("published library gracefully degrades when the gated intelligence view is unavailable", () => {
+  assert.match(publishedLibrarySource, /Intelligence is optional enrichment[\s\S]*?Keep the published library usable/i);
+  assert.match(publishedLibrarySource, /const intel=new Map\(\(intelRes\.data\|\|\[\]\)\.map/);
+  assert.doesNotMatch(publishedLibrarySource, /if\s*\(intelRes\.error\)\s*throw/);
 });
