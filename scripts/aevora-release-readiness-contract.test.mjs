@@ -87,7 +87,7 @@ test("scheduler only accepts an explicit, identified published result from the p
 test("scheduler renews and releases its lease, and advances only after every publication is confirmed", () => {
   const claim = scheduler.indexOf('rpc("aevora_claim_release_scheduler_lease"');
   const renew = scheduler.indexOf('rpc("aevora_renew_release_scheduler_lease"');
-  const publisherCall = scheduler.indexOf('fetch(url+"\\/functions\\/v1\\/release-publisher"');
+  const publisherCall = scheduler.indexOf('fetch(url+"/functions/v1/release-publisher"');
   const release = scheduler.indexOf('rpc("aevora_release_scheduler_lease"');
   const finallyBlock = scheduler.lastIndexOf("}finally{");
   const allConfirmed = scheduler.indexOf("const allSelectedConfirmed =");
