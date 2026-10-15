@@ -41,6 +41,10 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   assert.match(migration, /COALESCE\(v_hits, 0\) >= 1000/);
   assert.match(migration, /quota_scope text NOT NULL DEFAULT/);
   assert.match(migration, /COALESCE\(v_event_daily_hits, 0\) >= 250/);
+  const quotaCheckEnd = migration.indexOf("COALESCE(v_event_daily_hits, 0) >= 250");
+  const firstQuotaIncrement = migration.indexOf("INSERT INTO aevora_private.reader_event_quota_buckets", quotaCheckEnd);
+  assert.ok(quotaCheckEnd >= 0 && firstQuotaIncrement > quotaCheckEnd,
+    "all quota buckets must be checked before any counter is incremented");
   assert.match(migration, /reader_event_quota_cleanup_state/);
   assert.match(migration, /last_cleaned_at <= v_now - interval '1 minute'/);
   assert.match(migration, /pg_try_advisory_xact_lock\(19017, 811\)/);
