@@ -6,7 +6,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
 const publisher = await readFile(
@@ -96,4 +96,28 @@ test("generation and scheduling workers cannot bypass the publisher with direct 
       `${relativePath} must not insert published chapters outside release-publisher`,
     );
   }
+});
+
+
+test("release-publisher is the only Edge Function that directly inserts chapter rows", async () => {
+  const root = new URL("../supabase/functions/", import.meta.url);
+  const files = [];
+  async function collect(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
+      if (entry.isDirectory()) await collect(child);
+      else if (entry.isFile() && entry.name.endsWith(".ts")) files.push(child);
+    }
+  }
+  await collect(root);
+  const writers = [];
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    if (/\.from\(["']chapters["']\)\s*\.insert\s*\(/.test(source)) {
+      writers.push(file.pathname);
+    }
+  }
+  assert.equal(writers.length, 1, `expected exactly one direct chapter insert path, found: ${writers.join(", ")}`);
+  assert.match(writers[0], /supabase\/functions\/release-publisher\/index\.ts$/,
+    "all chapter-row insertion must remain behind release-publisher authorization and status checks");
 });
