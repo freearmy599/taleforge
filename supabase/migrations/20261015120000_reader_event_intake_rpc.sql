@@ -7,10 +7,12 @@ REVOKE ALL ON SCHEMA aevora_private FROM PUBLIC, anon, authenticated;
 
 CREATE TABLE IF NOT EXISTS aevora_private.reader_event_quota_buckets (
   visitor_key_hash text NOT NULL,
+  quota_scope text NOT NULL DEFAULT '*'
+    CHECK (quota_scope IN ('*','story_open','chapter_start','reading_progress','chapter_complete','follow','unfollow','bookmark','unbookmark')),
   window_kind text NOT NULL CHECK (window_kind IN ('minute', 'day')),
   window_start timestamptz NOT NULL,
   hit_count integer NOT NULL CHECK (hit_count >= 0),
-  PRIMARY KEY (visitor_key_hash, window_kind, window_start)
+  PRIMARY KEY (visitor_key_hash, quota_scope, window_kind, window_start)
 );
 REVOKE ALL ON TABLE aevora_private.reader_event_quota_buckets FROM PUBLIC, anon, authenticated;
 CREATE INDEX IF NOT EXISTS reader_event_quota_buckets_expiry_idx
@@ -45,6 +47,7 @@ DECLARE
   v_minute timestamptz;
   v_day timestamptz;
   v_hits integer;
+  v_event_daily_hits integer;
   v_inserted_id bigint;
 BEGIN
   IF p_visitor_id IS NULL OR length(p_visitor_id) < 16 OR length(p_visitor_id) > 100
@@ -96,9 +99,9 @@ BEGIN
   -- through both windows. This is a best-effort anonymous abuse barrier, not identity proof.
   PERFORM pg_advisory_xact_lock(hashtextextended(v_visitor_hash, 7919));
 
-  INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, window_kind, window_start, hit_count)
-  VALUES (v_visitor_hash, 'minute', v_minute, 1)
-  ON CONFLICT (visitor_key_hash, window_kind, window_start)
+  INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
+  VALUES (v_visitor_hash, '*', 'minute', v_minute, 1)
+  ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
   DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
   WHERE aevora_private.reader_event_quota_buckets.hit_count < 30
   RETURNING hit_count INTO v_hits;
@@ -106,13 +109,26 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'limited');
   END IF;
 
-  INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, window_kind, window_start, hit_count)
-  VALUES (v_visitor_hash, 'day', v_day, 1)
-  ON CONFLICT (visitor_key_hash, window_kind, window_start)
+  INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
+  VALUES (v_visitor_hash, '*', 'day', v_day, 1)
+  ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
   DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
   WHERE aevora_private.reader_event_quota_buckets.hit_count < 1000
   RETURNING hit_count INTO v_hits;
   IF v_hits IS NULL THEN
+    RETURN jsonb_build_object('outcome', 'limited');
+  END IF;
+
+  -- Cap contribution by event type as well as by the global visitor budget.
+  -- This prevents one repeated event class from consuming the entire daily
+  -- budget or inflating a single aggregate dimension.
+  INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
+  VALUES (v_visitor_hash, p_event_type, 'day', v_day, 1)
+  ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
+  DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
+  WHERE aevora_private.reader_event_quota_buckets.hit_count < 250
+  RETURNING hit_count INTO v_event_daily_hits;
+  IF v_event_daily_hits IS NULL THEN
     RETURN jsonb_build_object('outcome', 'limited');
   END IF;
 
