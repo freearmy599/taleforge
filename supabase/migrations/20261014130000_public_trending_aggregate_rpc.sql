@@ -37,6 +37,21 @@ AS $function$
     WHERE re.series_id IS NOT NULL
       AND re.created_at > pg_catalog.now() - interval '30 days'
       AND re.created_at <= pg_catalog.now()
+      -- SECURITY DEFINER bypasses ordinary reader RLS, so independently exclude
+      -- historical events tied to a mismatched or unpublished chapter.
+      AND (
+        re.chapter_id IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM public.chapters AS c
+          JOIN public.series AS eligible_series
+            ON eligible_series.id = c.series_id
+           AND eligible_series.status IN ('ongoing', 'completed')
+          WHERE c.id = re.chapter_id
+            AND c.series_id = re.series_id
+            AND c.status = 'published'
+        )
+      )
   ),
   latest_follow_state AS (
     SELECT DISTINCT ON (re.visitor_id, re.series_id)
