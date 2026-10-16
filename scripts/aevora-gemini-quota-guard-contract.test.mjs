@@ -133,14 +133,12 @@ test("generation-orchestrator fails closed on malformed or unsafe Gemini throttl
   const recordStart = source.indexOf("async function recordGeminiThrottle(", helperEnd);
   const recordEnd = source.indexOf("Deno.serve(", recordStart);
   const recorder = source.slice(recordStart, recordEnd);
-  assert.match(recorder, /typeof rawPrior!==["']number["']/,
-    "fallback throttle persistence must not coerce malformed counters");
-  assert.match(recorder, /Number\.isSafeInteger\(rawPrior\)/,
-    "fallback throttle persistence must reject unsafe counters");
-  assert.match(recorder, /if\(!Number\.isSafeInteger\(count\)\)/,
-    "counter overflow must not be written");
-  assert.match(recorder, /throttle counter is malformed; existing state was preserved/,
-    "malformed throttle state must not be overwritten");
+  assert.ok(recorder.includes("aevora_record_gemini_throttle"),
+    "fallback persistence must use the shared atomic database operation");
+  assert.ok(recorder.includes("result?.recorded!==true"),
+    "fallback persistence must reject unsuccessful RPC results");
+  assert.equal(recorder.includes(".upsert("), false,
+    "fallback persistence must not retain a read-modify-upsert path");
 });
 
 test("generation-orchestrator hard-stops non-dry-run work during an active Gemini cooldown", async () => {
