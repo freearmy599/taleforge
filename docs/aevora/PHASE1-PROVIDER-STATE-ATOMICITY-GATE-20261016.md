@@ -478,3 +478,30 @@ Consequently, the table's SELECT privileges cannot yet be removed from these ser
 The scan does not execute tests, type-check Deno functions, run PostgreSQL, or establish deployed-version parity. The candidate SQL remains un-applied. Production ACL/default privileges and migration provenance remain unresolved.
 
 **Gate remains BLOCKED / automated publishing NO-GO.** No production change, deployment, migration, permission change, publication/generation, schedule mutation, or billable branch creation occurred.
+
+
+## Follow-up review of stale contracts and rehearsal safety — 2026-10-16
+
+A focused read of the existing `scripts/aevora-provider-cooldown-recording-contract.test.mjs` confirmed it still asserts that:
+- `generate-chapter` directly selects provider state and directly upserts the cooldown row;
+- `generation-orchestrator` retains a direct upsert fallback writer;
+- the implementation uses the old read-then-write recorder.
+Those assertions conflict with the branch's atomic RPC conversion and must be rewritten to assert the RPC call, explicit `recorded === true` confirmation, and absence of direct provider-state writes. The old test also checks stale implementation details, so merely deleting assertions would be insufficient; preserve its useful fail-closed and malformed-state intent with new RPC-level tests.
+
+The previously identified `scripts/aevora-review-error-redaction-contract.test.mjs` similarly asserts that the three review functions store diagnostics in their old direct-write helpers. Its failure in CI is confirmed. Attempts to update that file were refused by the repository editing tool; no lower-level Git object route was used to bypass the refusal. The source-contract updates therefore remain open and the last CI run remains failed.
+
+### Rehearsal safety review
+
+`scripts/tests/aevora-provider-state-atomicity-disposable.sql` begins a transaction and rolls back, but its only environmental checks are for the provider-state table and candidate RPC existence. It does not positively verify that the connected database is disposable. A transaction and final rollback are not sufficient safeguards if the script is accidentally run against production, especially if it encounters non-transactional effects or is later modified.
+
+Before execution, require a deliberate disposable-database marker that cannot be satisfied merely by table/function existence, and have the runner assert the expected database identity outside the SQL script. Do not execute this SQL against the live Supabase project. The rehearsal remains unrun.
+
+### Current technical disposition
+
+- The RPC and ten migrated branch callers are still branch-only candidates; `character-continuity` remains a direct writer.
+- The two stale contracts described above are still open.
+- The disposable rehearsal lacks an explicit target-environment guard.
+- No PostgreSQL syntax/runtime or concurrency test has been run.
+- Production ACL/default-privilege findings, migration provenance, and deployed/branch parity remain unresolved.
+
+**Gate remains BLOCKED / automated publishing NO-GO.** No production migration, permission change, Edge Function deployment, publication/generation, schedule mutation, or billable branch was performed.
