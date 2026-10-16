@@ -19,42 +19,42 @@ fi
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-provider-throttle-fixture.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016180000_atomic_gemini_provider_throttle.sql
 
-# Exercise mixed event classes racing on the same initially absent provider row.
-# The counter is shared by design today, so this verifies atomicity and fixed
-# diagnostics under contention; it does not settle whether overloads should
-# contribute to quota escalation semantics.
+# Exercise distinct event IDs and mixed classes racing on the same initially absent provider row.
+# Only quota events advance the escalation counter; overloads only extend cooldown.
 pids=()
 for i in $(seq 1 20); do
+  printf -v event_id '00000000-0000-0000-0000-%012d' "$i"
   if (( i % 2 == 0 )); then
     event_class=quota
   else
     event_class=overload
   fi
-  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT recorded FROM public.aevora_record_gemini_throttle('$event_class')" >/dev/null &
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT recorded FROM public.aevora_record_gemini_throttle('$event_id', '$event_class')" >/dev/null &
   pids+=("$!")
 done
 for pid in "${pids[@]}"; do
   wait "$pid"
 done
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DO \$mixed\$ DECLARE v_count integer; v_until timestamptz; v_error text; BEGIN SELECT consecutive_throttle_count, cooldown_until, last_error INTO v_count, v_until, v_error FROM public.taleforge_ai_provider_state WHERE provider='gemini'; IF v_count <> 20 THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed concurrent throttle events expected count 20, got %', v_count; END IF; IF v_until IS NULL OR v_until <= clock_timestamp() THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed concurrent events did not persist a future cooldown'; END IF; IF v_error NOT IN ('Gemini quota or rate-limit response', 'Gemini temporary overload response') THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed event left an unapproved diagnostic'; END IF; END \$mixed\$;"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DO \$mixed\$ DECLARE v_count integer; v_until timestamptz; v_error text; BEGIN SELECT consecutive_throttle_count, cooldown_until, last_error INTO v_count, v_until, v_error FROM public.taleforge_ai_provider_state WHERE provider='gemini'; IF v_count <> 10 THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed concurrent events expected 10 quota events, got %', v_count; END IF; IF v_until IS NULL OR v_until <= clock_timestamp() THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed concurrent events did not persist a future cooldown'; END IF; IF v_error NOT IN ('Gemini quota or rate-limit response', 'Gemini temporary overload response') THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed event left an unapproved diagnostic'; END IF; END \$mixed\$;"
 
-# Reset only the disposable fixture, then independently retain the original
-# all-quota 20-session test and its exact expected count.
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "UPDATE public.taleforge_ai_provider_state SET cooldown_until=NULL, consecutive_throttle_count=0, last_error=NULL, last_error_at=NULL, updated_at=clock_timestamp() WHERE provider='gemini'"
+# Reset only the disposable fixture, then independently test 20 concurrent quota events.
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "UPDATE public.taleforge_ai_provider_state SET cooldown_until=NULL, consecutive_throttle_count=0, last_error=NULL, last_error_at=NULL, updated_at=clock_timestamp() WHERE provider='gemini'; DELETE FROM public.taleforge_ai_provider_event_ledger"
 pids=()
 for i in $(seq 1 20); do
-  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT recorded FROM public.aevora_record_gemini_throttle('quota')" >/dev/null &
+  event_number=$((i + 100))
+  printf -v event_id '00000000-0000-0000-0000-%012d' "$event_number"
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT recorded FROM public.aevora_record_gemini_throttle('$event_id', 'quota')" >/dev/null &
   pids+=("$!")
 done
 for pid in "${pids[@]}"; do
   wait "$pid"
 done
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-provider-throttle-assertions.sql
-if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT * FROM public.aevora_record_gemini_throttle('invalid')" >/dev/null 2>&1; then
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT * FROM public.aevora_record_gemini_throttle('00000000-0000-0000-0000-000000000201', 'invalid')" >/dev/null 2>&1; then
   echo "Expected invalid event class to fail but RPC succeeded." >&2
   exit 1
 fi
-if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT * FROM public.aevora_record_gemini_throttle('quota')" >/dev/null 2>&1; then
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT * FROM public.aevora_record_gemini_throttle('00000000-0000-0000-0000-000000000202', 'quota')" >/dev/null 2>&1; then
   echo "Expected malformed negative counter to fail but RPC succeeded." >&2
   exit 1
 fi
