@@ -373,3 +373,26 @@ The original creation migration `20261007025751_add_taleforge_ai_provider_cooldo
 Current branch files were fetched for the three writer paths. `generate-chapter/index.ts` blob `9bb41d89d283e7934ad535499930b00c4f1e60b2` has fail-closed preflight reads and a direct read/compute/upsert writer. `generation-orchestrator/index.ts` blob `b1accc29fcedb6a37d7b44b9b0fadbca254e36d6` blocks on missing/error state and malformed counters/timestamps, but still writes directly. `revise-chapter/index.ts` blob `7a77316e9236a312ac37d145e7963146ce4a6593` also has fail-closed preflight checks and a direct read/compute/upsert writer. These are branch blob IDs, not deployed hashes.
 
 Branch source is safer in some paths than deployed versions, but all three still have non-atomic writes. Do not deploy these older branch snapshots wholesale. Implement against an explicit deployed-versus-branch diff, preserve required preflight behavior, and add source-contract tests proving migrated throttle paths use only the approved database operation. Caller behavior must distinguish persisted success from persistence failure; do not claim idempotency without a stable event identifier.
+
+
+## Atomic RPC implementation draft — 2026-10-16 continuation
+
+A branch-only forward migration candidate was added at `supabase/migrations/20261016180000_atomic_gemini_provider_throttle.sql`. It creates `public.aevora_record_gemini_throttle(text)` with a fixed `quota|overload` input allowlist, fixed diagnostics, a single `INSERT ... ON CONFLICT DO UPDATE`, DB-side counter increment, monotonic cooldown via `GREATEST`, rejection of negative persisted counters, and execute permission limited to `service_role`. The RPC returns an explicit `recorded` result with the persisted counter and cooldown. It does not accept raw error text and does not claim idempotency: every successful invocation is one observation, and duplicate caller observations remain possible without a stable event ID.
+
+The three branch writer paths were changed to call this RPC and to treat a missing/failed persistence confirmation as failure:
+- `generate-chapter/index.ts` — direct read/compute/upsert throttle writer replaced by RPC call; existing preflight and quality-review guards were not intentionally changed.
+- `generation-orchestrator/index.ts` — fallback writer uses the RPC and retains its best-effort active-cooldown check to reduce duplicate observations when a child worker already recorded the same event. This check is not an idempotency guarantee.
+- `revise-chapter/index.ts` — direct read/compute/upsert throttle writer replaced by RPC call; existing provider preflight paths remain in place.
+
+Added source-contract tests at `scripts/tests/aevora-provider-state-atomicity-contract.test.mjs`. The tests assert RPC security declarations, fixed event/diagnostic allowlists, atomic upsert/counter/cooldown patterns, absence of direct provider-state writes in the three callers, and explicit persistence-confirmation checks.
+
+### Validation still required (not claimed complete)
+
+- Run the source-contract test under the repository's supported Node test environment and verify its file paths against the actual checkout.
+- Apply the candidate migration only to a disposable PostgreSQL database with the verified table shape; test first insert, sequential quota delays (6/12/24 hours), 503 overload (1 hour), monotonic cooldown, invalid event class, negative counter rejection, counter overflow, and rollback on failure.
+- Use multiple concurrent database sessions to prove exact final counter increments and no cooldown shortening.
+- Verify function owner, effective ACLs, SECURITY DEFINER behavior, fixed search path, and execution as service_role versus anon/authenticated.
+- Run Deno/Edge Runtime checks and the complete branch validation suite.
+- Review duplicate observation behavior between child writers and the orchestrator, and complete the deployed-versus-branch parity diff before any deployment proposal.
+
+**Safety boundary:** this migration and caller code are unmerged branch candidates only. No production SQL, grant, Edge Function deployment, generation, publication, or schedule mutation was performed. The existing broad table/default ACL findings and original migration provenance remain unresolved. The new RPC does not by itself close the production security gate; production remains **NO-GO**.
