@@ -59,7 +59,7 @@ The 38 is a working count of major system families, not 38 independent applicati
 - [x] Apply the candidate migration in disposable PostgreSQL and test function creation, schema fixture compatibility, effective role ACLs, invalid event input, negative-counter rejection without normalization, and safe diagnostics. Live-schema provenance and Supabase-runtime compatibility remain separate gates.
 - [x] Run a 20-session concurrent quota-event rehearsal against an initially empty fixture; all 20 increments were preserved, exercising concurrent first insertion. The same rehearsal verified no shortening of an existing longer cooldown and the one-hour overload path.
 - [ ] Add a mixed quota/overload concurrency test and settle duplicate-observation/retry semantics; current concurrency coverage uses concurrent quota events, not a mixed event-class race.
-- [x] Run all configured Edge Function type checks and regression contracts to green on commit `a7d4b74a36b5866470d245f2f564c6bc5fc1c6de` (CI run 38922139195).
+- [x] Run all configured Edge Function type checks and regression contracts to green on commit `a7d4b74a36b5866470d245f2f564c6bc5fc1c6de` (CI run 38922139195); the latest branch-head CI run [38924001307](https://github.com/freearmy599/taleforge/actions/runs/38924001307) also passed both jobs, including the provider-state ACL/redaction rehearsal, atomic throttle concurrency rehearsal, and default-privilege rehearsal.
 - [ ] Validate Supabase Edge Runtime compatibility separately; static TypeScript checks alone are insufficient.
 
 ### B. Provider-state and Gemini quota safety
