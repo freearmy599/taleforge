@@ -61,3 +61,8 @@ GRANT EXECUTE ON FUNCTION public.taleforge_update_updated_at() TO anon, authenti
 GRANT EXECUTE ON FUNCTION public.touch_story_lifecycle_updated_at() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.update_series_chapter_count() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.update_updated_at() TO anon, authenticated, service_role;
+
+-- Trigger execution must continue working after client EXECUTE is revoked.
+CREATE TRIGGER aevora_rpc_acl_trigger_fixture
+BEFORE UPDATE ON public.chapters
+FOR EACH ROW EXECUTE FUNCTION public.taleforge_update_updated_at();

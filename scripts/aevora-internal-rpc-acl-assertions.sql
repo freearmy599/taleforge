@@ -35,3 +35,13 @@ BEGIN
   END LOOP;
 END
 $assert$;
+
+INSERT INTO public.chapters(id) VALUES (1) ON CONFLICT DO NOTHING;
+UPDATE public.chapters SET id = 2 WHERE id = 1;
+DO $trigger_assert$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.chapters WHERE id = 2) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: trigger function stopped working after client EXECUTE revocation';
+  END IF;
+END
+$trigger_assert$;
