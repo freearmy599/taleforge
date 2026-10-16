@@ -372,6 +372,7 @@ const isQuota = message.includes("Gemini HTTP 429") || message.includes("RESOURC
 if (!isTemporaryOverload && !isQuota) return null;
 try {
 const { data, error: recordError } = await supabase.rpc("aevora_record_gemini_throttle", {
+p_event_id: crypto.randomUUID(),
 p_event_class: isQuota ? "quota" : "overload"
 });
 const result = Array.isArray(data) ? data[0] : data;
