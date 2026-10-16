@@ -217,5 +217,10 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_schema_inventory_test
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_schema_inventory_test"
-          psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f docs/aevora/phase1-provider-state-schema-provenance.sql
-          psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f docs/aevora/phase1-publication-schema-provenance.sql
+          for inventory in docs/aevora/phase1-provider-state-schema-provenance.sql docs/aevora/phase1-publication-schema-provenance.sql; do
+            {
+              printf 'BEGIN TRANSACTION READ ONLY;\\n'
+              cat "$inventory"
+              printf '\\nROLLBACK;\\n'
+            } | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1
+          done
