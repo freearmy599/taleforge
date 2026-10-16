@@ -490,14 +490,16 @@ test("chapter revision fails closed before Gemini when provider state is unavail
   assert.match(reviseChapter.slice(stateRead, modelCall), /cooldownUntil > Date\.now\(\)/);
 });
 
-test("chapter revision records Gemini 429/503 cooldowns without overwriting malformed existing cooldown state", () => {
+test("chapter revision records Gemini 429/503 cooldowns through the shared atomic RPC", () => {
   assert.match(reviseChapter, /async function recordGeminiThrottle/);
   assert.match(reviseChapter, /message\.includes\("Gemini HTTP 503"\)/);
   assert.match(reviseChapter, /message\.includes\("Gemini HTTP 429"\)/);
-  assert.match(reviseChapter, /Existing Gemini cooldown timestamp is malformed; existing state was preserved/);
-  assert.match(reviseChapter, /if \(data\.cooldown_until && !Number\.isFinite\(existingUntil\)\)/);
-  assert.match(reviseChapter, /Math\.max\(proposedUntil, existingUntil\)/);
+  assert.match(reviseChapter, /aevora_record_gemini_throttle/);
+  assert.match(reviseChapter, /result\?\.recorded !== true/);
   assert.match(reviseChapter, /Gemini cooldown could not be persisted/);
+  assert.doesNotMatch(reviseChapter, /Math\.max\(proposedUntil, existingUntil\)/);
+  assert.match(reviseChapter, /invalid_cooldown_timestamp/);
+  assert.match(reviseChapter, /Number\.isFinite\(until\)/);
 });
 
 
