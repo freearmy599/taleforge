@@ -756,8 +756,8 @@ test("every Gemini provider-state reader fails closed on malformed throttle coun
 });
 
 
-test("internal reference taxonomy raw reads are revoked while trusted workers retain access", () => {
-  const migration = read("supabase/migrations/20261017100000_lock_internal_reference_taxonomy_reads.sql");
+test("internal reference taxonomy raw reads are revoked while trusted workers retain access", async () => {
+  const migration = await readFile("supabase/migrations/20261017100000_lock_internal_reference_taxonomy_reads.sql", "utf8");
   const expectedTables = [
     "taleforge_genre_taxonomy",
     "taleforge_subgenre_intelligence",
