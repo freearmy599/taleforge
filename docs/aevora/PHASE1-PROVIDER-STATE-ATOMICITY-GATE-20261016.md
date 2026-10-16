@@ -196,3 +196,36 @@ The provider-state migration-history search across GitHub's commit path API retu
 Global/schema default-privilege catalog output shows defaults owned by `supabase_admin` that grant table privileges to `anon`/`authenticated`, and function EXECUTE to `PUBLIC`, `anon`, `authenticated`, and `service_role`. Defaults owned by `postgres` also contain broad table and function grants. This is a separate forward-looking hardening concern: a table-specific REVOKE alone does not prevent future objects from receiving unsafe default grants. The existing default-privilege repair migration is also not in the live migration ledger seen earlier, so its production effect must not be assumed.
 
 **Implementation readiness update:** schema shape, key/uniqueness, no-trigger/no-policy status, ACLs, and relevant default-privilege evidence are now captured. The exact original table-creation migration body remains unavailable, but a *new forward-only migration* can be designed against this verified live catalog without recreating or altering the table definition. It must be rehearsed against a faithful disposable fixture and must not be applied to production as part of this task. Before locking down `service_role` table writes, complete the repository-wide writer inventory and migrate every writer; otherwise a partial lock can break production workers.
+
+
+## Repository-wide caller inventory — 2026-10-16 continuation
+
+A read-only source scan of the repository tree at commit `01960c57de0dc5766ff96b479f501f1bb90e58d8` expanded the caller inventory beyond the two primary generation functions.
+
+### Direct writer-capable paths
+
+- `generate-chapter/index.ts`: cooldown reads in generation preflight and quality-review path; read/compute/upsert throttle recording.
+- `generation-orchestrator/index.ts`: cooldown reads plus `recordGeminiThrottle` read/compute/upsert.
+- `revise-chapter/index.ts`: provider block reads and its own `recordGeminiThrottle` read/compute/upsert; called from multiple provider-error paths.
+- `continuity-review/index.ts`: cooldown-recording logic reads existing state, computes count/deadline, and writes state; also reads cooldown before review work.
+- `originality-review/index.ts`: same pattern: local cooldown writer plus preflight reader.
+- `safety-review/index.ts`: same pattern: local cooldown writer plus preflight reader.
+
+### Additional reader
+
+- `review-orchestrator/index.ts`: reads provider state to gate review work. No write match was found in the inspected file.
+
+### Scope and caveats
+
+This is a source inventory from the named repository snapshot, not proof that the deployed versions match these sources. The source search did not inspect every file in every application surface, SQL routine, view, trigger, or production-only function. The live catalog previously showed no user-defined triggers or provider-named routines in the queried scope, but indirect and differently named access must still be reconciled.
+
+**Implementation consequence:** the shared atomic operation must replace all six direct writer-capable paths, not merely `generate-chapter` and `generation-orchestrator`. The final source-contract test must fail if any direct writer remains. Reader-only paths can retain read access only through a verified trusted-server boundary; do not solve this by leaving broad client grants in place.
+
+### Next implementation gate
+
+1. Inventory every direct write occurrence and confirm all live function versions against the branch.
+2. Define one typed RPC contract and a documented duplicate-observation policy; no idempotency claim without stable event identity.
+3. Implement forward-only migration and update all six writer paths together on the branch.
+4. Add source-contract checks that forbid direct table writes and check every read path's fail-closed behavior.
+5. Rehearse migration, effective ACLs, concurrent first insert, exact concurrent increments, cooldown monotonicity, malformed state, and rollback/failure behavior in disposable PostgreSQL.
+6. Recheck branch CI. Do not apply production migrations or deploy functions as part of this continuation.
