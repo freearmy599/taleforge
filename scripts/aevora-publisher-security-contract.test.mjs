@@ -189,3 +189,13 @@ test("publisher fails closed when schedule or autonomous-provenance state cannot
   assert.match(publisher, /function getErrorMessage\(_error: unknown\): string\s*\{\s*return "Internal publication diagnostics were withheld\.";/,
     "lookup failures must not expose raw database/provider diagnostics");
 });
+
+
+test("publisher requires a trusted internal API key before creating its service-role client", () => {
+  assert.match(publisher, /import \{ isTrustedInternalApiKey \} from "\.\.\/\_shared\/internal-api-key\.ts";/);
+  const guard = publisher.indexOf("if (!isTrustedInternalApiKey(");
+  const client = publisher.indexOf("const supabase = createClient(");
+  assert.ok(guard >= 0 && client > guard, "internal caller authentication must precede service-role client creation");
+  assert.match(publisher, /Caller must authenticate with a configured server-side Supabase API key/);
+  assert.match(publisher, /\}, 401\);/);
+});
