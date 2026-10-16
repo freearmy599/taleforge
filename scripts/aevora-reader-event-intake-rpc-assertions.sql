@@ -77,6 +77,19 @@ DO $rpc_public_acl_assert$
 BEGIN
   IF EXISTS (
     SELECT 1
+    FROM pg_catalog.pg_namespace n
+    CROSS JOIN LATERAL pg_catalog.aclexplode(
+      COALESCE(n.nspacl, pg_catalog.acldefault('n', n.nspowner))
+    ) acl
+    WHERE n.nspname = 'aevora_private'
+      AND acl.grantee = 0
+      AND acl.privilege_type IN ('USAGE', 'CREATE')
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC can access or create objects in private reader-event schema';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
     CROSS JOIN LATERAL pg_catalog.aclexplode(
