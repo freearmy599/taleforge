@@ -50,7 +50,7 @@ BEGIN
         AND d.defaclobjtype IN ('r', 'S')
         AND a.grantee IN (0, anon_oid, authenticated_oid)
         AND a.privilege_type IN (
-          'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE',
+          'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'MAINTAIN', 'TRUNCATE',
           'REFERENCES', 'TRIGGER', 'USAGE'
         )
     ) THEN

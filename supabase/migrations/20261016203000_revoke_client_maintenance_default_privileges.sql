@@ -45,13 +45,13 @@ BEGIN
         AND d.defaclnamespace = 0
         AND d.defaclobjtype = 'r'
         AND a.grantee IN (0, anon_oid, authenticated_oid)
-        AND a.privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES')
+        AND a.privilege_type IN ('MAINTAIN', 'TRUNCATE', 'TRIGGER', 'REFERENCES')
     ) THEN
       RAISE EXCEPTION 'global table maintenance defaults exist for owner role %; schema-scoped repair cannot override them safely', owner_role;
     END IF;
 
     EXECUTE format(
-      'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM PUBLIC, anon, authenticated',
+      'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM PUBLIC, anon, authenticated',
       owner_role
     );
   END LOOP;

@@ -211,6 +211,7 @@ test("future public table and sequence defaults are owner-guarded and fail close
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/i);
   assert.match(defaultPrivilegesMigration, /global table or sequence client defaults exist/i);
+  assert.match(defaultPrivilegesMigration, /'MAINTAIN'/i, "global MAINTAIN defaults must fail closed too");
   assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/i);
   assert.match(defaultPrivilegesMigration, /executor cannot administer default privileges/i);
   assert.match(defaultPrivilegesMigration, /executor_is_superuser/i);
@@ -275,7 +276,7 @@ test("unapproved internal-write migration covers all 41 audited uncovered tables
       table + " must be in the explicit audited table list",
     );
   }
-  assert.match(unapprovedInternalWritesMigration, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE/i);
+  assert.match(unapprovedInternalWritesMigration, /REVOKE INSERT, UPDATE, DELETE, MAINTAIN, TRUNCATE, REFERENCES, TRIGGER ON TABLE/i);
   assert.match(unapprovedInternalWritesMigration, /REVOKE INSERT \(%1\$s\), UPDATE \(%1\$s\), REFERENCES \(%1\$s\) ON TABLE/i);
   assert.doesNotMatch(unapprovedInternalWritesMigration, /REVOKE ALL PRIVILEGES ON TABLE/i);
   assert.doesNotMatch(unapprovedInternalWritesMigration, /GRANT\s+.+\s+TO\s+(PUBLIC|anon|authenticated)/i);

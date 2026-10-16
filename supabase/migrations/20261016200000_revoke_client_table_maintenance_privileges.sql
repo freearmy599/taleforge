@@ -1,4 +1,4 @@
--- Aevora Phase 1: remove database-maintenance privileges from client roles.
+-- Aevora Phase 1: remove database-maintenance privileges from client roles, including PostgreSQL 17 MAINTAIN.
 -- Branch-only candidate. No client-facing CRUD privileges are changed by this
 -- migration; SELECT/INSERT/UPDATE/DELETE are intentionally left untouched.
 -- RLS does not block TRUNCATE, and browser/API roles have no need to create
@@ -17,7 +17,7 @@ BEGIN
     ORDER BY c.relname
   LOOP
     EXECUTE format(
-      'REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLE public.%I FROM PUBLIC, anon, authenticated',
+      'REVOKE MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON TABLE public.%I FROM PUBLIC, anon, authenticated',
       target.relname
     );
 

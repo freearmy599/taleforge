@@ -55,7 +55,7 @@ BEGIN
   LOOP
     IF to_regclass(format('public.%I', table_name)) IS NOT NULL THEN
       EXECUTE format(
-        'REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.%I FROM PUBLIC, anon, authenticated',
+        'REVOKE INSERT, UPDATE, DELETE, MAINTAIN, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.%I FROM PUBLIC, anon, authenticated',
         table_name
       );
 

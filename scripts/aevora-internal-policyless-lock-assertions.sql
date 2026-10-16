@@ -64,7 +64,7 @@ BEGIN
 
     FOREACH client_role IN ARRAY ARRAY['anon', 'authenticated']
     LOOP
-      FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']
+      FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','MAINTAIN','TRUNCATE','REFERENCES','TRIGGER']
       LOOP
         IF has_table_privilege(client_role, target, privilege_name) THEN
           RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on public.%', client_role, privilege_name, table_name;
@@ -100,7 +100,7 @@ BEGIN
   -- Client maintenance privileges must be gone, but ordinary CRUD must remain.
   FOREACH role_name IN ARRAY ARRAY['anon','authenticated']
   LOOP
-    FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+    FOREACH privilege_name IN ARRAY ARRAY['MAINTAIN','TRUNCATE','TRIGGER','REFERENCES']
     LOOP
       IF has_table_privilege(role_name, 'public.chapters', privilege_name) THEN
         RAISE EXCEPTION 'ASSERTION_FAILED: % retains maintenance privilege % on public.chapters', role_name, privilege_name;
@@ -125,7 +125,7 @@ BEGIN
     CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))) a
     WHERE c.oid = 'public.chapters'::regclass
       AND a.grantee = 0
-      AND a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
+      AND a.privilege_type IN ('MAINTAIN','TRUNCATE','TRIGGER','REFERENCES')
   ) THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains maintenance privilege on public.chapters';
   END IF;

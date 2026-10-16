@@ -29,6 +29,7 @@ BEGIN
          OR has_table_privilege(client_role, format('public.%I', object_name), 'INSERT')
          OR has_table_privilege(client_role, format('public.%I', object_name), 'UPDATE')
          OR has_table_privilege(client_role, format('public.%I', object_name), 'DELETE')
+         OR has_table_privilege(client_role, format('public.%I', object_name), 'MAINTAIN')
          OR has_table_privilege(client_role, format('public.%I', object_name), 'TRUNCATE')
          OR has_table_privilege(client_role, format('public.%I', object_name), 'REFERENCES')
          OR has_table_privilege(client_role, format('public.%I', object_name), 'TRIGGER') THEN

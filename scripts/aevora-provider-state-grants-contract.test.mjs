@@ -100,6 +100,7 @@ test("provider-state ACL lock has disposable PostgreSQL runtime assertions", () 
   assert.match(providerStateAssertions, /has_table_privilege\(client_role, 'public\.taleforge_ai_provider_state', privilege_name\)/);
   assert.match(providerStateAssertions, /has_column_privilege\(client_role, 'public\.taleforge_ai_provider_state', 'last_error', privilege_name\)/);
   assert.match(providerStateAssertions, /'TRUNCATE'/);
+  assert.match(providerStateAssertions, /'MAINTAIN'/, "PostgreSQL 17 MAINTAIN must be denied to client roles");
   assert.match(providerStateAssertions, /service_role grants were unexpectedly removed/);
   assert.match(providerStateAssertions, /legacy Gemini overload diagnostic was not sanitized/);
   assert.match(providerStateRehearsal, /AEVORA_DISPOSABLE_PROVIDER_STATE_REHEARSAL/);
@@ -124,6 +125,7 @@ test("public default-privilege lock is schema-scoped and rehearsed against futur
   assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegeMigration, /global table or sequence client defaults exist/);
+  assert.match(defaultPrivilegeMigration, /'MAINTAIN'/, "global MAINTAIN defaults must fail closed too");
   assert.doesNotMatch(defaultPrivilegeMigration, /REVOKE EXECUTE ON FUNCTIONS/i);
   assert.match(defaultPrivilegeMigration, /executor_is_superuser/);
   assert.match(defaultPrivilegeMigration, /pg_catalog\.pg_has_role\(current_user, owner_role, 'MEMBER'\)/);
