@@ -6,7 +6,7 @@ Status: blocked. This is a read-only audit note, not a deployment instruction.
 
 - The live Supabase Edge Function inventory for project `sxmbnlgufqhcwxcpcsvb` did not list a function named `reader-event-intake`.
 - A read-only catalog lookup found no `public.aevora_ingest_reader_event` or `public.aevora_prune_reader_event_quota_buckets` routines and no quota bucket tables in schema `aevora_private`.
-- A selected migration-ledger lookup returned no rows for the branch's reader-event migrations. Verify authoritative migration history before making claims about how or when they were deployed.
+- The live `public.reader_events` table has seven columns (`id`, `visitor_id`, `event_type`, `series_id`, `chapter_id`, `progress_percent`, `created_at`) and does **not** have the branch-added `event_uuid` column. A selected migration-ledger lookup returned no rows for the branch's reader-event migrations. Verify authoritative migration history before making claims about how or when they were deployed.
 - Branch `supabase-client.js` sets `window.taleForgeReaderEventIntakeEnabled = false`.
 - Branch `reading-progress.js` therefore uses direct `reader_events` INSERT. If the flag is enabled, it instead calls `/functions/v1/reader-event-intake`.
 - Branch source contains an intake handler, an RPC migration, and a migration intending to make client access to `reader_events` INSERT-only. Their existence in source does not prove live deployment.
