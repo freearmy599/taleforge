@@ -210,7 +210,12 @@ test("future public table and sequence defaults are owner-guarded and fail close
   assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/i);
   assert.match(defaultPrivilegesMigration, /executor cannot administer default privileges/i);
   assert.match(defaultPrivilegesMigration, /executor_is_superuser/i);
-  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public/i);
+  assert.match(defaultPrivilegesMigration, /ARRAY\['postgres', 'supabase_admin'\]/i,
+    "both known table owners must be checked through the owner loop");
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES/i,
+    "table default cleanup must remain scoped to public");
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES/i,
+    "sequence default cleanup must remain scoped to public");
   assert.doesNotMatch(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
   assert.doesNotMatch(defaultPrivilegesMigration, /REVOKE EXECUTE ON FUNCTIONS/i,
     "function EXECUTE defaults remain deferred for a separate owner/schema review");
