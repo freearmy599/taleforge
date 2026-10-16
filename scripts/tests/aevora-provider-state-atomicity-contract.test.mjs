@@ -33,8 +33,11 @@ test("RPC accepts only fixed event classes and fixed diagnostics", () => {
 });
 
 test("database operation increments atomically and never shortens cooldown", () => {
+  assert.match(migration, /ON CONFLICT \(event_id\) DO NOTHING/i);
   assert.match(migration, /ON CONFLICT \(provider\) DO UPDATE/i);
-  assert.match(migration, /current_state\.consecutive_throttle_count \+ 1/);
+  assert.match(migration, /p_event_id uuid/i);
+  assert.match(migration, /WHEN p_event_class = 'quota' THEN current_state\.consecutive_throttle_count \+ 1/i);
+  assert.match(migration, /ELSE current_state\.consecutive_throttle_count/i);
   assert.match(migration, /GREATEST\(/);
   assert.match(migration, /WHERE current_state\.consecutive_throttle_count >= 0/);
 });
@@ -42,7 +45,7 @@ test("database operation increments atomically and never shortens cooldown", () 
 for (const [name, source] of writers) {
   test(`${name} uses the approved RPC and has no direct provider-state writes`, () => {
     assert.match(source, /\.rpc\(\s*["']aevora_record_gemini_throttle["']/);
-    assert.match(source, /p_event_id\\s*:\\s*crypto\\.randomUUID\\(\\)/, name + ' must supply an event ID');
+    assert.match(source, /p_event_id\s*:\s*crypto\.randomUUID\(\)/, name + ' must supply an event ID');
     assert.doesNotMatch(source, /from\(["']taleforge_ai_provider_state["']\)\s*\.(?:upsert|insert|update|delete)\s*\(/);
     assert.doesNotMatch(source, /last_error\s*:/);
   });
