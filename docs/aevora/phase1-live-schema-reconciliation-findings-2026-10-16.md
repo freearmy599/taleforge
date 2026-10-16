@@ -41,11 +41,20 @@ The concurrency review also identifies a fallback read-modify-upsert in `generat
 
 Do not draft a guessed function signature or deploy a migration until relation provenance and migration history are reconciled.
 
+## Branch-only rehearsal results — 2026-10-16
+
+The hardening branch now has disposable PostgreSQL runtime rehearsals for two distinct controls:
+
+- **Provider-state ACL lock:** seeds broad relation-level and explicit column-level client grants, runs the existing lock migration, and asserts that `anon` and `authenticated` cannot select, insert, update, delete, truncate, reference, or trigger against provider state. It also verifies that the intended `service_role` grants remain and the fixture Gemini overload diagnostic is redacted.
+- **Future-object defaults:** seeds broad global and `public`-schema default privileges for the disposable `postgres` owner, runs the default-privilege migration, creates a table, sequence, and function, and verifies that the newly created objects do not inherit the tested client grants.
+
+Both rehearsals passed in CI run [38861905595](https://github.com/freearmy599/taleforge/actions/runs/38861905595), alongside Edge Function type-checking and Cloudflare Pages validation. These tests establish branch behavior only. They do **not** prove the live Supabase grants have changed, resolve migration-history drift, or validate defaults for an owner role the migration executor cannot administer (notably the separately gated `supabase_admin` case).
+
 ## Next safe actions
 
 1. Reconcile the live migration ledger against all repository migrations and any available historical source for the missing provider-state creation migration.
-2. Capture effective ACL evidence for the provider table, its columns, the `public` schema, relevant default-privilege owner roles, and any related routines.
-3. Prepare—but do not apply—a targeted provider-state permission repair with a disposable PostgreSQL rehearsal and effective-privilege tests.
+2. Keep the live provider-state ACL discrepancy open until a separately authorized, read-only post-repair verification confirms effective relation and column privileges. Do not apply the migration blindly.
+3. Inventory global and schema-level default privileges for every relevant owner role, especially `supabase_admin`, and arrange a separately authorized owner-level repair if required.
 4. Implement and test the atomic cooldown operation only after the schema/history discrepancy is resolved, covering both worker and orchestrator fallback paths.
 5. Re-run Edge Function type-checking, Phase 1 source contracts, disposable PostgreSQL tests, and real Supabase Edge Runtime validation.
 
