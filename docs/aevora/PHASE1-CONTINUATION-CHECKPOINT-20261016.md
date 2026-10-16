@@ -3,11 +3,12 @@
 ## Branch and latest validation
 
 - Working branch: `aevora/release-scheduler-hardening`
-- Latest reviewed commit at checkpoint creation: `d378fab0aecc898a3d6c1e027562f7d6d6b42a59` — `test(aevora): track orchestrator cooldown fallback in atomicity gate`.
-- Latest validation observed for that commit: [CI run 38863623400](https://github.com/freearmy599/taleforge/actions/runs/38863623400).
+- Latest checkpoint refresh commit: `e3dded6431a7eb26da92a1160b65e8625b49cc44` — `docs(aevora): record publication schema reconciliation`.
+- Latest validation observed: [CI run 38868044595](https://github.com/freearmy599/taleforge/actions/runs/38868044595) on parent commit `de13b0ccc3e4c35b3b26bffc574db13971b22d6f`.
   - [Edge Function type-check](https://github.com/freearmy599/taleforge/actions/runs/38863623400/job/116851342381): passed.
   - [Disposable PostgreSQL readiness/security rehearsal](https://github.com/freearmy599/taleforge/actions/runs/38863623400/job/116851342863): passed.
   - [Cloudflare Pages](https://github.com/freearmy599/taleforge/runs/116851397414): passed.
+- Latest run 38868044595 completed successfully: both Edge Function type-checking/source-contract checks and disposable PostgreSQL readiness/security rehearsal passed. This run validates parent commit `de13b0c`; the current documentation-only checkpoint refresh still requires its own CI run.
 - These checks validate the branch test fixtures and prepared source only. They are not evidence that production migrations or Edge Functions were deployed.
 
 ## Confirmed hardening on the branch
@@ -44,3 +45,4 @@ See [live schema reconciliation findings](./phase1-live-schema-reconciliation-fi
 3. Obtain reviewed, sanitized publication/provider catalog evidence and reconcile it with tracked migration history.
 4. Only then prepare narrowly scoped atomic routines and run concurrency, rollback, ACL, and Edge Runtime validation.
 5. Review the six legacy schedule candidates individually and keep each unapproved candidate inactive.
+6. Publication catalog follow-up: live `public` contains the 12 core relations listed in the findings document, all RLS-enabled; `aevora_private` is absent, as are `public.reader_event_quota_buckets` and `public.reader_event_quota_cleanup_state`. Reconcile these missing objects against migrations and deployed callers before assuming they should exist or designing publication RPCs.
