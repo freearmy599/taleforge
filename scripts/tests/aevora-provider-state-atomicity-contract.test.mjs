@@ -11,6 +11,7 @@ const writers = [
   ["continuity-review", read("../../supabase/functions/continuity-review/index.ts")],
   ["originality-review", read("../../supabase/functions/originality-review/index.ts")],
   ["safety-review", read("../../supabase/functions/safety-review/index.ts")],
+  ["character-continuity", read("../../supabase/functions/character-continuity/index.ts")],
   ["blueprint-planner", read("../../supabase/functions/blueprint-planner/index.ts")],
   ["story-dna-planner", read("../../supabase/functions/story-dna-planner/index.ts")],
   ["arc-planner", read("../../supabase/functions/arc-planner/index.ts")],
