@@ -40,7 +40,7 @@ SELECT
   a.attidentity AS identity_kind,
   a.attgenerated AS generated_kind,
   pg_catalog.pg_get_expr(d.adbin, d.adrelid) AS default_expression,
-  col_description(c.oid, a.attnum) AS column_comment
+  pg_catalog.col_description(c.oid, a.attnum) AS column_comment
 FROM pg_catalog.pg_class c
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
