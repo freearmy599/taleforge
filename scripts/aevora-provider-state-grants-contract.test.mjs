@@ -107,24 +107,28 @@ test("provider-state ACL lock has disposable PostgreSQL runtime assertions", () 
   assert.match(providerStateRehearsal, /20261013120000_lock_ai_provider_state_table\.sql/);
 });
 
-test("public default-privilege lock is rehearsed against newly created objects", () => {
-  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated/);
-  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL PRIVILEGES ON SEQUENCES TO anon, authenticated/);
-  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT EXECUTE ON FUNCTIONS TO PUBLIC, anon, authenticated/);
+test("public default-privilege lock is schema-scoped and rehearsed against future objects", () => {
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated/);
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO anon, authenticated/);
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegeAssertions, /CREATE TABLE public\.aevora_default_privilege_probe/);
   assert.match(defaultPrivilegeAssertions, /CREATE SEQUENCE public\.aevora_default_privilege_probe_seq/);
   assert.match(defaultPrivilegeAssertions, /CREATE FUNCTION public\.aevora_default_privilege_probe_fn/);
   assert.match(defaultPrivilegeAssertions, /has_sequence_privilege/);
   assert.match(defaultPrivilegeAssertions, /has_function_privilege/);
-  assert.match(defaultPrivilegeAssertions, /acl\.grantee = 0/);
+  assert.match(defaultPrivilegeAssertions, /function EXECUTE defaults remain explicitly out of scope/);
   assert.match(defaultPrivilegeRehearsal, /AEVORA_DISPOSABLE_DEFAULT_PRIVILEGE_REHEARSAL/);
   assert.match(defaultPrivilegeRehearsal, /Refusing default-privilege rehearsal against a Supabase URL/);
-  assert.match(defaultPrivilegeRehearsal, /20261014170000_restrict_public_default_privileges\.sql/);
-  assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegeRehearsal, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT INSERT ON TABLES TO anon/);
+  assert.match(defaultPrivilegeRehearsal, /Expected a global default grant to block the schema-scoped repair/);
+  assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegeMigration, /global table or sequence client defaults exist/);
+  assert.doesNotMatch(defaultPrivilegeMigration, /REVOKE EXECUTE ON FUNCTIONS/i);
   assert.match(defaultPrivilegeMigration, /executor_is_superuser/);
   assert.match(defaultPrivilegeMigration, /pg_catalog\.pg_has_role\(current_user, owner_role, 'MEMBER'\)/);
   assert.match(defaultPrivilegeFixture, /CREATE ROLE supabase_admin NOLOGIN/);
-  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated/);
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated/);
   assert.match(defaultPrivilegeAssertions, /SET ROLE supabase_admin/);
   assert.match(defaultPrivilegeAssertions, /aevora_supabase_admin_default_privilege_probe/);
 });
