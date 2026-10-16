@@ -19,7 +19,7 @@ const plan = await readFile(
   "utf8",
 );
 const migration = await readFile(
-  new URL("../supabase/migrations/20261016180000_atomic_gemini_provider_throttle.sql", import.meta.url),
+  new URL("../supabase/migrations/20261016190000_idempotent_gemini_provider_throttle.sql", import.meta.url),
   "utf8",
 );
 
@@ -29,14 +29,10 @@ assert.notEqual(catchStart, -1, "provider failure handling must exist");
 assert.notEqual(catchEnd, -1, "provider failure handler must have a bounded end");
 const handler = source.slice(catchStart, catchEnd);
 
-const orchestratorWriterStart = orchestrator.indexOf("async function recordGeminiThrottle(");
-const orchestratorWriterEnd = orchestrator.indexOf("\n}", orchestratorWriterStart);
-assert.ok(orchestratorWriterStart >= 0 && orchestratorWriterEnd > orchestratorWriterStart,
-  "orchestrator throttle recorder must exist");
-const orchestratorWriter = orchestrator.slice(orchestratorWriterStart, orchestratorWriterEnd);
+
 
 test("direct generation worker routes quota and overload events through the shared atomic RPC", () => {
-  assert.ok(handler.includes('db.rpc("aevora_record_gemini_throttle",{p_event_class:providerQuotaFailure?"quota":"overload"})'),
+  assert.ok(handler.includes('db.rpc("aevora_record_gemini_throttle",{p_event_id:crypto.randomUUID(),p_event_id:crypto.randomUUID(),p_event_class:providerQuotaFailure?"quota":"overload"})'),
     "the direct worker must use the atomic database operation");
   assert.ok(handler.includes("result?.recorded!==true"),
     "RPC errors or unexpected results must not be treated as a successful recording");
@@ -49,16 +45,9 @@ test("direct generation worker routes quota and overload events through the shar
 });
 
 test("generation orchestrator fallback uses the same atomic RPC", () => {
-  assert.ok(orchestratorWriter.includes('supabase.rpc("aevora_record_gemini_throttle",{p_event_class:providerQuotaFailure?"quota":"overload"})'),
-    "the orchestrator must converge on the same atomic operation");
-  assert.ok(orchestratorWriter.includes("result?.recorded!==true"),
-    "the orchestrator must reject an unsuccessful RPC result");
-  assert.ok(orchestratorWriter.includes("return null"),
-    "the orchestrator must not report a successful write after persistence failure");
-  assert.equal(orchestratorWriter.includes(".upsert("), false,
-    "the orchestrator writer must not retain a read-modify-upsert cooldown path");
-  assert.ok(orchestratorWriter.includes('from("taleforge_ai_provider_state")'),
-    "the orchestrator may inspect an already-active cooldown to avoid double-counting a downstream throttle");
+  assert.equal(orchestrator.includes('rpc("aevora_record_gemini_throttle"'), false,
+    "the orchestrator must not double-record child provider events");
+  assert.ok(orchestrator.includes("Child workers own provider-event persistence"), "single-writer ownership must be explicit");
 });
 
 test("orchestrator still fails closed when provider state is missing or unreadable", () => {
@@ -77,17 +66,21 @@ test("orchestrator still fails closed when provider state is missing or unreadab
 });
 
 test("atomic cooldown migration has safe diagnostics, monotonic expiry, and server-only execution", () => {
-  assert.ok(migration.includes("CREATE OR REPLACE FUNCTION public.aevora_record_gemini_throttle(p_event_class text)"));
+  assert.ok(migration.includes("CREATE OR REPLACE FUNCTION public.aevora_record_gemini_throttle("));
+  assert.ok(migration.includes("p_event_id uuid"));
+  assert.ok(migration.includes("ON CONFLICT (event_id) DO NOTHING"));
+  assert.ok(migration.includes("RETURN QUERY SELECT true, true"));
   assert.ok(migration.includes("ON CONFLICT (provider) DO UPDATE"));
-  assert.ok(migration.includes("consecutive_throttle_count = current_state.consecutive_throttle_count + 1"));
+  assert.ok(migration.includes("WHEN p_event_class = 'quota' THEN current_state.consecutive_throttle_count + 1"));
+  assert.ok(migration.includes("ELSE current_state.consecutive_throttle_count"));
   assert.ok(migration.includes("GREATEST(") && migration.includes("current_state.cooldown_until"));
   assert.ok(migration.includes("WHERE current_state.consecutive_throttle_count >= 0"));
   assert.ok(migration.includes("RAISE EXCEPTION 'provider state counter is malformed'"));
   assert.ok(migration.includes("Gemini quota or rate-limit response"));
   assert.ok(migration.includes("Gemini temporary overload response"));
-  assert.ok(migration.includes("REVOKE ALL ON FUNCTION public.aevora_record_gemini_throttle(text) FROM PUBLIC"));
+  assert.ok(migration.includes("REVOKE ALL ON FUNCTION public.aevora_record_gemini_throttle(uuid, text) FROM PUBLIC"));
   assert.ok(migration.includes("FROM anon, authenticated"));
-  assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.aevora_record_gemini_throttle(text) TO service_role"));
+  assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.aevora_record_gemini_throttle(uuid, text) TO service_role"));
   assert.ok(migration.includes("not idempotent across duplicate calls"));
 });
 
