@@ -123,6 +123,8 @@ A passing CI run validates only the source and test scope named in that run. It 
 5. Add creator publishing and community only after reader and operations foundations are dependable.
 6. Integrate Mythara and adaptations after cross-platform rights, identity and canon workflows are designed.
 
+**Direct live-catalog follow-up (2026-10-16):** read-only Supabase catalog queries reconfirmed the provider-state table's exact six-column shape and primary key, found broad `anon`/`authenticated` relation grants (including `TRUNCATE` and `MAINTAIN`), found broad future-object defaults for both `postgres` and `supabase_admin`, and returned no routines matching the provider-state/cooldown naming patterns. The live migration ledger still records `20261007025751 add_taleforge_ai_provider_cooldown_state` and latest `20261010161919 aevora_release_scheduler_leases`; the later provider lock/default-privilege migrations are not recorded as applied. These are catalog-only observations, not permission changes; the original migration body remains unresolved.
+
 ## Next actions — in order
 
 **Latest continuation update (2026-10-16):** CI run 38895944662 is now confirmed fully green: both jobs completed successfully. The browser workflow-table boundary test passed. This improves branch regression coverage but does not close any live-schema, deployment-drift, or production authorization gate.
