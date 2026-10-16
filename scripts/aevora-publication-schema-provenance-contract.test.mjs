@@ -58,6 +58,17 @@ test("publication schema inventory covers commit-boundary relations and required
   }
 });
 
+test("every schema-scoped publication inventory query includes both candidate internal schema names", () => {
+  const scopedClauses = sql.match(/n\\.nspname IN \\(/g) ?? [];
+  const reconciledClauses = sql.match(/n\\.nspname IN \\('public', 'aevora_private', 'taleforge_internal'\\)/g) ?? [];
+  assert.ok(scopedClauses.length > 0, "inventory must contain schema-scoped catalog queries");
+  assert.equal(
+    reconciledClauses.length,
+    scopedClauses.length,
+    "every schema-scoped query must inspect public and both candidate internal schema names",
+  );
+});
+
 test("publication inventory pins catalog objects and helpers to pg_catalog", () => {
   assert.match(sql, /FROM pg_catalog\.pg_class/);
   assert.match(sql, /JOIN pg_catalog\.pg_namespace/);
