@@ -119,8 +119,8 @@ Deno.test("scheduler validates caller and request before any database query or l
 Deno.test("generation orchestrator fails closed when Gemini provider state is unavailable or malformed", async () => {
   const source = await Deno.readTextFile(generationOrchestratorUrl);
   const helperStart = source.indexOf("async function getGeminiCooldown(");
-  const helperEnd = source.indexOf("\n }", helperStart);
-  const helper = source.slice(helperStart, helperEnd >= 0 ? helperEnd : helperStart + 2000);
+  const helperEnd = source.indexOf("async function recordGeminiThrottle(", helperStart);
+  const helper = source.slice(helperStart, helperEnd >= 0 ? helperEnd : helperStart + 4000);
   assert(helper.includes("if(error || !data)"), "provider-state lookup errors and missing rows must both fail closed");
   assert(helper.includes("lookup_error:"), "unavailable provider state must expose an internal diagnostic reason");
   assert(helper.includes("Number.isFinite(until.getTime())"), "malformed cooldown timestamps must fail closed");
