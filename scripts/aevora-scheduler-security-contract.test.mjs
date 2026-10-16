@@ -189,3 +189,12 @@ test("dry-run mode cannot claim leases, call the publisher, transition lifecycle
   assert.ok(source.slice(activate, activate + 300).includes("aevora_activate_story_lifecycle_if_lease_owned"),
     "lifecycle activation must use the lease-owned atomic RPC");
 });
+
+
+test("scheduler requires a trusted internal API key before creating its service-role client", () => {
+  const guard = source.indexOf("if(!isTrustedInternalApiKey(");
+  const client = source.indexOf("const supabase=createClient(");
+  assert.ok(source.includes('import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";'));
+  assert.ok(guard >= 0 && client > guard, "internal caller authentication must precede service-role client creation");
+  assert.ok(source.includes('return response({success:false,error:"Caller must authenticate with a configured server-side Supabase API key."},401);'));
+});
