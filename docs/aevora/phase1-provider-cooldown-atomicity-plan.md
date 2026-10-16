@@ -53,3 +53,9 @@ The current handler converts `consecutive_throttle_count` to a number and substi
 
 The atomic database operation must not silently normalize an invalid persisted counter. It should return a stable invalid-state result (or use another explicitly reviewed recovery rule), leave the prior state intact, and prevent the caller from claiming cooldown recording succeeded. Add regression cases for `NULL` if allowed by the actual schema, negative values, fractional values if the type permits them, and values outside the supported integer range. Test only the representations that the reconciled schema can actually store.
 
+
+## Second writer path: generation-orchestrator fallback
+
+The atomicity scope includes **both** `generate-chapter` and `generation-orchestrator`. The orchestrator has a fallback recorder that independently reads `taleforge_ai_provider_state`, computes a counter/cooldown in TypeScript, and upserts the row. Its current “already active” check avoids some duplicate counting when a worker has already persisted a cooldown, but that read-then-write check is itself racy and is not an idempotency guarantee. Two concurrent fallback calls can also observe the same state and lose an increment.
+
+The eventual RPC migration must route both writers through the same atomic database operation, with an explicitly reviewed policy for duplicate observations of one upstream failure. Do not fix only the direct worker while leaving the fallback path as a second non-atomic writer. Until that is implemented and rehearsed, provider cooldown atomicity remains an open release blocker.
