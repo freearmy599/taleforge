@@ -16,6 +16,7 @@ const insertOnly = await readMigration("20261014150000_reader_events_insert_only
 const relationship = await readMigration("20261014200000_reader_event_relationship_integrity.sql");
 const idempotency = await readMigration("20261014220000_reader_event_idempotency_key.sql");
 const timestamp = await readMigration("20261014230000_reader_event_server_timestamp.sql");
+const intakeRpc = await readMigration("20261015120000_reader_event_intake_rpc.sql");
 
 test("reader event intake is INSERT-only for ordinary API roles", () => {
   assert.match(insertOnly, /REVOKE ALL PRIVILEGES ON TABLE public\.reader_events FROM PUBLIC, anon, authenticated/i);
@@ -44,6 +45,16 @@ test("client timestamps are replaced at the server boundary with a fixed search_
   assert.match(timestamp, /BEFORE INSERT ON public\.reader_events\s+FOR EACH ROW\s+EXECUTE FUNCTION public\.taleforge_force_reader_event_client_timestamp\(\)/i);
 });
 
+
+test("reader-event RPC claims the unique event before mutating quota", () => {
+  const eventInsert = intakeRpc.indexOf("INSERT INTO public.reader_events(visitor_id, event_type, series_id, chapter_id, progress_percent, event_uuid)");
+  const duplicateReturn = intakeRpc.indexOf("RETURN jsonb_build_object('outcome', 'duplicate')", eventInsert);
+  const quotaIncrement = intakeRpc.indexOf("INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)", duplicateReturn);
+  assert.ok(eventInsert >= 0, "event row must be inserted in the intake transaction");
+  assert.ok(duplicateReturn > eventInsert, "duplicate insert outcome must return before quota mutation");
+  assert.ok(quotaIncrement > duplicateReturn, "quota buckets must only increment after a unique event row is claimed");
+  assert.match(intakeRpc, /direct compatibility[\s\S]*?does not take the advisory lock[\s\S]*?without consuming quota/i);
+});
 
 test("browser reader-event writes remain centralized in the progress tracker", async () => {
   const entries = await readdir(repositoryRoot, { withFileTypes: true });
