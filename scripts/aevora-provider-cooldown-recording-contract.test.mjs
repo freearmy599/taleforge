@@ -94,6 +94,6 @@ test("atomic cooldown migration has safe diagnostics, monotonic expiry, and serv
 test("atomicity plan records both writers and preserves the production evidence gate", () => {
   assert.ok(plan.includes("generate-chapter") && plan.includes("generation-orchestrator"));
   assert.ok(plan.includes("route both writers through the same atomic database operation"));
-  assert.ok(plan.includes("schema provenance"));
+  assert.ok(plan.includes("missing original provider-state migration body"));
   assert.ok(plan.includes("does not authorize production deployment"));
 });
