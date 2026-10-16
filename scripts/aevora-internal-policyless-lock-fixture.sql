@@ -10,8 +10,17 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
     EXECUTE 'CREATE ROLE service_role NOLOGIN BYPASSRLS';
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'supabase_admin') THEN
+    EXECUTE 'CREATE ROLE supabase_admin NOLOGIN';
+  END IF;
 END
 $roles$;
+
+GRANT CREATE ON SCHEMA public TO supabase_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  GRANT ALL PRIVILEGES ON TABLES TO PUBLIC, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
+  GRANT ALL PRIVILEGES ON TABLES TO PUBLIC, anon, authenticated, service_role;
 
 DO $tables$
 DECLARE
