@@ -8,6 +8,21 @@ const generationOrchestrator = await readFile("supabase/functions/generation-orc
 const reviewOrchestrator = await readFile("supabase/functions/review-orchestrator/index.ts", "utf8");
 const generateChapter = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const reviseChapter = await readFile("supabase/functions/revise-chapter/index.ts", "utf8");
+const providerStateGuardFunctions = await Promise.all([
+  "supabase/functions/generation-orchestrator/index.ts",
+  "supabase/functions/generate-chapter/index.ts",
+  "supabase/functions/review-orchestrator/index.ts",
+  "supabase/functions/revise-chapter/index.ts",
+  "supabase/functions/continuity-review/index.ts",
+  "supabase/functions/originality-review/index.ts",
+  "supabase/functions/safety-review/index.ts",
+  "supabase/functions/arc-planner/index.ts",
+  "supabase/functions/blueprint-planner/index.ts",
+  "supabase/functions/character-continuity/index.ts",
+  "supabase/functions/semantic-continuity-extraction/index.ts",
+  "supabase/functions/story-dna-planner/index.ts",
+  "supabase/functions/world-continuity/index.ts",
+].map((path) => readFile(path, "utf8")));
 const publisher = await readFile("supabase/functions/release-publisher/index.ts", "utf8");
 const generator = await readFile("supabase/functions/generate-chapter/index.ts", "utf8");
 const readiness = await readFile("supabase/functions/release-scheduler/readiness.ts", "utf8");
@@ -708,4 +723,13 @@ test("autonomous runner keeps a new schedule inert until the readiness RPC confi
     "readiness must not be requested until the disabled schedule write is confirmed");
   assert.match(runner, /readinessResult\?\.ready !== true/);
   assert.match(runner, /auto_publication_enabled:\s*false/);
+});
+
+
+test("every Gemini provider-state reader fails closed on malformed throttle counters", () => {
+  assert.equal(providerStateGuardFunctions.length, 13);
+  for (const source of providerStateGuardFunctions) {
+    assert.match(source, /Number\\.isSafeInteger\\([^)]*consecutive_throttle_count/);
+    assert.match(source, /consecutive_throttle_count\\s*<\\s*0/);
+  }
 });
