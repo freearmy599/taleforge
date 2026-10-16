@@ -23,3 +23,12 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016203000_re
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE TABLE public.future_postgres_table (id bigint PRIMARY KEY)"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SET ROLE supabase_admin; CREATE TABLE public.future_supabase_admin_table (id bigint PRIMARY KEY); RESET ROLE;"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-policyless-lock-assertions.sql
+
+# A global default cannot be safely counteracted by a public-schema-only REVOKE.
+# Seed one in this disposable database and require the migration to fail closed.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT TRUNCATE ON TABLES TO anon"
+if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016203000_revoke_client_maintenance_default_privileges.sql; then
+  echo "Expected global maintenance default to block the schema-scoped migration, but it succeeded." >&2
+  exit 1
+fi
+echo "Global maintenance default correctly blocks the schema-scoped default ACL repair."
