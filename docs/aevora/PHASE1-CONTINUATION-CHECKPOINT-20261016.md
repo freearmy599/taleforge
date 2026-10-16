@@ -3,7 +3,7 @@
 ## Branch and latest validation
 
 - Working branch: `aevora/release-scheduler-hardening`
-- Latest checkpoint refresh commit: `e3dded6431a7eb26da92a1160b65e8625b49cc44` — `docs(aevora): record publication schema reconciliation`.
+- Latest checkpoint refresh commit before this edit: `e8239f601cb105af9a59c5ae7b2d178678fae5a2c` — `docs(aevora): refresh phase one continuation checkpoint`.
 - Latest validation observed: [CI run 38868044595](https://github.com/freearmy599/taleforge/actions/runs/38868044595) on parent commit `de13b0ccc3e4c35b3b26bffc574db13971b22d6f`.
   - [Edge Function type-check](https://github.com/freearmy599/taleforge/actions/runs/38863623400/job/116851342381): passed.
   - [Disposable PostgreSQL readiness/security rehearsal](https://github.com/freearmy599/taleforge/actions/runs/38863623400/job/116851342863): passed.
