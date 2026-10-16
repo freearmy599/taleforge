@@ -19,6 +19,35 @@ This is the project-wide task register for finishing Aevora, including security/
 - **Branch-only candidate:** `20261016180000_atomic_gemini_provider_throttle.sql` and RPC caller changes are not production-deployed or runtime-verified.
 - **Production boundary:** no production migrations/deployments, schedule changes, chapter generation/publication, or billable Supabase development branch without explicit authorization.
 
+## Canonical system-family inventory and verification sizing (2026-10-16)
+
+This is a planning inventory, not a claim that every system has been fully audited. The count is at the system-family level; individual Edge Functions, pages, database objects, and tests are implementation components inside these families.
+
+**Current planning count: 38 system families**, grouped as follows:
+- **10 foundation/reliability families:** authentication and internal authorization; database/RLS/grants; provider state and quota controls; AI-call guards; scheduler/leases; publisher/idempotency; publication authorization/outbox/canon sync; reader-event/trending data; operations audit/monitoring; CI/deployment/migration drift.
+- **8 autonomous-production families:** series creation; Story DNA/series bible; blueprint and arc planning; chapter generation; revision/retry handling; review orchestration; continuity workers (character/world/semantic); queue recovery and production telemetry.
+- **6 Originals quality families:** originality and safety; series/canon isolation; measurable editorial quality scoring; long-horizon plot/arc coherence; genre/subgenre/hybrid intelligence; titles/synopses/covers and series identity.
+- **6 reader-platform families:** homepage/discovery; search/filters/collections; series pages; chapter reader; reader library/progress/bookmarks; personalization/retention plus SEO/accessibility/performance checks (grouped for planning and split into explicit acceptance checks).
+- **3 Creator Studio/community families:** creator publishing workflow; author profiles/analytics; reviews/lists/discussion/moderation.
+- **3 Mythara/adaptation families:** opt-in identity/rights/distribution; novel-to-manga; novel-to-anime and cross-version canon.
+- **2 cross-cutting agent systems:** Clara and Chief Editor.
+
+The 38 is a working count of major system families, not 38 independent applications or 38 completed builds. The detailed register below remains the source of truth for tasks. As the code/schema inventory becomes more complete, split or merge families transparently rather than reporting a false completion percentage.
+
+### Verification level by family
+
+- **Critical / release-blocking:** foundation/reliability, provider/quota safety, scheduler, publisher, publication authorization, and the controlled production loop. Requires source review, type-checks, regression contracts, isolated database rehearsal, concurrency/race tests where applicable, runtime compatibility, authorization review, rollback plan, and deployment-version reconciliation. Production rollout is a separate explicit approval.
+- **High / content-quality blocking:** autonomous production and Originals quality. Requires representative end-to-end series and chapter runs in a safe environment, structured review outputs, negative/failure cases, series-isolation tests, and long-horizon checks at 50/100/200+ chapters. A quality score alone cannot guarantee every novel is excellent; low-confidence or failed checks must block release or escalate to editorial review.
+- **High / reader-launch blocking:** public navigation, discovery, series pages, reader, mobile behavior, published-content boundaries, search, accessibility, SEO, and performance. Requires route/button audit, phone/tablet/desktop checks, real-data integrity, smoke tests, and checks that unpublished content is never exposed.
+- **Medium-to-high / deferred until needed:** Creator Studio and community. Requires permissions, ownership/rights, moderation, abuse controls, privacy, and publication lifecycle tests before opening to users.
+- **High / later integration:** Mythara and adaptations. Requires explicit opt-in and rights, provenance/versioning, canon ownership, cross-platform failure handling, and human editorial review.
+
+### Clara and Chief Editor — role and proof requirements
+
+- **Clara:** the project vision expects a cross-system governance/beautification agent that identifies UI and operational problems, proposes prioritized fixes, respects resource and safety limits, and does not autonomously change production without an approved path. Current design documents also describe a separate Product Designer charter. Before implementation is expanded, reconcile whether Product Designer is Clara's UI-specialist capability or a separate agent; do not build two overlapping control planes by accident. Verify authorization, proposal/evidence format, design-system consistency, accessibility/mobile review, cost limits, human approval, staged changes, rollback, and audit logging.
+- **Chief Editor:** a chief-editor.html admin monitor and a production-only/deployed function have been identified in earlier inventory, but the existence of a page is not proof that the full editorial agent works. Verify admin-role enforcement server-side, live/deployed function parity, read-only behavior where intended, series/chapter scoping, actionable findings, integration with review outcomes, and that failed/missing reviews block release. Keep its monitoring role distinct from authority to publish.
+- **Quality promise:** do not claim a mathematical guarantee of literary excellence. The implementable guarantee is a quality gate: every chapter must meet defined minimum criteria and pass required originality, continuity, safety, and editorial checks; failures are revised, blocked, or escalated rather than auto-published. Validate this with seeded good/bad cases and sampled human review.
+
 ## Phase 1 — Reliability, security, and safe publishing (CURRENT BLOCKER)
 
 ### A. CI, tests, and runtime
