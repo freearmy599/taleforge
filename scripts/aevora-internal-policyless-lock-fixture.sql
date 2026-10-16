@@ -50,7 +50,10 @@ BEGIN
 END
 $tables$;
 
--- Deliberately model broad grants on every target, including PUBLIC.
+-- A user-facing table is included to prove maintenance-only revocation preserves CRUD.
+CREATE TABLE public.chapters (id bigint PRIMARY KEY);
+
+-- Deliberately model broad grants on every fixture table, including PUBLIC.
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO PUBLIC, anon, authenticated, service_role;
 
 -- Also model independent column grants: table-level REVOKE does not remove these.
@@ -83,7 +86,8 @@ BEGIN
     'taleforge_story_opportunity_runs',
     'taleforge_system_governance_dependencies',
     'taleforge_system_governance_registry',
-    'taleforge_system_governance_runs'
+    'taleforge_system_governance_runs',
+    'chapters'
   ]
   LOOP
     EXECUTE format('GRANT SELECT (id), INSERT (id), UPDATE (id), REFERENCES (id) ON TABLE public.%I TO PUBLIC, anon, authenticated', table_name);
