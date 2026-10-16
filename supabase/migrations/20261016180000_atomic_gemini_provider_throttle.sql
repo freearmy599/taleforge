@@ -15,7 +15,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog, public, pg_temp
 AS $function$
 DECLARE
   v_now timestamptz := clock_timestamp();
@@ -74,6 +74,8 @@ BEGIN
   RETURN QUERY SELECT true, v_until, v_count, v_hours;
 END;
 $function$;
+
+ALTER FUNCTION public.aevora_record_gemini_throttle(text) OWNER TO postgres;
 
 REVOKE ALL ON FUNCTION public.aevora_record_gemini_throttle(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.aevora_record_gemini_throttle(text) FROM anon, authenticated;
