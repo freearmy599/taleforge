@@ -20,8 +20,6 @@ BEGIN
     'release_schedules',
     'story_blueprints',
     'story_versions',
-    'publication_sync_outbox',
-    'story_attachment_metrics',
 
     'taleforge_ceo_daily_operations',
     'taleforge_ceo_incidents',
