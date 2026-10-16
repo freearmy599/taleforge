@@ -304,3 +304,32 @@ The direct relation ACL query again found ordinary-client grants to both `anon` 
 The default-ACL catalog query returned broad future-object defaults for both `postgres` and `supabase_admin` owners, including client table grants, sequence grants, and function EXECUTE. This reinforces that the later default-privilege migration is not reflected in the live ledger and that owner-level `supabase_admin` remediation remains a separate gate.
 
 These checks were catalog-only SELECTs. No application rows, database writes, migrations, deployments, schedule changes, or chapter operations were performed. This evidence confirms live drift but does not resolve the missing original migration body. Keep the atomic cooldown implementation blocked until provenance is reconciled and the full authorized inventory (including column ACLs, triggers, routine definitions, and owner-specific defaults) is reviewed.
+
+
+## Follow-up publication-boundary catalog verification — 2026-10-16
+
+A direct read-only catalog pass confirmed all ten audited publication/workflow relations exist as ordinary tables owned by `postgres`, with RLS enabled and not forced:
+
+- `chapter_blueprints` (21 columns)
+- `chapter_generation_outputs` (20)
+- `chapter_publication_reviews` (11)
+- `chapter_reviews` (10)
+- `chapters` (19)
+- `publication_sync_outbox` (12)
+- `reader_events` (7)
+- `release_schedules` (15)
+- `series` (28)
+- `story_blueprints` (32)
+
+The direct table ACL inventory again found `anon` and `authenticated` grants on **all ten** relations for SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, and PostgreSQL's `MAINTAIN` privilege. `service_role` has its own broad grants as expected for the reviewed server-side workflows. RLS being enabled does not neutralize table privileges such as TRUNCATE or MAINTAIN. This is direct relation ACL evidence; a final least-privilege decision still needs the full policy, column-ACL, and caller-path matrix. Do not perform a blanket revoke: published reader SELECT and the deliberately constrained reader-event intake need their own verified paths.
+
+Selected live constraints reinforce the transaction design requirements:
+
+- `chapters` and `chapter_blueprints` each have uniqueness on `(series_id, chapter_number)`.
+- `chapter_publication_reviews` has one row per `generation_output_id`; `chapter_reviews` has one row per `(generation_output_id, review_type)`.
+- `publication_sync_outbox` has uniqueness on `(chapter_id, event_type)`.
+- `release_schedules` has both `interval_hours >= 8 AND <= 168` and another `interval_hours >= 1` check, so the effective lower bound is 8 hours when non-null.
+- The `chapters` table has an AFTER INSERT/UPDATE-OF-status trigger for published rows that calls `enqueue_publication_sync_event()`, owned by `postgres` and marked SECURITY DEFINER. It also has continuity extraction, long-term architecture refresh, chapter-count, and timestamp triggers.
+- `chapter_generation_outputs` and `chapter_publication_reviews` have SECURITY DEFINER gate-sync/enforcement triggers. These call paths must be inspected before changing ACLs or designing a publication transaction; the trigger name and flags alone do not prove the full safety of their function bodies.
+
+This pass was catalog-only. It did not inspect application row content, modify grants, apply migrations, or execute publication workflows. It expands the confirmed live drift evidence but does not clear rollout. A complete reconciliation still requires the full routine bodies/search paths and policy/column ACL inventories, plus the missing provider-state migration source.
