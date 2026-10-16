@@ -356,6 +356,7 @@ async function getGeminiProviderBlock(supabase: any): Promise<{reason:string; co
   const {data,error}=await supabase.from("taleforge_ai_provider_state")
     .select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
   if(error||!data)return {reason:"provider_state_unavailable"};
+  if(typeof data.consecutive_throttle_count!=="number"||!Number.isSafeInteger(data.consecutive_throttle_count)||data.consecutive_throttle_count<0)return {reason:"provider_state_unavailable"};
   if(data.cooldown_until){
     const until=Date.parse(data.cooldown_until);
     if(!Number.isFinite(until))return {reason:"invalid_cooldown_timestamp",cooldown_until:data.cooldown_until};
@@ -460,6 +461,10 @@ const providerStateResult = await supabase
 if (providerStateResult.error || !providerStateResult.data) {
 console.error("[revise-chapter] Gemini provider state unavailable; failing closed.");
 return jsonResponse({ success: false, blocked: true, retryable: true, reason: "provider_state_unavailable", note: "Revision blocked because Gemini cooldown state could not be verified; no model call was made." }, 503);
+}
+if (typeof providerStateResult.data.consecutive_throttle_count !== "number" || !Number.isSafeInteger(providerStateResult.data.consecutive_throttle_count) || providerStateResult.data.consecutive_throttle_count < 0) {
+console.error("[revise-chapter] Gemini provider throttle counter is malformed; failing closed.");
+return jsonResponse({ success: false, blocked: true, retryable: true, reason: "provider_state_unavailable", note: "Revision blocked because Gemini provider state is malformed; no model call was made." }, 503);
 }
 const cooldownUntil = providerStateResult.data.cooldown_until ? Date.parse(providerStateResult.data.cooldown_until) : null;
 if (providerStateResult.data.cooldown_until && (cooldownUntil === null || !Number.isFinite(cooldownUntil))) {
