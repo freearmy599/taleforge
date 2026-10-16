@@ -7,28 +7,28 @@
 -- 1. Relation identity, owner, RLS, and persistence kind.
 SELECT n.nspname AS schema_name,
        c.relname AS table_name,
-       pg_get_userbyid(c.relowner) AS owner_name,
+       pg_catalog.pg_get_userbyid(c.relowner) AS owner_name,
        c.relkind,
        c.relpersistence,
        c.relrowsecurity AS rls_enabled,
        c.relforcerowsecurity AS rls_forced,
-       obj_description(c.oid, 'pg_class') AS table_comment
-FROM pg_class c
-JOIN pg_namespace n ON n.oid = c.relnamespace
+       pg_catalog.obj_description(c.oid, 'pg_catalog.pg_class') AS table_comment
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = 'public'
   AND c.relname = 'taleforge_ai_provider_state';
 
 -- 2. Exact column names, types, nullability, defaults, and column comments.
 SELECT a.attnum AS ordinal_position,
        a.attname AS column_name,
-       format_type(a.atttypid, a.atttypmod) AS data_type,
+       pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type,
        a.attnotnull AS not_null,
-       pg_get_expr(d.adbin, d.adrelid) AS default_expression,
-       col_description(a.attrelid, a.attnum) AS column_comment
-FROM pg_attribute a
-JOIN pg_class c ON c.oid = a.attrelid
-JOIN pg_namespace n ON n.oid = c.relnamespace
-LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+       pg_catalog.pg_get_expr(d.adbin, d.adrelid) AS default_expression,
+       pg_catalog.col_description(a.attrelid, a.attnum) AS column_comment
+FROM pg_catalog.pg_attribute a
+JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN pg_catalog.pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
 WHERE n.nspname = 'public'
   AND c.relname = 'taleforge_ai_provider_state'
   AND a.attnum > 0
@@ -39,40 +39,40 @@ ORDER BY a.attnum;
 SELECT con.conname AS constraint_name,
        con.contype AS constraint_type,
        con.convalidated AS validated,
-       pg_get_constraintdef(con.oid, true) AS definition
-FROM pg_constraint con
-JOIN pg_class c ON c.oid = con.conrelid
-JOIN pg_namespace n ON n.oid = c.relnamespace
+       pg_catalog.pg_get_constraintdef(con.oid, true) AS definition
+FROM pg_catalog.pg_constraint con
+JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = 'public'
   AND c.relname = 'taleforge_ai_provider_state'
 ORDER BY con.conname;
 
 -- 4. Indexes and uniqueness details; needed to verify the provider conflict target.
-SELECT i.indexrelid::regclass AS index_name,
+SELECT i.indexrelid::pg_catalog.regclass AS index_name,
        i.indisprimary AS is_primary,
        i.indisunique AS is_unique,
        i.indisvalid AS is_valid,
-       pg_get_indexdef(i.indexrelid) AS index_definition
-FROM pg_index i
-JOIN pg_class t ON t.oid = i.indrelid
-JOIN pg_namespace n ON n.oid = t.relnamespace
+       pg_catalog.pg_get_indexdef(i.indexrelid) AS index_definition
+FROM pg_catalog.pg_index i
+JOIN pg_catalog.pg_class t ON t.oid = i.indrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace
 WHERE n.nspname = 'public'
   AND t.relname = 'taleforge_ai_provider_state'
-ORDER BY i.indexrelid::regclass::text;
+ORDER BY i.indexrelid::pg_catalog.regclass::text;
 
 -- 5. Triggers and trigger functions. Definitions may contain internal logic;
 -- retain them only in the approved audit location.
 SELECT t.tgname AS trigger_name,
        t.tgenabled AS enabled_state,
-       pg_get_triggerdef(t.oid, true) AS trigger_definition,
-       p.oid::regprocedure AS trigger_function,
-       pg_get_userbyid(p.proowner) AS function_owner,
+       pg_catalog.pg_get_triggerdef(t.oid, true) AS trigger_definition,
+       p.oid::pg_catalog.regprocedure AS trigger_function,
+       pg_catalog.pg_get_userbyid(p.proowner) AS function_owner,
        p.prosecdef AS security_definer,
        p.proconfig AS function_settings
-FROM pg_trigger t
-JOIN pg_class c ON c.oid = t.tgrelid
-JOIN pg_namespace n ON n.oid = c.relnamespace
-JOIN pg_proc p ON p.oid = t.tgfoid
+FROM pg_catalog.pg_trigger t
+JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
 WHERE n.nspname = 'public'
   AND c.relname = 'taleforge_ai_provider_state'
   AND NOT t.tgisinternal
@@ -83,11 +83,11 @@ SELECT COALESCE(grantee.rolname, 'PUBLIC') AS grantee,
        grantor.rolname AS grantor,
        x.privilege_type,
        x.is_grantable
-FROM pg_class c
-JOIN pg_namespace n ON n.oid = c.relnamespace
-CROSS JOIN LATERAL aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) x
-LEFT JOIN pg_roles grantee ON grantee.oid = x.grantee
-JOIN pg_roles grantor ON grantor.oid = x.grantor
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))) x
+LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = x.grantee
+JOIN pg_catalog.pg_roles grantor ON grantor.oid = x.grantor
 WHERE n.nspname = 'public'
   AND c.relname = 'taleforge_ai_provider_state'
 ORDER BY grantee, x.privilege_type, grantor;
@@ -98,12 +98,12 @@ SELECT COALESCE(grantee.rolname, 'PUBLIC') AS grantee,
        a.attname AS column_name,
        x.privilege_type,
        x.is_grantable
-FROM pg_attribute a
-JOIN pg_class c ON c.oid = a.attrelid
-JOIN pg_namespace n ON n.oid = c.relnamespace
-CROSS JOIN LATERAL aclexplode(a.attacl) x
-LEFT JOIN pg_roles grantee ON grantee.oid = x.grantee
-JOIN pg_roles grantor ON grantor.oid = x.grantor
+FROM pg_catalog.pg_attribute a
+JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+CROSS JOIN LATERAL pg_catalog.aclexplode(a.attacl) x
+LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = x.grantee
+JOIN pg_catalog.pg_roles grantor ON grantor.oid = x.grantor
 WHERE n.nspname = 'public'
   AND c.relname = 'taleforge_ai_provider_state'
   AND a.attnum > 0
@@ -119,11 +119,11 @@ SELECT owner_role.rolname AS default_acl_owner,
        COALESCE(grantee.rolname, 'PUBLIC') AS grantee,
        x.privilege_type,
        x.is_grantable
-FROM pg_default_acl d
-LEFT JOIN pg_namespace n ON n.oid = d.defaclnamespace
-JOIN pg_roles owner_role ON owner_role.oid = d.defaclrole
-CROSS JOIN LATERAL aclexplode(d.defaclacl) x
-LEFT JOIN pg_roles grantee ON grantee.oid = x.grantee
+FROM pg_catalog.pg_default_acl d
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
+JOIN pg_catalog.pg_roles owner_role ON owner_role.oid = d.defaclrole
+CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) x
+LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = x.grantee
 WHERE (d.defaclnamespace = 0 OR n.nspname = 'public')
   AND d.defaclobjtype = 'r'
 ORDER BY owner_role.rolname, schema_name, grantee, x.privilege_type;
@@ -131,15 +131,15 @@ ORDER BY owner_role.rolname, schema_name, grantee, x.privilege_type;
 -- 9. Existing routines whose names suggest provider-state or throttle handling.
 -- This records signatures/ownership/security settings, not routine execution.
 SELECT n.nspname AS schema_name,
-       p.oid::regprocedure AS routine_signature,
-       pg_get_userbyid(p.proowner) AS owner_name,
+       p.oid::pg_catalog.regprocedure AS routine_signature,
+       pg_catalog.pg_get_userbyid(p.proowner) AS owner_name,
        p.prosecdef AS security_definer,
        p.proconfig AS routine_settings,
        p.proacl AS routine_acl
-FROM pg_proc p
-JOIN pg_namespace n ON n.oid = p.pronamespace
+FROM pg_catalog.pg_proc p
+JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname IN ('public', 'extensions')
   AND (p.proname ILIKE '%provider%state%'
        OR p.proname ILIKE '%gemini%throttle%'
        OR p.proname ILIKE '%cooldown%')
-ORDER BY n.nspname, p.proname, p.oid::regprocedure::text;
+ORDER BY n.nspname, p.proname, p.oid::pg_catalog.regprocedure::text;
