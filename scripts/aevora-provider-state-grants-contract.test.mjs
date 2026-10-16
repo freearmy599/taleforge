@@ -60,6 +60,23 @@ const providerStateRehearsal = await readFile(
   "utf8",
 );
 
+const defaultPrivilegeMigration = await readFile(
+  new URL("../supabase/migrations/20261014170000_restrict_public_default_privileges.sql", import.meta.url),
+  "utf8",
+);
+const defaultPrivilegeFixture = await readFile(
+  new URL("./aevora-public-default-privilege-fixture.sql", import.meta.url),
+  "utf8",
+);
+const defaultPrivilegeAssertions = await readFile(
+  new URL("./aevora-public-default-privilege-assertions.sql", import.meta.url),
+  "utf8",
+);
+const defaultPrivilegeRehearsal = await readFile(
+  new URL("./test-aevora-public-default-privileges.sh", import.meta.url),
+  "utf8",
+);
+
 test("provider-state ACL lock has disposable PostgreSQL runtime assertions", () => {
   assert.match(providerStateFixture, /GRANT ALL PRIVILEGES ON TABLE public\.taleforge_ai_provider_state TO anon, authenticated/);
   assert.match(providerStateFixture, /GRANT SELECT \(last_error\), UPDATE \(last_error\).*TO anon, authenticated/);
@@ -71,6 +88,22 @@ test("provider-state ACL lock has disposable PostgreSQL runtime assertions", () 
   assert.match(providerStateRehearsal, /AEVORA_DISPOSABLE_PROVIDER_STATE_REHEARSAL/);
   assert.match(providerStateRehearsal, /Refusing provider-state lock rehearsal against a Supabase URL/);
   assert.match(providerStateRehearsal, /20261013120000_lock_ai_provider_state_table\.sql/);
+});
+
+test("public default-privilege lock is rehearsed against newly created objects", () => {
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated/);
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL PRIVILEGES ON SEQUENCES TO anon, authenticated/);
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT EXECUTE ON FUNCTIONS TO PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegeAssertions, /CREATE TABLE public\.aevora_default_privilege_probe/);
+  assert.match(defaultPrivilegeAssertions, /CREATE SEQUENCE public\.aevora_default_privilege_probe_seq/);
+  assert.match(defaultPrivilegeAssertions, /CREATE FUNCTION public\.aevora_default_privilege_probe_fn/);
+  assert.match(defaultPrivilegeAssertions, /has_sequence_privilege/);
+  assert.match(defaultPrivilegeAssertions, /has_function_privilege/);
+  assert.match(defaultPrivilegeAssertions, /acl\.grantee = 0/);
+  assert.match(defaultPrivilegeRehearsal, /AEVORA_DISPOSABLE_DEFAULT_PRIVILEGE_REHEARSAL/);
+  assert.match(defaultPrivilegeRehearsal, /Refusing default-privilege rehearsal against a Supabase URL/);
+  assert.match(defaultPrivilegeRehearsal, /20261014170000_restrict_public_default_privileges\.sql/);
+  assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/);
 });
 
 test("Gemini provider state is server-side only", () => {
