@@ -192,10 +192,27 @@ No policies were returned for chapter_blueprints, chapter_generation_outputs, ch
 
 ### Trigger and privileged-function inventory
 
-The inspected relations have 17 user-defined triggers. The relevant publication-side trigger is chapters_publication_sync_outbox, which runs after a chapter insert or status update when the new status is published; it calls public.enqueue_publication_sync_event(). That function is SECURITY DEFINER, owned by postgres, has search_path=public, and inserts a minimal chapter_id payload into public.publication_sync_outbox with conflict handling on (chapter_id,event_type). The observed function ACL does not grant EXECUTE to anon or authenticated; trigger execution itself does not require the caller to have direct execute permission on the trigger function.
+The inspected relations have 16 user-defined triggers. The relevant publication-side trigger is chapters_publication_sync_outbox, which runs after a chapter insert or status update when the new status is published; it calls public.enqueue_publication_sync_event(). That function is SECURITY DEFINER, owned by postgres, has search_path=public, and inserts a minimal chapter_id payload into public.publication_sync_outbox with conflict handling on (chapter_id,event_type). The observed function ACL does not grant EXECUTE to anon or authenticated; trigger execution itself does not require the caller to have direct execute permission on the trigger function.
 
 Other inspected SECURITY DEFINER trigger functions include the continuity/quality gate synchronizers, publication review gates, continuity extraction enqueue, series production enrollment, long-term narrative architecture refresh, and narrative compliance trigger. Most are owned by postgres and have explicit search_path settings. public.taleforge_trigger_narrative_compliance() is the exception: it sets an empty search path and calls public.taleforge_verify_narrative_compliance(new.id) with an explicitly schema-qualified reference. This reduces implicit object lookup in the wrapper, but the downstream function's own body, ownership, ACL, and settings still need inspection before the complete call chain can be cleared.
 
 ### Gate update
 
 The live catalog evidence now confirms the policy inventory and key trigger entry points, but it does not yet establish that all trigger bodies and downstream privileged routines preserve the intended publication boundary. Before designing a publication transaction or changing grants, inspect the exact constraints/indexes and the full downstream security-definer call graph, especially the narrative-compliance verifier and routines called by publication triggers. Keep the production migration/deployment gate closed. No grants, policies, triggers, functions, schedules, chapters, or publication state were changed.
+
+
+## Publication transaction constraint and idempotency review — 2026-10-16
+
+A read-only catalog query retrieved exact constraint and index definitions for chapters, publication reviews, review records, the publication sync outbox, and release schedules.
+
+- chapters enforces a unique (series_id, chapter_number), checks status against draft/review/approved/published/scheduled, and cascades chapter deletion to its series relationship.
+- chapter_publication_reviews permits one row per generation_output_id and constrains decision to pending/approved/rejected/needs_revision. Its generation-output foreign key cascades on delete.
+- chapter_reviews permits one row per (generation_output_id, review_type), constrains review_type to quality/continuity/originality/safety, and constrains status to pending/running/passed/needs_revision/failed.
+- publication_sync_outbox has a unique (chapter_id, event_type) key, a chapter foreign key with ON DELETE CASCADE, a constrained status set (pending/processing/succeeded/failed), and a partial readiness index over pending/failed rows ordered by status and next_attempt_at.
+- release_schedules enforces one schedule per series, valid schedule modes, chapters_ahead from 1 to 20, and preferred_weekday from 0 to 6 when present. Two interval constraints overlap: one requires interval_hours between 8 and 168 when non-null, while another requires it to be at least 1. The combined effective lower bound is 8 hours; the redundant check should be documented or reconciled in a future reviewed migration, not edited live during this audit.
+
+### Transaction-design implications
+
+The outbox uniqueness key provides a database-level deduplication boundary for a given chapter/event type, but it does not alone prove that the chapter transition, schedule advancement, review authorization, and outbox enqueue form one authorized atomic publication operation. The chapter trigger inserts the outbox record in the same database transaction as the chapter insert/status update, which is useful, but the broader publication flow still needs transaction-boundary and rollback tests. Because outbox rows cascade on chapter deletion, the publication design must also explicitly decide whether deletion is allowed after publication and how downstream sync/audit obligations survive deletion.
+
+These definitions narrow the schema questions but do not authorize a migration or establish that the live scheduler/publisher uses the intended transaction boundary. Continue to treat production publication as blocked until the authorization, review, chapter-state, schedule, and outbox invariants are proven together in disposable PostgreSQL and the deployed Edge Runtime. No data or schema was changed.
