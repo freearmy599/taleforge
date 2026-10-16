@@ -6,7 +6,7 @@ Scope: `aevora_record_gemini_throttle`, direct writers, orchestration fallback w
 
 ## Executive result
 
-The current branch has **11 confirmed writer functions**: ten provider-call-owning Edge Functions plus the `generation-orchestrator` fallback writer. The complete branch tree has now been scanned, and the 11-function inventory is reconciled below. The candidate SQL does not satisfy the contract in `PHASE1-GEMINI-THROTTLE-CONTRACT-20261016.md`: it increments `consecutive_throttle_count` for both `quota` and `overload`, and it accepts no stable event identifier. Therefore, do not deploy the candidate migration or any writer changes yet.
+The original source audit found 11 writer functions before the follow-up repair: ten provider-call owners plus the `generation-orchestrator` fallback. The follow-up candidate removes the fallback writer and leaves ten direct writers. The earlier candidate SQL violated the contract; the newer event-ledger candidate is now under test. Do not deploy any migration or writer changes until the new CI, disposable PostgreSQL, runtime, ACL, and live-schema gates pass.
 
 ## Confirmed writer inventory
 
@@ -81,7 +81,7 @@ The next work item is to execute the updated source contracts and disposable Pos
 
 ## Full-tree inventory reconciliation — 2026-10-16
 
-The complete feature-branch tree contains 21 Edge Function TypeScript entrypoints. Source scan confirmed exactly ten direct provider-call owners plus one orchestrator fallback writer. The three direct writers missing from the initial audit draft were `arc-planner`, `blueprint-planner`, and `story-dna-planner`. Their helpers also send only `p_event_class`; they do not provide an event identity. The audit inventory is now reconciled to 11 writer functions. This scan is source-level only and does not substitute for tests or deployed-function comparison.
+The complete feature-branch tree contains 21 Edge Function TypeScript entrypoints. The pre-repair inventory was ten direct provider-call owners plus one orchestrator fallback. After the implementation follow-up, ten direct owners remain; each supplies `p_event_id`, and the orchestrator no longer writes a second event. This source scan does not substitute for tests or deployed-function comparison.
 
 
 ## Implementation follow-up — branch-only
