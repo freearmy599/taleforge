@@ -198,3 +198,19 @@ test("scheduler requires a trusted internal API key before creating its service-
   assert.ok(guard >= 0 && client > guard, "internal caller authentication must precede service-role client creation");
   assert.ok(source.includes('return response({success:false,error:"Caller must authenticate with a configured server-side Supabase API key."},401);'));
 });
+
+
+test("internal API key helper fails closed for missing, malformed, or unallowlisted secret keys", async () => {
+  const helper = await readFile(
+    new URL("../supabase/functions/_shared/internal-api-key.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(helper, /if \(!presentedApiKey\) return false;/);
+  assert.match(helper, /legacyServiceRoleKey && presentedApiKey === legacyServiceRoleKey/);
+  assert.match(helper, /if \(!secretKeysJson \|\| !allowedSecretKeyNamesCsv\) return false;/);
+  assert.match(helper, /if \(allowedNames\.size === 0\) return false;/);
+  assert.match(helper, /typeof parsed !== "object" \|\| Array\.isArray\(parsed\)/);
+  assert.match(helper, /allowedNames\.has\(name\) && typeof value === "string"/);
+  assert.match(helper, /value\.length > 0 && value === presentedApiKey/);
+  assert.match(helper, /catch \{[\s\S]*?return false;/);
+});
