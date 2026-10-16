@@ -2,11 +2,12 @@
 -- but no policies. With no policies, row access is denied; broad table grants are
 -- still unnecessary privilege. These are not client APIs.
 -- Do not add anon/authenticated policies to this list.
--- Revoke per-column grants as well as relation-level grants.
+-- Revoke supported per-column grants as well as relation-level grants.
 DO $$
 DECLARE
   table_name text;
   column_list text;
+  column_privilege text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'automation_config',
@@ -43,17 +44,21 @@ BEGIN
 
       SELECT string_agg(format('%I', attname), ', ' ORDER BY attnum)
         INTO column_list
-      FROM pg_attribute
+      FROM pg_catalog.pg_attribute
       WHERE attrelid = to_regclass(format('public.%I', table_name))
         AND attnum > 0
         AND NOT attisdropped;
 
       IF column_list IS NOT NULL THEN
-        EXECUTE format(
-          'REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated',
-          column_list,
-          table_name
-        );
+        FOREACH column_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','REFERENCES']
+        LOOP
+          EXECUTE format(
+            'REVOKE %s (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated',
+            column_privilege,
+            column_list,
+            table_name
+          );
+        END LOOP;
       END IF;
     END IF;
   END LOOP;
