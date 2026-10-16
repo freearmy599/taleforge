@@ -545,7 +545,8 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /let providerThrottleObserved=false;for\(const schedule of ordered\)\{if\(providerThrottleObserved\)/);
   assert.match(generationOrchestrator, /action:"provider_throttle_observed"/);
   assert.match(generationOrchestrator, /const generated=\[\];for\(const b of missing\)\{if\(providerThrottleObserved\)\{generated\.push\(\{chapter_number:b\.chapter_number,action:"provider_throttle_observed"/);
-  assert.match(generationOrchestrator, /if\(revisionQuotaBlocked\|\|revisionTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
+  assert.equal(generationOrchestrator.includes("await recordGeminiThrottle"), false, "orchestrator must not double-record a child provider failure");
+  assert.ok(generationOrchestrator.includes("Child revise-chapter already records this provider-call event"), "revision child owns provider-event persistence");
   assert.match(generationOrchestrator, /function isProviderBlockResult\(result:any\):boolean/);
   assert.match(generationOrchestrator, /function containsProviderBlock\(value:any,depth=0\):boolean/);
   assert.match(generationOrchestrator, /Object\.values\(value\)\.some\(\(nested\)=>containsProviderBlock\(nested,depth\+1\)\)/);
@@ -559,7 +560,7 @@ test("generation and review orchestration stop further AI work after a provider 
   assert.match(generationOrchestrator, /blocked:reviewProviderBlocked,retryable:reviewProviderBlocked/);
   assert.match(generationOrchestrator, /const providerStateBlocked=\["provider_state_unavailable","provider_cooldown","invalid_cooldown_timestamp"\]/);
   assert.match(generationOrchestrator, /if\(!g\.ok\|\|isProviderBlockResult\(g\)\)/);
-  assert.match(generationOrchestrator, /if\(providerQuotaBlocked\|\|providerTemporarilyUnavailable\)\{providerThrottleObserved=true;await recordGeminiThrottle/);
+  assert.ok(generationOrchestrator.includes("Child generate-chapter already records this provider-call event"), "generation child owns provider-event persistence");
   assert.match(generationOrchestrator, /providerQuotaBlocked\|\|providerTemporarilyUnavailable\|\|providerStateBlocked/);
   assert.match(generationOrchestrator, /action:providerStateBlocked\?"provider_state_blocked"/);
   assert.match(reviewOrchestrator, /let providerThrottleObserved = false;/);
