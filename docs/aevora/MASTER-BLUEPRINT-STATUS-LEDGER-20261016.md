@@ -226,3 +226,10 @@ The provider-state repair has advanced from design-only to a **branch-only imple
 A source inspection pass returned 23/23 static assertions passing. This is not execution of the checked-in Node tests, not a Deno/TypeScript build, and not a PostgreSQL run. Concurrent-session testing remains outstanding. CI status queries for the latest commits returned no status entries/workflow runs; CI is unverified.
 
 The original applied migration source remains unrecovered. The RPC migration and caller edits are unmerged branch candidates only; no production database changes, grants, deployments, generation, publication, or schedule mutation occurred. Broad live table/default ACL findings and all read-only caller privilege-path reconciliation remain open. **Phase 1 remains BLOCKED; automated publishing remains NO-GO.**
+
+
+## Phase 1 provider-state continuation update — 2026-10-16
+
+The branch-only atomic Gemini throttle RPC candidate is now wired into all six identified direct writer-capable functions: `generate-chapter`, `generation-orchestrator`, `revise-chapter`, `continuity-review`, `originality-review`, and `safety-review`. The source contract covers all six and checks for RPC confirmation and removal of direct provider-state writes/raw `last_error` payloads.
+
+Static source inspection currently looks structurally consistent, but executable Node tests, Edge Function type-checking, disposable PostgreSQL rehearsal, and concurrent-session proof remain unrun/unverified. Direct provider-state reads remain in the branch, production deployed callers have not been migrated, and production table ACL/default privileges remain unresolved. Phase 1 remains **BLOCKED** and automated publishing remains **NO-GO**. No production changes or billable branch creation occurred.
