@@ -14,7 +14,7 @@ const executable = sql.replace(/--[^\n]*/g, "").trim();
 
 test("publication schema provenance inventory contains SELECT statements only", () => {
   const statements = executable.split(";").map((statement) => statement.trim()).filter(Boolean);
-  assert.ok(statements.length >= 8, "inventory must cover relations, columns, constraints, indexes, triggers, ACLs, routines, and policies");
+  assert.ok(statements.length >= 9, "inventory must cover schemas, relations, columns, constraints, indexes, triggers, ACLs, routines, and policies");
   for (const statement of statements) {
     assert.match(statement, /^SELECT\b/i, "publication schema inventory must remain read-only");
     assert.doesNotMatch(
@@ -36,8 +36,10 @@ test("publication schema inventory covers commit-boundary relations and required
     "aevora_release_scheduler_leases",
     "chapters",
     "publication_sync_outbox",
+    "pg_namespace",
     "pg_class",
     "pg_attribute",
+    "pg_catalog.acldefault('n', n.nspowner)",
     "pg_constraint",
     "pg_index",
     "pg_trigger",
