@@ -46,3 +46,20 @@ See [live schema reconciliation findings](./phase1-live-schema-reconciliation-fi
 4. Only then prepare narrowly scoped atomic routines and run concurrency, rollback, ACL, and Edge Runtime validation.
 5. Review the six legacy schedule candidates individually and keep each unapproved candidate inactive.
 6. Publication catalog follow-up: live `public` contains the 12 core relations listed in the findings document, all RLS-enabled; `aevora_private` is absent, as are `public.reader_event_quota_buckets` and `public.reader_event_quota_cleanup_state`. Reconcile these missing objects against migrations and deployed callers before assuming they should exist or designing publication RPCs.
+
+
+## Continuation update — 2026-10-16 (latest)
+
+- Caller audit and checklist correction commits:
+  - [`2698438`](https://github.com/freearmy599/taleforge/commit/2698438a7dc00d56abe5fc7908ad03e8a69f069a): initial caller audit update; CI run [38933991376](https://github.com/freearmy599/taleforge/actions/runs/38933991376) passed.
+  - [`ed7664b`](https://github.com/freearmy599/taleforge/commit/ed7664b9a9f884a85a3ff23133b29b040c395c7a): reconciled full 11-writer inventory; CI run [38934087576](https://github.com/freearmy599/taleforge/actions/runs/38934087576) passed.
+  - [`5c03b09`](https://github.com/freearmy599/taleforge/commit/5c03b09dcd03585d2767f6f6c83c080f4bd83c62): clarified stable event-ID contract.
+  - [`8413a0b`](https://github.com/freearmy599/taleforge/commit/8413a0bfbec3e980ab9bd12075f7506d5ec50a66): corrected the master checklist to supersede older throttle assumptions. CI run [38934201055](https://github.com/freearmy599/taleforge/actions/runs/38934201055) was still in progress at last observation; do not mark it green until it completes.
+- Full branch-tree inspection found 21 Edge Function TypeScript entrypoints and 11 writer functions: ten direct provider-call owners (`generate-chapter`, `revise-chapter`, `continuity-review`, `originality-review`, `safety-review`, `character-continuity`, `world-continuity`, `arc-planner`, `blueprint-planner`, `story-dna-planner`) plus the `generation-orchestrator` fallback writer.
+- **Important contract correction:** overload events must not increment or reset the quota escalation counter. They must establish at least a one-hour cooldown without shortening a longer existing cooldown. Duplicate observations must be deduplicated atomically using one stable event ID per provider-call attempt, propagated to any parent fallback.
+- The current branch candidate migration `20261016180000_atomic_gemini_provider_throttle.sql` is **not compliant with this corrected contract yet**: it increments the counter for overload and has no event ID / event ledger. The existing green tests validate the previous candidate semantics, not the corrected contract. Do not cite earlier green tests as proof of the new contract.
+- Updated references:
+  - [Gemini throttle contract](./PHASE1-GEMINI-THROTTLE-CONTRACT-20261016.md)
+  - [Gemini throttle caller audit](./PHASE1-GEMINI-THROTTLE-CALLER-AUDIT-20261016.md)
+  - [Master completion checklist](./MASTER-COMPLETION-CHECKLIST-20261016.md)
+- Next implementation task: update the candidate RPC and disposable PostgreSQL rehearsal to use an event ledger and quota-only counter semantics; propagate one event ID through all direct writers and the generation-orchestrator fallback; then update static contracts and run CI. Keep all changes branch-only until provenance, runtime, ACL, and separate rollout gates pass.
