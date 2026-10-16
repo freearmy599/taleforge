@@ -15,7 +15,7 @@ This is the project-wide task register for finishing Aevora, including security/
 
 - **Current phase:** Phase 1 — Reliability, security, and safe publishing.
 - **Automatic publishing:** **NO-GO** until the Phase 1 exit gate is satisfied and rollout is explicitly authorized.
-- **Latest verified CI evidence:** [run 38918201462](https://github.com/freearmy599/taleforge/actions/runs/38918201462) failed after the disposable PostgreSQL readiness rehearsal and Edge Function type-checks passed; three review error-redaction assertions failed against the then-current contract. The contract and writer-coverage tests have since changed on the branch, but no successful CI run for those later commits has been verified yet. The run did not execute the candidate atomic provider RPC migration or its SQL rehearsal.
+- **Latest verified CI evidence:** [run 38922139195](https://github.com/freearmy599/taleforge/actions/runs/38922139195) passed both jobs on branch commit [`a7d4b74a36b5866470d245f2f564c6bc5fc1c6de`](https://github.com/freearmy599/taleforge/commit/a7d4b74a36b5866470d245f2f564c6bc5fc1c6de). The Edge validation job passed all listed type-checks and source-contract tests. The disposable PostgreSQL job applied the candidate provider-throttle migration in a separate `aevora_provider_throttle_test` database and passed the 20-concurrent-call counter test, server-only RPC ACL checks, fixed diagnostics, longer-cooldown preservation, one-hour overload behavior, invalid-event rejection, and malformed-counter preservation. This supersedes failed run 38918201462 for the latest branch source; it does not establish live Supabase compatibility or authorize rollout.
 - **Branch-only candidate:** `20261016180000_atomic_gemini_provider_throttle.sql` and RPC caller changes are not production-deployed or runtime-verified.
 - **Production boundary:** no production migrations/deployments, schedule changes, chapter generation/publication, or billable Supabase development branch without explicit authorization.
 
@@ -51,14 +51,15 @@ The 38 is a working count of major system families, not 38 independent applicati
 ## Phase 1 — Reliability, security, and safe publishing (CURRENT BLOCKER)
 
 ### A. CI, tests, and runtime
-- [x] Reconcile the review error-redaction contract with the atomic RPC implementation; source-level checks now assert the RPC, fixed diagnostics, no upsert path, and stable retry reasons. Full CI re-run is still pending.
-- [ ] Run the full provider cooldown recording contract on the latest branch commit and verify all writer paths remain covered.
-- [x] Update the Gemini quota-guard contract for RPC persistence and malformed persisted-counter behavior; execution on the latest commit remains pending.
-- [x] Expand the provider-state atomicity contract to all 11 migrated branch writers; source-level checks pass, but full test execution and disposable SQL/concurrency rehearsal remain pending.
-- [ ] Add/run a safe disposable PostgreSQL rehearsal that explicitly guards its database identity and requires a test-only opt-in marker.
-- [ ] Execute the candidate migration in disposable PostgreSQL; test schema assumptions, function creation, role ownership, effective ACLs, invalid input, negative/malformed counters, and rollback.
-- [ ] Add true multi-session concurrency tests: concurrent increments, simultaneous first inserts, mixed quota/overload events, and no cooldown shortening.
-- [ ] Run all Edge Function type checks and regression contracts to green on the same commit.
+- [x] Reconcile the review error-redaction contract with the atomic RPC implementation; the updated source-contract test passed in CI run 38922139195.
+- [x] Run the provider cooldown recording contract on the latest branch commit; CI run 38922139195 passed and the 11-writer atomicity contract is also included in the Edge validation source-contract suite.
+- [x] Update and execute the Gemini quota-guard contract for RPC persistence and malformed persisted-counter behavior; CI run 38922139195 passed.
+- [x] Expand the provider-state atomicity contract to all 11 migrated branch writers; source-contract execution passed in CI run 38922139195.
+- [x] Add and run a disposable PostgreSQL provider-throttle rehearsal with explicit opt-in, refusal of Supabase URLs, an `aevora_*` database-name check, and a separate database created by CI.
+- [x] Apply the candidate migration in disposable PostgreSQL and test function creation, schema fixture compatibility, effective role ACLs, invalid event input, negative-counter rejection without normalization, and safe diagnostics. Live-schema provenance and Supabase-runtime compatibility remain separate gates.
+- [x] Run a 20-session concurrent quota-event rehearsal against an initially empty fixture; all 20 increments were preserved, exercising concurrent first insertion. The same rehearsal verified no shortening of an existing longer cooldown and the one-hour overload path.
+- [ ] Add a mixed quota/overload concurrency test and settle duplicate-observation/retry semantics; current concurrency coverage uses concurrent quota events, not a mixed event-class race.
+- [x] Run all configured Edge Function type checks and regression contracts to green on commit `a7d4b74a36b5866470d245f2f564c6bc5fc1c6de` (CI run 38922139195).
 - [ ] Validate Supabase Edge Runtime compatibility separately; static TypeScript checks alone are insufficient.
 
 ### B. Provider-state and Gemini quota safety
