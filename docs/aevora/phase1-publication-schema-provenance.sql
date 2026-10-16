@@ -196,7 +196,7 @@ FROM pg_catalog.pg_class c
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 CROSS JOIN LATERAL pg_catalog.aclexplode(
   COALESCE(c.relacl, pg_catalog.acldefault(
-    CASE WHEN c.relkind = 'S' THEN 'S' ELSE 'r' END,
+    CASE WHEN c.relkind = 'S' THEN 'S' ELSE 'r' END::pg_catalog."char",
     c.relowner
   ))
 ) acl
