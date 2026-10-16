@@ -40,6 +40,7 @@ test("inventory captures individual disposition evidence without exposing story 
     "rs.auto_publish",
     "rs.automation_ready_at",
     "s.originality_status = 'pending'",
+    "rs.schedule_mode <> 'manual'",
     "s.origin_type = 'ai_original'",
     "count(*) OVER (PARTITION BY rs.series_id)",
   ]) {
