@@ -41,3 +41,22 @@ A review of the branch-only `20261015120000_reader_event_intake_rpc.sql` found a
 Required resolution: either prove the deployment sequence prevents overlapping direct/RPC writers with the same keys, or restructure the RPC so quota increments are committed only for a successfully inserted event (or are transactionally rolled back for a duplicate outcome). Add a PostgreSQL concurrency test that races a direct insert against RPC intake for the same UUID and asserts duplicate handling does not consume quota unexpectedly. Do not enable the frontend flag or remove direct INSERT until this is resolved and rehearsed.
 
 This is a source-level finding in a branch-only migration; it is not evidence that the function or quota tables exist in production.
+
+
+## Additional live catalog reconciliation — 2026-10-16
+
+A fresh read-only catalog inspection confirmed the following live-vs-branch gap:
+
+- Live `public.reader_events.id` is `GENERATED ALWAYS AS IDENTITY`; live `public.reader_events` has no `event_uuid` column. The table has an INSERT policy for `anon` and `authenticated`, no client SELECT policy, and the live schema still permits direct client inserts.
+- Effective live ACL checks report SELECT access for `anon` and `authenticated` on both `public.story_trending_scores` and `public.story_intelligence`. The former aggregates raw `reader_events`; the latter joins that view and includes `trending_score`, `opens`, `completions`, follow/bookmark metrics, and an intelligence label.
+- Browser source on the hardening branch queries `story_trending_scores` from `stories.html` and `story_intelligence` from `taleforge-data.js`. The branch migration `20261014130000_public_trending_aggregate_rpc.sql` revokes ordinary-client access to both views, but it is not applied live. Therefore, the documented branch gate does not describe current live exposure; the public aggregate path is still accessible in the live catalog.
+- The branch's legacy compatibility writer previously attached `event_uuid` to direct INSERT payloads while the intake feature flag was false. Since that column is absent live, this would be incompatible with the live table if that branch source were deployed. Branch commit `7d41089a13c6a63bb17a3178f4aff5421a6b90f1` now sends `event_uuid` only when the verified intake endpoint is enabled, and the endpoint contract was updated in `7e579be5d3b39f1ff2b259f90fd9ba9da6bcd4c1`. The latter's CI run must pass before this correction is marked validated.
+
+### Disposition
+
+1. Keep public trending/intelligence access **NO-GO for rollout** until the live view ACLs are reconciled with the branch gate and the trusted intake path has been deployed and verified.
+2. Do not apply the branch migration to production in this continuation. A separate authorized rollout must validate the exact view dependencies and expected UI fallback first.
+3. Preserve the direct-insert compatibility path only until the replacement endpoint has passed deployed endpoint and browser smoke tests; do not enable the feature flag based on static tests alone.
+4. Treat public engagement counts as untrusted because live anonymous writes remain possible and the trusted intake function/RPC were absent from the live inventory.
+
+This is read-only live catalog evidence plus branch-only source/test work. No production grants, views, functions, feature flags, event rows, migrations, schedules, chapter generation, or publication state were changed.
