@@ -117,7 +117,7 @@ test("generation-orchestrator stops revision and generation AI calls after any p
 test("generation-orchestrator fails closed on malformed or unsafe Gemini throttle counters", async () => {
   const source = await readFile(new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url), "utf8");
   const helperStart = source.indexOf("async function getGeminiCooldown(");
-  const helperEnd = source.indexOf("async function recordGeminiThrottle(", helperStart);
+  const helperEnd = source.indexOf("Deno.serve(", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-state helpers must remain present");
   const readGuard = source.slice(helperStart, helperEnd);
   assert.match(readGuard, /typeof rawCount!==["']number["']/,
@@ -130,15 +130,10 @@ test("generation-orchestrator fails closed on malformed or unsafe Gemini throttl
     "malformed provider-state counters must return the fail-closed lookup error");
   assert.match(readGuard, /active:true/,
     "malformed provider-state counters must be treated as blocked");
-  const recordStart = source.indexOf("async function recordGeminiThrottle(", helperEnd);
-  const recordEnd = source.indexOf("Deno.serve(", recordStart);
-  const recorder = source.slice(recordStart, recordEnd);
-  assert.ok(recorder.includes("aevora_record_gemini_throttle"),
-    "fallback persistence must use the shared atomic database operation");
-  assert.ok(recorder.includes("result?.recorded!==true"),
-    "fallback persistence must reject unsuccessful RPC results");
-  assert.equal(recorder.includes(".upsert("), false,
-    "fallback persistence must not retain a read-modify-upsert path");
+  assert.equal(source.includes("async function recordGeminiThrottle("), false,
+    "orchestrator must not own a second provider-event writer");
+  assert.equal(source.includes("aevora_record_gemini_throttle"), false,
+    "orchestrator must not double-record child provider failures");
 });
 
 test("generation-orchestrator hard-stops non-dry-run work during an active Gemini cooldown", async () => {
@@ -242,7 +237,7 @@ test("revise-chapter rechecks provider availability immediately before both revi
   }
 
   const helperStart = source.indexOf("async function getGeminiProviderBlock(");
-  const helperEnd = source.indexOf("async function recordGeminiThrottle(", helperStart);
+  const helperEnd = source.indexOf("Deno.serve(", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "shared provider-state helper must remain present");
   const helper = source.slice(helperStart, helperEnd);
   assert.match(helper, /if\s*\(error\s*\|\|\s*!data\)[\s\S]*?provider_state_unavailable/,
