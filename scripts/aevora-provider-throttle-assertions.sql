@@ -19,13 +19,13 @@ BEGIN
   IF v_error <> 'Gemini quota or rate-limit response' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: quota diagnostic was not fixed and sanitized';
   END IF;
-  IF has_function_privilege('anon', 'public.aevora_record_gemini_throttle(text)', 'EXECUTE') THEN
+  IF has_function_privilege('anon', 'public.aevora_record_gemini_throttle(uuid, text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: anon can execute throttle RPC';
   END IF;
-  IF has_function_privilege('authenticated', 'public.aevora_record_gemini_throttle(text)', 'EXECUTE') THEN
+  IF has_function_privilege('authenticated', 'public.aevora_record_gemini_throttle(uuid, text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: authenticated can execute throttle RPC';
   END IF;
-  IF NOT has_function_privilege('service_role', 'public.aevora_record_gemini_throttle(text)', 'EXECUTE') THEN
+  IF NOT has_function_privilege('service_role', 'public.aevora_record_gemini_throttle(uuid, text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: service_role cannot execute throttle RPC';
   END IF;
 END
@@ -35,7 +35,7 @@ $assert$;
 UPDATE public.taleforge_ai_provider_state
 SET cooldown_until = clock_timestamp() + interval '48 hours'
 WHERE provider = 'gemini';
-SELECT * FROM public.aevora_record_gemini_throttle('overload');
+SELECT * FROM public.aevora_record_gemini_throttle('00000000-0000-0000-0000-000000000101', 'overload');
 DO $long_cooldown$
 BEGIN
   IF (SELECT cooldown_until FROM public.taleforge_ai_provider_state WHERE provider = 'gemini')
@@ -49,12 +49,15 @@ $long_cooldown$;
 UPDATE public.taleforge_ai_provider_state
 SET cooldown_until = NULL, consecutive_throttle_count = 0
 WHERE provider = 'gemini';
-SELECT * FROM public.aevora_record_gemini_throttle('overload');
+SELECT * FROM public.aevora_record_gemini_throttle('00000000-0000-0000-0000-000000000102', 'overload');
 DO $overload_duration$
 DECLARE
   v_until timestamptz;
 BEGIN
   SELECT cooldown_until INTO v_until FROM public.taleforge_ai_provider_state WHERE provider = 'gemini';
+  IF (SELECT consecutive_throttle_count FROM public.taleforge_ai_provider_state WHERE provider = 'gemini') <> 0 THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: overload changed quota counter';
+  END IF;
   IF v_until < clock_timestamp() + interval '55 minutes'
      OR v_until > clock_timestamp() + interval '65 minutes' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: overload cooldown was not approximately one hour';
