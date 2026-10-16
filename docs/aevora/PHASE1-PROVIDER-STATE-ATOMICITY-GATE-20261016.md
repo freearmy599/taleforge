@@ -396,3 +396,12 @@ Added source-contract tests at `scripts/tests/aevora-provider-state-atomicity-co
 - Review duplicate observation behavior between child writers and the orchestrator, and complete the deployed-versus-branch parity diff before any deployment proposal.
 
 **Safety boundary:** this migration and caller code are unmerged branch candidates only. No production SQL, grant, Edge Function deployment, generation, publication, or schedule mutation was performed. The existing broad table/default ACL findings and original migration provenance remain unresolved. The new RPC does not by itself close the production security gate; production remains **NO-GO**.
+
+
+### Disposable rehearsal artifact added
+
+Added `scripts/tests/aevora-provider-state-atomicity-disposable.sql`. It is explicitly intended for a disposable PostgreSQL database and rolls back its fixture changes. It checks first insert and 6/12/24-hour quota progression, the one-hour overload class, monotonic preservation of a 72-hour existing cooldown, fixed diagnostic storage, rejection of negative counters and unsupported event classes, SECURITY DEFINER, and anon/authenticated execute restrictions. It is **not** a concurrency test and has not been executed against PostgreSQL in this session.
+
+A remote source-contract scan was run against the current branch file contents: **23/23 static assertions passed** for the migration security declarations, event allowlist, atomic upsert/counter/cooldown patterns, and all three callers' RPC use/no-direct-write/persistence-confirmation contracts. This was a tool-side regex inspection of fetched source, **not** execution of the checked-in Node test file and not a TypeScript/Deno or database test.
+
+CI status queries for the new commits returned no status entries and no workflow runs. Therefore CI is **unverified**, not green.
