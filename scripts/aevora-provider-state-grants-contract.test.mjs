@@ -47,6 +47,32 @@ const identitySequenceMigration = await readFile(
   "utf8",
 );
 
+const providerStateFixture = await readFile(
+  new URL("./aevora-provider-state-lock-fixture.sql", import.meta.url),
+  "utf8",
+);
+const providerStateAssertions = await readFile(
+  new URL("./aevora-provider-state-lock-assertions.sql", import.meta.url),
+  "utf8",
+);
+const providerStateRehearsal = await readFile(
+  new URL("./test-aevora-provider-state-lock.sh", import.meta.url),
+  "utf8",
+);
+
+test("provider-state ACL lock has disposable PostgreSQL runtime assertions", () => {
+  assert.match(providerStateFixture, /GRANT ALL PRIVILEGES ON TABLE public\.taleforge_ai_provider_state TO anon, authenticated/);
+  assert.match(providerStateFixture, /GRANT SELECT \(last_error\), UPDATE \(last_error\).*TO anon, authenticated/);
+  assert.match(providerStateAssertions, /has_table_privilege\(client_role, 'public\.taleforge_ai_provider_state', privilege_name\)/);
+  assert.match(providerStateAssertions, /has_column_privilege\(client_role, 'public\.taleforge_ai_provider_state', 'last_error', privilege_name\)/);
+  assert.match(providerStateAssertions, /'TRUNCATE'/);
+  assert.match(providerStateAssertions, /service_role grants were unexpectedly removed/);
+  assert.match(providerStateAssertions, /legacy Gemini overload diagnostic was not sanitized/);
+  assert.match(providerStateRehearsal, /AEVORA_DISPOSABLE_PROVIDER_STATE_REHEARSAL/);
+  assert.match(providerStateRehearsal, /Refusing provider-state lock rehearsal against a Supabase URL/);
+  assert.match(providerStateRehearsal, /20261013120000_lock_ai_provider_state_table\.sql/);
+});
+
 test("Gemini provider state is server-side only", () => {
   assert.ok(migration.includes("ALTER TABLE public.taleforge_ai_provider_state ENABLE ROW LEVEL SECURITY"));
   assert.ok(migration.includes("REVOKE ALL PRIVILEGES ON TABLE public.taleforge_ai_provider_state FROM PUBLIC, anon, authenticated"));
