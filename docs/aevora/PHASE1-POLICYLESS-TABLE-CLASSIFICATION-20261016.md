@@ -128,6 +128,29 @@ These are already inaccessible to anon/authenticated by the inspected relation/c
 - taleforge_system_observations
 - taleforge_world_simulation_architecture
 
+
+## F. Live schema evidence for the 11 product-facing/ambiguous candidates
+
+A verbose, read-only Supabase table-schema inspection confirmed these owner/relationship columns:
+
+| Table | Relevant columns observed | Policy design implication |
+|---|---|---|
+| profiles | `id`, `username`, `display_name`, `bio`, `avatar_url`, `role` | `id` is the referenced profile identity. The `role` check explicitly allows `reader`, `creator`, and `admin`; a generic owner UPDATE policy is unsafe unless role escalation is independently prevented. Prefer column-safe profile updates and a trusted role-assignment path. Public profile reads should expose only intended fields. |
+| bookmarks | `user_id`, `story_id` | Owner check on `user_id = auth.uid()`; insert must enforce the same identity; confirm duplicate semantics. |
+| collections | `creator_id`, `is_public` | Creator-owned writes; reads must distinguish public collections from private creator-owned collections. |
+| collection_stories | `collection_id`, `story_id` | Ownership must be derived through the referenced collection's `creator_id`, not supplied by the caller. Public reads depend on the collection's `is_public`. |
+| comments | `user_id`, `story_id`, `parent_comment_id`, `content`, `status` | Public reads should be limited to visible/approved comments; author writes must not allow caller-controlled moderation status. Moderator status changes need a trusted path. |
+| likes | `user_id`, `story_id` | Owner-scoped creation/removal; prevent caller from acting as another user. |
+| notifications | `user_id`, `is_read` | Recipient-scoped reads and read-state updates; creation should remain trusted/server-side unless a specific workflow requires otherwise. |
+| ratings | `user_id`, `story_id`, `rating` | Owner-scoped rating writes; validate allowed rating range and avoid trusting client-supplied aggregate counters. |
+| reading_history | `user_id`, `story_id`, `progress_percent`, `completed`, `last_read_at` | Owner-scoped CRUD; validate progress bounds and avoid client-controlled server timestamps if they affect ranking or analytics. |
+| story_reports | `reporter_id`, `story_id`, `comment_id`, `reason`, `details`, `status`, `resolved_at` | Reporter may submit a report, but report contents and moderation status should not be broadly readable or caller-updatable. Status/resolution require trusted moderation. |
+| recommendations | `user_id`, `story_id`, `score`, `reason` | Treat as server-generated until proven otherwise; users should not write scores or recommendation reasons. Read access should be scoped to the recipient if this is a user-specific table. |
+
+Foreign keys observed in the catalog connect these relations to `profiles`, `stories`, `collections`, and `comments` as expected. This narrows policy design but does not prove that `profiles.id` is populated from `auth.uid()` in every existing auth path; verify the frontend sign-up/profile trigger and deployed callers before writing policies.
+
+**Priority:** resolve the `profiles.role` escalation path and owner-scoped policies for bookmarks, collections, collection_stories, comments, likes, notifications, ratings, reading_history, and story_reports before claiming the reader MVP's account/community surfaces are secure and functional.
+
 ## D. Migration review findings
 
 1. `20261013090000_aevora_server_only_metrics_outbox_grants.sql`, `20261013120000_lock_ai_provider_state_table.sql`, and `20261013130000_lock_internal_policyless_tables.sql` collectively cover the 28-row provisional server-only candidate list above (25 in the internal-lock list, plus the two metrics/outbox tables and provider-state table). Before treating this as rollout-ready, verify every service-role caller and note that the provider-state migration also updates legacy diagnostic data; it is not ACL-only.
