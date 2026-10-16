@@ -287,3 +287,20 @@ A read-only `pg_get_functiondef` review inspected the three existing scheduler l
 This narrows the lease-specific issue: the database routines have token matching, bounded lease durations, expiration checks, and server-only EXECUTE ACLs. It does **not** establish end-to-end lease enforcement. The deployed `release-scheduler` v12 source previously inspected does not call the claim/renew/release routines, so concurrent scheduler invocations are not protected by these database functions until the deployed caller is safely reconciled and an authorized rollout occurs.
 
 The prepared branch remains the place to validate lease acquisition, renewal, release in every exit/error path, and refusal to advance schedules after partial publication. Production deployment remains unauthorized and automatic publication remains NO-GO.
+
+
+## Follow-up direct catalog verification — 2026-10-16
+
+A further read-only catalog pass through the connected Supabase project confirmed the provider-state table and its key metadata directly:
+
+- Relation owner is `postgres`; RLS is enabled and not forced.
+- Columns are `provider text NOT NULL` (primary key), `cooldown_until timestamptz NULL`, `consecutive_throttle_count integer NOT NULL DEFAULT 0`, nullable `last_error text`, nullable `last_error_at timestamptz`, and `updated_at timestamptz NOT NULL DEFAULT now()`.
+- The only reported constraint/index for this relation is primary key `taleforge_ai_provider_state_pkey` on `provider`.
+- The targeted catalog search returned no matching routine names for provider-state, Gemini throttle, or cooldown in `public`, `extensions`, or `taleforge_internal`. This is a name-pattern inventory, not proof no differently named routine could touch the table.
+- The live migration ledger still contains `20261007025751 add_taleforge_ai_provider_cooldown_state`; the latest recorded migration remains `20261010161919 aevora_release_scheduler_leases`. Neither `20261013120000` nor `20261014170000` is recorded as applied.
+
+The direct relation ACL query again found ordinary-client grants to both `anon` and `authenticated` for SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, and the PostgreSQL-version-specific `MAINTAIN` privilege. `service_role` also retains its table privileges. Do not interpret the existence of RLS as making these table grants harmless; RLS does not constrain TRUNCATE or MAINTAIN.
+
+The default-ACL catalog query returned broad future-object defaults for both `postgres` and `supabase_admin` owners, including client table grants, sequence grants, and function EXECUTE. This reinforces that the later default-privilege migration is not reflected in the live ledger and that owner-level `supabase_admin` remediation remains a separate gate.
+
+These checks were catalog-only SELECTs. No application rows, database writes, migrations, deployments, schedule changes, or chapter operations were performed. This evidence confirms live drift but does not resolve the missing original migration body. Keep the atomic cooldown implementation blocked until provenance is reconciled and the full authorized inventory (including column ACLs, triggers, routine definitions, and owner-specific defaults) is reviewed.
