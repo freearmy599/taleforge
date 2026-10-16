@@ -82,8 +82,8 @@ test("browser intake cutover is opt-in and preserves the tracker interface", () 
 
 test("privileged reader-event functions and quota tables cannot be owned by client roles", () => {
   assert.match(migration, /CREATE SCHEMA IF NOT EXISTS aevora_private/);
-  assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\\.reader_event_quota_buckets/);
-  assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\\.reader_event_quota_cleanup_state/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\.reader_event_quota_buckets/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\.reader_event_quota_cleanup_state/);
   assert.match(rpcAssertions,
     /pg_get_userbyid\(p\.proowner\) IN \('anon', 'authenticated'\)/);
   assert.match(rpcAssertions,
