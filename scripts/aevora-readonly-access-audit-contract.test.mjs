@@ -203,17 +203,17 @@ const defaultPrivilegesMigration = await readFile(
   "utf8",
 );
 
-test("future-object default privilege migration is owner-guarded and removes client defaults", () => {
-  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
+test("future public table and sequence defaults are owner-guarded and fail closed", () => {
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
-  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/i);
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/i);
-  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i);
-  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i);
+  assert.match(defaultPrivilegesMigration, /global table or sequence client defaults exist/i);
   assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/i);
-  assert.match(defaultPrivilegesMigration, /neither a superuser nor a member; requires an authorized owner operation/i);
+  assert.match(defaultPrivilegesMigration, /executor cannot administer default privileges/i);
   assert.match(defaultPrivilegesMigration, /executor_is_superuser/i);
-  assert.doesNotMatch(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin/i);
+  assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public/i);
+  assert.doesNotMatch(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/i);
+  assert.doesNotMatch(defaultPrivilegesMigration, /REVOKE EXECUTE ON FUNCTIONS/i,
+    "function EXECUTE defaults remain deferred for a separate owner/schema review");
 });
 
 
