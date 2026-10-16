@@ -130,7 +130,7 @@ BEGIN
     RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains maintenance privilege on public.chapters';
   END IF;
 
-  FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+  FOREACH privilege_name IN ARRAY ARRAY['MAINTAIN','TRUNCATE','TRIGGER','REFERENCES']
   LOOP
     IF NOT has_table_privilege('service_role', 'public.chapters', privilege_name) THEN
       RAISE EXCEPTION 'ASSERTION_FAILED: trusted service_role lost % on public.chapters', privilege_name;
@@ -154,7 +154,7 @@ BEGIN
 
     FOREACH role_name IN ARRAY ARRAY['anon','authenticated']
     LOOP
-      FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+      FOREACH privilege_name IN ARRAY ARRAY['MAINTAIN','TRUNCATE','TRIGGER','REFERENCES']
       LOOP
         IF has_table_privilege(role_name, target, privilege_name) THEN
           RAISE EXCEPTION 'ASSERTION_FAILED: future table % grants % to %', table_name, privilege_name, role_name;
@@ -169,7 +169,7 @@ BEGIN
       END LOOP;
     END LOOP;
 
-    FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+    FOREACH privilege_name IN ARRAY ARRAY['MAINTAIN','TRUNCATE','TRIGGER','REFERENCES']
     LOOP
       IF NOT has_table_privilege('service_role', target, privilege_name) THEN
         RAISE EXCEPTION 'ASSERTION_FAILED: service_role lost % on future table %', privilege_name, table_name;
@@ -243,7 +243,7 @@ BEGIN
 
     FOREACH v_client_role IN ARRAY ARRAY['anon', 'authenticated']
     LOOP
-      FOREACH v_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']
+      FOREACH v_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','MAINTAIN','TRUNCATE','REFERENCES','TRIGGER']
       LOOP
         IF has_table_privilege(v_client_role, v_target, v_privilege) THEN
           RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on dormant table public.%', v_client_role, v_privilege, v_table_name;
