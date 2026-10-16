@@ -214,3 +214,15 @@ The three confirmed deployed writers still perform non-atomic read/compute/upser
 
 
 **Complete deployed provider-state caller scan (2026-10-16):** fetched and searched all 26 deployed Edge Function source files. Three direct non-atomic writers are confirmed: `generate-chapter` v59, `generation-orchestrator` v35, and `revise-chapter` v40. Ten other functions contain direct read-only provider-state references: `continuity-review` v10, `originality-review` v9, `safety-review` v9, `review-orchestrator` v11, `blueprint-planner` v13, `story-dna-planner` v7, `arc-planner` v11, `character-continuity` v5, `world-continuity` v9, and `semantic-continuity-extraction` v8. `aevora-control-plane-audit` v4 also reads the table as part of its audit snapshot. Remaining deployed sources had no literal table/column references in the scan; this does not rule out indirect access or dynamic SQL. The branch gate now records this complete inventory and the revised migration order. Branch-only documentation commit: [0275eeb](https://github.com/freearmy599/taleforge/commit/0275eebcc4b5ce724c4b7a2e149864338df37833). No production mutation or deployment was performed. CI for this new commit must be independently checked; production remains BLOCKED / automated publishing NO-GO.
+
+
+## Phase 1 continuation — atomic provider-state candidate (2026-10-16)
+
+The provider-state repair has advanced from design-only to a **branch-only implementation candidate**. Candidate migration `20261016180000_atomic_gemini_provider_throttle.sql` defines the service-role-only atomic throttle RPC. The three branch writer paths now call the RPC and check its explicit persistence result; direct provider-state upserts and raw diagnostic writes were removed from those three branch functions. Added:
+- `scripts/tests/aevora-provider-state-atomicity-contract.test.mjs` — source-contract assertions.
+- `scripts/tests/aevora-provider-state-atomicity-disposable.sql` — rollback-wrapped disposable PostgreSQL rehearsal, excluding concurrency.
+- Updated provider-state gate documentation with implementation boundaries and required validation.
+
+A source inspection pass returned 23/23 static assertions passing. This is not execution of the checked-in Node tests, not a Deno/TypeScript build, and not a PostgreSQL run. Concurrent-session testing remains outstanding. CI status queries for the latest commits returned no status entries/workflow runs; CI is unverified.
+
+The original applied migration source remains unrecovered. The RPC migration and caller edits are unmerged branch candidates only; no production database changes, grants, deployments, generation, publication, or schedule mutation occurred. Broad live table/default ACL findings and all read-only caller privilege-path reconciliation remain open. **Phase 1 remains BLOCKED; automated publishing remains NO-GO.**
