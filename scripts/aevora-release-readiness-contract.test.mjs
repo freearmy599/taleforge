@@ -32,6 +32,7 @@ const leaseMigration = await readFile("supabase/migrations/20261012183000_aevora
 const leaseFencingMigration = await readFile("supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", "utf8");
 const defaultPrivilegesMigration = await readFile("supabase/migrations/20261014170000_restrict_public_default_privileges.sql", "utf8");
 const maintenancePrivilegeMigration = await readFile("supabase/migrations/20261016200000_revoke_client_table_maintenance_privileges.sql", "utf8");
+const maintenanceDefaultMigration = await readFile("supabase/migrations/20261016203000_revoke_client_maintenance_default_privileges.sql", "utf8");
 const publicationAuthorizationDesign = await readFile("docs/aevora/PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md", "utf8");
 const rolloutPlan = await readFile("docs/aevora/PHASE1-PRODUCTION-ROLLOUT-SEQUENCE-20261014.md", "utf8");
 const legacyDispositionRegister = await readFile("docs/aevora/PHASE1-LEGACY-SCHEDULE-DISPOSITION-REGISTER-20261014.md", "utf8");
@@ -76,6 +77,14 @@ test("client table maintenance ACL repair preserves ordinary CRUD", () => {
   assert.match(maintenancePrivilegeMigration, /REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
   assert.match(maintenancePrivilegeMigration, /REVOKE REFERENCES \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
   assert.doesNotMatch(maintenancePrivilegeMigration, /REVOKE[^;]*(?:SELECT|INSERT|UPDATE|DELETE)/i);
+});
+
+test("future client maintenance defaults are schema-scoped and fail closed", () => {
+  assert.match(maintenanceDefaultMigration, /IN SCHEMA public REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM PUBLIC, anon, authenticated/);
+  assert.match(maintenanceDefaultMigration, /defaclnamespace = 0/);
+  assert.match(maintenanceDefaultMigration, /global table maintenance defaults exist/);
+  assert.match(maintenanceDefaultMigration, /executor cannot administer default privileges/);
+  assert.doesNotMatch(maintenanceDefaultMigration, /REVOKE ALL PRIVILEGES ON TABLES/);
 });
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
