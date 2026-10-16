@@ -82,15 +82,22 @@ test("browser intake cutover is opt-in and preserves the tracker interface", () 
 
 test("privileged reader-event functions and quota tables cannot be owned by client roles", () => {
   assert.match(migration, /CREATE SCHEMA IF NOT EXISTS aevora_private/);
+  assert.match(migration, /ALTER SCHEMA aevora_private OWNER TO postgres/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\.reader_event_quota_buckets/);
+  assert.match(migration, /ALTER TABLE aevora_private\.reader_event_quota_buckets OWNER TO postgres/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\.reader_event_quota_cleanup_state/);
+  assert.match(migration, /ALTER TABLE aevora_private\.reader_event_quota_cleanup_state OWNER TO postgres/);
+  assert.match(migration, /ALTER FUNCTION public\.aevora_ingest_reader_event\(text, uuid, text, uuid, uuid, integer\) OWNER TO postgres/);
+  assert.match(migration, /ALTER FUNCTION public\.aevora_prune_reader_event_quota_buckets\(\) OWNER TO postgres/);
   assert.match(rpcAssertions,
-    /pg_catalog\.pg_get_userbyid\(n\.nspowner\) IN \('anon', 'authenticated'\)/,
-    "private quota schema must not be owned by a client role");
+    /pg_catalog\.pg_get_userbyid\(n\.nspowner\) <> 'postgres'/,
+    "private quota schema must have a trusted postgres owner");
   assert.match(rpcAssertions,
-    /pg_get_userbyid\(p\.proowner\) IN \('anon', 'authenticated'\)/);
+    /pg_catalog\.pg_get_userbyid\(p\.proowner\) <> 'postgres'/,
+    "reader-event SECURITY DEFINER RPCs must have a trusted postgres owner");
   assert.match(rpcAssertions,
-    /pg_get_userbyid\(c\.relowner\) IN \('anon', 'authenticated'\)/);
+    /pg_catalog\.pg_get_userbyid\(c\.relowner\) <> 'postgres'/,
+    "private quota tables must have a trusted postgres owner");
   assert.match(rpcAssertions, /DO \$rpc_public_acl_assert\$/);
   assert.match(migration, /REVOKE ALL ON SCHEMA aevora_private FROM PUBLIC, anon, authenticated/i);
   assert.match(rpcAssertions, /pg_catalog\.aclexplode\(/);
