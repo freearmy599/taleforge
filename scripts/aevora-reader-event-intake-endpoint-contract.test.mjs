@@ -9,6 +9,7 @@ const rpcAssertions = await readFile(new URL("../scripts/aevora-reader-event-int
 const tracker = await readFile(new URL("../reading-progress.js", import.meta.url), "utf8");
 const clientConfig = await readFile(new URL("../supabase-client.js", import.meta.url), "utf8");
 const supabaseConfig = await readFile(new URL("../supabase/config.toml", import.meta.url), "utf8");
+const rehearsal = await readFile(new URL("../scripts/test-aevora-reader-event-integrity.sh", import.meta.url), "utf8");
 
 test("intake bounds request body and accepts POST JSON only", () => {
   assert.match(source, /MAX_BODY_BYTES = 2048/);
@@ -48,6 +49,17 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   const quotaMutation = migration.indexOf("INSERT INTO aevora_private.reader_event_quota_buckets", duplicateCheck);
   assert.ok(duplicateCheck >= 0 && quotaMutation > duplicateCheck,
     "duplicate event UUIDs must be resolved before any quota counter is mutated");
+  const uniqueEventInsert = migration.indexOf(
+    "INSERT INTO public.reader_events(visitor_id, event_type, series_id, chapter_id, progress_percent, event_uuid)",
+    duplicateCheck,
+  );
+  const quotaAfterUniqueInsert = migration.indexOf("INSERT INTO aevora_private.reader_event_quota_buckets", uniqueEventInsert);
+  assert.ok(uniqueEventInsert > duplicateCheck && quotaAfterUniqueInsert > uniqueEventInsert,
+    "unique event insertion must precede quota mutation to make mixed direct/RPC races idempotent");
+  assert.match(rehearsal, /mixed direct-writer\/RPC idempotency and no-quota-charge assertion passed/);
+  assert.match(rehearsal, /CREATE TRIGGER aevora_test_pause_rpc_reader_event_insert/);
+  assert.match(rehearsal, /visitor_key_hash = md5\('visitor-rpc-mixed-race-0001'\)/,
+    "disposable PostgreSQL rehearsal must prove a direct-writer winner does not charge RPC quota");
   assert.match(migration, /COALESCE\(v_hits, 0\) >= 30/);
   assert.match(migration, /COALESCE\(v_hits, 0\) >= 1000/);
   assert.match(migration, /quota_scope text NOT NULL DEFAULT/);
