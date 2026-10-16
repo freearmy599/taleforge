@@ -8,6 +8,9 @@ const writers = [
   ["generate-chapter", read("../../supabase/functions/generate-chapter/index.ts")],
   ["generation-orchestrator", read("../../supabase/functions/generation-orchestrator/index.ts")],
   ["revise-chapter", read("../../supabase/functions/revise-chapter/index.ts")],
+  ["continuity-review", read("../../supabase/functions/continuity-review/index.ts")],
+  ["originality-review", read("../../supabase/functions/originality-review/index.ts")],
+  ["safety-review", read("../../supabase/functions/safety-review/index.ts")],
 ];
 
 test("atomic RPC is SECURITY DEFINER with a fixed search_path", () => {
