@@ -28,6 +28,7 @@ SELECT
 FROM public.release_schedules AS rs
 JOIN public.series AS s ON s.id = rs.series_id
 WHERE s.status = 'ongoing'
+  AND rs.schedule_mode <> 'manual'
   AND s.origin_type = 'ai_original'
   AND s.originality_status = 'pending'
 ORDER BY rs.created_at, rs.id;
