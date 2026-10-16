@@ -32,6 +32,7 @@ Deno.serve(async(req)=>{
           success:false,version:VERSION,error:"provider_state_unavailable"
         }),{status:503,headers:H});
       }
+      if(typeof providerState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(providerState.consecutive_throttle_count)||providerState.consecutive_throttle_count<0) return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_state_unavailable",reason:"invalid_provider_counter"}),{status:503,headers:H});
       const cooldownValue=providerState.cooldown_until;
       const cooldownUntil=cooldownValue ? Date.parse(cooldownValue) : 0;
       if(cooldownValue && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:H});
