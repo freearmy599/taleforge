@@ -57,6 +57,17 @@ test("publication schema inventory covers commit-boundary relations and required
   }
 });
 
+test("publication inventory pins catalog objects and helpers to pg_catalog", () => {
+  assert.match(sql, /FROM pg_catalog\.pg_class/);
+  assert.match(sql, /JOIN pg_catalog\.pg_namespace/);
+  assert.match(sql, /pg_catalog\.aclexplode/);
+  assert.match(sql, /pg_catalog\.acldefault/);
+  assert.match(sql, /pg_catalog\.pg_get_userbyid/);
+  assert.match(sql, /END::pg_catalog\.\\"char\\"/);
+  assert.doesNotMatch(sql, /\b(?:FROM|JOIN)\s+(?!pg_catalog\.)pg_(?:class|namespace|attribute|attrdef|constraint|index|trigger|proc|default_acl|policy)\b/i,
+    "catalog relations must not be shadowable through a caller-controlled search_path");
+});
+
 test("inventory is explicitly marked read-only and excludes application row payloads", () => {
   assert.match(sql, /READ ONLY/i);
   assert.match(sql, /No application rows are selected/i);
