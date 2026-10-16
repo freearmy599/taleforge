@@ -74,7 +74,8 @@ test("atomic cooldown migration has safe diagnostics, monotonic expiry, and serv
   assert.ok(migration.includes("WHEN p_event_class = 'quota' THEN current_state.consecutive_throttle_count + 1"));
   assert.ok(migration.includes("ELSE current_state.consecutive_throttle_count"));
   assert.ok(migration.includes("GREATEST(") && migration.includes("current_state.cooldown_until"));
-  assert.ok(migration.includes("WHERE current_state.consecutive_throttle_count >= 0"));
+  assert.ok(migration.includes("current_state.consecutive_throttle_count IS NOT NULL"));
+  assert.ok(migration.includes("current_state.consecutive_throttle_count >= 0"));
   assert.ok(migration.includes("RAISE EXCEPTION 'provider state counter is malformed'"));
   assert.ok(migration.includes("Gemini quota or rate-limit response"));
   assert.ok(migration.includes("Gemini temporary overload response"));
