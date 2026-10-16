@@ -78,3 +78,23 @@ A fresh catalog query enumerated schema-specific defaults in `public` for both o
 The prepared default-privilege migration intentionally skips `supabase_admin` when the executor is not a member of that role. The live inventory confirms the role-specific defaults still need to be resolved, and the live ledger still ends before migration `20261014170000`. Treat this as two gates: first determine which changes are not yet applied, then obtain an authorized operation under each owner that can change its own defaults. Do not attempt to work around role membership or run DDL against production as part of this continuation.
 
 A direct `has_table_privilege` check independently confirmed that `anon` and `authenticated` currently have effective `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges on `public.taleforge_ai_provider_state`; `service_role` has them as expected for the current table ACL. This confirms that the live issue is effective privilege exposure, not merely an `information_schema` display artifact. Because `TRUNCATE` is not constrained by row-level security, the no-policy RLS state does not mitigate this grant. No privilege changes were made.
+
+
+## Live deployed-function reconciliation — 2026-10-16
+
+A read-only Supabase Edge Function inventory and source retrieval was compared with the hardening branch. This is source/version inspection only; no function was invoked and no deployment occurred.
+
+| Function | Live deployed version | Hardening branch source | Material difference |
+|---|---:|---|---|
+| `generate-chapter` | 59 | `quality-v8-short-overload-cooldown` | Live source still includes raw Gemini response text in thrown HTTP errors, returns the caught message to the caller, logs a truncated version, and writes the message into `last_error`. The branch source removes response-body text from the thrown error and uses a redacted diagnostic. Both still have read-then-upsert cooldown recording, so the branch source is not yet atomic either. |
+| `generation-orchestrator` | 35 | `generation-orchestrator-v22-provider-cooldown-hard-stop` | Live cooldown lookup treats a successful query with no provider-state row as inactive; the branch source treats a missing row as blocked/uncertain. Live fallback recording reads the counter then upserts and does not check/propagate the write error. The branch source validates state and checks write errors, but still uses a non-atomic read-modify-upsert. |
+| `release-scheduler` | 12 | `release-scheduler-v17-publication-authorization-preflight` | Live deployment does not contain the branch's explicit `publication_authorization_not_implemented` preflight stop. Branch preflight remains a prepared safeguard, not a live behavior. |
+
+### Immediate implications
+
+1. The live generator's error handling can expose provider response-body text through function responses/logs and persist it in `last_error`. Keep the existing branch redaction change as a release requirement; do not assume it is deployed.
+2. A missing `taleforge_ai_provider_state` row is not equivalent to a valid “no cooldown” state. The live orchestrator currently allows that missing-row case to appear inactive. The branch fail-closed check is an improvement but still requires the shared atomic database operation before release.
+3. The live and branch cooldown writers both remain non-atomic. The branch must not be represented as having solved lost increments or first-insert races until both writers call the same rehearsed atomic operation.
+4. The live scheduler and branch scheduler remain materially different. The publication-authorization preflight is branch-only; no claim is made that live automated publication is blocked by that guard.
+
+These observations increase the urgency of the already documented blockers, but they do not authorize a production fix. Keep the migration-provenance gate in place; do not create a guessed RPC or apply DDL to production. The exact deployed versions and source were retrieved through read-only project inspection; no application rows, secrets, prompts, or provider response bodies were queried.
