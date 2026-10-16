@@ -232,3 +232,19 @@ Read-only retrieval of the currently deployed release-scheduler v12 and release-
 The hardening-branch scheduler and publisher add trusted internal API-key validation. The branch scheduler also stops automated publication with publication_authorization_not_implemented until authorization is enforced at the database commit boundary, and only advances a schedule after every selected publication is confirmed. The branch publisher rejects existing/racing chapter slots unless the chapter matches the expected published output and reports success only when required synchronization is confirmed. These are prepared branch safeguards, not live behavior. The live caller-authorization gap is therefore an explicit release blocker; do not deploy or enable automated publishing as part of this continuation.
 
 No function was invoked, and no production deployment, configuration change, publication, schedule mutation, or data write was performed.
+
+
+## Continuation verification — latest CI and focused ACL recheck — 2026-10-16
+
+The latest branch workflow, [run 38868044595](https://github.com/freearmy599/taleforge/actions/runs/38868044595), completed with both jobs successful:
+
+- **Type-check prepared Edge Functions:** all listed function type-checks and source-contract steps passed, including provider-state grants, cooldown recording, provider/publication schema provenance, internal worker authorization, and the repository-wide Gemini quota-guard contracts.
+- **Disposable PostgreSQL rehearsal:** all steps passed, including readiness/concurrency, reader-event integrity and INSERT-only grants, provider-state client ACL revocation/redaction, and future-object default-privilege rehearsal.
+
+This remains branch/disposable-database evidence only; it does not validate the live Edge Runtime, apply live ACL changes, resolve migration provenance, or make cooldown recording atomic.
+
+A further read-only live catalog check independently reconfirmed table-level privileges for `anon` and `authenticated` on the publication-boundary relations. In the focused relation set, these roles have broad privileges on `chapter_blueprints`, `chapter_generation_outputs`, `chapter_publication_reviews`, `chapter_reviews`, `chapters`, `publication_sync_outbox`, `reader_events`, `release_schedules`, `series`, and `story_blueprints`; the scheduler lease table and autonomous-series-run table remain without those ordinary-role table grants. The policy inventory still contains only the published-read policies for `chapters` and `series`, plus the constrained `reader_events` insert policy, among the inspected publication relations. No column-specific ACL entries were returned for the focused tables; this does not remove or mitigate the table-level grants.
+
+The confirmed next repair boundary is therefore **not** a blanket revoke. Prepare an explicit least-privilege matrix per relation and per application call path, preserve public reads of published series/chapters and the intended reader-event intake, and test the exact grants/policies against disposable PostgreSQL. Keep server-only workflow/review/output/outbox/schedule data inaccessible to ordinary roles unless a verified browser call path demonstrates a necessary narrowly scoped permission. Do not apply any production ACL change in this continuation.
+
+No production database writes, migrations, function deployments, schedule changes, generation, or publication occurred during this verification.
