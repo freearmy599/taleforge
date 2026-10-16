@@ -254,3 +254,48 @@ test("revise-chapter rechecks provider availability immediately before both revi
   assert.match(helper, /!Number\.isFinite\(until\)[\s\S]*?invalid_cooldown_timestamp/,
     "malformed cooldown timestamps must fail closed");
 });
+
+
+test("generation-orchestrator treats a missing provider-state row as unavailable before parsing or processing work", async () => {
+  const source = await readFile(new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url), "utf8");
+  const helperStart = source.indexOf("async function getGeminiCooldown(");
+  const helperEnd = source.indexOf("async function recordGeminiThrottle(", helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-state lookup helper must exist");
+  const helper = source.slice(helperStart, helperEnd);
+  assert.match(helper, /if\s*\(error\s*\|\|\s*!data\s*\)\s*return\s*\{active:true[\s\S]*?lookup_error:/,
+    "query errors and a missing row must both return an active fail-closed state");
+  assert.match(helper, /No Gemini provider-state row found/,
+    "missing state must carry an explicit safe diagnostic rather than being treated as no cooldown");
+  assert.doesNotMatch(helper, /if\s*\(error\s*\)\s*return\s*\{active:false/,
+    "a missing row must never fall through to inactive/no cooldown");
+  const auth = source.indexOf("isTrustedInternalApiKey(");
+  const cooldown = source.indexOf("const geminiCooldown=await getGeminiCooldown(supabase)");
+  const body = source.indexOf("const body=await req.json()");
+  const work = source.indexOf('let q=supabase.from("release_schedules")');
+  assert.ok(auth >= 0 && cooldown > auth && body > cooldown && work > body,
+    "authenticate and validate provider state before parsing request or beginning orchestration work");
+  const guard = source.slice(cooldown, body);
+  assert.match(guard, /if\(geminiCooldown\.lookup_error\)[\s\S]*?reason:"provider_state_unavailable"[\s\S]*?503/,
+    "unavailable state must return a stable retryable block before request processing");
+});
+
+test("chapter generator provider HTTP errors cannot leak provider response bodies", async () => {
+  const source = await readFile(new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url), "utf8");
+  const geminiStart = source.indexOf("async function gemini(");
+  const geminiEnd = source.indexOf("function parseJson(", geminiStart);
+  assert.ok(geminiStart >= 0 && geminiEnd > geminiStart, "Gemini request helper must exist");
+  const helper = source.slice(geminiStart, geminiEnd);
+  assert.match(helper, /const raw=await r\.text\(\)/, "response must still be consumed for successful JSON parsing");
+  assert.match(helper, /if\(!r\.ok\)[\s\S]*?throw new Error\(\`Gemini HTTP \$\{r\.status\}[\s\S]*?\);/,
+    "provider failure should throw a status-only diagnostic");
+  assert.doesNotMatch(helper, /throw new Error\([^)]*(?:raw|responseText|\.text\()/,
+    "raw provider response text must not enter a thrown error");
+  const catchStart = source.indexOf("const providerQuotaFailure=");
+  const catchEnd = source.indexOf("const failureReason=", catchStart);
+  assert.ok(catchStart >= 0 && catchEnd > catchStart, "bounded failure handler must exist");
+  const handler = source.slice(catchStart, catchEnd);
+  assert.match(handler, /const failureMessage=providerQuotaFailure\?[\s\S]*?internal diagnostics were withheld/,
+    "caller response must use a safe fixed message");
+  assert.doesNotMatch(handler, /error_message\s*:\s*message|error\s*:\s*message|last_error\s*:\s*message|console\.(?:error|warn)\([^\n]*message/,
+    "provider exception text must not be returned, logged, or persisted");
+});
