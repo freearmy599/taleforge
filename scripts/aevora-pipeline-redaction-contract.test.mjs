@@ -44,7 +44,7 @@ test("generation orchestrator sanitizes downstream failures and provider diagnos
   assert.ok(writer.includes("aevora_record_gemini_throttle"),"orchestrator must use the shared atomic cooldown RPC");
   assert.ok(writer.includes("result?.recorded!==true"),"orchestrator must reject an unsuccessful RPC result");
   assert.equal(writer.includes(".upsert("),false,"orchestrator cooldown writer must not use read-modify-upsert");
-  assert.ok(s.includes("if(existingUntil>Date.now()) return"), "fallback recorder retains its already-active cooldown guard");
+  assert.ok(s.includes("if(existingUntil>Date.now())return"), "fallback recorder retains its already-active cooldown guard");
   assert.ok(s.includes('await recordGeminiThrottle(supabase,revisionQuotaBlocked?"Gemini HTTP 429":"Gemini HTTP 503")'), "revision provider failures must invoke the orchestration cooldown fallback");
   assert.ok(s.includes('await recordGeminiThrottle(supabase,providerQuotaBlocked?"Gemini HTTP 429":"Gemini HTTP 503")'), "generation provider failures must invoke the orchestration cooldown fallback");
   assert.ok(s.includes('g.data?.reason==="provider_temporarily_unavailable"'), "provider-state lookup failures must not be mislabeled as Gemini overloads");
