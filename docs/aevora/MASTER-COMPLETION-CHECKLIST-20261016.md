@@ -15,7 +15,7 @@ This is the project-wide task register for finishing Aevora, including security/
 
 - **Current phase:** Phase 1 — Reliability, security, and safe publishing.
 - **Automatic publishing:** **NO-GO** until the Phase 1 exit gate is satisfied and rollout is explicitly authorized.
-- **Latest checked CI:** [run 38914981833](https://github.com/freearmy599/taleforge/actions/runs/38914981833) failed. The disposable PostgreSQL readiness rehearsal passed, but the Edge validation job failed three review error-redaction assertions in `continuity-review`, `originality-review`, and `safety-review` because the tests still expect the old direct-write recorder. This run did not execute the candidate atomic provider RPC migration or its SQL rehearsal.
+- **Latest verified CI evidence:** [run 38918201462](https://github.com/freearmy599/taleforge/actions/runs/38918201462) failed after the disposable PostgreSQL readiness rehearsal and Edge Function type-checks passed; three review error-redaction assertions failed against the then-current contract. The contract and writer-coverage tests have since changed on the branch, but no successful CI run for those later commits has been verified yet. The run did not execute the candidate atomic provider RPC migration or its SQL rehearsal.
 - **Branch-only candidate:** `20261016180000_atomic_gemini_provider_throttle.sql` and RPC caller changes are not production-deployed or runtime-verified.
 - **Production boundary:** no production migrations/deployments, schedule changes, chapter generation/publication, or billable Supabase development branch without explicit authorization.
 
@@ -51,10 +51,10 @@ The 38 is a working count of major system families, not 38 independent applicati
 ## Phase 1 — Reliability, security, and safe publishing (CURRENT BLOCKER)
 
 ### A. CI, tests, and runtime
-- [ ] Fix the three stale review error-redaction contract assertions using the permitted repository editing workflow.
-- [ ] Reconcile and run the full provider cooldown recording contract; verify all writer paths are covered.
-- [ ] Update the Gemini quota-guard contract for the RPC implementation and malformed persisted-counter behavior.
-- [ ] Verify the provider-state atomicity contract covers every writer, not only a subset.
+- [x] Reconcile the review error-redaction contract with the atomic RPC implementation; source-level checks now assert the RPC, fixed diagnostics, no upsert path, and stable retry reasons. Full CI re-run is still pending.
+- [ ] Run the full provider cooldown recording contract on the latest branch commit and verify all writer paths remain covered.
+- [x] Update the Gemini quota-guard contract for RPC persistence and malformed persisted-counter behavior; execution on the latest commit remains pending.
+- [x] Expand the provider-state atomicity contract to all 11 migrated branch writers; source-level checks pass, but full test execution and disposable SQL/concurrency rehearsal remain pending.
 - [ ] Add/run a safe disposable PostgreSQL rehearsal that explicitly guards its database identity and requires a test-only opt-in marker.
 - [ ] Execute the candidate migration in disposable PostgreSQL; test schema assumptions, function creation, role ownership, effective ACLs, invalid input, negative/malformed counters, and rollback.
 - [ ] Add true multi-session concurrency tests: concurrent increments, simultaneous first inserts, mixed quota/overload events, and no cooldown shortening.
@@ -65,7 +65,7 @@ The 38 is a working count of major system families, not 38 independent applicati
 - [ ] Recover authoritative provenance for live migration `20261007025751 add_taleforge_ai_provider_cooldown_state`, or document the verified live schema and use a reviewed forward-only repair; do not fabricate migration history.
 - [ ] Reconcile the live six-column table schema, constraints, indexes, triggers, routines, ACLs, defaults, and all direct/indirect readers and writers.
 - [ ] Review atomic RPC semantics, including whether overload events should affect the quota escalation counter and how duplicate observations are counted.
-- [ ] Migrate every branch writer to the shared RPC. Ten identified branch writers currently use it; `character-continuity` remains an unconverted direct writer.
+- [x] Migrate all 11 identified branch writers in the current branch to the shared RPC, including `character-continuity`. This is branch-source evidence only; deployed parity and runtime verification remain open.
 - [ ] Reconcile all deployed function versions with branch source. Earlier read-only inventory identified deployed direct writers `generate-chapter`, `generation-orchestrator`, and `revise-chapter`; deployed and branch inventories differ.
 - [ ] Preserve fail-closed behavior for generation, quality review, planners, review workers, and orchestrators when provider state is missing, malformed, cooling down, or unreadable.
 - [ ] Replace unsafe raw provider-error persistence with allowlisted diagnostics after reviewing retention/evidence requirements; never put raw response bodies or user content into routine logs.
