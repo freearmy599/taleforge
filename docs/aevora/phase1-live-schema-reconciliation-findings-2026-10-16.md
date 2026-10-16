@@ -248,3 +248,28 @@ A further read-only live catalog check independently reconfirmed table-level pri
 The confirmed next repair boundary is therefore **not** a blanket revoke. Prepare an explicit least-privilege matrix per relation and per application call path, preserve public reads of published series/chapters and the intended reader-event intake, and test the exact grants/policies against disposable PostgreSQL. Keep server-only workflow/review/output/outbox/schedule data inaccessible to ordinary roles unless a verified browser call path demonstrates a necessary narrowly scoped permission. Do not apply any production ACL change in this continuation.
 
 No production database writes, migrations, function deployments, schedule changes, generation, or publication occurred during this verification.
+
+
+## Phase 1 continuation — fresh publication catalog delta — 2026-10-16
+
+A fresh read-only catalog pass was run after the latest successful CI. It queried only PostgreSQL catalog metadata in the live Supabase project; no application rows, secrets, chapter content, provider payloads, or credentials were selected. No writes or function invocations occurred.
+
+### Confirmed again
+
+- The 12 expected core relations in `public` remain present and owned by `postgres`, with RLS enabled.
+- For ten internal/workflow relations — `chapter_blueprints`, `chapter_generation_outputs`, `chapter_publication_reviews`, `chapter_reviews`, `publication_sync_outbox`, `release_schedules`, `story_blueprints`, plus the public-facing `chapters`, `series`, and `reader_events` tables — both `anon` and `authenticated` have effective table-level `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges in the observed catalog.
+- In that focused set, RLS is enabled on all 12 relations. Only three policies are present: published-chapter SELECT, published-series SELECT, and constrained reader-event INSERT. The other inspected relations have no policies.
+- The live schema named `aevora_private` was not found. The project has an existing `taleforge_internal` schema according to the earlier read-only schema inventory; do not assume `aevora_private` is an alias or create it to satisfy the script.
+- No relation named `reader_event_quota_buckets` or `reader_event_quota_cleanup_state` was found in any schema in the live catalog query. These names are therefore not merely misplaced between `public` and `aevora_private`; they are absent from the catalog at the time of this inspection.
+- The live catalog includes the three lease routines `aevora_claim_release_scheduler_lease(uuid, uuid, integer)`, `aevora_renew_release_scheduler_lease(uuid, uuid, integer)`, and `aevora_release_scheduler_lease(uuid, uuid)`. They are SECURITY DEFINER, owned by `postgres`, configured with `search_path=pg_catalog, public, pg_temp`, and their observed EXECUTE ACL is limited to `postgres` and `service_role`. Their existence does not mean the live scheduler calls them; prior deployed-source inspection found that live scheduler v12 does not call the lease RPCs.
+
+### What this changes in the Phase 1 plan
+
+1. The publication schema inventory must explicitly account for the actual `taleforge_internal` schema and explain why it differs from the branch script's expected `aevora_private`. Treat this as a provenance/design discrepancy, not permission to rename/create schemas.
+2. The two absent reader-event quota relations must be reconciled against tracked migrations and deployed reader-event callers before any code or migration is drafted. Do not create empty replacement tables solely to satisfy the audit script.
+3. The broad client grants on workflow tables remain a high-priority access-control blocker. RLS does not constrain `TRUNCATE`; no-policy RLS is not a substitute for least-privilege table grants. Prepare a per-table/per-operation grant matrix that preserves only verified browser-facing reads and reader-event intake, then rehearse that exact matrix in disposable PostgreSQL.
+4. Lease RPC existence narrows the scheduler blocker: the live database routines are present with server-only EXECUTE ACLs, but the deployed scheduler has not been shown to integrate them. Verify routine definitions and compare exact caller behavior before treating lease enforcement as complete.
+
+### Status
+
+No production changes were made. Provider-state migration provenance, owner-level default privileges, atomic cooldown recording, publication transaction authorization, least-privilege client grants, missing relation provenance, and live scheduler integration remain open gates. Automatic publication remains NO-GO.
