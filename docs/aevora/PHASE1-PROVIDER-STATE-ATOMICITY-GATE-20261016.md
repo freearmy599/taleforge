@@ -80,3 +80,15 @@ A future database operation must be shared by both writers and satisfy all of th
 ## Change boundary
 
 This gate is a code-review record only. It does not authorize production DDL, migration application, grants/policies, deployment, schedule changes, chapter generation, or publication. No live changes were performed during this review.
+
+
+## Fresh read-only Supabase reconciliation (2026-10-16)
+
+A new read-only Supabase MCP migration inventory and catalog query were completed for project `sxmbnlgufqhcwxcpcsvb`; no DDL or application RPC was executed.
+
+- The migration inventory returned 232 records. The latest recorded version is `20261010161919 aevora_release_scheduler_leases`; there are no versions at or after `20261011000000` in that returned inventory.
+- The live ledger includes `20261007025751 add_taleforge_ai_provider_cooldown_state`, but does not include `20261013120000_lock_ai_provider_state_table` or the later branch-only lock/default-privilege/reader-intake migrations.
+- A fresh catalog query reconfirmed the exact six-column provider-state schema and owner `postgres`; RLS is enabled and not forced.
+- A separate ACL query reconfirmed broad relation-level privileges for both `anon` and `authenticated`, including `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` (server-version-dependent).
+
+This strengthens the live-versus-branch drift finding. It still does not provide the missing original creation-migration body, identify every differently named routine that may access the table, or map every deployed writer. The provider lock migration remains unapplied and on hold. No provider-state row values were read, and no production state was changed.
