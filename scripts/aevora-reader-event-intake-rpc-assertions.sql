@@ -72,6 +72,41 @@ BEGIN
 END;
 $rpc_owner_assert$;
 
+-- REVOKE checks must also cover PostgreSQL's PUBLIC pseudo-role, not only named API roles.
+DO $rpc_public_acl_assert$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    CROSS JOIN LATERAL pg_catalog.aclexplode(
+      COALESCE(p.proacl, pg_catalog.acldefault('f', p.proowner))
+    ) acl
+    WHERE n.nspname = 'public'
+      AND p.proname IN ('aevora_ingest_reader_event', 'aevora_prune_reader_event_quota_buckets')
+      AND acl.grantee = 0
+      AND acl.privilege_type = 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC can execute a privileged reader-event RPC';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    CROSS JOIN LATERAL pg_catalog.aclexplode(
+      COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))
+    ) acl
+    WHERE n.nspname = 'aevora_private'
+      AND c.relname IN ('reader_event_quota_buckets', 'reader_event_quota_cleanup_state')
+      AND acl.grantee = 0
+      AND acl.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC has privileges on private reader-event quota state';
+  END IF;
+END;
+$rpc_public_acl_assert$;
+
 DO $cleanup_cooldown_assert$
 DECLARE
   v_before timestamptz;
