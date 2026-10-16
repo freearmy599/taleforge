@@ -326,3 +326,32 @@ These are deployed-source observations for the fetched versions, not just branch
 ### Updated gate decision
 
 The provider-state repair is **still blocked**. There is now fresh confirmation of the broad direct ACLs, broad future-object defaults, no matching provider-named public routine, and deployed writer fingerprints. The remaining prerequisite is authoritative original creation/deployment provenance plus a complete reader/writer call graph. After that, implement the atomic operation and concurrency tests on the branch/disposable PostgreSQL only. No production migration, grant, function deployment, or provider-state data change was performed.
+
+
+## Complete deployed Edge Function reference scan — 2026-10-16 continuation
+
+A read-only source scan fetched all **26 currently listed deployed Edge Functions** from the Supabase Edge Function inventory and searched source files for `taleforge_ai_provider_state`, `cooldown_until`, `consecutive_throttle_count`, and `last_error_at`. This was source inspection only; no function was invoked, deployed, or changed.
+
+### Functions with provider-state references
+
+**Three confirmed direct writers:**
+- `generate-chapter` v59 — direct preflight reads and non-atomic read/compute/upsert; persists truncated raw provider error text.
+- `generation-orchestrator` v35 — direct cooldown reads and non-atomic read/compute/upsert; persists truncated arbitrary error text.
+- `revise-chapter` v40 — direct cooldown reads and non-atomic read/compute/upsert; persists truncated arbitrary error text.
+
+**Ten additional source files with read-only references in the fetched versions:**
+- Review gates: `continuity-review` v10, `originality-review` v9, `safety-review` v9, `review-orchestrator` v11.
+- Planning/continuity gates: `blueprint-planner` v13, `story-dna-planner` v7, `arc-planner` v11, `character-continuity` v5, `world-continuity` v9, `semantic-continuity-extraction` v8.
+- `aevora-control-plane-audit` v4 references the table in its read-only operations snapshot.
+
+The scan found no matching provider-state column/relation references in the remaining deployed function source files fetched: `publication-review` v8, `release-publisher` v21, `release-scheduler` v12, `post-publication-canon-sync` v6, `publication-sync-processor` v4, `chief-editor-monitor` v8, `autonomous-series-creation` v5, `autonomous-series-creation-runner` v6, `aevora-operations-snapshot` v5, `aevora-cover-worker` v4, `aevora-cover-request` v5, and `aevora-cover-review` v4. The inventory contained 26 functions in total. This is a literal source-reference scan, not proof that these functions cannot access the table through a shared helper, indirect RPC, or dynamic SQL.
+
+### Revised migration sequencing
+
+1. Migrate the three confirmed deployed writers to one atomic database operation and safe fixed diagnostics.
+2. Preserve the ten read-only caller paths during privilege redesign. Confirm their exact behavior, including error/missing-row handling, before switching them to a narrow reader RPC or another verified server-only path.
+3. Reconcile branch-only writer logic in `continuity-review`, `originality-review`, and `safety-review`; do not deploy these branch snapshots without deliberate parity review.
+4. Only after all deployed writer/read paths are verified should a separate least-privilege migration revoke direct table privileges. Keep service-role direct writes until writer migration and deployed-version verification are complete.
+5. Re-run the inventory immediately before rollout because the deployed function list and versions can change.
+
+**Disposition:** inventory coverage is now 26/26 deployed Edge Function source files fetched and scanned. Atomic implementation, branch caller changes, disposable PostgreSQL concurrency tests, runtime compatibility validation, and production authorization remain incomplete. Production remains unchanged and automated publishing remains **NO-GO**.
