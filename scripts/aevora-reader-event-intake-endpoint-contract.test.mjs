@@ -80,7 +80,7 @@ test("browser intake cutover is opt-in and preserves the tracker interface", () 
 
 
 test("quota cleanup RPC is executable only by the trusted server role", () => {
-  assert.match(migration, /REVOKE ALL ON FUNCTION public\\.aevora_prune_reader_event_quota_buckets\\(\\) FROM PUBLIC, anon, authenticated/i);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\\.aevora_prune_reader_event_quota_buckets\\(\\) TO service_role/i);
-  assert.match(migration, /CREATE OR REPLACE FUNCTION public\\.aevora_prune_reader_event_quota_buckets\\(\\)[\\s\\S]*?SECURITY DEFINER\\s+SET search_path = pg_catalog/i);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.aevora_prune_reader_event_quota_buckets\(\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.aevora_prune_reader_event_quota_buckets\(\) TO service_role/i);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.aevora_prune_reader_event_quota_buckets\(\)[\s\S]*?SECURITY DEFINER\s+SET search_path = pg_catalog/i);
 });
