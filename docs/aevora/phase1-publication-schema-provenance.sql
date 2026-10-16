@@ -190,7 +190,7 @@ WHERE n.nspname IN ('public', 'aevora_private')
 ORDER BY n.nspname, c.relname, grantee_name, acl.privilege_type;
 
 SELECT
-  n.nspname AS schema_name,
+  CASE WHEN d.defaclnamespace = 0 THEN '<global>' ELSE n.nspname END AS schema_name,
   pg_catalog.pg_get_userbyid(d.defaclrole) AS default_acl_owner,
   d.defaclobjtype AS object_type,
   acl.grantee,
@@ -199,10 +199,10 @@ SELECT
   acl.privilege_type,
   acl.is_grantable
 FROM pg_catalog.pg_default_acl d
-JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
 CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) acl
-WHERE n.nspname IN ('public', 'aevora_private')
-ORDER BY n.nspname, default_acl_owner, d.defaclobjtype, grantee_name, acl.privilege_type;
+WHERE d.defaclnamespace = 0 OR n.nspname IN ('public', 'aevora_private')
+ORDER BY schema_name, default_acl_owner, d.defaclobjtype, grantee_name, acl.privilege_type;
 
 SELECT
   n.nspname AS schema_name,
