@@ -28,7 +28,7 @@ For each of these tables, the observed relation ACL includes `anon` and `authent
 
 RLS does not constrain `TRUNCATE`. For tables with no applicable row policies, RLS does not provide an ordinary row-access path even when grants exist, but the excessive grants still violate the intended least-privilege boundary and must not be treated as safe. Do not rely on RLS as a substitute for revoking internal-table client grants.
 
-The branch contains `20261013130000_lock_internal_policyless_tables.sql` and `20261014180000_revoke_unapproved_internal_client_writes.sql`; these are source candidates for rehearsal/review, not evidence of a live repair.
+The branch already contains the dedicated migration `20261013090000_aevora_server_only_metrics_outbox_grants.sql`, which explicitly enables RLS and revokes relation-level and column-level client grants on both `publication_sync_outbox` and `story_attachment_metrics`. These tables are intentionally handled by that dedicated migration rather than duplicated in `20261013130000_lock_internal_policyless_tables.sql`. The live migration ledger snapshot ends at `20261010161919`, so this dedicated migration is not recorded as applied. This is a live migration/ACL discrepancy, not a missing branch migration. The migration remains a candidate for review/rehearsal; its existence is not evidence of a live repair.
 
 ## Finding 2 — lease RPCs exist live, but their stored definitions differ from hardened source
 
