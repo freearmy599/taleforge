@@ -37,7 +37,7 @@ test("database operation increments atomically and never shortens cooldown", () 
 
 for (const [name, source] of writers) {
   test(`${name} uses the approved RPC and has no direct provider-state writes`, () => {
-    assert.match(source, /rpc\(["']aevora_record_gemini_throttle["']/);
+    assert.match(source, /\.rpc\(\s*["']aevora_record_gemini_throttle["']/);
     assert.doesNotMatch(source, /from\(["']taleforge_ai_provider_state["']\)\s*\.(?:upsert|insert|update|delete)\s*\(/);
     assert.doesNotMatch(source, /last_error\s*:/);
   });
