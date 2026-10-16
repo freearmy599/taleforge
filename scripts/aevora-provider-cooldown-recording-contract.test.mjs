@@ -86,27 +86,27 @@ test("atomicity gate explicitly covers both direct and fallback cooldown writers
 
 test("orchestrator fails closed when the provider-state row is missing or unreadable", () => {
   const helperStart = orchestrator.indexOf("async function getGeminiCooldown(");
-  const helperEnd = orchestrator.indexOf("\\n}", helperStart);
+  const helperEnd = orchestrator.indexOf("\n}", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-state guard helper must be present");
   const helper = orchestrator.slice(helperStart, helperEnd);
-  assert.match(helper, /if\\(error \\|\\| !data\\) return \\{active:true[\\s\\S]*?lookup_error:/,
+  assert.match(helper, /if\(error \|\| !data\) return \{active:true[\s\S]*?lookup_error:/,
     "missing row and lookup errors must be an active, explicitly unavailable state");
-  assert.match(orchestrator, /if\\(geminiCooldown\\.lookup_error\\)[\\s\\S]*?reason:"provider_state_unavailable"[\\s\\S]*?},503\\)/,
+  assert.match(orchestrator, /if\(geminiCooldown\.lookup_error\)[\s\S]*?reason:"provider_state_unavailable"[\s\S]*?},503\)/,
     "entry-point lookup uncertainty must stop orchestration with a retryable 503");
-  assert.match(orchestrator, /const liveCooldown=await getGeminiCooldown\\(supabase\\);if\\(liveCooldown\\.lookup_error\\)[\\s\\S]*?action:"provider_state_unavailable"[\\s\\S]*?continue/,
+  assert.match(orchestrator, /const liveCooldown=await getGeminiCooldown\(supabase\);if\(liveCooldown\.lookup_error\)[\s\S]*?action:"provider_state_unavailable"[\s\S]*?continue/,
     "each schedule must re-check state and skip when the provider state becomes uncertain");
 });
 
 test("orchestrator cooldown fallback never reports a successful write after a database write error", () => {
   const writerStart = orchestrator.indexOf("async function recordGeminiCooldown(");
-  const writerEnd = orchestrator.indexOf("\\n}", writerStart);
+  const writerEnd = orchestrator.indexOf("\n}", writerStart);
   assert.ok(writerStart >= 0 && writerEnd > writerStart, "fallback cooldown recorder must be present");
   const writer = orchestrator.slice(writerStart, writerEnd);
-  assert.match(writer, /const \\{error:writeError\\}\\s*=\\s*await[\\s\\S]*?\\.upsert\\(/,
+  assert.match(writer, /const \{error:writeError\}\s*=\s*await[\s\S]*?\.upsert\(/,
     "the fallback persistence result must capture the database write error");
-  assert.match(writer, /if\\(writeError\\)\\{[\\s\\S]*?return null;\\}/,
+  assert.match(writer, /if\(writeError\)\{[\s\S]*?return null;\}/,
     "a failed persistence attempt must not return a success-shaped cooldown result");
-  assert.match(writer, /if\\(existingUntil>Date\\.now\\(\\)\\) return[\\s\\S]*?already_active:true/,
+  assert.match(writer, /if\(existingUntil>Date\.now\(\)\) return[\s\S]*?already_active:true/,
     "the fallback writer must preserve an already-active longer cooldown");
 });
 
