@@ -83,3 +83,6 @@ Production remains **NO-GO** for automatic publication and unreviewed permission
 Latest confirmed green CI baseline in the current ledger: run [38895944662](https://github.com/freearmy599/taleforge/actions/runs/38895944662). It validates only its named branch/disposable-test scope; later documentation commits are not themselves runtime or production evidence.
 
 **No production permissions were changed by this audit.**
+## 8. Reader-event transition evidence update
+
+The live Edge Function inventory did not list `reader-event-intake`, and read-only catalog inspection returned no matching intake/quota routines or `aevora_private` quota bucket tables. The reviewed branch keeps the intake feature flag disabled, so direct `reader_events` INSERT remains the compatibility path. See [`PHASE1-READER-EVENT-INTAKE-TRANSITION-GATE-20261016.md`](PHASE1-READER-EVENT-INTAKE-TRANSITION-GATE-20261016.md). Do not switch the flag or revoke direct INSERT until the replacement is deployed, tested and rollback-ready.
