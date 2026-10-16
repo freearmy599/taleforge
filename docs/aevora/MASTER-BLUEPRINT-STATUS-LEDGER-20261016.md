@@ -164,3 +164,10 @@ This ledger does not authorize production actions. Do not deploy functions, appl
 ## Continuation verification update (2026-10-16, latest checked runs)
 
 The previously pending runs [38904816298](https://github.com/freearmy599/taleforge/actions/runs/38904816298) and [38904840995](https://github.com/freearmy599/taleforge/actions/runs/38904840995) have now been inspected through their job results. Both runs completed successfully: Edge Function type-check/source-contract regression suite passed, and the disposable PostgreSQL readiness/security rehearsal passed. This confirms only the named branch/test scopes. It does not resolve live provider-state ACL/default-privilege gaps, original migration provenance, deployed function drift, atomic cooldown persistence, publication authorization, or production rollout approval. Production remains NO-GO. No production changes were made.
+
+
+## Provider-state caller reconciliation update (2026-10-16)
+
+Reviewed the current branch source for `generate-chapter` and `generation-orchestrator`. Confirmed direct reads and two separate application-level read/compute/upsert cooldown writers. The chapter generator has separate fail-closed preflight checks for generation and quality review; the orchestrator's fallback recorder skips incrementing when it observes an active cooldown to avoid apparent double counting, but that is not an idempotency guarantee under concurrency. Added this source-level caller map and atomicity implications to [PHASE1-PROVIDER-STATE-ATOMICITY-GATE-20261016.md](PHASE1-PROVIDER-STATE-ATOMICITY-GATE-20261016.md).
+
+Documentation commit: [b5c6a8d](https://github.com/freearmy599/taleforge/commit/b5c6a8db0e2edcc389b824e4248be4ecef9bf970). No workflow runs were returned for that documentation commit by the available PR-filtered workflow-run query; its CI status is therefore unverified, not failed. This is source review only and does not establish deployed-function parity. The original provider-state creation migration body remains unavailable in the checked branch. Production remains NO-GO; no production changes were made.
