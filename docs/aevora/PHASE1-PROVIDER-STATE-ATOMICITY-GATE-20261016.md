@@ -92,3 +92,41 @@ A new read-only Supabase MCP migration inventory and catalog query were complete
 - A separate ACL query reconfirmed broad relation-level privileges for both `anon` and `authenticated`, including `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`, and `MAINTAIN` (server-version-dependent).
 
 This strengthens the live-versus-branch drift finding. It still does not provide the missing original creation-migration body, identify every differently named routine that may access the table, or map every deployed writer. The provider lock migration remains unapplied and on hold. No provider-state row values were read, and no production state was changed.
+
+
+## Caller reconciliation — source-level findings (2026-10-16 continuation)
+
+This is a source-level review of the current hardening branch only. It does not claim that these exact files match deployed production functions.
+
+### Confirmed direct readers/writers
+
+1. `supabase/functions/generate-chapter/index.ts`
+   - Generation path reads `cooldown_until` and `consecutive_throttle_count` before invoking Gemini (currently around lines 52–61 in the reviewed blob).
+   - Quality-review path independently reads the same state immediately before its Gemini review call (around lines 233–244).
+   - Catch handling for Gemini HTTP 429/503 reads the row, computes a new count and cooldown in application code, then upserts the row (around lines 282–307). This is a read/compute/write sequence and is not atomic across concurrent workers.
+
+2. `supabase/functions/generation-orchestrator/index.ts`
+   - Entry and per-schedule paths read the same cooldown state (around lines 32–40 and the schedule loop).
+   - `recordGeminiThrottle` reads the current row, computes the next count/deadline in application code, and upserts it (around lines 44–75).
+   - The function intentionally returns without incrementing if it sees an already-active cooldown, to avoid double-counting a downstream worker's response. This heuristic is not an idempotency guarantee: concurrent reads/writes can race, and a shared event identifier is not currently enforced by the table.
+
+### Design implications
+
+- A single database-side operation must replace both write paths; merely locking down table grants would otherwise break trusted workers that currently write directly.
+- The two preflight checks should remain fail-closed, but eventually should call a narrow trusted read function or use an explicitly authorized server role after ACL design is verified.
+- Duplicate observations cannot be made exactly-once by checking whether a cooldown is active. Before promising idempotency, decide whether the same provider failure can carry a stable event key through both the worker response and orchestrator fallback. If not, specify a deliberate counting policy and test it.
+- The current branch lock migration revokes client-role access but does not create the atomic writer, does not migrate callers to an RPC, and does not resolve owner-specific future default privileges.
+
+### Provenance limitations
+
+The authoritative original creation migration body is still absent from the checked branch path; attempting to fetch `supabase/migrations/20261007025751_add_taleforge_ai_provider_cooldown_state.sql` returned not found. The branch lock migration body is available, but it is not a substitute for the original creation artifact. No broad repository search or migration-ledger name match should be treated as proof of all deployed callers. The live migration inventory and catalog must be re-collected read-only before a rollout proposal.
+
+### Next safe engineering gate
+
+1. Inventory repository references to `taleforge_ai_provider_state` and deployed Edge Function versions using authorized metadata-only methods.
+2. Retrieve the original creation migration/deployment artifact from the authoritative source.
+3. Design the atomic RPC signature and role grants against that verified schema.
+4. Add concurrent PostgreSQL tests for first insert, exact counter increments, longest-deadline preservation, invalid state, and permission denial.
+5. Keep production NO-GO until deployed caller parity and effective grants/default privileges are independently verified.
+
+No migration, deployment, production data change, or AI work was performed as part of this source review.
