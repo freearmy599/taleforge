@@ -35,6 +35,9 @@ test("provider schema provenance inventory covers schema needed before atomic RP
     "pg_trigger",
     "aclexplode",
     "pg_default_acl",
+    "LEFT JOIN pg_namespace n ON n.oid = d.defaclnamespace",
+    "d.defaclnamespace = 0",
+    "'<global>'",
     "pg_proc",
     "taleforge_ai_provider_state",
   ]) {
