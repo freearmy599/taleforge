@@ -192,3 +192,10 @@ This improves the schema-provenance record but does not complete the repair. A f
 The repository-wide source scan at `01960c57de0dc5766ff96b479f501f1bb90e58d8` found six writer-capable Edge Function paths for `public.taleforge_ai_provider_state`: `generate-chapter`, `generation-orchestrator`, `revise-chapter`, `continuity-review`, `originality-review`, and `safety-review`. `review-orchestrator` is an additional reader. Each writer currently contains or calls a local read/compute/upsert pattern in the inspected snapshot; these must be migrated to one shared atomic operation before client/service grants are tightened in a way that could break workers.
 
 **Status:** inventory expanded; implementation and deployed-version reconciliation remain pending. This is repository-source evidence, not proof that deployed function versions match. Production migration/deployment has not been performed. Phase 1 remains **BLOCKED** and automated publishing remains **NO-GO** until all writers, effective grants/default privileges, atomicity tests, and runtime compatibility are verified.
+
+
+### Follow-up writer-semantics findings
+
+The expanded writer review found inconsistent handling of cooldown persistence failures: several helpers only log or return `null`, while callers continue constructing provider-error responses without a typed confirmation that the cooldown was stored. Multiple writers also normalize counters in application code, risking silent recovery from malformed persisted state. The duplicated policy is one hour for HTTP 503 temporary overload and exponential 6-to-24-hour cooldown for 429 / `RESOURCE_EXHAUSTED`, with `Math.max` performed in application code rather than atomically.
+
+The planned shared operation must therefore enforce strict persisted-state validation, safe diagnostic allowlisting, database-time cooldown monotonicity, and a typed failure outcome that each caller must check. Add source-contract tests prohibiting all direct writes and requiring fail-closed provider-call paths. No production mutation or deployment was performed.
