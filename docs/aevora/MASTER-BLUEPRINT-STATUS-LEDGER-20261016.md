@@ -19,8 +19,8 @@ A passing CI run validates only the source and test scope named in that run. It 
 
 - **Current phase:** Phase 1 — Reliability, security, and safe publishing.
 - **Current gate:** Production NO-GO for automatic publication and unreviewed migrations.
-- **Latest observed CI:** run [38872500346](https://github.com/freearmy599/taleforge/actions/runs/38872500346) passed Edge Function type-check/source-contract job and disposable PostgreSQL readiness/security rehearsal.
-- **Current branch:** `aevora/release-scheduler-hardening`; latest known regression commit `6a40c7911f21d7a2c83f29360b1e84349722c353`.
+- **Latest observed CI:** run [38878784189](https://github.com/freearmy599/taleforge/actions/runs/38878784189) passed both prepared Edge Function/source-contract validation and disposable PostgreSQL readiness/security rehearsal. This includes the corrected provider cooldown recording contracts and malformed-counter source checks; it is branch/test-environment evidence only.
+- **Current branch:** `aevora/release-scheduler-hardening`; latest verified regression commit `a50d456b1f668a2975f012c1e902b5e42b5c8eff` (latest ledger update is documentation-only).
 - **Safety boundary:** no production deployment/migration, schedule mutation, chapter generation/publication, or billable Supabase development branch without explicit authorization.
 
 ## Master phases
@@ -40,8 +40,8 @@ A passing CI run validates only the source and test scope named in that run. It 
 
 | System / workstream | Status | Evidence / remaining work |
 |---|---|---|
-| Edge Function source/type checks and regression contracts | **Verified for current CI scope** | Run 38872500346 passed the Edge Function job; this is branch evidence only |
-| Disposable PostgreSQL readiness/security rehearsals | **Verified for current CI scope** | Run 38872500346 completed successfully, including readiness, concurrency-related, reader-event and ACL rehearsals |
+| Edge Function source/type checks and regression contracts | **Verified for current CI scope** | Run 38878784189 passed the Edge Function job; corrected cooldown contracts now include malformed/overflowing persisted-counter rejection and orchestrator fail-closed assertions; branch evidence only |
+| Disposable PostgreSQL readiness/security rehearsals | **Verified for current CI scope** | Run 38878784189 completed successfully, including readiness, concurrency-related, reader-event and ACL rehearsals; disposable DB evidence only |
 | Provider-state schema provenance | **Blocked** | Live migration ledger includes a creation version whose original migration body is missing from visible repository history; obtain authoritative original migration/deployment evidence; do not fabricate history |
 | Provider-state client ACLs and future-object defaults | **Blocked / incomplete** | Table-specific and default-privilege gaps were observed in read-only audit; owner-level `supabase_admin` correction requires separate review and authorization |
 | Gemini quota/cooldown guards | **Partially built** | Guards and contracts exist, but atomic persistence is not implemented; live/branch drift and missing-row behavior must be reconciled |
@@ -125,12 +125,13 @@ A passing CI run validates only the source and test scope named in that run. It 
 
 ## Next actions — in order
 
-1. Keep the current branch CI green; latest run 38872500346 passed both jobs.
-2. Reconcile authoritative provider-state migration provenance and owner-level default privileges.
+1. Preserve the green baseline at run 38878784189; the corrected cooldown regression contracts and disposable PostgreSQL rehearsal both pass.
+2. Reconcile authoritative provider-state migration provenance and owner-level default privileges; do not guess at missing migration history.
 3. Obtain reviewed, sanitized publication/provider catalog evidence; reconcile missing objects and production-only functions against migrations and deployed callers.
-4. Design atomic cooldown and publication transactions only after schema evidence is reconciled.
-5. Review the six legacy schedules individually and keep unapproved schedules unchanged/inactive.
-6. Add an acceptance-evidence checklist for each system above and then perform a component-by-component audit of Phases 2–4, without assuming that a file existing means the feature is complete.
+4. Design atomic cooldown and publication transactions only after schema evidence is reconciled; both cooldown writers must converge on one atomic operation.
+5. Prepare and review a least-privilege grant matrix against verified browser call paths, preserving published reads and constrained reader-event intake without blanket revokes.
+6. Review the six legacy schedules individually and keep unapproved schedules unchanged/inactive.
+7. Add an acceptance-evidence checklist for each system above and then perform a component-by-component audit of Phases 2–4, without assuming that a file existing means the feature is complete.
 
 ## Non-negotiable safety boundary
 
