@@ -174,3 +174,28 @@ A separate read-only `has_table_privilege` inventory checked effective privilege
 This is a significant access-control finding. RLS being enabled does not constrain `TRUNCATE`, and ordinary-client `TRIGGER` privileges should not be assumed safe merely because RLS is enabled. This inventory alone does not determine the complete row-level exposure; the associated policies, views, function paths, and intended public read/write use must be assessed before designing the exact revoke/grant matrix.
 
 **Do not run broad revokes as part of this continuation.** First reconcile intended browser access with the application call paths and existing policies, then prepare narrowly scoped table/column grants and disposable PostgreSQL tests. No privileges were changed.
+
+
+## Publication-boundary trigger and policy reconciliation — 2026-10-16
+
+A further read-only catalog pass enumerated trigger definitions, trigger-function security settings/owners, and row-level policies for the publication-boundary relations. No application rows were queried and no database writes were performed.
+
+### Row-level policy inventory
+
+Only three policies were present across the 11 inspected publication-boundary relations:
+
+- chapters: SELECT for anon and authenticated, limited to published chapters whose series is ongoing or completed.
+- series: SELECT for anon and authenticated, limited to series with status ongoing or completed.
+- reader_events: INSERT for anon and authenticated, requiring a non-null visitor identifier of length 16–100 and, when supplied, a series that is ongoing/completed and a chapter that is published.
+
+No policies were returned for chapter_blueprints, chapter_generation_outputs, chapter_publication_reviews, chapter_reviews, publication_sync_outbox, release_schedules, story_blueprints, or taleforge_autonomous_series_creation_runs. Combined with the previously verified effective table grants, this means the ordinary roles have broad table-level capabilities on those relations even though the current row-policy inventory does not grant them row access through RLS. That is not an adequate reason to leave the broad grants in place: TRUNCATE is not constrained by RLS, and unnecessary write/trigger privileges expand the attack surface. The intended client-facing access model should be reduced to the minimum required by actual application call paths, not by a blanket revoke that could break published reading or reader-event intake.
+
+### Trigger and privileged-function inventory
+
+The inspected relations have 17 user-defined triggers. The relevant publication-side trigger is chapters_publication_sync_outbox, which runs after a chapter insert or status update when the new status is published; it calls public.enqueue_publication_sync_event(). That function is SECURITY DEFINER, owned by postgres, has search_path=public, and inserts a minimal chapter_id payload into public.publication_sync_outbox with conflict handling on (chapter_id,event_type). The observed function ACL does not grant EXECUTE to anon or authenticated; trigger execution itself does not require the caller to have direct execute permission on the trigger function.
+
+Other inspected SECURITY DEFINER trigger functions include the continuity/quality gate synchronizers, publication review gates, continuity extraction enqueue, series production enrollment, long-term narrative architecture refresh, and narrative compliance trigger. Most are owned by postgres and have explicit search_path settings. public.taleforge_trigger_narrative_compliance() is the exception: it sets an empty search path and calls public.taleforge_verify_narrative_compliance(new.id) with an explicitly schema-qualified reference. This reduces implicit object lookup in the wrapper, but the downstream function's own body, ownership, ACL, and settings still need inspection before the complete call chain can be cleared.
+
+### Gate update
+
+The live catalog evidence now confirms the policy inventory and key trigger entry points, but it does not yet establish that all trigger bodies and downstream privileged routines preserve the intended publication boundary. Before designing a publication transaction or changing grants, inspect the exact constraints/indexes and the full downstream security-definer call graph, especially the narrative-compliance verifier and routines called by publication triggers. Keep the production migration/deployment gate closed. No grants, policies, triggers, functions, schedules, chapters, or publication state were changed.
