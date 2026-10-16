@@ -38,9 +38,9 @@ A review of the branch-only `20261015120000_reader_event_intake_rpc.sql` found a
 - If a direct writer inserts the same UUID after the RPC's initial existence check but before its INSERT, the RPC's `ON CONFLICT ... DO NOTHING` path can return `duplicate` after quota buckets have already been incremented. Returning JSON does not roll back those prior writes.
 - The ordinary intended RPC-to-RPC duplicate path is serialized by the advisory lock, but this mixed-writer race is relevant during a staged migration if direct and RPC writers overlap.
 
-Required resolution: either prove the deployment sequence prevents overlapping direct/RPC writers with the same keys, or restructure the RPC so quota increments are committed only for a successfully inserted event (or are transactionally rolled back for a duplicate outcome). Add a PostgreSQL concurrency test that races a direct insert against RPC intake for the same UUID and asserts duplicate handling does not consume quota unexpectedly. Do not enable the frontend flag or remove direct INSERT until this is resolved and rehearsed.
+Resolution implemented in branch candidate (2026-10-16): the RPC now claims the unique `reader_events` row before incrementing quota buckets. If a direct compatibility INSERT wins the unique-key race after the RPC's existence check, the RPC returns `duplicate` before changing quota. A static contract test asserts the order. The disposable PostgreSQL suite already tests RPC duplicate quota accounting and concurrent RPC idempotency; the latest candidate CI must still confirm these changes. A deterministic direct-writer/RPC interleaving test remains desirable before enabling the flag.
 
-This is a source-level finding in a branch-only migration; it is not evidence that the function or quota tables exist in production.
+This is a source-level finding and branch-only resolution; it is not evidence that the function or quota tables exist in production. Do not enable the frontend flag or remove direct INSERT until the live endpoint, schema and deployment sequence are verified.
 
 
 ## Additional live catalog reconciliation — 2026-10-16
