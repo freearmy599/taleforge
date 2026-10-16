@@ -15,7 +15,7 @@ A fresh read-only catalog query returned exactly **91 public tables with RLS ena
 
 This document classifies the **intended access model provisionally from table names, existing branch migration allowlists, and product semantics**. It does not certify client workflows. Confirm actual application and Edge Function call sites before making any CRUD/policy changes.
 
-## A. Policyless tables with client grants: server-only candidate (22)
+## A. Policyless tables with client grants: server-only candidate (28)
 
 These names describe automation, generated content, moderation/review, scheduling, internal state, telemetry, or governance. Recommended target: server-only; no anon/authenticated policies; remove relation-level and column-level client privileges; preserve trusted service access only where required.
 
@@ -50,7 +50,6 @@ These names describe automation, generated content, moderation/review, schedulin
 | taleforge_system_governance_registry | Server-only | Internal system registry |
 | taleforge_system_governance_runs | Server-only | Internal governance execution history |
 
-**Count note:** the list above has 28 rows by semantic grouping. The live ACL result had 39 tables with client grants; the remaining 11 are product-facing or ambiguous candidates below. The earlier “22” heading is corrected by the actual row list and should not be used as a count.
 
 ## B. Policyless tables with client grants: product-facing or ambiguous (11)
 
