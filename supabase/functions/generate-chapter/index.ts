@@ -53,6 +53,9 @@ if(governance.error||governance.data?.authorized!==true){
  if(providerStateError||!providerState){
   console.error("[generate-chapter] provider cooldown lookup failed; failing closed.");
   return reply({success:false,retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state could not be verified; generation was blocked to protect quota."},503);
+ }else if(typeof providerState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(providerState.consecutive_throttle_count)||providerState.consecutive_throttle_count<0){
+  console.error("[generate-chapter] provider throttle counter is malformed; failing closed.");
+  return reply({success:false,retryable:true,reason:"provider_state_unavailable",error:"Gemini provider state is malformed; generation was blocked to protect quota."},503);
  }else if(providerState.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())){
   console.error("[generate-chapter] provider cooldown timestamp is invalid; failing closed",String(providerState.cooldown_until));
   return reply({success:false,retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state is malformed; generation was blocked to protect quota."},503);
@@ -234,6 +237,10 @@ const {data:reviewProviderState,error:reviewProviderStateError}=await db.from("t
 if(reviewProviderStateError||!reviewProviderState){
  console.error("[generate-chapter] quality-review provider cooldown lookup failed; failing closed.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"provider_state_unavailable",error:"Gemini cooldown state could not be verified; AI quality review was blocked."},503);
+}
+if(typeof reviewProviderState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(reviewProviderState.consecutive_throttle_count)||reviewProviderState.consecutive_throttle_count<0){
+ console.error("[generate-chapter] quality-review provider throttle counter is malformed; failing closed.");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"provider_state_unavailable",error:"Gemini provider state is malformed; AI quality review was blocked."},503);
 }
 if(reviewProviderState.cooldown_until && !Number.isFinite(new Date(reviewProviderState.cooldown_until).getTime())){
  console.error("[generate-chapter] quality-review provider cooldown timestamp is invalid; failing closed");
