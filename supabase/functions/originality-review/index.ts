@@ -275,7 +275,8 @@ note: "Gemini review blocked because provider cooldown state could not be verifi
 }, 503);
 }
 
-if (providerState.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())) return jsonResponse({success:false,reason:"provider_state_unavailable"},503);
+if (typeof providerState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(providerState.consecutive_throttle_count)||providerState.consecutive_throttle_count<0) return jsonResponse({success:false,blocked:true,retryable:true,reason:"provider_state_unavailable",note:"Gemini review blocked because provider state is malformed; no model call was made."},503);
+  if (providerState.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())) return jsonResponse({success:false,reason:"provider_state_unavailable"},503);
 
 if (providerState.cooldown_until && new Date(providerState.cooldown_until).getTime() > Date.now()) {
 return jsonResponse({
