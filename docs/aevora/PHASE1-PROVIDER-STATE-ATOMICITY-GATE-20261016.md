@@ -405,3 +405,28 @@ Added `scripts/tests/aevora-provider-state-atomicity-disposable.sql`. It is expl
 A remote source-contract scan was run against the current branch file contents: **23/23 static assertions passed** for the migration security declarations, event allowlist, atomic upsert/counter/cooldown patterns, and all three callers' RPC use/no-direct-write/persistence-confirmation contracts. This was a tool-side regex inspection of fetched source, **not** execution of the checked-in Node test file and not a TypeScript/Deno or database test.
 
 CI status queries for the new commits returned no status entries and no workflow runs. Therefore CI is **unverified**, not green.
+
+
+## Expanded branch writer migration — 2026-10-16 continuation
+
+The branch-only atomic RPC migration has now been wired into all six direct writer-capable Edge Function paths identified in the repository scan:
+
+- `generate-chapter`
+- `generation-orchestrator`
+- `revise-chapter`
+- `continuity-review`
+- `originality-review`
+- `safety-review`
+
+The three review functions no longer perform read/compute/upsert writes in their cooldown-recording helpers; they call `aevora_record_gemini_throttle`, accept only the allowlisted event class, and require an explicit `recorded === true` result before logging persistence success. Their diagnostic writes no longer store arbitrary provider error text. The source-contract test now includes all six writer paths and permits multiline formatting around the RPC call.
+
+A tool-side static source inspection of the six current branch files found for each: RPC call present, direct table insert/update/upsert/delete pattern absent, raw `last_error:` write absent, and explicit persistence confirmation check present. This is a source inspection only; it is not execution of the Node test, Edge Runtime type-check, or PostgreSQL test.
+
+### Remaining read-path / rollout blockers
+
+- `review-orchestrator` and several review/generation paths still read `taleforge_ai_provider_state` directly. Do not revoke direct table SELECT from `service_role` until those reads have a tested narrow replacement and deployed caller parity is verified.
+- Production still runs deployed versions that predate this branch-only RPC migration. No live writer is considered migrated merely because its branch source changed.
+- The original creation-migration SQL artifact remains unavailable. The live catalog shape was inspected read-only, but disposable PostgreSQL rehearsal and concurrency proof remain mandatory.
+- No Node tests, Deno type-check, database rehearsal, or concurrency test has been executed for this continuation; CI remains unverified.
+
+**Gate remains BLOCKED / automated publishing NO-GO.** No production changes, migration application, function deployment, generation, publication, schedule mutation, or billable branch creation occurred.
