@@ -111,21 +111,22 @@ WHERE n.nspname = 'public'
   AND a.attacl IS NOT NULL
 ORDER BY grantee, a.attname, x.privilege_type;
 
--- 8. Schema-level default table privileges for roles that can create public tables.
--- These affect future objects and must not be changed by this inventory.
+-- 8. Global and schema-level default table privileges for roles that can
+-- create tables. Global defaults (defaclnamespace = 0) also affect future
+-- objects and must not be missed or changed by this inventory.
 SELECT owner_role.rolname AS default_acl_owner,
-       n.nspname AS schema_name,
+       CASE WHEN d.defaclnamespace = 0 THEN '<global>' ELSE n.nspname END AS schema_name,
        COALESCE(grantee.rolname, 'PUBLIC') AS grantee,
        x.privilege_type,
        x.is_grantable
 FROM pg_default_acl d
-JOIN pg_namespace n ON n.oid = d.defaclnamespace
+LEFT JOIN pg_namespace n ON n.oid = d.defaclnamespace
 JOIN pg_roles owner_role ON owner_role.oid = d.defaclrole
 CROSS JOIN LATERAL aclexplode(d.defaclacl) x
 LEFT JOIN pg_roles grantee ON grantee.oid = x.grantee
-WHERE n.nspname = 'public'
+WHERE (d.defaclnamespace = 0 OR n.nspname = 'public')
   AND d.defaclobjtype = 'r'
-ORDER BY owner_role.rolname, grantee, x.privilege_type;
+ORDER BY owner_role.rolname, schema_name, grantee, x.privilege_type;
 
 -- 9. Existing routines whose names suggest provider-state or throttle handling.
 -- This records signatures/ownership/security settings, not routine execution.
