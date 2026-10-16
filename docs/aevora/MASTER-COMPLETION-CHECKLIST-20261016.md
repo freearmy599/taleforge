@@ -266,3 +266,13 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Narrowed `20261014190000_lock_internal_story_design_read_surfaces.sql` to the 27 high-risk internal planning/intelligence tables only. The 14 provisional reference tables are explicitly excluded until their fields and intended consumers are verified.
 - [x] Updated static contracts to assert both the 27-table internal lock allowlist and the 14-table exclusion list. The separate 41-table write/maintenance revoke candidate remains distinct and preserves SELECT.
 - [ ] Await CI for this scope correction, then continue the table-by-table reader/API caller audit. Do not apply any candidate migration live without separate authorization and compatibility checks.
+
+
+## Provisional reference taxonomy — second-pass field and caller review (2026-10-17)
+
+- [x] Inspected live schemas for all 14 provisional reference/taxonomy tables. Several expose internal generation rules, structural weights, originality constraints, compatibility/risk reports, or series-specific design profiles even when status is `active`.
+- [x] Inspected current policies: 13 tables permit SELECT for rows with status `active`; `taleforge_hybrid_story_recipes_generated` permits `validated` and `active`. Status filtering does not protect sensitive columns.
+- [x] Scanned 21 Edge Function entrypoints and core browser data files; no direct references to these exact table names were found in the inspected sources. This does not rule out SQL-function/dynamic/external/future creator callers.
+- [x] Added [the field/caller review](./PHASE1-REFERENCE-TAXONOMY-CALLER-AUDIT-20261017.md).
+- [ ] Decide and implement a deliberate public projection for taxonomy labels/descriptions versus server-only generation rules and series-specific profiles. Do not retain raw-table reads by default and do not blanket-revoke before the remaining caller inventory.
+- **Safety boundary:** read-only catalog/source audit only; no live grants, policies, rows, migrations, deployment, generation/publication, schedule mutation, or billable branch changes. Automatic publishing remains NO-GO.
