@@ -77,13 +77,13 @@ test("public default-privilege cleanup is schema-scoped, owner-aware, and fails 
 
 test("client table maintenance ACL repair preserves ordinary CRUD", () => {
   assert.match(maintenancePrivilegeMigration, /c\.relkind IN \('r', 'p'\)/);
-  assert.match(maintenancePrivilegeMigration, /REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
+  assert.match(maintenancePrivilegeMigration, /REVOKE MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
   assert.match(maintenancePrivilegeMigration, /REVOKE REFERENCES \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
   assert.doesNotMatch(maintenancePrivilegeMigration, /REVOKE[^;]*(?:SELECT|INSERT|UPDATE|DELETE)/i);
 });
 
 test("future client maintenance defaults are schema-scoped and fail closed", () => {
-  assert.match(maintenanceDefaultMigration, /IN SCHEMA public REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM PUBLIC, anon, authenticated/);
+  assert.match(maintenanceDefaultMigration, /IN SCHEMA public REVOKE MAINTAIN, TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM PUBLIC, anon, authenticated/);
   assert.match(maintenanceDefaultMigration, /defaclnamespace = 0/);
   assert.match(maintenanceDefaultMigration, /global table maintenance defaults exist/);
   assert.match(maintenanceDefaultMigration, /executor cannot administer default privileges/);
