@@ -441,3 +441,40 @@ Branch-only updates have now routed four of these five helpers (`blueprint-plann
 The contract-test update to include the additional writer set was also refused by the repository edit tool; the existing test therefore still covers only the original six paths. Do not interpret its current coverage as exhaustive. Before considering the gate, update the test inventory and migrate `character-continuity`, then run a full repository-wide writer scan and actual test/build/database checks.
 
 No production changes were made. Phase 1 remains BLOCKED and automated publishing remains NO-GO.
+
+
+## Repository-wide branch source scan — 2026-10-16 continuation
+
+A recursive Git tree inventory found 21 `supabase/functions/*/index.ts` files on the hardening branch. Each of those 21 source files was fetched and inspected for literal `taleforge_ai_provider_state` references, the candidate RPC name, cooldown helper names, and direct write patterns. This is a branch source scan, not a scan of deployed production source or indirect/dynamic SQL.
+
+### Direct-write result
+
+The scan found one known remaining direct writer: `character-continuity`. Ten identified writer paths use the atomic RPC on the branch:
+`generate-chapter`, `generation-orchestrator`, `revise-chapter`, `continuity-review`, `originality-review`, `safety-review`, `blueprint-planner`, `story-dna-planner`, `arc-planner`, and `world-continuity`.
+
+The `character-continuity` edit remains unresolved because the repository editing tool refused the attempted change. Do not count it as migrated. The existing contract test also still lists only the original six paths; an attempt to update/create broader test coverage was refused, so test coverage is known to be incomplete.
+
+### Direct read dependencies found
+
+Literal direct reads remain in these 13 branch functions:
+- `arc-planner`
+- `blueprint-planner`
+- `character-continuity`
+- `continuity-review`
+- `generate-chapter`
+- `generation-orchestrator`
+- `originality-review`
+- `review-orchestrator`
+- `revise-chapter`
+- `safety-review`
+- `semantic-continuity-extraction`
+- `story-dna-planner`
+- `world-continuity`
+
+Consequently, the table's SELECT privileges cannot yet be removed from these service-role callers. A narrowly scoped read RPC or another reviewed interface must preserve fail-closed cooldown behavior and be migrated/tested across all these callers before permission tightening. The branch scan does not prove there are no indirect callers outside these 21 entrypoints.
+
+### Validation boundary
+
+The scan does not execute tests, type-check Deno functions, run PostgreSQL, or establish deployed-version parity. The candidate SQL remains un-applied. Production ACL/default privileges and migration provenance remain unresolved.
+
+**Gate remains BLOCKED / automated publishing NO-GO.** No production change, deployment, migration, permission change, publication/generation, schedule mutation, or billable branch creation occurred.
