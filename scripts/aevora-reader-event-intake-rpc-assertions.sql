@@ -13,8 +13,34 @@ BEGIN
      OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','SELECT')
      OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','INSERT')
      OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','SELECT')
-     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','SELECT') THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: public role can access private reader-event quota store or cleanup state';
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','SELECT')
+     OR has_function_privilege('anon','public.aevora_prune_reader_event_quota_buckets()','EXECUTE')
+     OR has_function_privilege('authenticated','public.aevora_prune_reader_event_quota_buckets()','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.aevora_prune_reader_event_quota_buckets()','EXECUTE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','UPDATE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','DELETE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','TRUNCATE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','REFERENCES')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_buckets','TRIGGER')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','INSERT')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','UPDATE')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','DELETE')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','TRUNCATE')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','REFERENCES')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_buckets','TRIGGER')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','INSERT')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','UPDATE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','DELETE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','TRUNCATE')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','REFERENCES')
+     OR has_table_privilege('anon','aevora_private.reader_event_quota_cleanup_state','TRIGGER')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','INSERT')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','UPDATE')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','DELETE')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','TRUNCATE')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','REFERENCES')
+     OR has_table_privilege('authenticated','aevora_private.reader_event_quota_cleanup_state','TRIGGER') THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: public role can access private reader-event quota store or cleanup state, or execute cleanup RPC';
   END IF;
 END;
 $rpc_acl_assert$;
