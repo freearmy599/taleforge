@@ -66,7 +66,7 @@ test("browser-facing sources cannot directly query internal workflow/control tab
     const source = await readFile(file, "utf8");
     for (const relation of serverOnlyRelations) {
       const pattern = new RegExp(
-        String.raw`\.from\(\s*['"`]${relation}['"`]\s*\)`,
+        "\\.from\\(\\s*['\"]" + relation + "['\"]\\s*\\)",
         "i",
       );
       if (pattern.test(source)) violations.push(`${file.pathname}: ${relation}`);
