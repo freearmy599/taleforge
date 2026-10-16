@@ -24,13 +24,12 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
     if (!url || !key) return;
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error: recordError } = await db.rpc(
-      "aevora_record_gemini_throttle",
-      { p_event_class: isQuotaFailure ? "quota" : "overload" },
-    );
+    const { data, error: recordError } = await db.rpc("aevora_record_gemini_throttle", {
+      p_event_class: isQuotaFailure ? "quota" : "overload",
+    });
     const result = Array.isArray(data) ? data[0] : data;
     if (recordError || result?.recorded !== true) {
-      console.error("[quota-guard] Gemini cooldown could not be persisted; this request remains blocked.");
+      console.error("[quota-guard] Gemini cooldown persistence failed.");
       return;
     }
     console.warn("[quota-guard] Gemini cooldown recorded", JSON.stringify({
@@ -39,7 +38,7 @@ async function recordGeminiQuotaCooldown(error: unknown) {
       consecutive_throttle_count: result.consecutive_throttle_count,
     }));
   } catch {
-    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly; this request remains blocked.");
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
   }
 }
 Deno.serve(async (req:Request) => {
