@@ -63,3 +63,12 @@ See [live schema reconciliation findings](./phase1-live-schema-reconciliation-fi
   - [Gemini throttle caller audit](./PHASE1-GEMINI-THROTTLE-CALLER-AUDIT-20261016.md)
   - [Master completion checklist](./MASTER-COMPLETION-CHECKLIST-20261016.md)
 - Next implementation task: update the candidate RPC and disposable PostgreSQL rehearsal to use an event ledger and quota-only counter semantics; propagate one event ID through all direct writers and the generation-orchestrator fallback; then update static contracts and run CI. Keep all changes branch-only until provenance, runtime, ACL, and separate rollout gates pass.
+
+
+## Latest implementation continuation — 2026-10-16
+
+- Added branch-only candidate migration `20261016190000_idempotent_gemini_provider_throttle.sql` with a UUID event ledger, quota-only counter escalation, one-hour minimum overload cooldown, monotonic cooldown expiry, fixed diagnostics, and service-role-only function execution.
+- Updated all ten direct provider-call owners to supply `p_event_id`; removed the `generation-orchestrator` fallback writer to prevent duplicate counting of a child failure.
+- Updated static source contracts and disposable SQL/shell rehearsal. The rehearsal now tests mixed concurrent events, concurrent replay of one event ID (expected one increment), distinct concurrent quota events (expected 20 increments), overload counter invariance, and role grants.
+- **Validation not yet confirmed:** no claim that CI or disposable PostgreSQL passed for these latest edits. The next step is to inspect the workflow run triggered by these commits, fix any failures, and rerun until green. The previous green run validated older semantics only.
+- No production migration, deployment, generation, publication, schedule mutation, or billable Supabase branch was initiated. Automatic publishing remains NO-GO.
