@@ -21,8 +21,8 @@ A passing CI run validates only the source and test scope named in that run. It 
 
 - **Current phase:** Phase 1 — Reliability, security, and safe publishing.
 - **Current gate:** Production NO-GO for automatic publication and unreviewed migrations.
-- **Latest observed CI:** run [38895944662](https://github.com/freearmy599/taleforge/actions/runs/38895944662) passed both prepared Edge Function/source-contract validation and disposable PostgreSQL readiness/security rehearsal. The run includes the browser workflow-table boundary regression test (step 36), provider cooldown contracts, schema-inventory parsing, client ACL/default-privilege rehearsals and other named checks; this is branch/test-environment evidence only.
-- **Current branch:** `aevora/release-scheduler-hardening`; latest source/test commit `910dbbda9bad5af157f7299ef8da4fce5d5cf99f`; earlier cooldown-contract baseline `a50d456b1f668a2975f012c1e902b5e42b5c8eff`.
+- **Latest observed CI:** run [38922521841](https://github.com/freearmy599/taleforge/actions/runs/38922521841) passed both prepared Edge Function/source-contract validation and disposable PostgreSQL security/readiness rehearsal. This includes updated review/pipeline/revision cooldown-RPC contracts, repository-wide Gemini quota guards, and a runtime PostgreSQL rehearsal of 20 concurrent atomic throttle calls, safe diagnostics, monotonic cooldown, malformed-state rejection, and server-only RPC ACLs. This is branch/disposable-database evidence only.
+- **Current branch:** `aevora/release-scheduler-hardening`; latest branch head at this ledger refresh `6775dc0534b7ee6a54645c0fd5431b9e10d2b080`; latest source/test baseline `a7d4b74a36b5866470d245f2f564c6bc5fc1c6de`; atomic provider-throttle candidate migration `20261016180000_atomic_gemini_provider_throttle.sql` remains branch-only.
 - **Safety boundary:** no production deployment/migration, schedule mutation, chapter generation/publication, or billable Supabase development branch without explicit authorization.
 
 ## Master phases
@@ -131,10 +131,10 @@ A passing CI run validates only the source and test scope named in that run. It 
 
 ## Next actions — in order
 
-**Latest continuation update (2026-10-16):** CI run 38895944662 is now confirmed fully green: both jobs completed successfully. The browser workflow-table boundary test passed. This improves branch regression coverage but does not close any live-schema, deployment-drift, or production authorization gate.
+**Latest continuation update (2026-10-16):** CI run 38922521841 is confirmed fully green: both jobs completed successfully. The atomic provider-throttle PostgreSQL concurrency/ACL rehearsal passed, along with the full Edge source-contract suite. This improves branch evidence but does not close live schema provenance, production ACL/default-privilege drift, deployed-function drift, or production authorization gates.
 
 
-1. Preserve the green baseline at run 38895944662; both the prepared Edge Function/source-contract suite and disposable PostgreSQL rehearsal pass. The browser workflow-table boundary guard is included and passing.
+1. Preserve the green baseline at run 38922521841; both the prepared Edge Function/source-contract suite and disposable PostgreSQL rehearsal pass, including the atomic provider-throttle concurrency test.
 2. Reconcile authoritative provider-state migration provenance and owner-level default privileges; do not guess at missing migration history.
 3. Obtain reviewed, sanitized publication/provider catalog evidence; reconcile missing objects and production-only functions against migrations and deployed callers.
 4. Design atomic cooldown and publication transactions only after schema evidence is reconciled; both cooldown writers must converge on one atomic operation.
