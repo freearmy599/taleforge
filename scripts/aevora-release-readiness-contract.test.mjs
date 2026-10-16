@@ -44,13 +44,14 @@ test("scheduler lease RPCs use hardened search paths and deny direct client exec
   assert.match(leaseFencingMigration, /UPDATE public\.story_lifecycle/);
 });
 
-test("default-privilege cleanup is restricted to public and skips owners the executor cannot administer", () => {
+test("default-privilege cleanup is restricted to public and handles superusers or skips unauthorized owners", () => {
   assert.match(defaultPrivilegesMigration, /ARRAY\['postgres', 'supabase_admin'\]/);
-  assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/);
+  assert.match(defaultPrivilegesMigration, /executor_is_superuser/);
+  assert.match(defaultPrivilegesMigration, /pg_catalog\.pg_has_role\(current_user, owner_role, 'MEMBER'\)/);
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/);
-  assert.match(defaultPrivilegesMigration, /requires a privileged owner operation/);
+  assert.match(defaultPrivilegesMigration, /neither a superuser nor a member; requires an authorized owner operation/);
   assert.doesNotMatch(defaultPrivilegesMigration, /IN SCHEMA (?:storage|graphql_public|graphql|realtime)/i, "managed schemas must not be swept into the public-schema repair");
 });
 
