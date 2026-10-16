@@ -50,6 +50,15 @@ DO $rpc_owner_assert$
 BEGIN
   IF EXISTS (
     SELECT 1
+    FROM pg_catalog.pg_namespace n
+    WHERE n.nspname = 'aevora_private'
+      AND pg_catalog.pg_get_userbyid(n.nspowner) IN ('anon', 'authenticated')
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: private reader-event quota schema is owned by a client role';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public'
