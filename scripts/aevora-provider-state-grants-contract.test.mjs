@@ -163,7 +163,8 @@ test("internal policyless intelligence tables are server-side only", () => {
   }
   assert.ok(internalTablesMigration.includes("ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY"));
   assert.ok(internalTablesMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"));
-  assert.ok(internalTablesMigration.includes("REVOKE ALL PRIVILEGES (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "internal table column grants must also be revoked");
+  assert.ok(internalTablesMigration.includes("FOREACH column_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','REFERENCES']"), "internal table migration must enumerate supported column-level privileges");
+  assert.ok(internalTablesMigration.includes("REVOKE %s (%s) ON TABLE public.%I FROM PUBLIC, anon, authenticated"), "internal table column grants must also be revoked");
   assert.equal(/CREATE POLICY/i.test(internalTablesMigration), false, "internal tables must not gain client policies");
   assert.equal(/GRANT\s+.+\s+TO\s+(anon|authenticated)/i.test(internalTablesMigration), false, "migration must not re-grant client access");
 });
