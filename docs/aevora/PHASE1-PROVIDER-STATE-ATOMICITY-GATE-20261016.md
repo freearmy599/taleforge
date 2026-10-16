@@ -229,3 +229,24 @@ This is a source inventory from the named repository snapshot, not proof that th
 4. Add source-contract checks that forbid direct table writes and check every read path's fail-closed behavior.
 5. Rehearse migration, effective ACLs, concurrent first insert, exact concurrent increments, cooldown monotonicity, malformed state, and rollback/failure behavior in disposable PostgreSQL.
 6. Recheck branch CI. Do not apply production migrations or deploy functions as part of this continuation.
+
+
+## Writer semantics comparison — follow-up review
+
+The additional writer implementations share the same risk class but do not share identical failure semantics:
+
+- `revise-chapter` returns `null` when cooldown persistence fails; callers can still return a provider-error response without proving the cooldown was recorded.
+- `continuity-review` and `safety-review` log persistence failure and return from their recording helper rather than propagating a typed persistence failure to the caller.
+- `originality-review` has the same helper shape in the inspected source; the local count/cooldown is computed before the upsert.
+- The reviewed implementations commonly coerce or normalize the prior counter in application code (including fallback-to-zero patterns), which can mask malformed persisted state instead of making it an explicit database error.
+- The cooldown formula is duplicated across functions: HTTP 503 overload proposes one hour; HTTP 429 / `RESOURCE_EXHAUSTED` uses exponential backoff beginning at six hours and capped at 24 hours. Existing cooldown is locally preserved with `Math.max`, but that is not atomic against concurrent writes.
+- Diagnostic strings vary by writer. The replacement RPC should persist only an allowlisted diagnostic enum/string and never accept arbitrary provider text.
+
+These findings strengthen the fail-closed contract: throttle recording must return a typed result that callers check. If persistence fails, the operation must not report that the cooldown was safely recorded, and any caller about to make another provider request must stop rather than assuming the guard worked. Keep the existing provider-error response semantics separate from the persistence outcome so the API does not falsely claim persistence success.
+
+### Required source-contract assertions
+
+- No direct `.upsert`, `.insert`, `.update`, or `.delete` to `taleforge_ai_provider_state` remains in Edge Function code after migration.
+- Every provider request path checks a provider-state read/RPC result and fails closed on lookup or malformed-state errors.
+- Every throttle-recording call checks the RPC result and distinguishes persisted, already-active/ignored-by-policy, and persistence-failed outcomes.
+- Only a closed set of event classifications and fixed diagnostic values can reach the RPC.
