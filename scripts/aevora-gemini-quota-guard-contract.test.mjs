@@ -252,7 +252,7 @@ test("revise-chapter rechecks provider availability immediately before both revi
 test("generation-orchestrator treats a missing provider-state row as unavailable before parsing or processing work", async () => {
   const source = await readFile(new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url), "utf8");
   const helperStart = source.indexOf("async function getGeminiCooldown(");
-  const helperEnd = source.indexOf("async function recordGeminiThrottle(", helperStart);
+  const helperEnd = source.indexOf("Deno.serve(", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-state lookup helper must exist");
   const helper = source.slice(helperStart, helperEnd);
   assert.match(helper, /if\s*\(error\s*\|\|\s*!data\s*\)\s*return\s*\{active:true[\s\S]*?lookup_error:/,
