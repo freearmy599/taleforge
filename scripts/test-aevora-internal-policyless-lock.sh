@@ -17,6 +17,7 @@ if [[ "$database_name" != aevora_* ]]; then
   exit 2
 fi
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-policyless-lock-fixture.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-reference-taxonomy-read-fixture.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-rpc-acl-fixture.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-rpc-acl-assertions.sql
@@ -28,6 +29,8 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016220000_lo
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE TABLE public.future_postgres_table (id bigint PRIMARY KEY)"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SET ROLE supabase_admin; CREATE TABLE public.future_supabase_admin_table (id bigint PRIMARY KEY); RESET ROLE;"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-policyless-lock-assertions.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261017100000_lock_internal_reference_taxonomy_reads.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-reference-taxonomy-read-assertions.sql
 
 # A global default cannot be safely counteracted by a public-schema-only REVOKE.
 # Seed one in this disposable database and require the migration to fail closed.

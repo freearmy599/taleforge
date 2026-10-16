@@ -754,3 +754,29 @@ test("every Gemini provider-state reader fails closed on malformed throttle coun
     assert.match(source, /(?:consecutive_throttle_count|rawCount)\s*<\s*0/);
   }
 });
+
+
+test("internal reference taxonomy raw reads are revoked while trusted workers retain access", () => {
+  const migration = read("supabase/migrations/20261017100000_lock_internal_reference_taxonomy_reads.sql");
+  const expectedTables = [
+    "taleforge_genre_taxonomy",
+    "taleforge_subgenre_intelligence",
+    "taleforge_narrative_modes",
+    "taleforge_story_trope_library",
+    "taleforge_genre_grammars",
+    "taleforge_genre_inversion_patterns",
+    "taleforge_grammar_compatibility",
+    "taleforge_hybrid_story_recipes",
+    "taleforge_hybrid_story_recipes_generated",
+    "taleforge_narrative_culture_profiles",
+    "taleforge_series_genre_grammar_profiles",
+    "taleforge_series_genre_profiles",
+    "taleforge_series_narrative_profiles",
+    "taleforge_series_subgenre_profiles",
+  ];
+  for (const table of expectedTables) assert.ok(migration.includes(`'${table}'`), `missing read lock for ${table}`);
+  assert.match(migration, /REVOKE SELECT ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
+  assert.match(migration, /REVOKE SELECT \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
+  assert.match(migration, /required taxonomy relation.*is missing; refusing partial read-surface lock/);
+  assert.doesNotMatch(migration, /GRANT .* TO anon|GRANT .* TO authenticated/i);
+});
