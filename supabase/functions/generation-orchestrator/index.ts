@@ -31,11 +31,15 @@ async function refreshDeterministicIntelligence(supabase:any){
 async function getGeminiCooldown(supabase:any) {
  const {data,error}=await supabase.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
  if(error || !data) return {active:true,cooldown_until:null,consecutive_throttle_count:0,lookup_error:error?errorMessage(error):"No Gemini provider-state row found"};
+ const rawCount=data.consecutive_throttle_count;
+ if(typeof rawCount!=="number" || !Number.isSafeInteger(rawCount) || rawCount<0) {
+  return {active:true,cooldown_until:data.cooldown_until??null,consecutive_throttle_count:0,lookup_error:"Gemini provider-state throttle counter is invalid"};
+ }
  const until=data.cooldown_until?new Date(data.cooldown_until):null;
  if(data.cooldown_until && (!until || !Number.isFinite(until.getTime()))) {
-  return {active:true,cooldown_until:data.cooldown_until,consecutive_throttle_count:Number(data.consecutive_throttle_count??0),lookup_error:"Gemini provider-state cooldown timestamp is invalid"};
+  return {active:true,cooldown_until:data.cooldown_until,consecutive_throttle_count:rawCount,lookup_error:"Gemini provider-state cooldown timestamp is invalid"};
  }
- return {active:!!until&&until.getTime()>Date.now(),cooldown_until:data.cooldown_until??null,consecutive_throttle_count:Number(data.consecutive_throttle_count??0)};
+ return {active:!!until&&until.getTime()>Date.now(),cooldown_until:data.cooldown_until??null,consecutive_throttle_count:rawCount};
 }
 async function recordGeminiThrottle(supabase:any,message:string) {
  const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
@@ -43,8 +47,17 @@ async function recordGeminiThrottle(supabase:any,message:string) {
  if(!providerQuotaFailure&&!providerTemporaryFailure)return null;
  const {data,error:stateError}=await supabase.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
  if(stateError||!data){console.error("[generation-orchestrator] Gemini cooldown state unavailable; persistence was skipped.");return null;}
- const prior=Number(data.consecutive_throttle_count??0);
- const count=(Number.isFinite(prior)&&prior>=0?Math.floor(prior):0)+1;
+ const rawPrior=data.consecutive_throttle_count;
+ if(typeof rawPrior!=="number" || !Number.isSafeInteger(rawPrior) || rawPrior<0) {
+  console.error("[generation-orchestrator] Gemini throttle counter is malformed; existing state was preserved.");
+  return null;
+ }
+ const prior=rawPrior;
+ const count=prior+1;
+ if(!Number.isSafeInteger(count)) {
+  console.error("[generation-orchestrator] Gemini throttle counter exceeded its safe integer range; existing state was preserved.");
+  return null;
+ }
  const cooldownHours=providerTemporaryFailure?1:Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
  const now=Date.now();
  const proposedUntil=now+cooldownHours*60*60*1000;
