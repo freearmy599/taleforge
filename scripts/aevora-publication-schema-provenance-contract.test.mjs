@@ -40,6 +40,7 @@ test("publication schema inventory covers commit-boundary relations and required
     "pg_class",
     "pg_attribute",
     "pg_catalog.acldefault('n', n.nspowner)",
+    "END::pg_catalog.\"char\"",
     "pg_constraint",
     "pg_index",
     "pg_trigger",
