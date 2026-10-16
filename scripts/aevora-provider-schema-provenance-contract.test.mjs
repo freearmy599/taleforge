@@ -26,6 +26,16 @@ test("provider schema provenance inventory contains only SELECT statements", () 
   }
 });
 
+test("provider inventory pins catalog lookup to pg_catalog", () => {
+  assert.match(sql, /FROM pg_catalog\.pg_class/);
+  assert.match(sql, /pg_catalog\.aclexplode/);
+  assert.match(sql, /pg_catalog\.acldefault/);
+  assert.match(sql, /::pg_catalog\.regclass/);
+  assert.match(sql, /::pg_catalog\.regprocedure/);
+  assert.doesNotMatch(sql, /\b(?:FROM|JOIN)\s+(?!pg_catalog\.)pg_(?:class|namespace|attribute|attrdef|constraint|index|trigger|proc|default_acl|roles)\b/i,
+    "catalog relations must not be shadowable through a caller-controlled search_path");
+});
+
 test("provider schema provenance inventory covers schema needed before atomic RPC design", () => {
   for (const fragment of [
     "pg_class",
@@ -35,7 +45,7 @@ test("provider schema provenance inventory covers schema needed before atomic RP
     "pg_trigger",
     "aclexplode",
     "pg_default_acl",
-    "LEFT JOIN pg_namespace n ON n.oid = d.defaclnamespace",
+    "LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace",
     "d.defaclnamespace = 0",
     "'<global>'",
     "pg_proc",
