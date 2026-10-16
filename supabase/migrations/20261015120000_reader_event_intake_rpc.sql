@@ -128,6 +128,19 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'limited');
   END IF;
 
+  -- Claim the unique event row before mutating quota. A direct compatibility
+  -- INSERT does not take the advisory lock above, so it can win the unique-key
+  -- race after the existence check. Inserting first ensures that loser paths
+  -- return duplicate without consuming quota.
+  INSERT INTO public.reader_events(visitor_id, event_type, series_id, chapter_id, progress_percent, event_uuid)
+  VALUES (p_visitor_id, p_event_type, p_series_id, p_chapter_id, p_progress_percent, p_event_uuid)
+  ON CONFLICT (event_uuid) WHERE event_uuid IS NOT NULL DO NOTHING
+  RETURNING id INTO v_inserted_id;
+
+  IF v_inserted_id IS NULL THEN
+    RETURN jsonb_build_object('outcome', 'duplicate');
+  END IF;
+
   INSERT INTO aevora_private.reader_event_quota_buckets(visitor_key_hash, quota_scope, window_kind, window_start, hit_count)
   VALUES (v_visitor_hash, '*', 'minute', v_minute, 1)
   ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
@@ -145,15 +158,6 @@ BEGIN
   ON CONFLICT (visitor_key_hash, quota_scope, window_kind, window_start)
   DO UPDATE SET hit_count = aevora_private.reader_event_quota_buckets.hit_count + 1
   RETURNING hit_count INTO v_event_daily_hits;
-
-  INSERT INTO public.reader_events(visitor_id, event_type, series_id, chapter_id, progress_percent, event_uuid)
-  VALUES (p_visitor_id, p_event_type, p_series_id, p_chapter_id, p_progress_percent, p_event_uuid)
-  ON CONFLICT (event_uuid) WHERE event_uuid IS NOT NULL DO NOTHING
-  RETURNING id INTO v_inserted_id;
-
-  IF v_inserted_id IS NULL THEN
-    RETURN jsonb_build_object('outcome', 'duplicate');
-  END IF;
 
   RETURN jsonb_build_object('outcome', 'accepted');
 END;
