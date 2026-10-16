@@ -29,9 +29,11 @@ test("revision worker redacts provider, governance, handoff, and exception detai
   assert.ok(s.includes('reason: "revision_attempt_state_unavailable"'), "failed attempt bookkeeping errors must fail closed");
   assert.equal(s.includes("`Gemini API error ${response.status}: ${responseText}`"), false);
   assert.ok(s.includes("`Gemini HTTP ${response.status}${response.status === 429 ? \" RESOURCE_EXHAUSTED\" : \"\"}`"));
-  assert.ok(s.includes('last_error: "Gemini quota, rate-limit, or temporary overload response"'));
+  assert.ok(s.includes("aevora_record_gemini_throttle"), "revision must use the shared atomic cooldown RPC");
+  assert.ok(s.includes("result?.recorded !== true"), "revision must reject unsuccessful cooldown writes");
+  assert.equal(s.includes(".upsert("), false, "revision must not use read-modify-upsert for cooldown persistence");
   assert.ok(s.includes('const isTemporaryOverload = message.includes("Gemini HTTP 503")'), "temporary provider overloads must persist a cooldown");
-  assert.ok(s.includes("const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)))"), "temporary overloads must use a shorter cooldown than quota exhaustion");
+  assert.ok(s.includes('p_event_class: isQuota ? "quota" : "overload"'), "revision must send only allowlisted event classes to the atomic RPC");
   assert.equal((s.match(/reason: quotaBlocked \? "provider_quota_blocked" : "provider_temporarily_unavailable"/g) || []).length, 2, "both model calls must distinguish quota blocks from temporary overloads");
   assert.equal(s.includes("last_error:message.slice(0,2000)"), false);
   assert.equal(s.includes("governance:governance.data??null"), false);
@@ -49,9 +51,15 @@ test("revision worker fails closed on unavailable or malformed provider cooldown
   assert.ok(s.includes('reason: "invalid_cooldown_timestamp"'));
   assert.ok(s.includes("cooldownUntil !== null && cooldownUntil > Date.now()"));
   assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'));
-  assert.ok(s.includes("if (stateError || !data)"));
-  assert.ok(s.includes("Math.max(proposedUntil, existingUntil)"));
-  assert.ok(s.includes("Existing Gemini cooldown timestamp is malformed; existing state was preserved."));
+  assert.ok(s.includes("providerStateResult.error || !providerStateResult.data"));
+  assert.ok(s.includes("cooldownUntil !== null && !Number.isFinite(cooldownUntil)"));
+  assert.ok(s.includes('reason: "invalid_cooldown_timestamp"'));
+  const writerStart = s.indexOf("async function recordGeminiThrottle(");
+  const writerEnd = s.indexOf("\nDeno.serve", writerStart);
+  assert.ok(writerStart >= 0 && writerEnd > writerStart, "atomic cooldown writer must be bounded");
+  const writer = s.slice(writerStart, writerEnd);
+  assert.ok(writer.includes("aevora_record_gemini_throttle"));
+  assert.equal(writer.includes(".upsert("), false);
 });
 
 test("revision worker records quota cooldowns and preserves orchestrator output contract", async () => {
