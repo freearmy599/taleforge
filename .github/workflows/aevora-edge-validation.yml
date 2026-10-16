@@ -225,3 +225,12 @@ jobs:
               echo 'ROLLBACK;'
             } | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1
           done
+
+      - name: Rehearse provider-state client ACL revocation and diagnostic redaction
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_provider_state_test
+          AEVORA_DISPOSABLE_PROVIDER_STATE_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_provider_state_test"
+          bash scripts/test-aevora-provider-state-lock.sh
