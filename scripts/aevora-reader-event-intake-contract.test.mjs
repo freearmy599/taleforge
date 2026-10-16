@@ -55,6 +55,10 @@ test("browser reader-event writes remain centralized in the progress tracker", a
   }
   assert.deepEqual(insertSites, ["reading-progress.js"], "all browser event inserts must pass through the one compatibility seam");
   assert.match(browserProgressSource, /async function track\(event_type,data=\{\}\)/);
-  assert.match(browserProgressSource, /payload\.event_uuid=eventUuid/);
+  assert.match(browserProgressSource, /const intakeEnabled=window\.taleForgeReaderEventIntakeEnabled===true/);
+  assert.match(browserProgressSource, /if\(intakeEnabled&&eventUuid\)payload\.event_uuid=eventUuid/);
+  assert.match(browserProgressSource, /if\(intakeEnabled\)\{[\s\S]*?functions\/v1\/reader-event-intake[\s\S]*?return\}const \{error\}=await supabase\.from\("reader_events"\)\.insert\(payload\)/,
+    "legacy direct INSERT must not receive the branch-only event_uuid field");
+  assert.match(browserProgressSource, /if\(intakeEnabled&&eventUuid\)payload\.event_uuid=eventUuid/, "the event_uuid column is sent only through the verified intake endpoint, not the live compatibility INSERT");
   assert.doesNotMatch(browserProgressSource, /created_at\s*:/i, "client event payload must not set server timestamps");
 });
