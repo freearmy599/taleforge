@@ -286,7 +286,7 @@ const providerTemporaryFailure=message.includes("Gemini HTTP 503");
 const providerCooldownFailure=providerQuotaFailure||providerTemporaryFailure;
 if(db && providerCooldownFailure){
  try{
-  const {data,error:recordError}=await db.rpc("aevora_record_gemini_throttle",{p_event_class:providerQuotaFailure?"quota":"overload"});
+  const {data,error:recordError}=await db.rpc("aevora_record_gemini_throttle",{p_event_id:crypto.randomUUID(),p_event_class:providerQuotaFailure?"quota":"overload"});
   const result=Array.isArray(data)?data[0]:data;
   if(recordError||result?.recorded!==true){
    console.error("[generate-chapter] Gemini cooldown persistence failed; this request remains blocked.");
