@@ -49,6 +49,7 @@ done
 for pid in "${pids[@]}"; do
   wait "$pid"
 done
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DELETE FROM public.taleforge_ai_provider_event_ledger"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-provider-throttle-assertions.sql
 if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT * FROM public.aevora_record_gemini_throttle('00000000-0000-0000-0000-000000000201', 'invalid')" >/dev/null 2>&1; then
   echo "Expected invalid event class to fail but RPC succeeded." >&2
