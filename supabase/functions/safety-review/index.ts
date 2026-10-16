@@ -142,58 +142,30 @@ return issues;
 }
 
 async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise<void> {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : "";
+  const isQuotaFailure = message.includes("Gemini HTTP 429") || message.includes("RESOURCE_EXHAUSTED");
   const isTemporaryOverload = message.includes("Gemini HTTP 503");
-  if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  if (!isQuotaFailure && !isTemporaryOverload) return;
 
   try {
-    const { data, error: stateError } = await supabase
-      .from("taleforge_ai_provider_state")
-      .select("cooldown_until,consecutive_throttle_count")
-      .eq("provider", "gemini")
-      .maybeSingle();
-    if (stateError || !data) {
-      console.error("[quota-guard] Gemini cooldown count could not be verified; cooldown persistence was skipped.");
+    const { data, error: recordError } = await supabase.rpc(
+      "aevora_record_gemini_throttle",
+      { p_event_class: isQuotaFailure ? "quota" : "overload" },
+    );
+    const result = Array.isArray(data) ? data[0] : data;
+    if (recordError || result?.recorded !== true) {
+      console.error("[quota-guard] Gemini cooldown could not be persisted; the review request remains blocked.");
       return;
     }
-
-    const previousCount = Number(data?.consecutive_throttle_count ?? 0);
-    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
-    const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
-    const now = new Date();
-    const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
-    const existingUntil = data?.cooldown_until ? Date.parse(data.cooldown_until) : 0;
-    if (data?.cooldown_until && !Number.isFinite(existingUntil)) {
-      console.error("[quota-guard] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");
-      return;
-    }
-    // Concurrent throttles must never shorten a previously recorded cooldown.
-    const until = new Date(Math.max(proposedUntil, existingUntil)).toISOString();
-    const { error: writeError } = await supabase
-      .from("taleforge_ai_provider_state")
-      .upsert({
-        provider: "gemini",
-        cooldown_until: until,
-        consecutive_throttle_count: count,
-        last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini HTTP 429 RESOURCE_EXHAUSTED",
-        last_error_at: now.toISOString(),
-        updated_at: now.toISOString(),
-      }, { onConflict: "provider" });
-
-    if (writeError) {
-      console.error("[quota-guard] Gemini cooldown could not be persisted.");
-    } else {
-      console.warn("[quota-guard] Gemini quota cooldown persisted.", JSON.stringify({
-        cooldown_until: until,
-        cooldown_hours: Math.max(0, (Date.parse(until) - now.getTime()) / 3600000),
-        consecutive_throttle_count: count,
-      }));
-    }
+    console.warn("[quota-guard] Gemini cooldown recorded", JSON.stringify({
+      cooldown_until: result.cooldown_until,
+      cooldown_hours: result.cooldown_hours,
+      consecutive_throttle_count: result.consecutive_throttle_count,
+    }));
   } catch {
-    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
+    console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly; the review request remains blocked.");
   }
 }
-
 Deno.serve(async (req) => {
 if (req.method === "OPTIONS") {
 return new Response("ok", {
