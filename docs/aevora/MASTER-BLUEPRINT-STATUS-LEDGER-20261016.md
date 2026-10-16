@@ -1,3 +1,5 @@
+> **Current status correction (2026-10-16):** The earlier green CI baseline recorded below is historical, not the latest result. The later run [38914981833](https://github.com/freearmy599/taleforge/actions/runs/38914981833) failed the Edge validation job on three stale review error-redaction contract assertions; the disposable readiness rehearsal passed but did not execute the candidate provider RPC migration or its SQL rehearsal. Phase 1 remains blocked and automatic publishing remains NO-GO. See the [Master Completion Checklist](MASTER-COMPLETION-CHECKLIST-20261016.md) for the project-wide build, repair, and verification register.
+
 # Aevora Master Blueprint Status Ledger
 Date: 2026-10-16
 Repository: `freearmy599/taleforge` (product name: Aevora)
