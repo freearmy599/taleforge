@@ -79,6 +79,16 @@ test("browser intake cutover is opt-in and preserves the tracker interface", () 
 });
 
 
+test("privileged reader-event functions and quota tables cannot be owned by client roles", () => {
+  assert.match(migration, /CREATE SCHEMA IF NOT EXISTS aevora_private/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\\.reader_event_quota_buckets/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\\.reader_event_quota_cleanup_state/);
+  assert.match(await readFile(new URL("../scripts/aevora-reader-event-intake-rpc-assertions.sql", import.meta.url), "utf8"),
+    /pg_get_userbyid\(p\.proowner\) IN \('anon', 'authenticated'\)/);
+  assert.match(await readFile(new URL("../scripts/aevora-reader-event-intake-rpc-assertions.sql", import.meta.url), "utf8"),
+    /pg_get_userbyid\(c\.relowner\) IN \('anon', 'authenticated'\)/);
+});
+
 test("quota cleanup RPC is executable only by the trusted server role", () => {
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.aevora_prune_reader_event_quota_buckets\(\) FROM PUBLIC, anon, authenticated/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.aevora_prune_reader_event_quota_buckets\(\) TO service_role/i);
