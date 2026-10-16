@@ -239,6 +239,15 @@ jobs:
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_provider_state_test"
           bash scripts/test-aevora-provider-state-lock.sh
 
+      - name: Rehearse atomic Gemini throttle concurrency and safe ACLs
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_provider_throttle_test
+          AEVORA_DISPOSABLE_PROVIDER_THROTTLE_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_provider_throttle_test"
+          bash scripts/test-aevora-provider-throttle.sh
+
       - name: Rehearse public default-privilege revocation for future objects
         env:
           ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
