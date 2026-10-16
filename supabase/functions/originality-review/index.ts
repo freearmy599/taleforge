@@ -192,7 +192,7 @@ async function recordGeminiQuotaCooldown(supabase: any, error: unknown): Promise
   try {
     const { data, error: recordError } = await supabase.rpc(
       "aevora_record_gemini_throttle",
-      { p_event_class: isQuotaFailure ? "quota" : "overload" },
+      { p_event_id: crypto.randomUUID(), p_event_class: isQuotaFailure ? "quota" : "overload" },
     );
     const result = Array.isArray(data) ? data[0] : data;
     if (recordError || result?.recorded !== true) {
