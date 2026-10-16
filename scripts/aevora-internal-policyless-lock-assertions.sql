@@ -88,4 +88,54 @@ BEGIN
   END LOOP;
 END
 $assert$;
+DO $maintenance$
+DECLARE
+  role_name text;
+  privilege_name text;
+BEGIN
+  IF to_regclass('public.chapters') IS NULL THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: CRUD-preservation fixture public.chapters is missing';
+  END IF;
+
+  -- Client maintenance privileges must be gone, but ordinary CRUD must remain.
+  FOREACH role_name IN ARRAY ARRAY['anon','authenticated']
+  LOOP
+    FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+    LOOP
+      IF has_table_privilege(role_name, 'public.chapters', privilege_name) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: % retains maintenance privilege % on public.chapters', role_name, privilege_name;
+      END IF;
+    END LOOP;
+
+    FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE']
+    LOOP
+      IF NOT has_table_privilege(role_name, 'public.chapters', privilege_name) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: maintenance-only repair removed intended % privilege for % on public.chapters', privilege_name, role_name;
+      END IF;
+    END LOOP;
+
+    IF has_column_privilege(role_name, 'public.chapters', 'id', 'REFERENCES') THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: % retains column REFERENCES on public.chapters(id)', role_name;
+    END IF;
+  END LOOP;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_class c
+    CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))) a
+    WHERE c.oid = 'public.chapters'::regclass
+      AND a.grantee = 0
+      AND a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains maintenance privilege on public.chapters';
+  END IF;
+
+  FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+  LOOP
+    IF NOT has_table_privilege('service_role', 'public.chapters', privilege_name) THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: trusted service_role lost % on public.chapters', privilege_name;
+    END IF;
+  END LOOP;
+END
+$maintenance$;
 SELECT 'internal policyless table and column lock assertions passed for 25 relations' AS result;
