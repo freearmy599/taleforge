@@ -12,7 +12,7 @@ import { readdir, readFile } from "node:fs/promises";
 
 const repositoryRoot = new URL("../", import.meta.url);
 const ignoredDirectories = new Set([
-  ".git", "node_modules", ".deno", ".next", "dist", "coverage",
+  ".git", "node_modules", ".deno", ".next", "dist", "coverage", "scripts", "docs", "supabase", ".github",
 ]);
 const serverOnlyRelations = [
   "automation_config",
