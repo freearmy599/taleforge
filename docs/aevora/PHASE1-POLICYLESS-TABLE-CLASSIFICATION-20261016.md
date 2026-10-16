@@ -158,7 +158,7 @@ Foreign keys observed in the catalog connect these relations to `profiles`, `sto
 3. The broad-grant user-facing candidates in section B currently have no policies. The correct fix is not to leave them open; it is to design and test ownership/moderation policies and then verify each workflow. Do not invent a generic `auth.uid()` policy without confirming the owner column and relational constraints.
 4. `20261016200000_revoke_client_table_maintenance_privileges.sql` is a narrow candidate that removes TRUNCATE/TRIGGER/REFERENCES but intentionally leaves ordinary CRUD grants; it does not solve missing RLS policies or the 39-table ACL issue by itself.
 5. `20261016203000_revoke_client_maintenance_default_privileges.sql` addresses only future maintenance privileges in the public schema and is not a replacement for a full, owner-aware default-ACL review.
-6. `20261014170000_restrict_public_default_privileges.sql` remains blocked for production consideration until its global/default ACL behavior and owner authorization semantics are redesigned and tested.
+6. `20261014170000_restrict_public_default_privileges.sql` has been revised on the branch to use public-schema-only table/sequence defaults, fail closed on additive global grants or unauthorized owners, and defer function EXECUTE defaults. It remains blocked for production consideration until its disposable rehearsal and CI pass; function defaults are still a separate unresolved security item.
 
 ## E. Next safe steps
 
