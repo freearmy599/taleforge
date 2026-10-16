@@ -35,6 +35,8 @@ name: Aevora Edge source validation
       - ".github/workflows/aevora-control-plane-audit.yml"
       - "supabase/migrations/**"
       - "scripts/aevora-*.mjs"
+      - "scripts/aevora-internal-policyless-lock-*.sql"
+      - "scripts/test-aevora-internal-policyless-lock.sh"
       - "scripts/aevora-readiness-migration-*.sql"
       - "scripts/test-aevora-readiness-migration.sh"
       - "scripts/aevora-reader-event-integrity-*.sql"
@@ -243,3 +245,12 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_default_privileges_test"
           bash scripts/test-aevora-public-default-privileges.sh
+
+      - name: Rehearse internal policyless table client-grant revocation
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_internal_lock_test
+          AEVORA_DISPOSABLE_INTERNAL_LOCK_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_internal_lock_test"
+          bash scripts/test-aevora-internal-policyless-lock.sh
