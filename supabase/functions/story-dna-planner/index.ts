@@ -4,42 +4,32 @@ import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 const VERSION = "story-dna-planner-v8-fail-closed-cooldown-state";
 function clean(t:string){const s=t.trim().replace(/^\`\`\`json\s*/,"").replace(/^\`\`\`\s*/,"").replace(/\s*\`\`\`$/,"").trim();const a=s.indexOf("{"),b=s.lastIndexOf("}");return JSON.parse(a>=0?s.slice(a,b+1):s)}
 async function recordGeminiQuotaCooldown(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : "";
+  const isQuotaFailure = message.includes("Gemini HTTP 429") || message.includes("RESOURCE_EXHAUSTED");
   const isTemporaryOverload = message.includes("Gemini HTTP 503");
-  if (!isTemporaryOverload && !message.includes("Gemini HTTP 429") && !message.includes("RESOURCE_EXHAUSTED")) return;
+  if (!isQuotaFailure && !isTemporaryOverload) return;
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("TALEFORGE_SERVICE_ROLE_KEY");
     if (!url || !key) return;
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error: stateError } = await db.from("taleforge_ai_provider_state")
-      .select("cooldown_until,consecutive_throttle_count").eq("provider", "gemini").maybeSingle();
-    if (stateError || !data) {
-      console.error("[quota-guard] Gemini cooldown state could not be verified; persistence skipped.");
+    const { data, error: recordError } = await db.rpc("aevora_record_gemini_throttle", {
+      p_event_class: isQuotaFailure ? "quota" : "overload",
+    });
+    const result = Array.isArray(data) ? data[0] : data;
+    if (recordError || result?.recorded !== true) {
+      console.error("[quota-guard] Gemini cooldown persistence failed.");
       return;
     }
-    const previousCount = Number(data.consecutive_throttle_count ?? 0);
-    const count = (Number.isFinite(previousCount) && previousCount >= 0 ? Math.floor(previousCount) : 0) + 1;
-    const cooldownHours = isTemporaryOverload ? 1 : Math.min(24, 6 * Math.pow(2, Math.min(count - 1, 2)));
-    const now = new Date();
-    const proposedUntil = now.getTime() + cooldownHours * 60 * 60 * 1000;
-    const existingUntil = data.cooldown_until ? Date.parse(data.cooldown_until) : 0;
-    if (data.cooldown_until && !Number.isFinite(existingUntil)) {
-      console.error("[quota-guard] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");
-      return;
-    }
-    const until = new Date(Math.max(proposedUntil, existingUntil)).toISOString();
-    const { error: writeError } = await db.from("taleforge_ai_provider_state").upsert({
-      provider: "gemini", cooldown_until: until, consecutive_throttle_count: count,
-      last_error: isTemporaryOverload ? "Gemini temporary overload response" : "Gemini quota or rate-limit response", last_error_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    }, { onConflict: "provider" });
-    if (writeError) console.error("[quota-guard] Gemini cooldown persistence failed.");
+    console.warn("[quota-guard] Gemini cooldown recorded", JSON.stringify({
+      cooldown_until: result.cooldown_until,
+      cooldown_hours: result.cooldown_hours,
+      consecutive_throttle_count: result.consecutive_throttle_count,
+    }));
   } catch {
     console.error("[quota-guard] Gemini cooldown persistence failed unexpectedly.");
   }
 }
-
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS") return new Response("ok");
  if(req.method!=="POST") return new Response(JSON.stringify({success:false,error:"Method not allowed"}),{status:405,headers:{"Content-Type":"application/json"}});
