@@ -52,12 +52,29 @@ BEGIN
       RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains an explicit/default table ACL on public.%', table_name;
     END IF;
 
+    IF EXISTS (
+      SELECT 1
+      FROM pg_catalog.pg_attribute att
+      CROSS JOIN LATERAL pg_catalog.aclexplode(att.attacl) a
+      WHERE att.attrelid = target AND att.attnum > 0 AND NOT att.attisdropped
+        AND a.grantee = 0
+    ) THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains a column ACL on public.%', table_name;
+    END IF;
+
     FOREACH client_role IN ARRAY ARRAY['anon', 'authenticated']
     LOOP
       FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']
       LOOP
         IF has_table_privilege(client_role, target, privilege_name) THEN
           RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on public.%', client_role, privilege_name, table_name;
+        END IF;
+      END LOOP;
+
+      FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','REFERENCES']
+      LOOP
+        IF has_column_privilege(client_role, target, 'id', privilege_name) THEN
+          RAISE EXCEPTION 'ASSERTION_FAILED: % retains column % on public.%(id)', client_role, privilege_name, table_name;
         END IF;
       END LOOP;
     END LOOP;
@@ -71,4 +88,4 @@ BEGIN
   END LOOP;
 END
 $assert$;
-SELECT 'internal policyless table lock assertions passed for 25 relations' AS result;
+SELECT 'internal policyless table and column lock assertions passed for 25 relations' AS result;
