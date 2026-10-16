@@ -355,3 +355,14 @@ The scan found no matching provider-state column/relation references in the rema
 5. Re-run the inventory immediately before rollout because the deployed function list and versions can change.
 
 **Disposition:** inventory coverage is now 26/26 deployed Edge Function source files fetched and scanned. Atomic implementation, branch caller changes, disposable PostgreSQL concurrency tests, runtime compatibility validation, and production authorization remain incomplete. Production remains unchanged and automated publishing remains **NO-GO**.
+
+
+## Migration-file provenance follow-up — 2026-10-16
+
+A targeted repository path check located `supabase/migrations/20261013120000_lock_ai_provider_state_table.sql` on this branch (blob SHA `faf428de57cf56935db018224a2d8f698183d850`). This is a branch migration file, not evidence it ran in production: the live migration ledger does not contain version `20261013120000`.
+
+The file enables RLS, rewrites legacy `last_error` values for the Gemini row, and revokes relation and column privileges from `PUBLIC`, `anon`, and `authenticated`. It does not implement atomic cooldown writes, migrate the three deployed writers, or repair broad default privileges for future objects. Its substring-based legacy diagnostic rewrite needs a reviewed data-impact rehearsal before any production use. Do not apply it as a substitute for atomicity repair.
+
+The original creation migration `20261007025751_add_taleforge_ai_provider_cooldown_state.sql` was not found at the expected `supabase/migrations/` path or by repository code search. The live ledger confirms the version was applied, but its original SQL body remains unrecovered from the checked branch. This remains unresolved provenance, not proof that no copy exists elsewhere.
+
+**Decision:** retain the existing `20261013120000` file as an unapplied candidate requiring review; do not deploy it independently. Atomic writer migration and default-privilege remediation remain separate work items.
