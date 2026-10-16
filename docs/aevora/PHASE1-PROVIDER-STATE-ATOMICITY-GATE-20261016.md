@@ -505,3 +505,12 @@ Before execution, require a deliberate disposable-database marker that cannot be
 - Production ACL/default-privilege findings, migration provenance, and deployed/branch parity remain unresolved.
 
 **Gate remains BLOCKED / automated publishing NO-GO.** No production migration, permission change, Edge Function deployment, publication/generation, schedule mutation, or billable branch was performed.
+
+
+## CI result after this gate note — 2026-10-16 14:22 UTC
+
+Workflow run [38914981833](https://github.com/freearmy599/taleforge/actions/runs/38914981833), commit `9c18bf6f1b21ea9ef0090f2ca869ebcd689e70df`, completed with **failure**. The disposable PostgreSQL job passed its existing readiness/schema rehearsal, but that job does not execute the proposed `aevora_record_gemini_throttle` migration or the provider atomicity SQL test. The Edge validation job type-checked all listed Edge Functions and passed source-contract and control-plane audit tests, then failed at `scripts/aevora-review-error-redaction-contract.test.mjs`: the same three assertions for `continuity-review`, `originality-review`, and `safety-review` still expect a direct `last_error` assignment. The remaining contract steps were skipped due to the job's fail-fast sequence.
+
+This confirms the docs-only commit did not resolve the code/test blocker. The next code gate is to update the redaction contract to validate the allowlisted diagnostic mapping in the candidate SQL migration and validate each caller routes only `quota` / `overload` classes to the RPC; then update the provider cooldown recording and quota-guard contracts to match the new RPC contract. These tests must also preserve assertions for fail-closed behavior, safe diagnostics, no raw provider error persistence, and no direct writer paths.
+
+**Do not treat the passing readiness rehearsal as provider-RPC verification.** The provider RPC migration remains unexecuted; its SQL syntax, owner/ACL behavior, concurrent increment semantics, and function grants are not yet verified by runtime tests.
