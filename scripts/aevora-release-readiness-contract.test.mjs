@@ -31,6 +31,7 @@ const migration = await readFile("supabase/migrations/20261014210000_release_aut
 const leaseMigration = await readFile("supabase/migrations/20261012183000_aevora_release_scheduler_lease_foundation.sql", "utf8");
 const leaseFencingMigration = await readFile("supabase/migrations/20261012190000_aevora_atomic_scheduler_lease_fencing.sql", "utf8");
 const defaultPrivilegesMigration = await readFile("supabase/migrations/20261014170000_restrict_public_default_privileges.sql", "utf8");
+const maintenancePrivilegeMigration = await readFile("supabase/migrations/20261016200000_revoke_client_table_maintenance_privileges.sql", "utf8");
 const publicationAuthorizationDesign = await readFile("docs/aevora/PHASE1-PUBLICATION-AUTHORIZATION-DESIGN-20261014.md", "utf8");
 const rolloutPlan = await readFile("docs/aevora/PHASE1-PRODUCTION-ROLLOUT-SEQUENCE-20261014.md", "utf8");
 const legacyDispositionRegister = await readFile("docs/aevora/PHASE1-LEGACY-SCHEDULE-DISPOSITION-REGISTER-20261014.md", "utf8");
@@ -68,6 +69,13 @@ test("default-privilege cleanup is restricted to public and handles superusers o
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegesMigration, /neither a superuser nor a member; requires an authorized owner operation/);
   assert.doesNotMatch(defaultPrivilegesMigration, /IN SCHEMA (?:storage|graphql_public|graphql|realtime)/i, "managed schemas must not be swept into the public-schema repair");
+});
+
+test("client table maintenance ACL repair preserves ordinary CRUD", () => {
+  assert.match(maintenancePrivilegeMigration, /c\.relkind IN \('r', 'p'\)/);
+  assert.match(maintenancePrivilegeMigration, /REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
+  assert.match(maintenancePrivilegeMigration, /REVOKE REFERENCES \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/);
+  assert.doesNotMatch(maintenancePrivilegeMigration, /REVOKE[^;]*(?:SELECT|INSERT|UPDATE|DELETE)/i);
 });
 
 test("scheduler fails closed on a missing readiness marker before publisher invocation", () => {
