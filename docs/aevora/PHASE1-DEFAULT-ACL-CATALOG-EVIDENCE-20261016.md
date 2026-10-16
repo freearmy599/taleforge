@@ -39,6 +39,14 @@ The branch candidate has now been revised (commit `966217100374c45e6b30f875917e3
 
 This revision is a branch candidate, not a live repair. It still needs its disposable PostgreSQL rehearsal and CI confirmation.
 
+## Fresh function-default privilege check (read-only, 2026-10-16)
+
+A separate live catalog query found 149 ordinary functions in `public`, of which 134 are `SECURITY DEFINER`. Effective privilege checks reported **zero** of those 134 security-definer functions executable by `anon` or `authenticated`; all 134 were executable by `service_role`. This is a useful current-state safeguard, but it does not make future defaults safe.
+
+The explicit schema-specific default ACL rows for both `postgres/public` and `supabase_admin/public` grant function `EXECUTE` to `anon` and `authenticated`. Therefore, a newly created function under either owner can inherit client EXECUTE unless the creation migration explicitly revokes it or owner defaults are corrected. The current catalog check did not prove that an exploitable function is presently callable; the confirmed finding is an unsafe future-object default plus broad table/sequence defaults.
+
+Because PostgreSQL combines schema-specific defaults with global defaults, a schema-only revoke cannot remove the built-in global `PUBLIC EXECUTE` default. The current candidate intentionally does not claim to solve this. A separate, owner-authorized strategy must account for global PUBLIC behavior, explicit client grants, managed schemas, and trusted-function allowlists; then rehearse it against newly created ordinary and SECURITY DEFINER functions before proposing any live change.
+
 ## Remaining default-ACL work
 
 - Keep the migration branch-only until its rehearsal passes.
