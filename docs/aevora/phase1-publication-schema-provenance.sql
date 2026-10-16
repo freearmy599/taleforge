@@ -32,6 +32,24 @@ WHERE n.nspname IN ('public', 'aevora_private')
   )
 ORDER BY n.nspname, c.relname;
 
+-- Schema ownership and effective ACLs matter for SECURITY DEFINER routines:
+-- untrusted CREATE rights can enable object-shadowing risks in writable schemas.
+SELECT
+  n.nspname AS schema_name,
+  pg_catalog.pg_get_userbyid(n.nspowner) AS owner_name,
+  n.nspacl AS schema_acl,
+  acl.grantee,
+  CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+       ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee_name,
+  acl.privilege_type,
+  acl.is_grantable
+FROM pg_catalog.pg_namespace n
+CROSS JOIN LATERAL pg_catalog.aclexplode(
+  COALESCE(n.nspacl, pg_catalog.acldefault('n', n.nspowner))
+) acl
+WHERE n.nspname IN ('public', 'aevora_private')
+ORDER BY n.nspname, grantee_name, acl.privilege_type;
+
 SELECT
   n.nspname AS schema_name,
   c.relname AS relation_name,
