@@ -121,6 +121,7 @@ Use arrays for the six list/object fields where appropriate. target_word_count m
     if(providerStateError || !providerState) {
       return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_state_unavailable"}),{status:503,headers:jsonHeaders});
     }
+    if(typeof providerState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(providerState.consecutive_throttle_count)||providerState.consecutive_throttle_count<0) return new Response(JSON.stringify({success:false,version:VERSION,error:"provider_state_unavailable",reason:"invalid_provider_counter"}),{status:503,headers:jsonHeaders});
     const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
     if(providerState.cooldown_until && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
   if(cooldownUntil && cooldownUntil > Date.now()) {
