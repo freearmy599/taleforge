@@ -291,7 +291,7 @@ test("chapter generator provider HTTP errors cannot leak provider response bodie
   assert.doesNotMatch(helper, /throw new Error\([^)]*(?:raw|responseText|\.text\()/,
     "raw provider response text must not enter a thrown error");
   const catchStart = source.indexOf("const providerQuotaFailure=");
-  const catchEnd = source.indexOf("const failureReason=", catchStart);
+  const catchEnd = source.indexOf('return reply({success:false,retryable:providerCooldownFailure', catchStart);
   assert.ok(catchStart >= 0 && catchEnd > catchStart, "bounded failure handler must exist");
   const handler = source.slice(catchStart, catchEnd);
   assert.match(handler, /const failureMessage=providerQuotaFailure\?[\s\S]*?internal diagnostics were withheld/,
