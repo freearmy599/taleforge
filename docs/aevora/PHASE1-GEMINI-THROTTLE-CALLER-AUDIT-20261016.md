@@ -76,9 +76,14 @@ A second pass inspected the primary revision/generation callers and the quality-
 
 Do not add an event ID based only on `output_id`, an ephemeral random value, or a timestamp. A safe design must model a provider-call attempt explicitly. For revision, that means at minimum separating primary and continuation calls and distinguishing later invocation attempts. For generation/review flows, the operation identity must be persisted or supplied by a stable caller contract. Parent orchestration must not count the same child failure as a new provider observation; either it reuses the exact child event identity through a proven contract, or it remains a control-flow observer and does not write a second event.
 
-The next work item is to reconcile the claimed 11 writers against the complete branch tree, then design the event ledger and caller contract together. This audit does not claim tests passed; no tests were executed during this continuation.
+The next work item is to execute the updated source contracts and disposable PostgreSQL rehearsal, including concurrent same-ID replay, then resolve any failures. This audit does not claim the revised tests passed; no tests were executed as part of the source edit itself.
 
 
 ## Full-tree inventory reconciliation — 2026-10-16
 
 The complete feature-branch tree contains 21 Edge Function TypeScript entrypoints. Source scan confirmed exactly ten direct provider-call owners plus one orchestrator fallback writer. The three direct writers missing from the initial audit draft were `arc-planner`, `blueprint-planner`, and `story-dna-planner`. Their helpers also send only `p_event_class`; they do not provide an event identity. The audit inventory is now reconciled to 11 writer functions. This scan is source-level only and does not substitute for tests or deployed-function comparison.
+
+
+## Implementation follow-up — branch-only
+
+The ten direct provider-call owners now pass an event ID to the new two-argument RPC. `generation-orchestrator` no longer calls the throttle RPC, preventing a child failure from being counted twice. The disposable shell rehearsal now runs the new migration, tests 20 distinct concurrent mixed-class events (expecting ten quota increments), tests 20 concurrent submissions with the same event ID (expecting one increment), and separately tests 20 distinct concurrent quota events. This remains candidate-source evidence until CI finishes; no production migration or deployment was performed.
