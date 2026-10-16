@@ -120,6 +120,9 @@ Deno.serve(async (req) => {
         reason: "provider_state_unavailable",
         note: "Review pipeline blocked because Gemini provider cooldown state could not be verified; no review model calls were made.",
       }, 503);
+    } else if (typeof providerState.consecutive_throttle_count !== "number" || !Number.isSafeInteger(providerState.consecutive_throttle_count) || providerState.consecutive_throttle_count < 0) {
+      console.error("[review-orchestrator] provider throttle counter is malformed; failing closed.");
+      return json({ success: false, mode: "review-orchestrator", orchestrator_version: VERSION, outputs_checked: 0, results: [], blocked: true, retryable: true, reason: "provider_state_unavailable", note: "Review pipeline blocked because Gemini provider state is malformed; no review model calls were made." }, 503);
     } else if (providerState?.cooldown_until && !Number.isFinite(new Date(providerState.cooldown_until).getTime())) {
       console.error("[review-orchestrator] provider cooldown timestamp is invalid; failing closed", String(providerState.cooldown_until));
       return json({
