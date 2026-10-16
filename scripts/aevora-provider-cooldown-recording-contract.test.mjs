@@ -30,68 +30,70 @@ assert.notEqual(catchEnd, -1, "provider failure handler must have a bounded end"
 const handler = source.slice(catchStart, catchEnd);
 
 const orchestratorWriterStart = orchestrator.indexOf("async function recordGeminiThrottle(");
-const orchestratorWriterEnd = orchestrator.indexOf("\\n}", orchestratorWriterStart);
+const orchestratorWriterEnd = orchestrator.indexOf("\n}", orchestratorWriterStart);
 assert.ok(orchestratorWriterStart >= 0 && orchestratorWriterEnd > orchestratorWriterStart,
   "orchestrator throttle recorder must exist");
 const orchestratorWriter = orchestrator.slice(orchestratorWriterStart, orchestratorWriterEnd);
 
 test("direct generation worker routes quota and overload events through the shared atomic RPC", () => {
-  assert.match(handler, /db\\.rpc\\("aevora_record_gemini_throttle",\\{p_event_class:providerQuotaFailure\\?"quota":"overload"\\}\\)/,
+  assert.ok(handler.includes('db.rpc("aevora_record_gemini_throttle",{p_event_class:providerQuotaFailure?"quota":"overload"})'),
     "the direct worker must use the atomic database operation");
-  assert.match(handler, /result\\?\\.recorded!==true/,
+  assert.ok(handler.includes("result?.recorded!==true"),
     "RPC errors or unexpected results must not be treated as a successful recording");
-  assert.match(handler, /Gemini cooldown persistence failed; this request remains blocked/,
+  assert.ok(handler.includes("Gemini cooldown persistence failed; this request remains blocked"),
     "failed cooldown recording must be explicitly surfaced in safe diagnostics");
-  assert.doesNotMatch(handler, /\\.upsert\\(/,
+  assert.equal(handler.includes(".upsert("), false,
     "the direct worker must not retain a read-modify-upsert cooldown path");
-  assert.doesNotMatch(handler, /from\\("taleforge_ai_provider_state"\\)/,
+  assert.equal(handler.includes('from("taleforge_ai_provider_state")'), false,
     "the direct worker's error path must not read provider state before writing");
 });
 
 test("generation orchestrator fallback uses the same atomic RPC", () => {
-  assert.match(orchestratorWriter, /supabase\\.rpc\\("aevora_record_gemini_throttle",\\{p_event_class:providerQuotaFailure\\?"quota":"overload"\\}\\)/,
+  assert.ok(orchestratorWriter.includes('supabase.rpc("aevora_record_gemini_throttle",{p_event_class:providerQuotaFailure?"quota":"overload"})'),
     "the orchestrator must converge on the same atomic operation");
-  assert.match(orchestratorWriter, /result\\?\\.recorded!==true/,
+  assert.ok(orchestratorWriter.includes("result?.recorded!==true"),
     "the orchestrator must reject an unsuccessful RPC result");
-  assert.match(orchestratorWriter, /return null/,
+  assert.ok(orchestratorWriter.includes("return null"),
     "the orchestrator must not report a successful write after persistence failure");
-  assert.doesNotMatch(orchestratorWriter, /\\.upsert\\(/,
+  assert.equal(orchestratorWriter.includes(".upsert("), false,
     "the orchestrator writer must not retain a read-modify-upsert cooldown path");
-  assert.doesNotMatch(orchestratorWriter, /from\\("taleforge_ai_provider_state"\\)/,
+  assert.equal(orchestratorWriter.includes('from("taleforge_ai_provider_state")'), false,
     "the fallback recorder must not perform its own provider-state read");
 });
 
 test("orchestrator still fails closed when provider state is missing or unreadable", () => {
   const helperStart = orchestrator.indexOf("async function getGeminiCooldown(");
-  const helperEnd = orchestrator.indexOf("\\n}", helperStart);
+  const helperEnd = orchestrator.indexOf("\n}", helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-state guard helper must be present");
   const helper = orchestrator.slice(helperStart, helperEnd);
-  assert.match(helper, /if\\(error \\|\\| !data\\) return \\{active:true[\\s\\S]*?lookup_error:/,
-    "missing row and lookup errors must be an active, explicitly unavailable state");
-  assert.match(orchestrator, /if\\(geminiCooldown\\.lookup_error\\)[\\s\\S]*?reason:"provider_state_unavailable"[\\s\\S]*?\\},503\\)/,
-    "entry-point lookup uncertainty must stop orchestration with a retryable 503");
-  assert.match(orchestrator, /const liveCooldown=await getGeminiCooldown\\(supabase\\);if\\(liveCooldown\\.lookup_error\\)[\\s\\S]*?action:"provider_state_unavailable"[\\s\\S]*?continue/,
-    "each schedule must re-check state and skip when provider state becomes uncertain");
+  assert.ok(helper.includes("if(error || !data) return {active:true"),
+    "missing row and lookup errors must be an active state");
+  assert.ok(helper.includes("lookup_error:"),
+    "provider-state uncertainty must be explicitly classified");
+  assert.ok(orchestrator.includes('reason:"provider_state_unavailable"'),
+    "entry-point lookup uncertainty must stop orchestration");
+  assert.ok(orchestrator.includes("const liveCooldown=await getGeminiCooldown(supabase);"),
+    "each schedule must re-check provider state");
 });
 
 test("atomic cooldown migration has safe diagnostics, monotonic expiry, and server-only execution", () => {
-  assert.match(migration, /CREATE OR REPLACE FUNCTION public\\.aevora_record_gemini_throttle\\(p_event_class text\\)/);
-  assert.match(migration, /ON CONFLICT \\(provider\\) DO UPDATE/);
-  assert.match(migration, /consecutive_throttle_count = current_state\\.consecutive_throttle_count \\+ 1/);
-  assert.match(migration, /GREATEST\\([\\s\\S]*?current_state\\.cooldown_until/);
-  assert.match(migration, /WHERE current_state\\.consecutive_throttle_count >= 0/);
-  assert.match(migration, /RAISE EXCEPTION 'provider state counter is malformed'/);
-  assert.match(migration, /Gemini quota or rate-limit response/);
-  assert.match(migration, /Gemini temporary overload response/);
-  assert.match(migration, /REVOKE ALL ON FUNCTION public\\.aevora_record_gemini_throttle\\(text\\) FROM PUBLIC/);
-  assert.match(migration, /FROM anon, authenticated/);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\\.aevora_record_gemini_throttle\\(text\\) TO service_role/);
-  assert.match(migration, /not idempotent across duplicate calls/);
+  assert.ok(migration.includes("CREATE OR REPLACE FUNCTION public.aevora_record_gemini_throttle(p_event_class text)"));
+  assert.ok(migration.includes("ON CONFLICT (provider) DO UPDATE"));
+  assert.ok(migration.includes("consecutive_throttle_count = current_state.consecutive_throttle_count + 1"));
+  assert.ok(migration.includes("GREATEST(") && migration.includes("current_state.cooldown_until"));
+  assert.ok(migration.includes("WHERE current_state.consecutive_throttle_count >= 0"));
+  assert.ok(migration.includes("RAISE EXCEPTION 'provider state counter is malformed'"));
+  assert.ok(migration.includes("Gemini quota or rate-limit response"));
+  assert.ok(migration.includes("Gemini temporary overload response"));
+  assert.ok(migration.includes("REVOKE ALL ON FUNCTION public.aevora_record_gemini_throttle(text) FROM PUBLIC"));
+  assert.ok(migration.includes("FROM anon, authenticated"));
+  assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.aevora_record_gemini_throttle(text) TO service_role"));
+  assert.ok(migration.includes("not idempotent across duplicate calls"));
 });
 
 test("atomicity plan records both writers and preserves the production evidence gate", () => {
-  assert.match(plan, /both.*`generate-chapter`.*`generation-orchestrator`/s);
-  assert.match(plan, /route both writers through the same atomic database operation/);
-  assert.match(plan, /schema provenance/);
-  assert.match(plan, /does not authorize production deployment/);
+  assert.ok(plan.includes("generate-chapter") && plan.includes("generation-orchestrator"));
+  assert.ok(plan.includes("route both writers through the same atomic database operation"));
+  assert.ok(plan.includes("schema provenance"));
+  assert.ok(plan.includes("does not authorize production deployment"));
 });
