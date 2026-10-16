@@ -1,4 +1,8 @@
 \set ON_ERROR_STOP on
+-- The live function returns this table's composite row type. This isolated
+-- fixture models that return type without requiring the production table shape.
+CREATE TYPE public.story_attachment_metrics AS (id bigint);
+
 -- Minimal disposable fixtures for the exact function signatures in the
 -- internal EXECUTE migration. This file is only run by the guarded local/CI
 -- disposable PostgreSQL rehearsal, never against Supabase.
