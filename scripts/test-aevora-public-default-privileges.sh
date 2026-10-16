@@ -19,3 +19,12 @@ fi
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-public-default-privilege-fixture.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014170000_restrict_public_default_privileges.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-public-default-privilege-assertions.sql
+
+# A schema-scoped REVOKE cannot override additive global table/sequence defaults.
+# Seed a global grant only in this disposable database and require fail-closed behavior.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT INSERT ON TABLES TO anon"
+if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014170000_restrict_public_default_privileges.sql; then
+  echo "Expected a global default grant to block the schema-scoped repair, but it succeeded." >&2
+  exit 1
+fi
+echo "Global table defaults correctly block the schema-scoped default ACL repair."
