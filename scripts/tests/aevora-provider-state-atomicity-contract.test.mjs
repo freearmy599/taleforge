@@ -3,10 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../../supabase/migrations/20261016180000_atomic_gemini_provider_throttle.sql");
+const migration = read("../../supabase/migrations/20261016190000_idempotent_gemini_provider_throttle.sql");
 const writers = [
   ["generate-chapter", read("../../supabase/functions/generate-chapter/index.ts")],
-  ["generation-orchestrator", read("../../supabase/functions/generation-orchestrator/index.ts")],
   ["revise-chapter", read("../../supabase/functions/revise-chapter/index.ts")],
   ["continuity-review", read("../../supabase/functions/continuity-review/index.ts")],
   ["originality-review", read("../../supabase/functions/originality-review/index.ts")],
