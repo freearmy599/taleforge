@@ -41,3 +41,22 @@ test("provider-state lookup failure preserves existing cooldown state", () => {
     "cooldown upsert errors must be logged rather than reported as successful",
   );
 });
+
+test("malformed or overflowing throttle counters preserve state instead of resetting escalation", () => {
+  assert.match(handler, /const rawCount=data\.consecutive_throttle_count;/,
+    "the persisted counter must be validated without coercion");
+  assert.match(handler, /typeof rawCount!==["']number["']\|\|!Number\.isSafeInteger\(rawCount\)\|\|rawCount<0/,
+    "non-numeric, negative, fractional, and unsafe counters must fail closed");
+  assert.match(handler, /Gemini throttle counter is malformed; existing state preserved/,
+    "malformed persisted state must not be silently reset");
+  assert.match(handler, /if\(!Number\.isSafeInteger\(count\)\)/,
+    "increment overflow must fail closed");
+  assert.match(handler, /Gemini throttle counter would overflow; existing state preserved/,
+    "overflow must preserve the prior state");
+  assert.doesNotMatch(handler, /Number\(data\.consecutive_throttle_count\?\?0\)/,
+    "invalid state must never be coerced to a fresh zero counter");
+  const malformedGuard = handler.indexOf("Gemini throttle counter is malformed; existing state preserved");
+  const upsert = handler.indexOf('.upsert({provider:"gemini"');
+  assert.ok(malformedGuard >= 0 && upsert > malformedGuard,
+    "malformed-state rejection must occur before any cooldown upsert");
+});
