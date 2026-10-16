@@ -10,6 +10,14 @@ const source = await readFile(
   new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url),
   "utf8",
 );
+const orchestrator = await readFile(
+  new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url),
+  "utf8",
+);
+const plan = await readFile(
+  new URL("../docs/aevora/phase1-provider-cooldown-atomicity-plan.md", import.meta.url),
+  "utf8",
+);
 const catchStart = source.indexOf("const providerQuotaFailure=");
 const catchEnd = source.indexOf('const failureReason=', catchStart);
 assert.notEqual(catchStart, -1, "provider failure handling must exist");
@@ -59,4 +67,18 @@ test("malformed or overflowing throttle counters preserve state instead of reset
   const upsert = handler.indexOf('.upsert({provider:"gemini"');
   assert.ok(malformedGuard >= 0 && upsert > malformedGuard,
     "malformed-state rejection must occur before any cooldown upsert");
+});
+
+
+test("atomicity gate explicitly covers both direct and fallback cooldown writers", () => {
+  assert.match(orchestrator, /getGeminiCooldown/,
+    "generation-orchestrator must retain its provider-state guard and fallback recorder");
+  assert.match(orchestrator, /from\("taleforge_ai_provider_state"\)/,
+    "the orchestrator fallback writer must remain in the audit scope");
+  assert.match(orchestrator, /upsert\(\{provider:"gemini"/,
+    "the existing fallback write path must be accounted for until replaced by the atomic RPC");
+  assert.match(plan, /both.*`generate-chapter`.*`generation-orchestrator`/s,
+    "the atomicity plan must explicitly cover both writers");
+  assert.match(plan, /route both writers through the same atomic database operation/,
+    "the release gate must require both paths to converge on one atomic operation");
 });
