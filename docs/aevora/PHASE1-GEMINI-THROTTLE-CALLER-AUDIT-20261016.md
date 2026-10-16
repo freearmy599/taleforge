@@ -60,3 +60,20 @@ File: `supabase/migrations/20261016180000_atomic_gemini_provider_throttle.sql`
 ## Gate
 
 **Not ready for rollout.** Do not apply `20261016180000_atomic_gemini_provider_throttle.sql` until quota-only counter semantics, durable event identity, atomic deduplication, exact privileges, schema provenance, and disposable-PostgreSQL concurrency tests all pass.
+
+
+## Supplemental verification — 2026-10-16 continuation
+
+A second pass inspected the primary revision/generation callers and the quality-review path. It confirms the following additional details:
+
+- `revise-chapter` records from two separate provider catch sites: its primary revision request and its continuation request. A future idempotency key must distinguish these call stages while remaining stable when the same invocation/event is replayed.
+- `generate-chapter` has one outer catch that records provider failures from both the generation path and the AI quality-review path. Its `x-request-id` / `sb-request-id` value is currently only emitted in logs; it is not passed to the RPC and is not documented as a durable retry identity.
+- `generation-orchestrator` calls its fallback recorder after child generation and revision responses. It checks for an already-active cooldown before writing, which usually suppresses sequential duplicate recording after a successful child write, but it is not an atomic guarantee. It also cannot establish whether a child write was lost versus a child write raced with another event.
+- The current candidate migration uses a single upsert path for both classes. It increments the counter on overload as well as quota, so it conflicts with the contract even before considering idempotency.
+- Static source review found direct writers in `generate-chapter`, `revise-chapter`, `continuity-review`, `originality-review`, `safety-review`, `character-continuity`, and `world-continuity`, plus the `generation-orchestrator` fallback. This remains an eight-function confirmed list; the older master checklist's 11-writer count must be reconciled against branch source before implementation. The code-search integration queried in this pass searches the default branch, so empty search results are not evidence that the feature branch has no additional writers.
+
+### Implementation decision refined
+
+Do not add an event ID based only on `output_id`, an ephemeral random value, or a timestamp. A safe design must model a provider-call attempt explicitly. For revision, that means at minimum separating primary and continuation calls and distinguishing later invocation attempts. For generation/review flows, the operation identity must be persisted or supplied by a stable caller contract. Parent orchestration must not count the same child failure as a new provider observation; either it reuses the exact child event identity through a proven contract, or it remains a control-flow observer and does not write a second event.
+
+The next work item is to reconcile the claimed 11 writers against the complete branch tree, then design the event ledger and caller contract together. This audit does not claim tests passed; no tests were executed during this continuation.
