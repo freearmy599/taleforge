@@ -149,7 +149,7 @@ A verbose, read-only Supabase table-schema inspection confirmed these owner/rela
 
 Foreign keys observed in the catalog connect these relations to `profiles`, `stories`, `collections`, and `comments` as expected. This narrows policy design but does not prove that `profiles.id` is populated from `auth.uid()` in every existing auth path; verify the frontend sign-up/profile trigger and deployed callers before writing policies.
 
-**Priority:** resolve the `profiles.role` escalation path and owner-scoped policies for bookmarks, collections, collection_stories, comments, likes, notifications, ratings, reading_history, and story_reports before claiming the reader MVP's account/community surfaces are secure and functional.
+**Priority correction after browser call-path inspection:** keep client access closed on these unused account/community relations and preserve least-privilege grants, but do not treat owner-policy implementation for all of them as a current reader-MVP blocker. The present reader pages do not use Supabase Auth or query these relations; reading progress, follows, and bookmarks are stored in browser local storage. Design owner-scoped/moderation policies before enabling server-persisted accounts, Creator Studio, or community workflows. Treat profiles.role as privileged and never expose a generic client-controlled role update path.
 
 ## D. Migration review findings
 
@@ -171,3 +171,24 @@ Foreign keys observed in the catalog connect these relations to `profiles`, `sto
 ## Safety statement
 
 This document is a read-only audit artifact. No production table privileges, policies, migrations, functions, schedules, chapter generation, or publication were changed. No Supabase development branch was created.
+
+
+## G. Browser call-path reconciliation — 2026-10-16
+
+A static call-site scan of the current hardening branch's reader pages and browser helpers (index.html, stories.html, story.html, series.html, chapter.html, library.html, notifications.html, taleforge-data.js, reading-progress.js, and supabase-client.js) found:
+
+- Reader data reads use series, chapters, stories, story_intelligence, and story_trending_scores.
+- The browser event tracker writes to reader_events through one compatibility seam in reading-progress.js; its current feature flag remains disabled, so it uses direct INSERT until the endpoint is verified.
+- No reader-facing page calls Supabase Auth or queries profiles, bookmarks, collections, collection_stories, comments, likes, notifications, ratings, reading_history, story_reports, or recommendations.
+- Reading progress, follows, and bookmarks are stored in localStorage by reading-progress.js. They are browser-local, not account-synced across devices.
+- admin.html and chief-editor.html are separate admin surfaces: they sign in through Supabase Auth and check user.app_metadata.role for admin or owner. Their role gate is not implemented through public.profiles.
+
+### Disposition
+
+1. Treat the account/community tables as dormant or future-feature schema until the corresponding user-facing workflows are built. Do not add broad client policies merely to make unused tables accessible.
+2. Keep the existing RLS/no-policy posture for these tables and revoke unused maintenance privileges through the narrow candidate migration; verify service-role call sites before considering any CRUD grants.
+3. Before adding persistent reader accounts, define the auth/profile creation contract, ownership foreign keys, and role-provisioning path. The client must not be able to assign admin or creator through ordinary profile updates.
+4. Keep the current reader MVP no-signup/local-library behavior unless the product decision changes. If cross-device sync is introduced later, add policies and acceptance tests as part of that feature rather than pre-opening the schema.
+5. The branch's public trending/intelligence view access is intended to degrade safely while gated; live view grants and RLS behavior are tracked separately in the reader-event transition gate.
+
+This is source-level browser call-path evidence plus the earlier read-only live catalog inventory. It does not establish which frontend commit is deployed to the public site. No production settings or data were changed.
