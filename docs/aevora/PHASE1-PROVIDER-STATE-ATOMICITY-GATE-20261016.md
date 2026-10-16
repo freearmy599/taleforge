@@ -283,3 +283,46 @@ The deployed `generate-chapter` and `generation-orchestrator` paths shown in thi
 3. Before any production deployment, inspect every currently deployed function for table references, including functions not in the seven-function subset above.
 4. Test raw diagnostic redaction by preventing raw input from reaching the RPC rather than relying on a future cleanup UPDATE.
 5. Verify deployed source/version after an explicitly approved rollout; do not revoke trusted service-role table writes before all live writers are migrated.
+
+
+## Fresh read-only live recheck (2026-10-16 continuation)
+
+A new authorized read-only Supabase query and Edge Function metadata/source fetch were performed for project `sxmbnlgufqhcwxcpcsvb`. No provider-state row values were read and no writes/DDL/RPC execution were performed.
+
+### Current live table ACL and default ACL evidence
+
+The direct `pg_class` result for `public.taleforge_ai_provider_state` is:
+
+- Owner `postgres`; RLS enabled; FORCE RLS disabled.
+- Effective relation ACL text: `postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres`.
+- This is a direct grant-level exposure for `anon` and `authenticated`; RLS is not a substitute for revoking unnecessary table privileges, and `TRUNCATE` is not governed by row policies.
+
+The fresh `pg_default_acl` query again returned broad defaults in schema `public` for both owners:
+
+- `postgres`: tables `arwdDxtm`, sequences `rwU`, functions `X` granted to `anon`, `authenticated`, and `service_role` in addition to owner.
+- `supabase_admin`: the same broad object defaults under its ownership.
+
+This confirms the future-object exposure is not limited to the existing provider-state relation. It must be corrected owner-by-owner through an approved path; do not bypass role membership or apply a broad speculative default-privilege change.
+
+### Current live routine inventory
+
+Two read-only catalog searches were run: (1) function bodies in `public`, `taleforge_internal`, and `aevora_private` containing the provider-state relation/column names; and (2) public function names matching provider/cooldown/Gemini. Both returned no matches. This supports the absence of a visible narrow database RPC for this purpose, but is not proof that no differently named routine or non-public caller touches the table.
+
+### Exact live Edge Function fingerprints and call sites
+
+The current deployed metadata/source fetch reports:
+
+- `generate-chapter` v59, SHA-256 `9f6d57c77bba109cd079dd9441963e3f4ab3aed6ab8e0db2aab1ff2129522131`.
+  - Direct provider-state preflight reads at source lines 46 and 102.
+  - Direct read/compute/upsert writer at lines 164–168.
+  - The writer computes `Number(data?.consecutive_throttle_count ?? 0) + 1` and writes `message.slice(0,2000)` to `last_error`; the read result's error is not visibly checked in the recorded writer snippet. This can silently treat a failed/missing lookup as a fresh counter and preserves raw error text in the provider table.
+- `generation-orchestrator` v35, SHA-256 `2f96e3cca526f2c6801860fe7b6cf5456b528ba56ed964f4d5afd71c8569f8e6`.
+  - Cooldown preflight read at lines 26–29.
+  - Direct read/compute/upsert writer at lines 31–37.
+  - The writer does not check the read or upsert error in the returned snippet and stores truncated arbitrary error text. The preflight treats query errors as active/blocked, which is fail-closed for the check but does not repair the writer path.
+
+These are deployed-source observations for the fetched versions, not just branch estimates. The two writers remain non-atomic and their callers are not yet migrated to a common database operation.
+
+### Updated gate decision
+
+The provider-state repair is **still blocked**. There is now fresh confirmation of the broad direct ACLs, broad future-object defaults, no matching provider-named public routine, and deployed writer fingerprints. The remaining prerequisite is authoritative original creation/deployment provenance plus a complete reader/writer call graph. After that, implement the atomic operation and concurrency tests on the branch/disposable PostgreSQL only. No production migration, grant, function deployment, or provider-state data change was performed.
