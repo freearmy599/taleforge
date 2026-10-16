@@ -85,6 +85,9 @@ test("privileged reader-event functions and quota tables cannot be owned by clie
   assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\.reader_event_quota_buckets/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\.reader_event_quota_cleanup_state/);
   assert.match(rpcAssertions,
+    /pg_catalog\.pg_get_userbyid\(n\.nspowner\) IN \('anon', 'authenticated'\)/,
+    "private quota schema must not be owned by a client role");
+  assert.match(rpcAssertions,
     /pg_get_userbyid\(p\.proowner\) IN \('anon', 'authenticated'\)/);
   assert.match(rpcAssertions,
     /pg_get_userbyid\(c\.relowner\) IN \('anon', 'authenticated'\)/);
