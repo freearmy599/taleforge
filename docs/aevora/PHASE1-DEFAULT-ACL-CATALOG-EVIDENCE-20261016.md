@@ -27,21 +27,24 @@ Selected concrete examples:
 - supabase_admin / cron and extensions: the explicit defaults shown grant these object privileges to postgres, not to the client roles.
 - supabase_admin / realtime: the defaults include grants for postgres and dashboard_user; this is a separate managed-schema policy and should not be casually overwritten.
 
-## Consequences for the candidate migration
+## Consequences and current branch-candidate state
 
-The branch migration 20261014170000_restrict_public_default_privileges.sql currently:
-1. revokes globally for each owner role, which changes future-object defaults beyond the public schema;
-2. also revokes in the public schema;
-3. silently emits a NOTICE and skips an owner role if the migration executor lacks authority.
+The earlier version of `20261014170000_restrict_public_default_privileges.sql` used global revokes for tables, sequences, and functions and skipped unauthorized owners with a NOTICE. That version was unsafe to ship.
 
-The global revokes do not cancel the explicit schema-specific grants in storage/graphql/graphql_public/realtime. Therefore the current migration is not a complete managed-schema cleanup, while its global function revoke may change built-in/default behavior for future functions outside public. The contract test that only asserts there are no explicit managed-schema statements is not enough to establish safe scope.
+The branch candidate has now been revised (commit `966217100374c45e6b30f875917e39340ea4938e`) to:
+1. change only schema-specific defaults for future tables and sequences in `public`;
+2. fail closed if a required owner/client role is missing, the executor cannot administer an owner role, or an additive global table/sequence client default is detected;
+3. leave existing objects unchanged;
+4. deliberately defer function EXECUTE defaults. PostgreSQL's built-in PUBLIC EXECUTE default is global, so a schema-only REVOKE is insufficient; a safe function-default change needs separate owner/schema impact analysis and function-level allowlists.
 
-## Next safe implementation
+This revision is a branch candidate, not a live repair. It still needs its disposable PostgreSQL rehearsal and CI confirmation.
 
-- Keep the migration branch-only.
-- Treat postgres/public as a separately reviewed app-schema correction; inventory postgres/storage before changing any defaults there.
-- Treat each supabase_admin schema as owner-managed and separately reviewed. Do not mutate its defaults from an application migration unless the owner-level authority, expected grants, and regression checks are explicit.
-- Replace the "skip with NOTICE" behavior with a release gate that fails validation when a required owner/schema correction was not performed. Do not make production migration success imply that every owner was corrected.
-- Add disposable tests that seed global and schema-specific ACLs separately and verify the resulting effective privileges for each relevant role, including PUBLIC, anon, authenticated, service_role, and dashboard_user.
+## Remaining default-ACL work
 
-This document records catalog evidence only. No production grants, defaults, migrations, functions, schedules, chapters, or publications were changed.
+- Keep the migration branch-only until its rehearsal passes.
+- Treat each `supabase_admin` schema as owner-managed and separately reviewed. This candidate only touches `public`.
+- Resolve future function EXECUTE defaults separately. Do not claim this migration closes that exposure.
+- Continue to verify effective privileges for `PUBLIC`, `anon`, `authenticated`, `service_role`, and `dashboard_user` where applicable.
+- Existing-object ACLs and the 39 policyless relations with client grants require separate remediation; this migration does not repair them.
+
+This document records read-only catalog evidence and branch-only candidate work. No production grants, defaults, migrations, functions, schedules, chapters, or publications were changed.
