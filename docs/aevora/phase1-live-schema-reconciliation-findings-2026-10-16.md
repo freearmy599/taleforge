@@ -122,3 +122,42 @@ This independently confirms the current ledger boundary and that the later branc
 CI run [38867603837](https://github.com/freearmy599/taleforge/actions/runs/38867603837) completed successfully on commit `99292e4b356f74942c80a6d7186846b79ffc0145`. Both jobs passed: prepared Edge Function type-checking with all source-contract checks, and the disposable PostgreSQL readiness/security rehearsal. The checks include provider-state grant and redaction rehearsals, provider cooldown recording contracts, and read-only schema-provenance contracts.
 
 This is branch/test evidence only. It does not resolve the original migration source, change live table grants/default privileges, implement atomic cooldown recording, or validate deployed Edge Runtime behavior. No production writes or deployments were performed.
+
+
+## Publication-boundary live catalog reconciliation — 2026-10-16
+
+A fresh read-only catalog query inspected the targeted publication-boundary relations in `public` and `aevora_private`. It selected catalog metadata only; no application rows were read and no database writes were performed.
+
+### Observed relation inventory
+
+The following expected `public` relations were present, all owned by `postgres` with RLS enabled:
+
+| Relation | Columns | Constraints | Indexes | User triggers |
+|---|---:|---:|---:|---:|
+| `aevora_release_scheduler_leases` | 5 | 2 | 1 | 0 |
+| `chapter_blueprints` | 21 | 7 | 5 | 1 |
+| `chapter_generation_outputs` | 20 | 6 | 6 | 3 |
+| `chapter_publication_reviews` | 11 | 4 | 3 | 2 |
+| `chapter_reviews` | 10 | 5 | 4 | 0 |
+| `chapters` | 19 | 6 | 6 | 5 |
+| `publication_sync_outbox` | 12 | 4 | 3 | 0 |
+| `reader_events` | 7 | 5 | 4 | 0 |
+| `release_schedules` | 15 | 8 | 4 | 1 |
+| `series` | 28 | 6 | 6 | 2 |
+| `story_blueprints` | 32 | 5 | 4 | 2 |
+| `taleforge_autonomous_series_creation_runs` | 16 | 6 | 2 | 0 |
+
+This count is a high-level inventory, not validation of the specific constraint definitions or the safety of the triggers. Those definitions, trigger-function bodies, routine ownership/settings, and effective grants still need reconciliation before a publication transaction can be designed.
+
+### Expected objects not present in the inspected schemas
+
+- The `aevora_private` schema was absent; consequently none of the publication-boundary relations expected there were found.
+- `public.reader_event_quota_buckets` and `public.reader_event_quota_cleanup_state` were absent.
+
+These are observations about the current live catalog, not instructions to create the schema or tables. Before changing any source contracts or designing a transactional publication RPC, reconcile these absences with tracked migrations, deployed callers, and the intended schema architecture. Do not create missing objects merely to satisfy the inventory.
+
+### Gate update
+
+The live inventory confirms that the core publication relations exist, but the publication-boundary migration gate remains **blocked**. Next evidence should enumerate the actual column types/defaults, exact constraint and index definitions, trigger definitions and trigger-function security settings, policies, effective table/column/routine grants, and relevant migration history. In particular, the outbox and release-schedule invariants must be verified from exact definitions rather than inferred from counts.
+
+This was a read-only inspection. No production migration, DDL, deployment, schedule mutation, generation, or publication occurred.
