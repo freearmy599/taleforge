@@ -115,7 +115,67 @@ if [[ "$rpc_second_status" -ne 0 ]] || ! grep -qx 'accepted' "$tmp_a" || ! grep 
   cat "$tmp_a" "$tmp_b" >&2
   exit 1
 fi
+
 echo "Concurrent trusted intake UUID idempotency assertion passed."
+
+# Rehearse the mixed-writer race: pause the RPC at its BEFORE INSERT trigger
+# after its initial idempotency check, let a direct compatibility INSERT claim
+# the same UUID, then ensure the RPC returns duplicate without charging quota.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+CREATE OR REPLACE FUNCTION public.aevora_test_pause_rpc_reader_event_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $test$
+BEGIN
+  IF NEW.visitor_id = 'visitor-rpc-mixed-race-0001' THEN
+    PERFORM pg_catalog.pg_sleep(1);
+  END IF;
+  RETURN NEW;
+END;
+$test$;
+CREATE TRIGGER aevora_test_pause_rpc_reader_event_insert
+BEFORE INSERT ON public.reader_events
+FOR EACH ROW EXECUTE FUNCTION public.aevora_test_pause_rpc_reader_event_insert();
+SQL
+mixed_race_uuid="51000000-0000-0000-0000-000000000099"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq >"$tmp_a" 2>&1 <<SQL &
+SET ROLE service_role;
+SELECT public.aevora_ingest_reader_event(
+  'visitor-rpc-mixed-race-0001',
+  '$mixed_race_uuid',
+  'story_open',
+  '00000000-0000-0000-0000-000000000101',
+  NULL,
+  NULL
+)->>'outcome';
+SQL
+mixed_rpc_pid=$!
+sleep 0.2
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<SQL
+SET ROLE anon;
+INSERT INTO public.reader_events(visitor_id,event_type,series_id,event_uuid)
+VALUES ('visitor-direct-mixed-race-0001','story_open',
+        '00000000-0000-0000-0000-000000000101',
+        '$mixed_race_uuid');
+SQL
+if ! wait "$mixed_rpc_pid"; then
+  echo "Mixed-writer RPC session failed." >&2
+  cat "$tmp_a" >&2
+  exit 1
+fi
+if ! grep -qx 'duplicate' "$tmp_a"; then
+  echo "Mixed-writer race expected the RPC to return duplicate." >&2
+  cat "$tmp_a" >&2
+  exit 1
+fi
+mixed_quota_hits="$(psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atq -c "SELECT COALESCE(sum(hit_count),0) FROM aevora_private.reader_event_quota_buckets WHERE visitor_key_hash = md5('visitor-rpc-mixed-race-0001')")"
+if [[ "$mixed_quota_hits" != "0" ]]; then
+  echo "Mixed-writer duplicate incorrectly consumed quota: $mixed_quota_hits hits." >&2
+  exit 1
+fi
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DROP TRIGGER aevora_test_pause_rpc_reader_event_insert ON public.reader_events; DROP FUNCTION public.aevora_test_pause_rpc_reader_event_insert()"
+echo "Mixed direct-writer/RPC idempotency and no-quota-charge assertion passed."
+
 
 # Race 31 independent sessions against one fresh anonymous quota key. The
 # database advisory lock must make the 30/minute boundary exact under load.
