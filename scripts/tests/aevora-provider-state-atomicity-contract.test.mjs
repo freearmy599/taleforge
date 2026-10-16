@@ -39,7 +39,8 @@ test("database operation increments atomically and never shortens cooldown", () 
   assert.match(migration, /WHEN p_event_class = 'quota' THEN current_state\.consecutive_throttle_count \+ 1/i);
   assert.match(migration, /ELSE current_state\.consecutive_throttle_count/i);
   assert.match(migration, /GREATEST\(/);
-  assert.match(migration, /WHERE current_state\.consecutive_throttle_count >= 0/);
+  assert.match(migration, /current_state\.consecutive_throttle_count IS NOT NULL/);
+  assert.match(migration, /current_state\.consecutive_throttle_count >= 0/);
 });
 
 for (const [name, source] of writers) {
