@@ -7,7 +7,7 @@ Live project reviewed: `sxmbnlgufqhcwxcpcsvb`
 
 ## 1. Direct live privilege evidence
 
-A read-only `has_table_privilege` inventory on 2026-10-16 found that `anon` and `authenticated` each have SELECT, INSERT, UPDATE, DELETE and TRUNCATE on all 13 existing relations in the audit query:
+A read-only `has_table_privilege` inventory on 2026-10-16 found that `anon` and `authenticated` each have SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and `MAINTAIN` on all 13 existing relations in the audit query. The same inventory returned those privileges for `service_role` as expected for the trusted service role; this does not establish which individual functions need every privilege:
 
 - `taleforge_ai_provider_state`
 - `chapter_blueprints`
@@ -23,7 +23,7 @@ A read-only `has_table_privilege` inventory on 2026-10-16 found that `anon` and 
 - `story_trending_scores`
 - `story_intelligence`
 
-For the ten workflow/publication tables plus provider state, RLS is enabled but not forced. Eight internal workflow tables have no RLS policies; `chapters`, `series`, and `reader_events` each have one policy. The two optional enrichment relations `story_trending_scores` and `story_intelligence` have RLS disabled in the live catalog and broad client privileges. These are excessive grants, but this audit does not assert that each grant is reachable through a particular HTTP/API path.
+For the ten workflow/publication tables plus provider state, RLS is enabled but not forced. Eight internal workflow tables have no RLS policies; `chapters`, `series`, and `reader_events` each have one policy. The two optional enrichment relations `story_trending_scores` and `story_intelligence` have RLS disabled in the live catalog and broad client privileges. These are excessive client grants, but this audit does not assert that each grant is reachable through a particular HTTP/API path. RLS does not govern `TRUNCATE`, and ordinary row-level policies are not a substitute for removing unneeded relation privileges.
 
 ## 2. Exact current reader policies
 
