@@ -234,3 +234,12 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_provider_state_test"
           bash scripts/test-aevora-provider-state-lock.sh
+
+      - name: Rehearse public default-privilege revocation for future objects
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_default_privileges_test
+          AEVORA_DISPOSABLE_DEFAULT_PRIVILEGE_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_default_privileges_test"
+          bash scripts/test-aevora-public-default-privileges.sh
