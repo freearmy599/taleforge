@@ -31,12 +31,11 @@ The catalog showed broad client EXECUTE ACLs on these functions, in some cases i
 
 ## Recommended next steps
 
-1. Search all Edge Functions, triggers, scheduled jobs, SQL migrations and browser code for callers of every listed function.
-2. Identify trigger-only functions by their actual trigger bindings; do not revoke their execution without confirming trigger semantics.
-3. Confirm whether `get_production_buffer_plan` and `get_story_narrative_destination` are intended to be callable by ordinary API roles. Prefer a narrow, public-safe projection or server-side-only access if not.
+1. The branch already contains candidate migration `20261013110000_restrict_internal_invoker_rpc_execution.sql`, which revokes `EXECUTE` from `PUBLIC`, `anon`, and `authenticated` for these 12 internal/trigger helper functions while preserving trusted `service_role` grants. Do not create a duplicate migration.
+2. The repository's `supabase/functions/release-scheduler/contract.test.ts` has a static contract for all 12 signatures. Verify that the disposable PostgreSQL rehearsal executes the candidate migration and checks effective grants and trigger behavior; static source matching alone is not enough.
+3. Complete caller inventory for every listed function across Edge Functions, triggers, scheduled jobs, SQL migrations and browser code. Initial Edge source inspection found `get_production_buffer_plan()` called by `blueprint-planner` and `generation-orchestrator`; those use trusted server clients. Continue checking all other callers before rollout.
 4. Review the `story_lifecycle` SELECT predicate and the published-only conditions for story arc/ending-plan tables against the product's actual publication states.
-5. Add a disposable PostgreSQL test that verifies intended callers can execute approved RPCs and that anon/authenticated cannot execute internal-only functions.
-6. Only then prepare a schema-scoped function EXECUTE migration. Do not broadly revoke EXECUTE from all functions: legitimate public utilities and trigger-bound functions need separate handling.
+5. Keep the candidate unapplied until disposable PostgreSQL checks, deployed-schema compatibility and rollout authorization are separately satisfied. Do not broadly revoke EXECUTE from all functions: legitimate public utilities and trigger-bound functions need separate handling.
 
 ## Release status
 
