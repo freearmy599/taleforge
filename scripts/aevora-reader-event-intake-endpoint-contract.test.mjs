@@ -86,7 +86,7 @@ test("privileged reader-event functions and quota tables cannot be owned by clie
   assert.match(migration, /CREATE TABLE IF NOT EXISTS aevora_private\\.reader_event_quota_cleanup_state/);
   assert.match(rpcAssertions,
     /pg_get_userbyid\(p\.proowner\) IN \('anon', 'authenticated'\)/);
-  assert.match(await readFile(new URL("../scripts/aevora-reader-event-intake-rpc-assertions.sql", import.meta.url), "utf8"),
+  assert.match(rpcAssertions,
     /pg_get_userbyid\(c\.relowner\) IN \('anon', 'authenticated'\)/);
 });
 
