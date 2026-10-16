@@ -37,6 +37,16 @@ for pid in "${pids[@]}"; do
 done
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DO \$mixed\$ DECLARE v_count integer; v_until timestamptz; v_error text; BEGIN SELECT consecutive_throttle_count, cooldown_until, last_error INTO v_count, v_until, v_error FROM public.taleforge_ai_provider_state WHERE provider='gemini'; IF v_count <> 10 THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed concurrent events expected 10 quota events, got %', v_count; END IF; IF v_until IS NULL OR v_until <= clock_timestamp() THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed concurrent events did not persist a future cooldown'; END IF; IF v_error NOT IN ('Gemini quota or rate-limit response', 'Gemini temporary overload response') THEN RAISE EXCEPTION 'ASSERTION_FAILED: mixed event left an unapproved diagnostic'; END IF; END \$mixed\$;"
 
+# Race the same event ID from many sessions; it must be counted exactly once.
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DELETE FROM public.taleforge_ai_provider_state WHERE provider='gemini'; DELETE FROM public.taleforge_ai_provider_event_ledger"
+pids=()
+for i in $(seq 1 20); do
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT recorded FROM public.aevora_record_gemini_throttle('00000000-0000-0000-0000-000000000050', 'quota')" >/dev/null &
+  pids+=("$!")
+done
+for pid in "${pids[@]}"; do wait "$pid"; done
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DO \$duplicate\$ BEGIN IF (SELECT consecutive_throttle_count FROM public.taleforge_ai_provider_state WHERE provider='gemini') <> 1 THEN RAISE EXCEPTION 'ASSERTION_FAILED: concurrent duplicate event was counted more than once'; END IF; END \$duplicate\$;"
+
 # Reset only the disposable fixture, then independently test 20 concurrent quota events.
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "UPDATE public.taleforge_ai_provider_state SET cooldown_until=NULL, consecutive_throttle_count=0, last_error=NULL, last_error_at=NULL, updated_at=clock_timestamp() WHERE provider='gemini'; DELETE FROM public.taleforge_ai_provider_event_ledger"
 pids=()
