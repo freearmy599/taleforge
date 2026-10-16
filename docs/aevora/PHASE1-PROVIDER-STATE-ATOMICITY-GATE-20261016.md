@@ -130,3 +130,47 @@ The authoritative original creation migration body is still absent from the chec
 5. Keep production NO-GO until deployed caller parity and effective grants/default privileges are independently verified.
 
 No migration, deployment, production data change, or AI work was performed as part of this source review.
+
+
+## Atomic operation contract and test matrix (2026-10-16 continuation)
+
+This section specifies the implementation contract only. It is deliberately not a migration or deployment instruction: the original table-creation artifact and production caller parity are still unverified.
+
+### Proposed database operation contract
+
+Use one narrowly granted database function for provider-failure recording. It must execute the counter update and cooldown extension in one transaction and serialize competing writes for the same provider key. The final SQL must be written only after the original table definition, column types, constraints, ownership, and supported PostgreSQL version are recovered.
+
+Inputs should be constrained to a small enumerated failure class (quota/rate-limit versus temporary overload) and, if a real shared event key can be propagated by both caller paths, a bounded idempotency key. Do not accept raw provider response bodies or arbitrary cooldown intervals from callers. Compute the duration inside the trusted database function using the agreed backoff policy.
+
+Required semantics:
+
+1. **Atomic creation/update:** simultaneous first observations produce one provider row and no lost increments.
+2. **Counter safety:** increment only for a new accepted failure event; reject overflow and malformed persisted values without silently resetting state.
+3. **Deadline monotonicity:** set the deadline to the later of the current valid deadline and the newly calculated deadline. A later-arriving weaker failure must not shorten an active cooldown.
+4. **Failure policy:** callers treat a failed write or uncertain read as blocked and must not make another Gemini call in the same operation.
+5. **Diagnostic minimization:** persist only a safe fixed message, never raw response text, keys, prompts, or provider payloads.
+6. **Privilege boundary:** revoke direct table access from PUBLIC/anon/authenticated; grant function execution only to the actual server role used by trusted Edge Functions. Verify function ownership, SECURITY DEFINER search path if used, and default privileges for the owner. Do not assume service-role function execution semantics without checking the live deployment.
+7. **Read path:** preflight readers must use a verified server-only access path. Keep the generation and quality-review preflight checks fail-closed until both are migrated and tested.
+
+### Duplicate-observation policy is an explicit design decision
+
+The current orchestrator avoids a second increment when it sees an active cooldown, but concurrent requests can both observe an inactive state. Exactly-once handling requires a stable failure/event identifier that survives the downstream response and fallback recording. If that identifier cannot be reliably propagated, implement and document an at-least-once counting policy rather than claiming idempotency; test that policy's effect on backoff and cooldown duration.
+
+### Required disposable-PostgreSQL tests
+
+- 20+ concurrent first writes for the same provider: one row, deterministic counter behavior, no lost updates.
+- 20+ concurrent updates after initialization: accepted unique events produce the expected final count.
+- Same idempotency key submitted concurrently: one increment if idempotency is supported.
+- Shorter proposed deadline against a longer existing deadline: deadline remains unchanged.
+- Longer proposed deadline against a shorter existing deadline: deadline extends.
+- Quota and temporary-overload events racing: documented deterministic counter/deadline semantics.
+- Missing row, malformed timestamp, negative/non-integer count, and integer overflow: operation fails safely and callers remain blocked.
+- Function error/transaction rollback: no partial counter/deadline mutation.
+- anon and authenticated cannot select, insert, update, delete, truncate, or execute the privileged writer; intended server role can call only the approved function.
+- Newly created functions under each relevant owner do not inherit unsafe default PUBLIC execution privileges.
+
+### Current source facts and blockers
+
+The current branch has direct provider-state reads in generate-chapter at lines 52 and 233 and a direct upsert at line 304; generation-orchestrator reads at lines 32 and 48 and upserts at line 71. These are source line references for the reviewed blobs, not proof of production parity. The branch lock migration only revokes client privileges and redacts existing diagnostic strings; it does not implement this atomic operation or migrate those callers. The original creation migration file still returns 404 in the checked branch.
+
+**Gate decision:** do not add or apply a guessed migration yet. Next retrieve the original migration/deployment artifact and read-only live function metadata, then implement the function and caller changes in the disposable test environment first. No production migration, deployment, or data mutation was performed.
