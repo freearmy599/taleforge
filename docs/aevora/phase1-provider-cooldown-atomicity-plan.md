@@ -46,3 +46,10 @@ If repository migration history and the live database disagree, stop and reconci
 This repair remains blocked until the atomic operation and regression tests are implemented, reviewed, and green. Then re-run Edge Function type-checking, all existing Phase 1 contract tests, and the disposable PostgreSQL rehearsal. Verify real Supabase Edge Runtime compatibility separately.
 
 This plan does not authorize production deployment, database migration, schedule mutation, chapter generation/publication, or creation of a billable Supabase branch.
+
+## Additional confirmed defect: malformed counter is silently reset
+
+The current handler converts `consecutive_throttle_count` to a number and substitutes `0` whenever the result is not a non-negative safe integer. That means a malformed, negative, fractional, or unsafe persisted counter is not surfaced as invalid state; it can be treated as a fresh counter and produce a shorter escalation interval. This differs from the explicit malformed-`cooldown_until` branch, which preserves existing state and logs an error.
+
+The atomic database operation must not silently normalize an invalid persisted counter. It should return a stable invalid-state result (or use another explicitly reviewed recovery rule), leave the prior state intact, and prevent the caller from claiming cooldown recording succeeded. Add regression cases for `NULL` if allowed by the actual schema, negative values, fractional values if the type permits them, and values outside the supported integer range. Test only the representations that the reconciled schema can actually store.
+
