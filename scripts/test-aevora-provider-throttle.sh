@@ -35,5 +35,5 @@ if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT * FROM public.aevora
   echo "Expected malformed negative counter to fail but RPC succeeded." >&2
   exit 1
 fi
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DO \$verify\$ BEGIN IF (SELECT consecutive_throttle_count FROM public.taleforge_ai_provider_state WHERE provider='gemini') <> -1 THEN RAISE EXCEPTION 'ASSERTION_FAILED: malformed counter was modified'; END IF; END \$verify\$;"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c 'DO $verify$ BEGIN IF (SELECT consecutive_throttle_count FROM public.taleforge_ai_provider_state WHERE provider=''gemini'') <> -1 THEN RAISE EXCEPTION ''ASSERTION_FAILED: malformed counter was modified''; END IF; END $verify$;'
 echo "Atomic Gemini provider-throttle concurrency and safety rehearsal passed."
