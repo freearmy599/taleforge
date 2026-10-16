@@ -52,7 +52,7 @@ test("revision worker fails closed on unavailable or malformed provider cooldown
   assert.ok(s.includes("cooldownUntil !== null && cooldownUntil > Date.now()"));
   assert.ok(s.includes('.select("cooldown_until,consecutive_throttle_count")'));
   assert.ok(s.includes("providerStateResult.error || !providerStateResult.data"));
-  assert.ok(s.includes("cooldownUntil !== null && !Number.isFinite(cooldownUntil)"));
+  assert.ok(s.includes("if(!Number.isFinite(until))"));
   assert.ok(s.includes('reason: "invalid_cooldown_timestamp"'));
   const writerStart = s.indexOf("async function recordGeminiThrottle(");
   const writerEnd = s.indexOf("\nDeno.serve", writerStart);
