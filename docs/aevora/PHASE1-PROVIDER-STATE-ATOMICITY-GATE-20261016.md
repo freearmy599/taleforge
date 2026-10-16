@@ -366,3 +366,10 @@ The file enables RLS, rewrites legacy `last_error` values for the Gemini row, an
 The original creation migration `20261007025751_add_taleforge_ai_provider_cooldown_state.sql` was not found at the expected `supabase/migrations/` path or by repository code search. The live ledger confirms the version was applied, but its original SQL body remains unrecovered from the checked branch. This remains unresolved provenance, not proof that no copy exists elsewhere.
 
 **Decision:** retain the existing `20261013120000` file as an unapplied candidate requiring review; do not deploy it independently. Atomic writer migration and default-privilege remediation remain separate work items.
+
+
+## Branch-source comparison — 2026-10-16
+
+Current branch files were fetched for the three writer paths. `generate-chapter/index.ts` blob `9bb41d89d283e7934ad535499930b00c4f1e60b2` has fail-closed preflight reads and a direct read/compute/upsert writer. `generation-orchestrator/index.ts` blob `b1accc29fcedb6a37d7b44b9b0fadbca254e36d6` blocks on missing/error state and malformed counters/timestamps, but still writes directly. `revise-chapter/index.ts` blob `7a77316e9236a312ac37d145e7963146ce4a6593` also has fail-closed preflight checks and a direct read/compute/upsert writer. These are branch blob IDs, not deployed hashes.
+
+Branch source is safer in some paths than deployed versions, but all three still have non-atomic writes. Do not deploy these older branch snapshots wholesale. Implement against an explicit deployed-versus-branch diff, preserve required preflight behavior, and add source-contract tests proving migrated throttle paths use only the approved database operation. Caller behavior must distinguish persisted success from persistence failure; do not claim idempotency without a stable event identifier.
