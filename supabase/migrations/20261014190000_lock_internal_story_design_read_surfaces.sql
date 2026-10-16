@@ -1,8 +1,8 @@
--- Candidate server-only lock for internal Aevora story-design/intelligence
--- relations that currently expose status-filtered SELECT policies to browser roles.
--- Current browser data code does not read these relations; readers use the public
--- series/chapters/genres surfaces. Review API compatibility before production rollout.
--- This migration is branch-only and intentionally does not alter reader-facing tables.
+-- Candidate server-only lock for the 27 high-priority internal Aevora story-design
+-- relations identified in the 2026-10-16 public-read review. The 14 provisional
+-- taxonomy/reference tables are deliberately excluded pending product/API review.
+-- Current browser data code does not read the 27 internal relations; trusted workers
+-- retain service_role access. This candidate remains unapplied pending rollout review.
 DO $$
 DECLARE
   table_name text;
@@ -13,20 +13,8 @@ BEGIN
     'taleforge_advanced_chapter_plans',
     'taleforge_character_architecture',
     'taleforge_ending_architecture',
-    'taleforge_genre_grammars',
-    'taleforge_genre_inversion_patterns',
-    'taleforge_genre_taxonomy',
-    'taleforge_grammar_compatibility',
-    'taleforge_hybrid_story_recipes',
-    'taleforge_hybrid_story_recipes_generated',
     'taleforge_narrative_arc_layers',
-    'taleforge_narrative_culture_profiles',
     'taleforge_narrative_memory_consolidations',
-    'taleforge_narrative_modes',
-    'taleforge_series_genre_grammar_profiles',
-    'taleforge_series_genre_profiles',
-    'taleforge_series_narrative_profiles',
-    'taleforge_series_subgenre_profiles',
     'taleforge_story_concept_arc_characters',
     'taleforge_story_concept_arc_endings',
     'taleforge_story_concept_arc_relationships',
@@ -48,9 +36,7 @@ BEGIN
     'taleforge_story_concept_world_state_transitions',
     'taleforge_story_concept_worlds',
     'taleforge_story_opportunities',
-    'taleforge_story_specific_depth_designs',
-    'taleforge_story_trope_library',
-    'taleforge_subgenre_intelligence'
+    'taleforge_story_specific_depth_designs'
   ]
   LOOP
     IF to_regclass(format('public.%I', table_name)) IS NOT NULL THEN

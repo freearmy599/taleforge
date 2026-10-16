@@ -258,3 +258,11 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Disposable PostgreSQL rehearsal passed in [CI run 38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150), including client table/column ACL denial, policy removal, and retained service-role CRUD. The RPC/trigger ACL rehearsal passed in [CI run 38946001150](https://github.com/freearmy599/taleforge/actions/runs/38946001150).
 - [ ] Review external API/client compatibility before any production rollout; candidate migrations remain unapplied live.
 - **Safety boundary:** no production ACL/policy changes, migrations, deployments, generation/publication, schedule mutation, or billable Supabase branch. Automatic publishing remains NO-GO.
+
+
+## Read-surface scope correction — 2026-10-16
+
+- [x] Second-pass review found the branch-only read-lock candidate had been broader than its own policy review: it included all 41 audited tables, including 14 provisional taxonomy/reference tables whose reader/API contract was not yet confirmed.
+- [x] Narrowed `20261014190000_lock_internal_story_design_read_surfaces.sql` to the 27 high-risk internal planning/intelligence tables only. The 14 provisional reference tables are explicitly excluded until their fields and intended consumers are verified.
+- [x] Updated static contracts to assert both the 27-table internal lock allowlist and the 14-table exclusion list. The separate 41-table write/maintenance revoke candidate remains distinct and preserves SELECT.
+- [ ] Await CI for this scope correction, then continue the table-by-table reader/API caller audit. Do not apply any candidate migration live without separate authorization and compatibility checks.

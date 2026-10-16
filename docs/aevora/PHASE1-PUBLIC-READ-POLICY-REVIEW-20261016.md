@@ -87,3 +87,12 @@ The base tables `story_arc_plan`, `story_ending_plans`, and `story_lifecycle` ar
 The live `series_status_check` excludes the value `published`, even though the SELECT policies on `story_arc_plan` and `story_ending_plans` test for exactly that value. Those policies and `get_active_story_arc_plan(uuid)` therefore appear inconsistent with the current status model. The `story_lifecycle` policy instead checks only `published_at IS NOT NULL`, potentially exposing internal lifecycle/ending fields for series that were previously published.
 
 Branch-only candidate `20261016220000_lock_base_story_planning_read_surfaces.sql` removes client relation/column privileges and client/public policies while preserving trusted server access. Its disposable rehearsal passed in [CI run 38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150). No live ACL, policy, or data change was made.
+
+
+## Scope correction — 2026-10-16
+
+A second-pass review found the earlier branch-only candidate `20261014190000_lock_internal_story_design_read_surfaces.sql` initially included all 41 tables from the write-grant audit, including the 14 provisional taxonomy/reference tables above. That was broader than the evidence supports and could remove reader/creator functionality if any product path depends on those tables.
+
+The candidate has now been narrowed to the 27 high-priority story-planning/intelligence tables listed in this report. The 14 provisional reference tables are explicitly excluded from the read-lock migration until their columns, Edge Function callers, and intended public contract are reviewed. The separate write/maintenance revoke candidate still covers the audited 41 tables and preserves SELECT; these are separate privilege decisions. Static contract coverage now checks both the 27-table allowlist and the 14-table exclusion list.
+
+This correction is branch-only. The migration has not been applied to production, and no production grants or policies changed.
