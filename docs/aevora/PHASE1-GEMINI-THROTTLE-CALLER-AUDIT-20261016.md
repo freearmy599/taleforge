@@ -6,7 +6,7 @@ Scope: `aevora_record_gemini_throttle`, direct writers, orchestration fallback w
 
 ## Executive result
 
-The current branch has **six distinct code paths that write provider throttle state**, including one orchestrator fallback that can repeat an observation already recorded by a child. The candidate SQL does not satisfy the contract in `PHASE1-GEMINI-THROTTLE-CONTRACT-20261016.md`: it increments `consecutive_throttle_count` for both `quota` and `overload`, and it accepts no stable event identifier. Therefore, do not deploy the candidate migration or any writer changes yet.
+The current branch has **eight writer functions identified so far** (including one orchestrator fallback that can repeat an observation already recorded by a child). The master checklist separately records 11 migrated branch writers; this audit has not yet independently located all 11, so that inventory must be reconciled before implementation. The candidate SQL does not satisfy the contract in `PHASE1-GEMINI-THROTTLE-CONTRACT-20261016.md`: it increments `consecutive_throttle_count` for both `quota` and `overload`, and it accepts no stable event identifier. Therefore, do not deploy the candidate migration or any writer changes yet.
 
 ## Confirmed writer inventory
 
@@ -19,7 +19,7 @@ The current branch has **six distinct code paths that write provider throttle st
 | `safety-review` | `supabase/functions/safety-review/index.ts`, helper near 144–170 | Records provider quota/503 from its review catch | RPC receives only `p_event_class` |
 | `generation-orchestrator` | `supabase/functions/generation-orchestrator/index.ts`, helper near 44–69; fallback call sites in revision/generation handling | May re-record a child result after invoking `revise-chapter` or `generate-chapter` | Uses a read-before-write active-cooldown check, but this is explicitly best-effort and not idempotent; races remain possible |
 
-The `review-orchestrator` stops additional review steps after provider-block responses; no direct throttle RPC write was found in its inspected source. `publication-review` likewise had no direct throttle writer in the inspected source.
+The `review-orchestrator` stops additional review steps after provider-block responses; no direct throttle RPC write was found in its inspected source. `publication-review` likewise had no direct throttle writer in the inspected source. The current eight-function list is not claimed to be exhaustive: reconcile the remaining three entries in the master checklist's 11-writer count against actual branch paths before changing the shared contract.
 
 ## Confirmed candidate SQL mismatches
 
