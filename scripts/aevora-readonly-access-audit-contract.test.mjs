@@ -211,7 +211,8 @@ test("future-object default privilege migration is owner-guarded and removes cli
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i);
   assert.match(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/i);
   assert.match(defaultPrivilegesMigration, /pg_has_role\(current_user, owner_role, 'MEMBER'\)/i);
-  assert.match(defaultPrivilegesMigration, /requires a privileged owner operation/i);
+  assert.match(defaultPrivilegesMigration, /neither a superuser nor a member; requires an authorized owner operation/i);
+  assert.match(defaultPrivilegesMigration, /executor_is_superuser/i);
   assert.doesNotMatch(defaultPrivilegesMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin/i);
 });
 
