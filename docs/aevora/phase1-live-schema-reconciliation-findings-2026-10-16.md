@@ -15,17 +15,17 @@ The live relation `public.taleforge_ai_provider_state` exists, is owned by `post
 
 The effective table ACL inventory showed ordinary-client privileges for both `anon` and `authenticated`, including `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and `TRUNCATE`. RLS does not substitute for revoking table-level privileges such as `TRUNCATE`.
 
-The repository contains `20261013120000_lock_ai_provider_state_table.sql`, whose intended operation explicitly revokes table and column privileges from `PUBLIC`, `anon`, and `authenticated`. The live privilege result therefore does not match the expected post-migration state.
+The repository contains `20261013120000_lock_ai_provider_state_table.sql`, whose intended operation explicitly revokes table and column privileges from `PUBLIC`, `anon`, and `authenticated`. The live migration ledger's latest recorded migration is `20261010161919 aevora_release_scheduler_leases`, which predates this lock migration. The privilege mismatch is therefore consistent with the hardening migration not having been recorded as applied; it is not, by itself, evidence that an already-applied lock migration failed.
 
-**Do not apply the lock migration blindly.** First reconcile migration history and verify why the live ACLs differ, then prepare an explicit, reviewable repair and re-check effective privileges.
+**Do not apply the lock migration blindly.** The migration-history gap for the table's original creation remains unresolved, and owner/default-privilege behavior still needs review. Prepare a targeted, reviewable repair and rehearse it before any separately authorized production operation.
 
 ### 2. Migration history and repository migration files are out of sync
 
-The live migration ledger includes version `20261007025751` named `add_taleforge_ai_provider_cooldown_state`. The current hardening branch does not contain a file at the corresponding expected path/name, and its migration directory does not contain a provider-state creation migration. The branch does contain later lock-down SQL.
+The live migration ledger includes version `20261007025751` named `add_taleforge_ai_provider_cooldown_state`. The current hardening branch does not contain a file at the corresponding expected path/name, and its migration directory does not contain a provider-state creation migration. The branch contains later lock-down SQL, but the live ledger currently ends at `20261010161919`, before those later hardening migrations.
 
 A follow-up repository-history check found no Git commit history for the exact expected migration path. The current `main` tree also has no migration filename matching provider/cooldown/throttle. This narrows the discrepancy but does not establish whether the migration was renamed, originated in an untracked/private source, or was created through another workflow. Search results are not a substitute for the original migration body.
 
-This is migration-history drift, not proof that the relation was created manually. Its origin must be established from the available database/repository records before adding a new migration or editing history. Do not fabricate a historical migration or mark migrations applied to make the lists appear aligned.
+This is migration-history drift, not proof that the relation was created manually. The missing original migration and the not-yet-recorded later hardening migrations are two distinct facts and must not be conflated. The original migration's origin must be established from available database/repository records before adding a new migration or editing history. Do not fabricate a historical migration or mark migrations applied to make the lists appear aligned.
 
 ### 3. Default privileges remain a separate security gate
 
