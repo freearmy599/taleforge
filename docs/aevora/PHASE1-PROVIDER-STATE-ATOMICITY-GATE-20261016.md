@@ -430,3 +430,14 @@ A tool-side static source inspection of the six current branch files found for e
 - No Node tests, Deno type-check, database rehearsal, or concurrency test has been executed for this continuation; CI remains unverified.
 
 **Gate remains BLOCKED / automated publishing NO-GO.** No production changes, migration application, function deployment, generation, publication, schedule mutation, or billable branch creation occurred.
+
+
+## Additional writer discovery — 2026-10-16 continuation
+
+A second pass over provider-state references found five additional functions whose branch source contains direct read/compute/upsert cooldown recording helpers: `blueprint-planner`, `story-dna-planner`, `arc-planner`, `character-continuity`, and `world-continuity`. This shows the earlier six-writer inventory was incomplete and must not be treated as exhaustive.
+
+Branch-only updates have now routed four of these five helpers (`blueprint-planner`, `story-dna-planner`, `arc-planner`, and `world-continuity`) through `aevora_record_gemini_throttle`. The `character-continuity` helper remains on its previous direct-write implementation because the repository edit tool refused the attempted update. It is a known blocker, not a completed migration.
+
+The contract-test update to include the additional writer set was also refused by the repository edit tool; the existing test therefore still covers only the original six paths. Do not interpret its current coverage as exhaustive. Before considering the gate, update the test inventory and migrate `character-continuity`, then run a full repository-wide writer scan and actual test/build/database checks.
+
+No production changes were made. Phase 1 remains BLOCKED and automated publishing remains NO-GO.
