@@ -321,15 +321,15 @@ test("reader event idempotency keys are unique and reused on retry", () => {
   assert.match(readingProgressSource, /pendingEventIds\.set\(eventKey,eventUuid\)/);
 });
 
-test("reader-event retries reuse the same UUID and distinct progress values get distinct UUIDs", async () => {
+test("reader-event intake retries reuse the same UUID and distinct progress values get distinct UUIDs", async () => {
   const storage = new Map();
   let now = 1_000_000;
   let uuidCounter = 0;
   const submitted = [];
   const responses = [
-    { error: { code: "NETWORK_ERROR" } },
-    { error: null },
-    { error: null },
+    { ok: false, status: 503 },
+    { ok: true, status: 200 },
+    { ok: true, status: 200 },
   ];
   const localStorage = {
     getItem(key) { return storage.has(key) ? storage.get(key) : null; },
@@ -338,21 +338,29 @@ test("reader-event retries reuse the same UUID and distinct progress values get 
   };
   const randomUUID = () => `00000000-0000-4000-8000-${String(++uuidCounter).padStart(12, "0")}`;
   const supabase = {
-    from(table) {
-      assert.equal(table, "reader_events");
-      return {
-        async insert(payload) {
-          submitted.push({ ...payload });
-          return responses.shift() ?? { error: null };
-        },
-      };
+    from() {
+      assert.fail("enabled intake mode must not fall back to direct reader_events INSERT");
     },
   };
-  const window = { taleForgeSupabase: supabase, crypto: { randomUUID } };
+  const window = {
+    taleForgeSupabase: supabase,
+    taleForgeReaderEventIntakeEnabled: true,
+    taleForgeSupabaseConfig: {
+      url: "https://example.supabase.co",
+      publishableKey: "test-publishable-key",
+    },
+    crypto: { randomUUID },
+  };
+  const fetch = async (_url, init) => {
+    submitted.push(JSON.parse(init.body));
+    return responses.shift() ?? { ok: true, status: 200 };
+  };
   vm.runInNewContext(readingProgressSource, {
     window,
     localStorage,
     crypto: { randomUUID },
+    fetch,
+    URL,
     Date: { now: () => now },
     Math,
     JSON,
@@ -370,9 +378,9 @@ test("reader-event retries reuse the same UUID and distinct progress values get 
   await track("reading_progress", { seriesId: "series-a", chapterId: "chapter-a", progressPercent: 40 });
 
   assert.equal(submitted.length, 3, "a previously accepted progress value must not be counted again in this page session");
-  assert.ok(submitted[0].event_uuid, "UUID is attached when browser crypto is available");
+  assert.ok(submitted[0].event_uuid, "UUID is attached when browser crypto is available and intake is enabled");
   assert.equal(submitted[1].event_uuid, submitted[0].event_uuid,
-    "retry after a failed insert must reuse the original event UUID");
+    "retry after a failed intake request must reuse the original event UUID");
   assert.notEqual(submitted[2].event_uuid, submitted[1].event_uuid,
     "a distinct progress value must use a distinct idempotency key");
 });
