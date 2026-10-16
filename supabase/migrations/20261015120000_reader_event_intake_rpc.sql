@@ -3,6 +3,7 @@
 BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS aevora_private;
+ALTER SCHEMA aevora_private OWNER TO postgres;
 REVOKE ALL ON SCHEMA aevora_private FROM PUBLIC, anon, authenticated;
 
 CREATE TABLE IF NOT EXISTS aevora_private.reader_event_quota_buckets (
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS aevora_private.reader_event_quota_buckets (
   hit_count integer NOT NULL CHECK (hit_count >= 0),
   PRIMARY KEY (visitor_key_hash, quota_scope, window_kind, window_start)
 );
+ALTER TABLE aevora_private.reader_event_quota_buckets OWNER TO postgres;
 REVOKE ALL ON TABLE aevora_private.reader_event_quota_buckets FROM PUBLIC, anon, authenticated;
 CREATE INDEX IF NOT EXISTS reader_event_quota_buckets_expiry_idx
   ON aevora_private.reader_event_quota_buckets (window_start);
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS aevora_private.reader_event_quota_cleanup_state (
   singleton_id smallint PRIMARY KEY CHECK (singleton_id = 1),
   last_cleaned_at timestamptz NOT NULL DEFAULT '-infinity'
 );
+ALTER TABLE aevora_private.reader_event_quota_cleanup_state OWNER TO postgres;
 REVOKE ALL ON TABLE aevora_private.reader_event_quota_cleanup_state FROM PUBLIC, anon, authenticated;
 INSERT INTO aevora_private.reader_event_quota_cleanup_state(singleton_id)
 VALUES (1) ON CONFLICT (singleton_id) DO NOTHING;
@@ -155,6 +158,7 @@ BEGIN
   RETURN jsonb_build_object('outcome', 'accepted');
 END;
 $function$;
+ALTER FUNCTION public.aevora_ingest_reader_event(text, uuid, text, uuid, uuid, integer) OWNER TO postgres;
 
 REVOKE ALL ON FUNCTION public.aevora_ingest_reader_event(text, uuid, text, uuid, uuid, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.aevora_ingest_reader_event(text, uuid, text, uuid, uuid, integer) TO service_role;
@@ -207,6 +211,7 @@ BEGIN
   RETURN v_deleted;
 END;
 $function$;
+ALTER FUNCTION public.aevora_prune_reader_event_quota_buckets() OWNER TO postgres;
 REVOKE ALL ON FUNCTION public.aevora_prune_reader_event_quota_buckets() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.aevora_prune_reader_event_quota_buckets() TO service_role;
 
