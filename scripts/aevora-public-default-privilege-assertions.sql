@@ -21,7 +21,16 @@ BEGIN
       RAISE EXCEPTION 'ASSERTION_FAILED: % received a broad privilege on a newly created public object', client_role;
     END IF;
   END LOOP;
-  IF has_function_privilege('public', 'public.aevora_default_privilege_probe_fn()', 'EXECUTE') THEN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(p.proacl, pg_catalog.acldefault('f', p.proowner))) acl
+    WHERE n.nspname = 'public'
+      AND p.proname = 'aevora_default_privilege_probe_fn'
+      AND acl.grantee = 0
+      AND acl.privilege_type = 'EXECUTE'
+  ) THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC can execute a newly created public function';
   END IF;
 END
