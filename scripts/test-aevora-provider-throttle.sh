@@ -17,7 +17,7 @@ if [[ "$database_name" != aevora_* ]]; then
   exit 2
 fi
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-provider-throttle-fixture.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016180000_atomic_gemini_provider_throttle.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016190000_idempotent_gemini_provider_throttle.sql
 
 # Exercise distinct event IDs and mixed classes racing on the same initially absent provider row.
 # Only quota events advance the escalation counter; overloads only extend cooldown.
