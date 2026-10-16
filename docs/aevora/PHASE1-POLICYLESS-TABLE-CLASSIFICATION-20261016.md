@@ -129,7 +129,7 @@ These are already inaccessible to anon/authenticated by the inspected relation/c
 - taleforge_world_simulation_architecture
 
 
-## F. Live schema evidence for the 11 product-facing/ambiguous candidates
+## Live schema evidence for the 11 product-facing/ambiguous candidates
 
 A verbose, read-only Supabase table-schema inspection confirmed these owner/relationship columns:
 
