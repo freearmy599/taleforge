@@ -249,3 +249,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [ ] Reconcile the full 103-table client mutation/TRUNCATE grant inventory and 91 RLS-enabled/no-policy relations against intended UI, Edge Function and trusted service-role callers. Preserve required public read/write behavior through narrowly scoped policies or allowlisted views.
 - [ ] Review all 27 public SELECT policies on story-planning/intelligence tables and decide which public projections are actually required; never expose internal narrative plans merely because a row is associated with a published series.
 - **Safety boundary unchanged:** no live migration, ACL/policy change, Edge Function deployment, generation/publication, schedule mutation, or billable Supabase branch was initiated by this continuation. Automatic publishing remains NO-GO.
+
+
+## Base story-planning read-surface hardening — 2026-10-16
+
+- [x] Audited live `story_arc_plan`, `story_ending_plans`, and `story_lifecycle` schema, client grants and policies. Ending conflict/resolution and lifecycle buffer/review fields are present behind public SELECT policies; the `published` policy predicate conflicts with the live `series_status_check`, while the lifecycle predicate relies on `published_at IS NOT NULL`.
+- [x] Added branch-only migration `20261016220000_lock_base_story_planning_read_surfaces.sql` to remove client/public access to these raw planning tables while preserving trusted service-role access. Browser-source contract now forbids direct browser queries of all three.
+- [x] Disposable PostgreSQL rehearsal passed in [CI run 38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150), including client table/column ACL denial, policy removal, and retained service-role CRUD. The RPC/trigger ACL rehearsal passed in [CI run 38946001150](https://github.com/freearmy599/taleforge/actions/runs/38946001150).
+- [ ] Review external API/client compatibility before any production rollout; candidate migrations remain unapplied live.
+- **Safety boundary:** no production ACL/policy changes, migrations, deployments, generation/publication, schedule mutation, or billable Supabase branch. Automatic publishing remains NO-GO.

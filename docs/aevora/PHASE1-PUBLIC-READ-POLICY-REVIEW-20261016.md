@@ -78,3 +78,12 @@ The current live SELECT policies allow public/anon/authenticated reads for these
 ## Safety and release status
 
 This is a read-only policy inventory and branch-only design finding. No production policies, grants, data, migrations, Edge Functions, schedules, chapters, or publications were changed. Production automatic publishing remains NO-GO.
+
+
+## Additional base story-planning surfaces — 2026-10-16
+
+The base tables `story_arc_plan`, `story_ending_plans`, and `story_lifecycle` are outside the 41-table `taleforge_*` review above and require separate treatment. Live catalog inspection shows public SELECT policies on all three. Their columns include final conflict/resolution, ending requirements, planned ending chapter, target buffer sizes, and lifecycle review state. Browser source inspection found no direct browser reads; trusted Edge Functions use server-side clients for arc planning and lifecycle coordination.
+
+The live `series_status_check` excludes the value `published`, even though the SELECT policies on `story_arc_plan` and `story_ending_plans` test for exactly that value. Those policies and `get_active_story_arc_plan(uuid)` therefore appear inconsistent with the current status model. The `story_lifecycle` policy instead checks only `published_at IS NOT NULL`, potentially exposing internal lifecycle/ending fields for series that were previously published.
+
+Branch-only candidate `20261016220000_lock_base_story_planning_read_surfaces.sql` removes client relation/column privileges and client/public policies while preserving trusted server access. Its disposable rehearsal passed in [CI run 38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150). No live ACL, policy, or data change was made.

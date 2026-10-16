@@ -33,6 +33,6 @@ The disposable internal-table rehearsal now creates fixture tables with broad cl
 
 ## Validation and release boundary
 
-At report creation, CI run [38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150) had passed Edge type-checking and source-contract tests; the disposable PostgreSQL job had not yet completed. Record the final outcome only after the workflow finishes.
+CI run [38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150) completed successfully on code/test commit `33c6837f`. Both Edge type-checking/source-contract validation and the disposable PostgreSQL readiness/security rehearsal passed, including this candidate migration and its fixture assertions. This validates the branch candidate in the disposable environment only; it does not authorize or imply live deployment.
 
 This candidate is not applied to live Supabase. No production policy, ACL, migration, Edge Function, schedule, generation, or publication was changed. Automatic publishing remains NO-GO.

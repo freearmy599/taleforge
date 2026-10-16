@@ -37,6 +37,13 @@ The catalog showed broad client EXECUTE ACLs on these functions, in some cases i
 4. Review the `story_lifecycle` SELECT predicate and the published-only conditions for story arc/ending-plan tables against the product's actual publication states.
 5. Keep the candidate unapplied until disposable PostgreSQL checks, deployed-schema compatibility and rollout authorization are separately satisfied. Do not broadly revoke EXECUTE from all functions: legitimate public utilities and trigger-bound functions need separate handling.
 
+## Caller inventory and candidate validation
+
+- Scanning the 21 Edge Function TypeScript entrypoints found `get_production_buffer_plan()` called by `blueprint-planner` and `generation-orchestrator`; both use trusted server clients. No direct Edge Function callsite was found for the other inventoried helper RPC names.
+- Live trigger catalog inspection confirmed `taleforge_update_updated_at()` is attached to chapter blueprints, generation jobs, release schedules, chapters, series and story blueprints; `touch_story_lifecycle_updated_at()` is attached to story lifecycle; `update_series_chapter_count()` is attached to chapters; and `update_updated_at()` is attached to collections, comments, profiles, ratings and stories.
+- Candidate migration `20261013110000_restrict_internal_invoker_rpc_execution.sql` is already present on the branch and revokes client EXECUTE from the exact 12 internal/trigger helper functions while preserving trusted `service_role` grants. The disposable ACL rehearsal now verifies all 12 client denials, preserved service-role execution, and that a trigger still fires after client EXECUTE is revoked. [CI run 38946001150](https://github.com/freearmy599/taleforge/actions/runs/38946001150) passed.
+- Base story-planning tables are also addressed by branch-only candidate `20261016220000_lock_base_story_planning_read_surfaces.sql`; its effective table/column ACL and policy-removal rehearsal passed in [CI run 38946455150](https://github.com/freearmy599/taleforge/actions/runs/38946455150).
+
 ## Release status
 
-This is a live read-only inventory. No production ACLs, policies, migrations, functions, or application settings were modified. Function EXECUTE hardening remains open and must be completed before the broader least-privilege audit is considered done.
+This remains a live read-only inventory with branch-only hardening candidates. No production ACLs, policies, migrations, functions, or application settings were modified. Function EXECUTE and story-planning read-surface hardening remain unapplied live; the broader least-privilege audit is not complete.
