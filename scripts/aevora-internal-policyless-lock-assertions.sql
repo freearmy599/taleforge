@@ -138,4 +138,44 @@ BEGIN
   END LOOP;
 END
 $maintenance$;
+DO $future_defaults$
+DECLARE
+  table_name text;
+  role_name text;
+  privilege_name text;
+  target regclass;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['future_postgres_table','future_supabase_admin_table']
+  LOOP
+    target := to_regclass(format('public.%I', table_name));
+    IF target IS NULL THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: future default ACL fixture % is missing', table_name;
+    END IF;
+
+    FOREACH role_name IN ARRAY ARRAY['anon','authenticated']
+    LOOP
+      FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+      LOOP
+        IF has_table_privilege(role_name, target, privilege_name) THEN
+          RAISE EXCEPTION 'ASSERTION_FAILED: future table % grants % to %', table_name, privilege_name, role_name;
+        END IF;
+      END LOOP;
+
+      FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE']
+      LOOP
+        IF NOT has_table_privilege(role_name, target, privilege_name) THEN
+          RAISE EXCEPTION 'ASSERTION_FAILED: future table % lost intended CRUD % for %', table_name, privilege_name, role_name;
+        END IF;
+      END LOOP;
+    END LOOP;
+
+    FOREACH privilege_name IN ARRAY ARRAY['TRUNCATE','TRIGGER','REFERENCES']
+    LOOP
+      IF NOT has_table_privilege('service_role', target, privilege_name) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: service_role lost % on future table %', privilege_name, table_name;
+      END IF;
+    END LOOP;
+  END LOOP;
+END
+$future_defaults$;
 SELECT 'internal policyless table and column lock assertions passed for 25 relations' AS result;
