@@ -729,7 +729,7 @@ test("autonomous runner keeps a new schedule inert until the readiness RPC confi
 test("every Gemini provider-state reader fails closed on malformed throttle counters", () => {
   assert.equal(providerStateGuardFunctions.length, 13);
   for (const source of providerStateGuardFunctions) {
-    assert.match(source, /Number\\.isSafeInteger\\([^)]*consecutive_throttle_count/);
-    assert.match(source, /consecutive_throttle_count\\s*<\\s*0/);
+    assert.match(source, /Number\.isSafeInteger\((?:[^)]*consecutive_throttle_count|rawCount)\)/);
+    assert.match(source, /(?:consecutive_throttle_count|rawCount)\s*<\s*0/);
   }
 });
