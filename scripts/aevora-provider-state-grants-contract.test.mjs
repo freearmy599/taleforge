@@ -77,6 +77,23 @@ const defaultPrivilegeRehearsal = await readFile(
   "utf8",
 );
 
+const internalPolicylessRehearsal = await readFile(
+  new URL("./test-aevora-internal-policyless-lock.sh", import.meta.url),
+  "utf8",
+);
+
+test("internal policyless rehearsal parses the database path without weakening disposable-only guards", () => {
+  assert.ok(
+    internalPolicylessRehearsal.includes('database_url_without_query="${DATABASE_URL%%\\?*}"'),
+    "query-string stripping must preserve the database path for URLs with or without query parameters",
+  );
+  assert.ok(internalPolicylessRehearsal.includes('database_name="${database_url_without_query##*/}"'));
+  assert.ok(internalPolicylessRehearsal.includes('[[ "$database_name" != aevora_* ]]'));
+  assert.ok(internalPolicylessRehearsal.includes('AEVORA_DISPOSABLE_INTERNAL_LOCK_REHEARSAL=I_UNDERSTAND_THIS_IS_DISPOSABLE'));
+  assert.ok(internalPolicylessRehearsal.includes('Refusing internal-table lock rehearsal against a Supabase URL'));
+  assert.ok(internalPolicylessRehearsal.includes('psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-policyless-lock-fixture.sql'));
+});
+
 test("provider-state ACL lock has disposable PostgreSQL runtime assertions", () => {
   assert.match(providerStateFixture, /GRANT ALL PRIVILEGES ON TABLE public\.taleforge_ai_provider_state TO anon, authenticated/);
   assert.match(providerStateFixture, /GRANT SELECT \(last_error\), UPDATE \(last_error\).*TO anon, authenticated/);
