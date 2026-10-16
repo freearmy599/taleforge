@@ -28,6 +28,8 @@ test("publication schema provenance inventory contains SELECT statements only", 
 test("publication schema inventory covers commit-boundary relations and required catalog evidence", () => {
   for (const fragment of [
     "release_schedules",
+    "taleforge_internal",
+    "aevora_private",
     "series",
     "chapter_generation_outputs",
     "chapter_blueprints",
