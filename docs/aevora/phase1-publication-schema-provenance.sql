@@ -1,6 +1,9 @@
 -- Aevora Phase 1 publication-boundary schema provenance inventory.
 -- READ ONLY: run only through an already-authorized read-only SQL session.
 -- Do not paste credentials into chat or commit production row data. Catalog metadata only.
+-- Inspect taleforge_internal as well as aevora_private: live catalog review found
+-- taleforge_internal, while aevora_private was absent. Keep both names visible until
+-- migration/source provenance establishes the intended private-schema name.
 
 SELECT
   n.nspname AS schema_name,
@@ -13,7 +16,7 @@ SELECT
   c.relacl AS relation_acl
 FROM pg_catalog.pg_class c
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND c.relname IN (
     'release_schedules',
     'series',
@@ -47,7 +50,7 @@ FROM pg_catalog.pg_namespace n
 CROSS JOIN LATERAL pg_catalog.aclexplode(
   COALESCE(n.nspacl, pg_catalog.acldefault('n', n.nspowner))
 ) acl
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
 ORDER BY n.nspname, grantee_name, acl.privilege_type;
 
 SELECT
@@ -65,7 +68,7 @@ FROM pg_catalog.pg_class c
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
 LEFT JOIN pg_catalog.pg_attrdef d ON d.adrelid = c.oid AND d.adnum = a.attnum
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND c.relname IN (
     'release_schedules',
     'series',
@@ -98,7 +101,7 @@ SELECT
 FROM pg_catalog.pg_constraint con
 JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND c.relname IN (
     'release_schedules',
     'series',
@@ -132,7 +135,7 @@ FROM pg_catalog.pg_index ix
 JOIN pg_catalog.pg_class t ON t.oid = ix.indrelid
 JOIN pg_catalog.pg_class i ON i.oid = ix.indexrelid
 JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND t.relname IN (
     'release_schedules',
     'series',
@@ -165,7 +168,7 @@ FROM pg_catalog.pg_trigger t
 JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
 JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND c.relname IN (
     'release_schedules',
     'series',
@@ -200,7 +203,7 @@ CROSS JOIN LATERAL pg_catalog.aclexplode(
     c.relowner
   ))
 ) acl
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND c.relname IN (
     'release_schedules',
     'series',
@@ -231,7 +234,7 @@ SELECT
 FROM pg_catalog.pg_default_acl d
 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
 CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) acl
-WHERE d.defaclnamespace = 0 OR n.nspname IN ('public', 'aevora_private')
+WHERE d.defaclnamespace = 0 OR n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
 ORDER BY schema_name, default_acl_owner, d.defaclobjtype, grantee_name, acl.privilege_type;
 
 SELECT
@@ -246,7 +249,7 @@ SELECT
   pg_catalog.pg_get_function_result(p.oid) AS result_type
 FROM pg_catalog.pg_proc p
 JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND (
     p.proname ILIKE '%publication%'
     OR p.proname ILIKE '%release%lease%'
@@ -270,7 +273,7 @@ SELECT
 FROM pg_catalog.pg_policy pol
 JOIN pg_catalog.pg_class c ON c.oid = pol.polrelid
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname IN ('public', 'aevora_private')
+WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND c.relname IN (
     'release_schedules',
     'series',
