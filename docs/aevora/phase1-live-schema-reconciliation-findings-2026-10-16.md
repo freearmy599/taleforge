@@ -161,3 +161,16 @@ These are observations about the current live catalog, not instructions to creat
 The live inventory confirms that the core publication relations exist, but the publication-boundary migration gate remains **blocked**. Next evidence should enumerate the actual column types/defaults, exact constraint and index definitions, trigger definitions and trigger-function security settings, policies, effective table/column/routine grants, and relevant migration history. In particular, the outbox and release-schedule invariants must be verified from exact definitions rather than inferred from counts.
 
 This was a read-only inspection. No production migration, DDL, deployment, schedule mutation, generation, or publication occurred.
+
+
+## Publication-boundary effective grants — additional live finding
+
+A separate read-only `has_table_privilege` inventory checked effective privileges for `anon`, `authenticated`, and `service_role` on the 12 present publication-boundary relations.
+
+- `anon` and `authenticated` have no table privileges on `aevora_release_scheduler_leases` or `taleforge_autonomous_series_creation_runs` in the observed catalog.
+- On the other 10 relations — `chapter_blueprints`, `chapter_generation_outputs`, `chapter_publication_reviews`, `chapter_reviews`, `chapters`, `publication_sync_outbox`, `reader_events`, `release_schedules`, `series`, and `story_blueprints` — both ordinary roles have effective `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges.
+- `service_role` has those privileges on all 12 relations, consistent with the current grants but still subject to intended-access review.
+
+This is a significant access-control finding. RLS being enabled does not constrain `TRUNCATE`, and ordinary-client `TRIGGER` privileges should not be assumed safe merely because RLS is enabled. This inventory alone does not determine the complete row-level exposure; the associated policies, views, function paths, and intended public read/write use must be assessed before designing the exact revoke/grant matrix.
+
+**Do not run broad revokes as part of this continuation.** First reconcile intended browser access with the application call paths and existing policies, then prepare narrowly scoped table/column grants and disposable PostgreSQL tests. No privileges were changed.
