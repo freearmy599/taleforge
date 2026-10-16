@@ -73,7 +73,7 @@ test("browser intake cutover is opt-in and preserves the tracker interface", () 
   assert.match(tracker, /async function track\(event_type,data=\{\}\)/);
   assert.match(tracker, /window\.taleForgeReaderEventIntakeEnabled===true/);
   assert.match(tracker, /functions\/v1\/reader-event-intake/);
-  assert.match(tracker, /if\(window\.taleForgeReaderEventIntakeEnabled===true\)\{[\s\S]*?return\}const \{error\}=await supabase\.from\("reader_events"\)\.insert\(payload\)/,
+  assert.match(tracker, /if\(intakeEnabled\)\{[\s\S]*?return\}const \{error\}=await supabase\.from\("reader_events"\)\.insert\(payload\)/,
     "enabled intake mode must not fall back to direct INSERT when the endpoint fails");
   assert.match(supabaseConfig, /\[functions\.reader-event-intake\]\s+verify_jwt = false/);
   assert.match(supabaseConfig, /reader-event-intake/);
