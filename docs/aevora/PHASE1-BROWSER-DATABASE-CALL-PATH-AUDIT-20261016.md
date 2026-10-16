@@ -48,3 +48,22 @@ Reviewed the current browser sources `supabase-client.js`, `taleforge-data.js`, 
 - `taleforge-data.js` — published series/chapter SELECTs and optional intelligence enrichment.
 - `reading-progress.js` — browser-local library and direct `reader_events` INSERT path.
 - `index.html`, `stories.html`, `series.html`, `chapter.html`, `notifications.html` — homepage/discovery/reading/update callers.
+
+
+## Additional privileged admin-page call-path review
+
+A follow-up review covered `admin.html`, `chief-editor.html`, and the selected scheduler/publisher/series-runner source files.
+
+- `admin.html` invokes `chief-editor-monitor`, `autonomous-series-creation` with `mode: "preflight", dry_run: true`, and `aevora-operations-snapshot`.
+- `chief-editor.html` invokes `chief-editor-monitor`.
+- Both pages first call Supabase Auth `getUser()` and check the signed-in user's `app_metadata.role` for `admin` or `owner`. This is a browser-side UI gate, not by itself proof that the corresponding Edge Functions independently enforce the role on every request.
+- These three invoked function implementations are not present in the reviewed branch tree. Prior deployed-drift inventory notes them as production-only functions requiring source fingerprinting and reconciliation. Their live authorization behavior, side effects, and compatibility cannot be established from these HTML callers.
+- The selected branch scheduler calls the publisher endpoint and directly references `release_schedules`, `story_lifecycle`, `chapters`, `chapter_generation_outputs`, and `chapter_publication_reviews`. The publisher references the outbox, reviews, series, schedules, blueprints and chapters. The autonomous series runner references its policy/run tables, series, lifecycle and schedules. These are server-side call paths and must retain intended trusted-role grants while client roles are narrowed.
+- The reviewed admin page preflight caller requests `dry_run: true`, but do not infer from the request payload alone that the deployed implementation has no side effects; validate the deployed function and its durable postconditions before treating it as a safe rehearsal.
+
+### Required admin/operations follow-up
+
+1. Obtain authoritative source/deployment fingerprints for `chief-editor-monitor`, `autonomous-series-creation`, and `aevora-operations-snapshot`; compare their authentication, role authorization, allowed operations and side effects with the current HTML.
+2. Verify privileged functions validate JWT identity and the required server-side role/authorization on the server, independently of the UI's `app_metadata.role` check. Do not infer a vulnerability or safety from the missing branch source alone.
+3. Trace the exact trusted role and grants used by scheduler, publisher and autonomous series runner before applying client grant revocations.
+4. Keep the publication stop and do not invoke production admin actions as part of this source-only audit.
