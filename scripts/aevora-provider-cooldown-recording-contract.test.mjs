@@ -32,7 +32,7 @@ const handler = source.slice(catchStart, catchEnd);
 
 
 test("direct generation worker routes quota and overload events through the shared atomic RPC", () => {
-  assert.ok(handler.includes('db.rpc("aevora_record_gemini_throttle",{p_event_id:crypto.randomUUID(),p_event_id:crypto.randomUUID(),p_event_class:providerQuotaFailure?"quota":"overload"})'),
+  assert.ok(handler.includes('db.rpc("aevora_record_gemini_throttle",{p_event_id:crypto.randomUUID(),p_event_class:providerQuotaFailure?"quota":"overload"})'),
     "the direct worker must use the atomic database operation");
   assert.ok(handler.includes("result?.recorded!==true"),
     "RPC errors or unexpected results must not be treated as a successful recording");
@@ -81,7 +81,7 @@ test("atomic cooldown migration has safe diagnostics, monotonic expiry, and serv
   assert.ok(migration.includes("REVOKE ALL ON FUNCTION public.aevora_record_gemini_throttle(uuid, text) FROM PUBLIC"));
   assert.ok(migration.includes("FROM anon, authenticated"));
   assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.aevora_record_gemini_throttle(uuid, text) TO service_role"));
-  assert.ok(migration.includes("not idempotent across duplicate calls"));
+  assert.ok(migration.includes("Atomically deduplicates a Gemini provider-call event"));
 });
 
 test("atomicity plan records both writers and preserves the production evidence gate", () => {
