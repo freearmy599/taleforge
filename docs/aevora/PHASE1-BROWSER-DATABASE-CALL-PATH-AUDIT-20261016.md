@@ -67,3 +67,16 @@ A follow-up review covered `admin.html`, `chief-editor.html`, and the selected s
 2. Verify privileged functions validate JWT identity and the required server-side role/authorization on the server, independently of the UI's `app_metadata.role` check. Do not infer a vulnerability or safety from the missing branch source alone.
 3. Trace the exact trusted role and grants used by scheduler, publisher and autonomous series runner before applying client grant revocations.
 4. Keep the publication stop and do not invoke production admin actions as part of this source-only audit.
+
+
+## Final page inventory refinement
+
+The additional page pass also confirms:
+
+- `stories.html` directly queries `story_trending_scores`; its trending UI is enrichment and degrades to a warming-up/empty state on query failure. It does not write to that view.
+- `chapter.html` reads chapter rows; the reviewed source contains no direct chapter-table writes. The source-contract suite separately scans browser assets for direct chapter inserts.
+- `library.html` has no direct Supabase table calls in the reviewed file; the current library behavior is backed by local reading-progress storage.
+- `reader-event-intake/handler.ts` is a public anonymous intake boundary by design, not a user-account endpoint. It enforces POST/JSON, a bounded body, a strict field/event allowlist, UUID and progress validation, then calls a service-role-only database RPC. The handler tests cover malformed payload rejection and that rejected methods/media types do not reach the RPC. This is source/test evidence only; it does not establish deployed endpoint state or prevent an attacker from changing the client-supplied visitor hint. The database quota design explicitly treats that hint as unverified, so abuse controls must not treat it as authenticated identity.
+- The current browser flag for intake remains disabled in `supabase-client.js`; therefore the existence of a tested handler does not prove the live reader UI uses it. The direct `reader_events` insert path remains a compatibility gate until deployed configuration and database grants are reconciled.
+
+No additional direct browser writes to publication/workflow tables were found in this selected page pass. This is bounded source evidence, not a claim that all possible browser bundles, deployed assets, RPCs, or external integrations have been exhaustively audited.
