@@ -121,6 +121,12 @@ test("public default-privilege lock is rehearsed against newly created objects",
   assert.match(defaultPrivilegeRehearsal, /Refusing default-privilege rehearsal against a Supabase URL/);
   assert.match(defaultPrivilegeRehearsal, /20261014170000_restrict_public_default_privileges\.sql/);
   assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated/);
+  assert.match(defaultPrivilegeMigration, /executor_is_superuser/);
+  assert.match(defaultPrivilegeMigration, /pg_catalog\\.pg_has_role\\(current_user, owner_role, 'MEMBER'\\)/);
+  assert.match(defaultPrivilegeFixture, /CREATE ROLE supabase_admin NOLOGIN/);
+  assert.match(defaultPrivilegeFixture, /ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated/);
+  assert.match(defaultPrivilegeAssertions, /SET ROLE supabase_admin/);
+  assert.match(defaultPrivilegeAssertions, /aevora_supabase_admin_default_privilege_probe/);
 });
 
 test("Gemini provider state is server-side only", () => {
