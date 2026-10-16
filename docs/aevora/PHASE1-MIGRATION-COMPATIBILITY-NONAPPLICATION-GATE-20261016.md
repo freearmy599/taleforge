@@ -4,7 +4,7 @@ Status: **review required; no production migration is authorized by this documen
 
 Branch: `aevora/release-scheduler-hardening`  
 Repository head audited: `5f4acda893e5e6076454bc81c5d407160eacfffd`  
-Scope: branch migrations dated 2026-10-13 through 2026-10-15 that materially change privileges, schedule state, reader-event intake, or public ranking.
+Scope: branch migrations dated 2026-10-13 through 2026-10-16 that materially change privileges, schedule state, reader-event intake, or public ranking.
 
 ## Evidence baseline
 
@@ -30,6 +30,7 @@ Scope: branch migrations dated 2026-10-13 through 2026-10-15 that materially cha
 | `20261014210000_release_automation_readiness_gate.sql` | Adds readiness authorization, creates triggers, revokes schedule client grants, and **disables existing schedules/automatic flags where readiness is null**. | **Hard hold — operationally state-mutating.** Never apply as a routine security migration. Requires explicit schedule disposition, dry-run counts, owner approval, rollback rehearsal, and a separately authorized maintenance window. No schedule changes are permitted in this phase. |
 | `20261014220000_reader_event_idempotency_key.sql` | Adds nullable event UUID and partial unique index to reader events. | **Blocked** until live schema provenance and intake transition are resolved; live table currently lacks this column. |
 | `20261015120000_reader_event_intake_rpc.sql` | Creates private quota tables and SECURITY DEFINER intake/cleanup RPCs. | **Blocked** until function bodies, concurrency/idempotency, cleanup bounds, RLS/ACLs, endpoint deployment, and rollback are validated. Live expected RPCs/tables were absent in the read-only audit. |
+| `20261016180000_atomic_gemini_provider_throttle.sql` | Adds the shared SECURITY DEFINER RPC for atomic Gemini quota/overload cooldown recording. | **Branch candidate; disposable PostgreSQL rehearsal passed in CI run [38922139195](https://github.com/freearmy599/taleforge/actions/runs/38922139195).** Both direct generation and orchestration/review workers now call the RPC. Still hold from production until the missing original provider-state migration provenance, live ACL/default-privilege drift, Edge Runtime result behavior, duplicate-observation semantics, rollback, and rollout authorization are resolved. |
 
 ## Cross-cutting safety findings
 
@@ -52,3 +53,8 @@ Scope: branch migrations dated 2026-10-13 through 2026-10-15 that materially cha
 ## Change boundary
 
 This document records code review and prior read-only evidence only. It does not authorize production DDL, migration application, grants/policies, feature-flag changes, scheduler changes, generation, or publication.
+
+
+## Atomic provider-throttle candidate verification (2026-10-16)
+
+CI run [38922139195](https://github.com/freearmy599/taleforge/actions/runs/38922139195) passed both jobs. The new disposable PostgreSQL rehearsal applied the candidate throttle migration to a fixture table, ran 20 concurrent quota RPC calls from an empty table, verified the final count, checked that ordinary client roles cannot execute the RPC while `service_role` can, verified fixed diagnostic text, confirmed a shorter overload does not reduce a longer active cooldown, checked the one-hour overload duration, and verified invalid event classes and a negative persisted counter fail without normalizing state. The Edge Function/source-contract suite also passed. These results validate the branch candidate in a disposable environment only; they do not resolve the original provider-state migration provenance or authorize any production changes.
