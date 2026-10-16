@@ -56,7 +56,7 @@ test("database RPC is atomic, fixed-search-path and unavailable to public API ro
   const quotaAfterUniqueInsert = migration.indexOf("INSERT INTO aevora_private.reader_event_quota_buckets", uniqueEventInsert);
   assert.ok(uniqueEventInsert > duplicateCheck && quotaAfterUniqueInsert > uniqueEventInsert,
     "unique event insertion must precede quota mutation to make mixed direct/RPC races idempotent");
-  assert.match(rehearsal, /mixed direct-writer\/RPC idempotency and no-quota-charge assertion passed/);
+  assert.match(rehearsal, /mixed direct-writer\/RPC idempotency and no-quota-charge assertion passed/i);
   assert.match(rehearsal, /CREATE TRIGGER aevora_test_pause_rpc_reader_event_insert/);
   assert.match(rehearsal, /visitor_key_hash = md5\('visitor-rpc-mixed-race-0001'\)/,
     "disposable PostgreSQL rehearsal must prove a direct-writer winner does not charge RPC quota");
