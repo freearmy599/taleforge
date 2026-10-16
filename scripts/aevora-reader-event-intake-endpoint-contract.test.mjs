@@ -89,7 +89,10 @@ test("privileged reader-event functions and quota tables cannot be owned by clie
   assert.match(rpcAssertions,
     /pg_get_userbyid\(c\.relowner\) IN \('anon', 'authenticated'\)/);
   assert.match(rpcAssertions, /DO \$rpc_public_acl_assert\$/);
+  assert.match(migration, /REVOKE ALL ON SCHEMA aevora_private FROM PUBLIC, anon, authenticated/i);
   assert.match(rpcAssertions, /pg_catalog\.aclexplode\(/);
+  assert.match(rpcAssertions, /pg_catalog\.acldefault\('n', n\.nspowner\)/);
+  assert.match(rpcAssertions, /n\.nspname = 'aevora_private'/);
   assert.match(rpcAssertions, /acl\.grantee = 0/);
   assert.match(rpcAssertions, /acl\.privilege_type = 'EXECUTE'/);
   assert.match(rpcAssertions,
