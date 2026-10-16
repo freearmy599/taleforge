@@ -81,6 +81,7 @@ Only include characters materially present or established by the chapter. Preser
  // Fail closed before any Gemini request if provider state is unavailable or cooling down.
  const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("provider,consecutive_throttle_count,cooldown_until").eq("provider","gemini").maybeSingle();
  if(providerStateError || !providerState) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable"}),{status:503,headers:{"Content-Type":"application/json"}});
+ if(typeof providerState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(providerState.consecutive_throttle_count)||providerState.consecutive_throttle_count<0) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_provider_counter"}),{status:503,headers:H});
  const cooldownValue=providerState.cooldown_until;
  const cooldownUntil=cooldownValue ? Date.parse(cooldownValue) : 0;
  if(cooldownValue && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
