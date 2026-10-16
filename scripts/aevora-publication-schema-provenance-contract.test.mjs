@@ -32,6 +32,8 @@ test("publication schema inventory covers commit-boundary relations and required
     "chapter_generation_outputs",
     "chapter_blueprints",
     "chapter_reviews",
+    "chapter_publication_reviews",
+    "aevora_release_scheduler_leases",
     "chapters",
     "publication_sync_outbox",
     "pg_class",
