@@ -18,7 +18,7 @@ A disposition is not complete until the decision maker, decision timestamp, reas
 
 ## Fresh inventory procedure
 
-A branch-only, read-only query is available at [`scripts/aevora-legacy-schedule-disposition-inventory.sql`](../../scripts/aevora-legacy-schedule-disposition-inventory.sql). Run it only through an already-authorized read-only SQL session. It lists schedule and series IDs, title, current flags, readiness marker, cadence/timezone, and duplicate-schedule count for the candidate set (`ongoing`, `ai_original`, originality pending). Its output contains internal identifiers and titles: keep it in the approved access-controlled audit location, not a public report. It does not approve or mutate any schedule. Reconcile the fresh result to individual register rows; if candidate count or state differs from the prior six-row inventory, do not map by row order.
+A branch-only, read-only query is available at [`scripts/aevora-legacy-schedule-disposition-inventory.sql`](../../scripts/aevora-legacy-schedule-disposition-inventory.sql). Run it only through an already-authorized read-only SQL session. It lists schedule and series IDs, title, current flags, readiness marker, cadence/timezone, and duplicate-schedule count for non-manual candidates (`ongoing`, `ai_original`, originality pending). Its output contains internal identifiers and titles: keep it in the approved access-controlled audit location, not a public report. It does not approve or mutate any schedule. Reconcile the fresh result to individual register rows; if candidate count or state differs from the prior six-row inventory, do not map by row order.
 
 ## Six-row review register
 
