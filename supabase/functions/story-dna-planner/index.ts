@@ -14,6 +14,7 @@ async function recordGeminiQuotaCooldown(error: unknown) {
     if (!url || !key) return;
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error: recordError } = await db.rpc("aevora_record_gemini_throttle", {
+      p_event_id: crypto.randomUUID(),
       p_event_class: isQuotaFailure ? "quota" : "overload",
     });
     const result = Array.isArray(data) ? data[0] : data;
