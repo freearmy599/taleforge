@@ -110,7 +110,8 @@ The 38 is a working count of major system families, not 38 independent applicati
 - [ ] Inventory queue tables, producers, consumers, retry policies, stale-job recovery, attempt accounting, and idempotency.
 - [ ] Verify generation job lifecycle: queued → running → reviewed → eligible → published, with truthful terminal states.
 - [ ] Diagnose stuck/zero-attempt jobs using read-only evidence and prevent jobs from silently remaining queued.
-- [ ] Verify `generate-chapter` generation and quality-review paths both fail closed on provider-state uncertainty.
+- [x] Branch source audit: `generate-chapter` generation and AI quality-review paths both fail closed when provider-state lookup is unavailable, counters/timestamps are malformed, or cooldown is active; deterministic hard-validation review remains available without invoking Gemini. The repository-wide provider-state contract covers all 13 readers, and current branch source/type contracts pass CI.
+- [ ] Separately verify the deployed live `generate-chapter` version contains the same quality-review guard before any deployment/rollout decision; branch validation does not prove deployed behavior.
 - [ ] Verify `revise-chapter` conflict handling, revision limits, retry behavior, and successor idempotency.
 - [ ] Verify review orchestration requires all required review outcomes; failed, missing, or unknown reviews block release.
 - [ ] Verify continuity, originality, safety, semantic continuity, world continuity, and character continuity workers have correct inputs, auth, retry limits, and output schemas.
