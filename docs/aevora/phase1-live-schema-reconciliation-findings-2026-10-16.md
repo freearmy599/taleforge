@@ -333,3 +333,15 @@ Selected live constraints reinforce the transaction design requirements:
 - `chapter_generation_outputs` and `chapter_publication_reviews` have SECURITY DEFINER gate-sync/enforcement triggers. These call paths must be inspected before changing ACLs or designing a publication transaction; the trigger name and flags alone do not prove the full safety of their function bodies.
 
 This pass was catalog-only. It did not inspect application row content, modify grants, apply migrations, or execute publication workflows. It expands the confirmed live drift evidence but does not clear rollout. A complete reconciliation still requires the full routine bodies/search paths and policy/column ACL inventories, plus the missing provider-state migration source.
+
+
+### Selected publication trigger-function body review
+
+A follow-up read-only `pg_get_functiondef` inspection covered the publication outbox trigger and the four named quality/continuity gate functions:
+
+- `public.enqueue_publication_sync_event()` is owned by `postgres`, SECURITY DEFINER, with fixed `search_path=public`. It inserts a minimal `post_publication_canon_sync` outbox record containing only `chapter_id` when a chapter's new status is `published`; it uses `ON CONFLICT (chapter_id,event_type) DO NOTHING`. This confirms the outbox insert is attached to the chapter status transaction, subject to the remaining trigger and transaction path review.
+- `taleforge_internal.enforce_publication_continuity_gate()` blocks approval if the continuity record is missing, not in a passing status, or has score below 85.
+- `taleforge_internal.enforce_publication_quality_gate()` forces `needs_revision` if quality or continuity checks are missing, non-passing, or below 85.
+- `taleforge_internal.sync_quality_gate()` and `sync_continuity_gate()` are SECURITY DEFINER triggers with fixed `search_path=public, taleforge_internal`; they materialize review reports into the respective quality/continuity check tables. Continuity sync also writes snapshots and series continuity state.
+
+These selected bodies show useful gate behavior but do not establish that every publication entry point is authorized, that the scheduler's series/schedule updates share the same transaction, or that all SECURITY DEFINER routines have safe effective EXECUTE ACLs. Continue the routine ACL and full caller/transaction-path review before designing the publication RPC or narrowing grants.
