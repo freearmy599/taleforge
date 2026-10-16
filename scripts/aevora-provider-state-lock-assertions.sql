@@ -11,7 +11,7 @@ BEGIN
   END IF;
   FOREACH client_role IN ARRAY ARRAY['anon', 'authenticated']
   LOOP
-    FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']
+    FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','MAINTAIN','TRUNCATE','REFERENCES','TRIGGER']
     LOOP
       IF has_table_privilege(client_role, 'public.taleforge_ai_provider_state', privilege_name) THEN
         RAISE EXCEPTION 'ASSERTION_FAILED: % retains provider-state table privilege %', client_role, privilege_name;
