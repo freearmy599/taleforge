@@ -202,7 +202,10 @@ BEGIN
     'ratings',
     'reading_history',
     'story_reports',
-    'recommendations'
+    'recommendations',
+    'story_arc_plan',
+    'story_ending_plans',
+    'story_lifecycle'
   ]
   LOOP
     v_target := to_regclass(format('public.%I', v_table_name));
@@ -264,4 +267,4 @@ BEGIN
   END LOOP;
 END
 $dormant_assert$;
-SELECT 'dormant account/community table ACL assertions passed for 11 relations' AS result;
+SELECT 'dormant account/community and story-planning ACL assertions passed for 14 relations' AS result;

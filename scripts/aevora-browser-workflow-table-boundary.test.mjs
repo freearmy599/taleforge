@@ -29,6 +29,9 @@ const serverOnlyRelations = [
   "taleforge_ai_provider_state",
   "taleforge_autonomous_series_creation_runs",
   "aevora_release_scheduler_leases",
+  "story_arc_plan",
+  "story_ending_plans",
+  "story_lifecycle",
 ];
 
 async function collectBrowserSources() {
@@ -89,6 +92,9 @@ test("server-only relation inventory covers the publication and provider securit
     "release_schedules",
     "story_blueprints",
     "taleforge_ai_provider_state",
+    "story_arc_plan",
+    "story_ending_plans",
+    "story_lifecycle",
   ]) {
     assert.ok(serverOnlyRelations.includes(relation), `missing server-only relation: ${relation}`);
   }

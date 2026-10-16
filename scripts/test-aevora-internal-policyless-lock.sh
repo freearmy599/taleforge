@@ -24,6 +24,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261013130000_lo
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016200000_revoke_client_table_maintenance_privileges.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016203000_revoke_client_maintenance_default_privileges.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016210000_lock_dormant_reader_account_tables.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261016220000_lock_base_story_planning_read_surfaces.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE TABLE public.future_postgres_table (id bigint PRIMARY KEY)"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SET ROLE supabase_admin; CREATE TABLE public.future_supabase_admin_table (id bigint PRIMARY KEY); RESET ROLE;"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-policyless-lock-assertions.sql

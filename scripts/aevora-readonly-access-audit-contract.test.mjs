@@ -460,3 +460,18 @@ test("dormant account/community tables have no client policies or client ACLs", 
   assert.doesNotMatch(dormantReaderTablesMigration, /FROM PUBLIC, anon, authenticated, service_role/i,
     "trusted service_role privileges must remain intact");
 });
+
+const baseStoryPlanningReadMigration = await readFile(
+  new URL("../supabase/migrations/20261016220000_lock_base_story_planning_read_surfaces.sql", import.meta.url),
+  "utf8",
+);
+
+test("base story-planning tables are server-only and public read policies are removed", () => {
+  for (const table of ["story_arc_plan", "story_ending_plans", "story_lifecycle"]) {
+    assert.ok(baseStoryPlanningReadMigration.includes("'" + table + "'"), "missing internal table " + table);
+  }
+  assert.ok(baseStoryPlanningReadMigration.includes("REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated"));
+  assert.match(baseStoryPlanningReadMigration, /DROP POLICY IF EXISTS/i);
+  assert.match(baseStoryPlanningReadMigration, /pg_policies/i);
+  assert.match(baseStoryPlanningReadMigration, /ENABLE ROW LEVEL SECURITY/i);
+});

@@ -37,6 +37,9 @@ BEGIN
     'release_schedules',
     'story_blueprints',
     'story_versions',
+    'story_arc_plan',
+    'story_ending_plans',
+    'story_lifecycle',
     'profiles',
     'bookmarks',
     'collections',
@@ -86,13 +89,24 @@ BEGIN
     'ratings',
     'reading_history',
     'story_reports',
-    'recommendations'
+    'recommendations',
+    'story_arc_plan',
+    'story_ending_plans',
+    'story_lifecycle'
   ]
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', v_table_name);
   END LOOP;
 END
 $dormant_rls$;
+
+-- Model the current live public SELECT policies on internal story-planning tables.
+CREATE POLICY "published arc plans readable" ON public.story_arc_plan
+  FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "published ending plans readable" ON public.story_ending_plans
+  FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "public can read lifecycle for published series" ON public.story_lifecycle
+  FOR SELECT TO anon, authenticated USING (true);
 
 -- A user-facing table is included to prove maintenance-only revocation preserves CRUD.
 CREATE TABLE public.chapters (id bigint PRIMARY KEY);
@@ -142,7 +156,10 @@ BEGIN
     'taleforge_system_governance_dependencies',
     'taleforge_system_governance_registry',
     'taleforge_system_governance_runs',
-    'chapters'
+    'chapters',
+    'story_arc_plan',
+    'story_ending_plans',
+    'story_lifecycle'
   ]
   LOOP
     EXECUTE format('GRANT SELECT (id), INSERT (id), UPDATE (id), REFERENCES (id) ON TABLE public.%I TO PUBLIC, anon, authenticated', table_name);
