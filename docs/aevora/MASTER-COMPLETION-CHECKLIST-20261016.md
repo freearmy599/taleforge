@@ -276,3 +276,14 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Added [the field/caller review](./PHASE1-REFERENCE-TAXONOMY-CALLER-AUDIT-20261017.md).
 - [ ] Decide and implement a deliberate public projection for taxonomy labels/descriptions versus server-only generation rules and series-specific profiles. Do not retain raw-table reads by default and do not blanket-revoke before the remaining caller inventory.
 - **Safety boundary:** read-only catalog/source audit only; no live grants, policies, rows, migrations, deployment, generation/publication, schedule mutation, or billable branch changes. Automatic publishing remains NO-GO.
+
+
+## Internal taxonomy read-surface hardening — 2026-10-17
+
+- [x] Completed read-only live schema/ACL/policy audit of all 14 provisional taxonomy/reference tables. All 14 have RLS enabled, client table SELECT grants, and a client SELECT policy; active-row filtering does not protect sensitive columns.
+- [x] Confirmed the related public SECURITY DEFINER generation functions found in the catalog are not executable by `anon` or `authenticated`; their explicit service-role access is retained.
+- [x] Added branch candidate `20261017100000_lock_internal_reference_taxonomy_reads.sql`, which revokes raw table and column SELECT from `PUBLIC`, `anon`, and `authenticated`, fails closed if an expected table is missing, and preserves `service_role` access.
+- [x] Added a 14-table disposable PostgreSQL fixture/assertion set covering relation grants, column grants, and preservation of trusted worker access.
+- [x] Candidate validated by [CI run 38950058686](https://github.com/freearmy599/taleforge/actions/runs/38950058686): Edge Function/source-contract checks and disposable PostgreSQL readiness/security rehearsal passed.
+- [ ] Design and test a public taxonomy projection only when a browser/creator workflow needs it. Do not re-open raw internal tables to solve a missing UI contract.
+- **Safety boundary:** the candidate migration has not been applied to live Supabase. No live grants/policies, data, Edge deployments, generation/publication, schedules, or billable branches were changed. Automatic publishing remains NO-GO.

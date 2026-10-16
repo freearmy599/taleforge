@@ -28,3 +28,11 @@ A source scan of the current branch found no direct references to these 14 exact
 ## Safety boundary
 
 This report records catalog and source evidence only. It does not modify live policies, grants, rows, migrations, Edge Functions, release schedules, or publication state. Automatic publishing remains NO-GO.
+
+
+## Branch-only containment candidate — 2026-10-17
+
+- Added `supabase/migrations/20261017100000_lock_internal_reference_taxonomy_reads.sql`. It fails closed if any of the 14 expected relations is missing, revokes raw relation-level and column-level SELECT from `PUBLIC`, `anon`, and `authenticated`, and deliberately preserves `service_role` access. It does not drop or rewrite the existing RLS policies; without SELECT grants those policies do not expose raw rows.
+- Added a disposable fixture that simulates active-row SELECT policies plus relation and column grants for all 14 tables. Assertions verify anonymous/authenticated raw SELECT is gone, service-role SELECT remains, and the fixture policies remain present.
+- The complete disposable PostgreSQL readiness/security rehearsal passed in [CI run 38950058686](https://github.com/freearmy599/taleforge/actions/runs/38950058686); the Edge Function/type/source-contract job also passed. The first attempt exposed a test-harness-only mistake (`read` was undefined in the Node test); that was corrected to use the file's existing async `readFile` API before the passing run.
+- This remains a candidate, not a production change. The intended public taxonomy projection is still unbuilt; before exposing genre labels/descriptions to browsers or creator tools, create explicit reviewed views/RPCs with only approved fields and test them separately.
