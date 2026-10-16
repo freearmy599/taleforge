@@ -45,32 +45,27 @@ async function recordGeminiThrottle(supabase:any,message:string) {
  const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
  const providerTemporaryFailure=message.includes("Gemini HTTP 503");
  if(!providerQuotaFailure&&!providerTemporaryFailure)return null;
- const {data,error:stateError}=await supabase.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
- if(stateError||!data){console.error("[generation-orchestrator] Gemini cooldown state unavailable; persistence was skipped.");return null;}
- const rawPrior=data.consecutive_throttle_count;
- if(typeof rawPrior!=="number" || !Number.isSafeInteger(rawPrior) || rawPrior<0) {
-  console.error("[generation-orchestrator] Gemini throttle counter is malformed; existing state was preserved.");
+ // Child generation/revision workers normally record the same provider event.
+ // Retain the existing active-cooldown guard to reduce duplicate observations;
+ // this is best-effort, not idempotency (there is no stable event ID).
+ const {data:state,error:stateError}=await supabase.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
+ if(stateError||!state){console.error("[generation-orchestrator] Gemini cooldown state unavailable; fallback recording was skipped.");return null;}
+ const rawCount=state.consecutive_throttle_count;
+ if(typeof rawCount!=="number"||!Number.isSafeInteger(rawCount)||rawCount<0){console.error("[generation-orchestrator] Gemini throttle counter is malformed; existing state was preserved.");return null;}
+ if(state.cooldown_until){
+  const existingUntil=Date.parse(state.cooldown_until);
+  if(!Number.isFinite(existingUntil)){console.error("[generation-orchestrator] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");return null;}
+  if(existingUntil>Date.now())return {cooldown_until:state.cooldown_until,cooldown_hours:Math.max(0,(existingUntil-Date.now())/3600000),consecutive_throttle_count:rawCount,already_active:true};
+ }
+ try{
+  const {data,error:recordError}=await supabase.rpc("aevora_record_gemini_throttle",{p_event_class:providerQuotaFailure?"quota":"overload"});
+  const result=Array.isArray(data)?data[0]:data;
+  if(recordError||result?.recorded!==true){console.error("[generation-orchestrator] Gemini cooldown could not be persisted.");return null;}
+  return {cooldown_until:result.cooldown_until,cooldown_hours:result.cooldown_hours,consecutive_throttle_count:result.consecutive_throttle_count};
+ }catch{
+  console.error("[generation-orchestrator] Gemini cooldown persistence failed unexpectedly.");
   return null;
  }
- const prior=rawPrior;
- const count=prior+1;
- if(!Number.isSafeInteger(count)) {
-  console.error("[generation-orchestrator] Gemini throttle counter exceeded its safe integer range; existing state was preserved.");
-  return null;
- }
- const cooldownHours=providerTemporaryFailure?1:Math.min(24,6*Math.pow(2,Math.min(count-1,2)));
- const now=Date.now();
- const proposedUntil=now+cooldownHours*60*60*1000;
- const existingUntil=data.cooldown_until?Date.parse(data.cooldown_until):0;
- if(data.cooldown_until&&!Number.isFinite(existingUntil)){console.error("[generation-orchestrator] Existing Gemini cooldown timestamp is malformed; existing state was preserved.");return null;}
- // Downstream workers normally persist their own cooldown. Treat this recorder
- // as a fallback: do not count the same response twice when a cooldown already exists.
- if(existingUntil>Date.now()) return {cooldown_until:data.cooldown_until,cooldown_hours:Math.max(0,(existingUntil-Date.now())/3600000),consecutive_throttle_count:prior,already_active:true};
- const until=new Date(Math.max(proposedUntil,existingUntil)).toISOString();
- const lastError=providerQuotaFailure?"Gemini quota or rate-limit response":"Gemini temporary overload response";
- const {error:writeError}=await supabase.from("taleforge_ai_provider_state").upsert({provider:"gemini",cooldown_until:until,consecutive_throttle_count:count,last_error:lastError,last_error_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"provider"});
- if(writeError){console.error("[generation-orchestrator] Gemini cooldown could not be persisted.");return null;}
- return {cooldown_until:until,cooldown_hours:Math.max(0,(Date.parse(until)-now)/3600000),consecutive_throttle_count:count};
 }
 Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});if(req.method!=="POST")return response({success:false,error:"Method not allowed"},405);try{
 const supabaseUrl=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(!supabaseUrl||!key)return response({success:false,error:"Missing Supabase environment configuration."},500);
