@@ -37,6 +37,17 @@ BEGIN
     'release_schedules',
     'story_blueprints',
     'story_versions',
+    'profiles',
+    'bookmarks',
+    'collections',
+    'collection_stories',
+    'comments',
+    'likes',
+    'notifications',
+    'ratings',
+    'reading_history',
+    'story_reports',
+    'recommendations',
     'taleforge_ceo_daily_operations',
     'taleforge_ceo_incidents',
     'taleforge_ceo_repair_plans',
@@ -58,6 +69,30 @@ BEGIN
   END LOOP;
 END
 $tables$;
+
+-- Dormant account/community tables have RLS enabled but intentionally no policies.
+DO $dormant_rls$
+DECLARE
+  v_table_name text;
+BEGIN
+  FOREACH v_table_name IN ARRAY ARRAY[
+    'profiles',
+    'bookmarks',
+    'collections',
+    'collection_stories',
+    'comments',
+    'likes',
+    'notifications',
+    'ratings',
+    'reading_history',
+    'story_reports',
+    'recommendations'
+  ]
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', v_table_name);
+  END LOOP;
+END
+$dormant_rls$;
 
 -- A user-facing table is included to prove maintenance-only revocation preserves CRUD.
 CREATE TABLE public.chapters (id bigint PRIMARY KEY);
@@ -81,6 +116,17 @@ BEGIN
     'release_schedules',
     'story_blueprints',
     'story_versions',
+    'profiles',
+    'bookmarks',
+    'collections',
+    'collection_stories',
+    'comments',
+    'likes',
+    'notifications',
+    'ratings',
+    'reading_history',
+    'story_reports',
+    'recommendations',
     'taleforge_ceo_daily_operations',
     'taleforge_ceo_incidents',
     'taleforge_ceo_repair_plans',

@@ -179,3 +179,89 @@ BEGIN
 END
 $future_defaults$;
 SELECT 'internal policyless table and column lock assertions passed for 25 relations' AS result;
+
+
+
+-- Dormant account/community relations remain closed to ordinary API roles until
+-- their corresponding auth-backed workflows and owner policies are implemented.
+DO $dormant_assert$
+DECLARE
+  v_table_name text;
+  v_client_role text;
+  v_privilege text;
+  v_target regclass;
+BEGIN
+  FOREACH v_table_name IN ARRAY ARRAY[
+    'profiles',
+    'bookmarks',
+    'collections',
+    'collection_stories',
+    'comments',
+    'likes',
+    'notifications',
+    'ratings',
+    'reading_history',
+    'story_reports',
+    'recommendations'
+  ]
+  LOOP
+    v_target := to_regclass(format('public.%I', v_table_name));
+    IF v_target IS NULL THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: dormant fixture table public.% is missing', v_table_name;
+    END IF;
+
+    IF NOT (SELECT c.relrowsecurity FROM pg_catalog.pg_class c WHERE c.oid = v_target) THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: RLS is not enabled on dormant table public.%', v_table_name;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM pg_catalog.pg_policies p
+      WHERE p.schemaname = 'public' AND p.tablename = v_table_name
+    ) THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: dormant table public.% unexpectedly has a policy', v_table_name;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+      FROM pg_catalog.pg_class c
+      CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))) a
+      WHERE c.oid = v_target AND a.grantee = 0
+    ) THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains relation privileges on dormant table public.%', v_table_name;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM pg_catalog.pg_attribute att
+      CROSS JOIN LATERAL pg_catalog.aclexplode(att.attacl) a
+      WHERE att.attrelid = v_target AND att.attnum > 0 AND NOT att.attisdropped AND a.grantee = 0
+    ) THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: PUBLIC retains column privileges on dormant table public.%', v_table_name;
+    END IF;
+
+    FOREACH v_client_role IN ARRAY ARRAY['anon', 'authenticated']
+    LOOP
+      FOREACH v_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']
+      LOOP
+        IF has_table_privilege(v_client_role, v_target, v_privilege) THEN
+          RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on dormant table public.%', v_client_role, v_privilege, v_table_name;
+        END IF;
+      END LOOP;
+
+      FOREACH v_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','REFERENCES']
+      LOOP
+        IF has_column_privilege(v_client_role, v_target, 'id', v_privilege) THEN
+          RAISE EXCEPTION 'ASSERTION_FAILED: % retains column % on dormant table public.%(id)', v_client_role, v_privilege, v_table_name;
+        END IF;
+      END LOOP;
+    END LOOP;
+
+    FOREACH v_privilege IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE']
+    LOOP
+      IF NOT has_table_privilege('service_role', v_target, v_privilege) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: service_role lost % on dormant table public.%', v_privilege, v_table_name;
+      END IF;
+    END LOOP;
+  END LOOP;
+END
+$dormant_assert$;
+SELECT 'dormant account/community table ACL assertions passed for 11 relations' AS result;

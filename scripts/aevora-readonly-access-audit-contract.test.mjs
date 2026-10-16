@@ -16,6 +16,10 @@ const trendingMigration = await readFile(
   new URL("../supabase/migrations/20261014130000_public_trending_aggregate_rpc.sql", import.meta.url),
   "utf8",
 );
+const dormantReaderTablesMigration = await readFile(
+  new URL("../supabase/migrations/20261016210000_lock_dormant_reader_account_tables.sql", import.meta.url),
+  "utf8",
+);
 
 const readerEventIdempotencyMigration = await readFile(
   new URL("../supabase/migrations/20261014220000_reader_event_idempotency_key.sql", import.meta.url),
@@ -440,4 +444,19 @@ test("published library gracefully degrades when the gated intelligence view is 
   assert.match(publishedLibrarySource, /Intelligence is optional enrichment[\s\S]*?Keep the published library usable/i);
   assert.match(publishedLibrarySource, /const intel=new Map\(\(intelRes\.data\|\|\[\]\)\.map/);
   assert.doesNotMatch(publishedLibrarySource, /if\s*\(intelRes\.error\)\s*throw/);
+});
+
+
+test("dormant account/community tables have no client policies or client ACLs", () => {
+  for (const table of ["profiles","bookmarks","collections","collection_stories","comments","likes","notifications","ratings","reading_history","story_reports","recommendations"]) {
+    assert.match(dormantReaderTablesMigration, new RegExp("'" + table + "'"));
+  }
+  assert.match(dormantReaderTablesMigration, /relrowsecurity/);
+  assert.match(dormantReaderTablesMigration, /pg_catalog\.pg_policies/);
+  assert.match(dormantReaderTablesMigration, /REVOKE ALL PRIVILEGES ON TABLE public\.%I FROM PUBLIC, anon, authenticated/i);
+  assert.match(dormantReaderTablesMigration, /REVOKE ALL PRIVILEGES \(%s\) ON TABLE public\.%I FROM PUBLIC, anon, authenticated/i);
+  assert.match(dormantReaderTablesMigration, /unexpectedly has an RLS policy|unexpectedly has a policy/i);
+  assert.doesNotMatch(dormantReaderTablesMigration, /GRANT .* TO (?:PUBLIC|anon|authenticated)/i);
+  assert.doesNotMatch(dormantReaderTablesMigration, /FROM PUBLIC, anon, authenticated, service_role/i,
+    "trusted service_role privileges must remain intact");
 });
