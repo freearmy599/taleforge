@@ -17,6 +17,8 @@ BEGIN
     'release_schedules',
     'story_blueprints',
     'story_versions',
+    'publication_sync_outbox',
+    'story_attachment_metrics',
     'taleforge_ceo_daily_operations',
     'taleforge_ceo_incidents',
     'taleforge_ceo_repair_plans',
@@ -88,4 +90,4 @@ BEGIN
   END LOOP;
 END
 $assert$;
-SELECT 'internal policyless table and column lock assertions passed for 25 relations' AS result;
+SELECT 'internal policyless table and column lock assertions passed for 27 relations' AS result;
