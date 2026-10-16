@@ -52,9 +52,9 @@ BEGIN
     SELECT 1
     FROM pg_catalog.pg_namespace n
     WHERE n.nspname = 'aevora_private'
-      AND pg_catalog.pg_get_userbyid(n.nspowner) IN ('anon', 'authenticated')
+      AND pg_catalog.pg_get_userbyid(n.nspowner) <> 'postgres'
   ) THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: private reader-event quota schema is owned by a client role';
+    RAISE EXCEPTION 'ASSERTION_FAILED: private reader-event quota schema is not owned by postgres';
   END IF;
 
   IF EXISTS (
@@ -63,9 +63,9 @@ BEGIN
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public'
       AND p.proname IN ('aevora_ingest_reader_event', 'aevora_prune_reader_event_quota_buckets')
-      AND pg_catalog.pg_get_userbyid(p.proowner) IN ('anon', 'authenticated')
+      AND pg_catalog.pg_get_userbyid(p.proowner) <> 'postgres'
   ) THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: reader-event SECURITY DEFINER RPC is owned by a client role';
+    RAISE EXCEPTION 'ASSERTION_FAILED: reader-event SECURITY DEFINER RPC is not owned by postgres';
   END IF;
 
   IF EXISTS (
@@ -74,9 +74,9 @@ BEGIN
     JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'aevora_private'
       AND c.relname IN ('reader_event_quota_buckets', 'reader_event_quota_cleanup_state')
-      AND pg_catalog.pg_get_userbyid(c.relowner) IN ('anon', 'authenticated')
+      AND pg_catalog.pg_get_userbyid(c.relowner) <> 'postgres'
   ) THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: private reader-event quota state is owned by a client role';
+    RAISE EXCEPTION 'ASSERTION_FAILED: private reader-event quota state is not owned by postgres';
   END IF;
 END;
 $rpc_owner_assert$;
