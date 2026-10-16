@@ -1,4 +1,4 @@
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 -- Read-only evidence collection for the six legacy schedule disposition slots.
 -- Run only through an already-authorized read-only SQL session.
 -- Output contains internal schedule/series identifiers and titles; retain it
