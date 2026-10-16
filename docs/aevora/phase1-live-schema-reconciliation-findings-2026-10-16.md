@@ -273,3 +273,17 @@ A fresh read-only catalog pass was run after the latest successful CI. It querie
 ### Status
 
 No production changes were made. Provider-state migration provenance, owner-level default privileges, atomic cooldown recording, publication transaction authorization, least-privilege client grants, missing relation provenance, and live scheduler integration remain open gates. Automatic publication remains NO-GO.
+
+
+## Live lease-routine definition review — 2026-10-16
+
+A read-only `pg_get_functiondef` review inspected the three existing scheduler lease routines. No routine was invoked and no database state was changed.
+
+- `aevora_claim_release_scheduler_lease(uuid, uuid, integer)` is SECURITY DEFINER, owned by `postgres`, and sets `search_path=pg_catalog, public, pg_temp`. It rejects null schedule/token inputs, bounds lease duration to 30–900 seconds, inserts a new lease or replaces an expired lease using an atomic `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE lease_expires_at <= clock_timestamp()`, and returns true only when one row was affected.
+- `aevora_renew_release_scheduler_lease(uuid, uuid, integer)` validates inputs/duration and renews only when schedule ID and lease token match and the existing lease has not expired. It returns true only when one row was affected.
+- `aevora_release_scheduler_lease(uuid, uuid)` deletes only when both schedule ID and lease token match and returns true only when one row was affected.
+- The observed EXECUTE ACLs for these routines are limited to `postgres` and `service_role`; `anon` and `authenticated` are not granted execution.
+
+This narrows the lease-specific issue: the database routines have token matching, bounded lease durations, expiration checks, and server-only EXECUTE ACLs. It does **not** establish end-to-end lease enforcement. The deployed `release-scheduler` v12 source previously inspected does not call the claim/renew/release routines, so concurrent scheduler invocations are not protected by these database functions until the deployed caller is safely reconciled and an authorized rollout occurs.
+
+The prepared branch remains the place to validate lease acquisition, renewal, release in every exit/error path, and refusal to advance schedules after partial publication. Production deployment remains unauthorized and automatic publication remains NO-GO.
