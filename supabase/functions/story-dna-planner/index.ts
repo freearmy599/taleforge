@@ -67,6 +67,7 @@ Use arrays for the list fields. Make the DNA specific, internally consistent, an
   // Fail closed before any Gemini request if provider state is unavailable or cooling down.
   const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("provider,consecutive_throttle_count,cooldown_until").eq("provider","gemini").maybeSingle();
   if(providerStateError || !providerState) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable"}),{status:503,headers:{"Content-Type":"application/json"}});
+  if(typeof providerState.consecutive_throttle_count!=="number"||!Number.isSafeInteger(providerState.consecutive_throttle_count)||providerState.consecutive_throttle_count<0) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_provider_counter"}),{status:503,headers:{"Content-Type":"application/json"}});
   const cooldownUntil=providerState.cooldown_until ? Date.parse(providerState.cooldown_until) : 0;
   if(providerState.cooldown_until && !Number.isFinite(cooldownUntil)) return new Response(JSON.stringify({success:false,error:"provider_state_unavailable",reason:"invalid_cooldown_timestamp"}),{status:503,headers:{"Content-Type":"application/json"}});
   if(cooldownUntil && cooldownUntil>Date.now()) return new Response(JSON.stringify({success:false,error:"provider_cooldown",cooldown_until:providerState.cooldown_until}),{status:429,headers:{"Content-Type":"application/json"}});
