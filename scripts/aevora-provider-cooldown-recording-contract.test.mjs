@@ -98,7 +98,7 @@ test("orchestrator fails closed when the provider-state row is missing or unread
 });
 
 test("orchestrator cooldown fallback never reports a successful write after a database write error", () => {
-  const writerStart = orchestrator.indexOf("async function recordGeminiCooldown(");
+  const writerStart = orchestrator.indexOf("async function recordGeminiThrottle(");
   const writerEnd = orchestrator.indexOf("\n}", writerStart);
   assert.ok(writerStart >= 0 && writerEnd > writerStart, "fallback cooldown recorder must be present");
   const writer = orchestrator.slice(writerStart, writerEnd);
@@ -112,7 +112,7 @@ test("orchestrator cooldown fallback never reports a successful write after a da
 
 test("both cooldown writers remain explicitly gated for replacement by one atomic operation", () => {
   assert.match(plan, /route both writers through the same atomic database operation/);
-  assert.match(plan, /read-modify-upsert/);
+  assert.match(plan, /read-then-write/);
   assert.match(plan, /concurrent calls must not lose increments/);
   assert.match(plan, /database error must remain an error/);
 });
