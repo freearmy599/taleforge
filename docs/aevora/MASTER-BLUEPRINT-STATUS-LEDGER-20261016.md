@@ -233,3 +233,8 @@ The original applied migration source remains unrecovered. The RPC migration and
 The branch-only atomic Gemini throttle RPC candidate is now wired into all six identified direct writer-capable functions: `generate-chapter`, `generation-orchestrator`, `revise-chapter`, `continuity-review`, `originality-review`, and `safety-review`. The source contract covers all six and checks for RPC confirmation and removal of direct provider-state writes/raw `last_error` payloads.
 
 Static source inspection currently looks structurally consistent, but executable Node tests, Edge Function type-checking, disposable PostgreSQL rehearsal, and concurrent-session proof remain unrun/unverified. Direct provider-state reads remain in the branch, production deployed callers have not been migrated, and production table ACL/default privileges remain unresolved. Phase 1 remains **BLOCKED** and automated publishing remains **NO-GO**. No production changes or billable branch creation occurred.
+
+
+### Phase 1 provider-state scan correction — 2026-10-16
+
+A broader source-reference pass discovered five additional direct throttle writers beyond the original six-function inventory. Four more branch helpers have been migrated to the atomic RPC: `blueprint-planner`, `story-dna-planner`, `arc-planner`, and `world-continuity`. `character-continuity` remains an unconverted direct writer, and the repository edit tool refused the attempted test-inventory update, so current automated source-contract coverage is incomplete. A fresh whole-repository writer scan and expanded tests are required before this subtask can be considered complete. Phase 1 remains **BLOCKED**, automated publishing remains **NO-GO**, and no production changes occurred.
