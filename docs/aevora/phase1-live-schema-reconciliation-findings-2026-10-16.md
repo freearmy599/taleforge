@@ -61,3 +61,12 @@ Both rehearsals passed in CI run [38861905595](https://github.com/freearmy599/ta
 ## Safety boundary
 
 This document does not authorize production migration, deployment, publication, generation, schedule mutation, or creation of a billable Supabase branch. No such actions were performed during this inspection.
+
+
+## Follow-up verification — 2026-10-16
+
+A second read-only catalog pass confirmed the current relation shape: `provider text NOT NULL` (primary key), `cooldown_until timestamptz NULL`, `consecutive_throttle_count integer NOT NULL DEFAULT 0`, `last_error text NULL`, `last_error_at timestamptz NULL`, and `updated_at timestamptz NOT NULL DEFAULT now()`. The only user-defined constraint is the primary key; no user-defined triggers were found. A search of ordinary SQL functions whose definitions reference this relation returned no matches, so no pre-existing database routine was found to reuse for atomic recording.
+
+The repository branch inventory was extended beyond `main`: the four other visible branches (`feat/chief-editor-admin-runner`, `feature/aevora-design-system-v1`, `feature/blueprint-planner`, and `main`) also have no migration path matching `20261007025751`, `add_taleforge_ai_provider_cooldown_state`, or provider/cooldown SQL naming patterns. This still cannot establish whether an original migration body exists outside the visible repository branches; do not treat it as proof of manual creation.
+
+The new two-writer atomicity gate and contract test passed in CI run [38863623400](https://github.com/freearmy599/taleforge/actions/runs/38863623400): Edge Function type-checking and the disposable PostgreSQL rehearsal both succeeded. This validates the current branch contracts and rehearsals only; it does not implement atomic cooldown recording or change live ACLs.
