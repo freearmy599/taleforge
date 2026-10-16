@@ -57,8 +57,8 @@ test("generation orchestrator fallback uses the same atomic RPC", () => {
     "the orchestrator must not report a successful write after persistence failure");
   assert.equal(orchestratorWriter.includes(".upsert("), false,
     "the orchestrator writer must not retain a read-modify-upsert cooldown path");
-  assert.equal(orchestratorWriter.includes('from("taleforge_ai_provider_state")'), false,
-    "the fallback recorder must not perform its own provider-state read");
+  assert.ok(orchestratorWriter.includes('from("taleforge_ai_provider_state")'),
+    "the orchestrator may inspect an already-active cooldown to avoid double-counting a downstream throttle");
 });
 
 test("orchestrator still fails closed when provider state is missing or unreadable", () => {
