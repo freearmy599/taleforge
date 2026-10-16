@@ -121,6 +121,8 @@ test("public default-privilege lock is schema-scoped and rehearsed against futur
   assert.match(defaultPrivilegeRehearsal, /AEVORA_DISPOSABLE_DEFAULT_PRIVILEGE_REHEARSAL/);
   assert.match(defaultPrivilegeRehearsal, /Refusing default-privilege rehearsal against a Supabase URL/);
   assert.match(defaultPrivilegeRehearsal, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT INSERT ON TABLES TO anon/);
+  assert.match(defaultPrivilegeRehearsal, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT MAINTAIN ON TABLES TO anon/);
+  assert.match(defaultPrivilegeRehearsal, /Expected a global MAINTAIN default to block the schema-scoped repair/);
   assert.match(defaultPrivilegeRehearsal, /Expected a global default grant to block the schema-scoped repair/);
   assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, anon, authenticated/);
   assert.match(defaultPrivilegeMigration, /ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, anon, authenticated/);

@@ -27,4 +27,15 @@ if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014170000
   echo "Expected a global default grant to block the schema-scoped repair, but it succeeded." >&2
   exit 1
 fi
-echo "Global table defaults correctly block the schema-scoped default ACL repair."
+echo "Global INSERT default correctly blocks the schema-scoped default ACL repair."
+
+# Isolate PostgreSQL 17's MAINTAIN privilege so the fail-closed check cannot
+# pass merely because the INSERT default above was detected.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE INSERT ON TABLES FROM anon"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT MAINTAIN ON TABLES TO anon"
+if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261014170000_restrict_public_default_privileges.sql; then
+  echo "Expected a global MAINTAIN default to block the schema-scoped repair, but it succeeded." >&2
+  exit 1
+fi
+echo "Global MAINTAIN default correctly blocks the schema-scoped default ACL repair."
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE MAINTAIN ON TABLES FROM anon"
