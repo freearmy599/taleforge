@@ -88,6 +88,12 @@ test("privileged reader-event functions and quota tables cannot be owned by clie
     /pg_get_userbyid\(p\.proowner\) IN \('anon', 'authenticated'\)/);
   assert.match(rpcAssertions,
     /pg_get_userbyid\(c\.relowner\) IN \('anon', 'authenticated'\)/);
+  assert.match(rpcAssertions, /DO \$rpc_public_acl_assert\$/);
+  assert.match(rpcAssertions, /pg_catalog\.aclexplode\(/);
+  assert.match(rpcAssertions, /acl\.grantee = 0/);
+  assert.match(rpcAssertions, /acl\.privilege_type = 'EXECUTE'/);
+  assert.match(rpcAssertions,
+    /acl\.privilege_type IN \('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'\)/);
 });
 
 test("quota cleanup RPC is executable only by the trusted server role", () => {
