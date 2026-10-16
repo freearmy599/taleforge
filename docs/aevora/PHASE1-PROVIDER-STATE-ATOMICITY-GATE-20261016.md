@@ -250,3 +250,36 @@ These findings strengthen the fail-closed contract: throttle recording must retu
 - Every provider request path checks a provider-state read/RPC result and fails closed on lookup or malformed-state errors.
 - Every throttle-recording call checks the RPC result and distinguishes persisted, already-active/ignored-by-policy, and persistence-failed outcomes.
 - Only a closed set of event classifications and fixed diagnostic values can reach the RPC.
+
+
+## Deployed-versus-branch drift check — live Edge Functions, 2026-10-16
+
+A read-only inspection of the currently deployed Edge Function source changed the scope assessment. The earlier six-writer inventory is valid for the checked-in branch snapshot, but it must not be represented as the deployed writer count.
+
+### Live deployed versions checked
+
+| Function | Deployed version | Provider-state behavior observed |
+|---|---:|---|
+| `generate-chapter` | 59 | Reads state before generation and quality review; directly reads/counts/upserts on Gemini throttle. Persists a raw error substring in `last_error`. |
+| `generation-orchestrator` | 35 | Reads state; directly reads counter and upserts throttle state. Persists arbitrary message text. |
+| `revise-chapter` | 40 | Reads state before revision; directly reads counter and upserts throttle state. Persists arbitrary message text. |
+| `continuity-review` | 10 | Read-only provider-state guard found; no direct writer found in the deployed source inspected. |
+| `originality-review` | 9 | Read-only provider-state guard found; no direct writer found in the deployed source inspected. |
+| `safety-review` | 9 | Read-only provider-state guard found; no direct writer found in the deployed source inspected. |
+| `review-orchestrator` | 11 | Read-only provider-state guard found; no direct writer found in the deployed source inspected. |
+
+The deployed versions and hashes were read from Supabase's Edge Function metadata. This was a read-only inspection; no function was deployed or changed.
+
+### Consequence
+
+The immediate deployed atomic-writer migration scope is **three confirmed direct writers**: `generate-chapter` v59, `generation-orchestrator` v35, and `revise-chapter` v40. The checked-in branch contains additional writer logic in three review functions, so branch/deployed drift must be resolved deliberately: do not blindly deploy the branch versions, and do not assume the extra branch writers are deployed. Preserve the seven-function reader/writer review set above, then perform a full deployed function inventory before changing grants.
+
+The deployed `generate-chapter` and `generation-orchestrator` paths shown in this inspection have simpler checks than the hardened branch source; in particular, the live code shown does not perform the same complete malformed-state/cooldown-monotonicity checks documented for the branch. Deployed `revise-chapter` also has a direct read/compute/upsert path. Raw provider error text is still written by these three deployed writers. These are confirmed live blockers.
+
+### Revised next gate
+
+1. Keep the full checked-in source inventory as a branch migration checklist, but distinguish deployed behavior from branch behavior in all reports.
+2. Implement one shared atomic RPC and migrate the three confirmed deployed writers in the source branch; retain the extra branch writer paths only if they are actually intended to be deployed, otherwise remove or migrate them before release.
+3. Before any production deployment, inspect every currently deployed function for table references, including functions not in the seven-function subset above.
+4. Test raw diagnostic redaction by preventing raw input from reaching the RPC rather than relying on a future cleanup UPDATE.
+5. Verify deployed source/version after an explicitly approved rollout; do not revoke trusted service-role table writes before all live writers are migrated.
