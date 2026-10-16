@@ -23,6 +23,12 @@ Save the catalog-only outputs in the project's approved private audit record. Do
 
 ## Provider-state evidence to reconcile
 
+### Migration chronology currently known
+
+The live ledger's latest observed entry is `20261010161919 aevora_release_scheduler_leases`. The repository's provider-state lock migration (`20261013120000_lock_ai_provider_state_table.sql`) and default-privilege hardening migration (`20261014170000_restrict_public_default_privileges.sql`) are later than that ledger entry, so their absence from the live ACL state is consistent with those hardening migrations not yet being applied. This is not a deployment authorization.
+
+Separately, the ledger contains `20261007025751 add_taleforge_ai_provider_cooldown_state`, but the current branch and `main` do not contain a matching creation migration. Do not invent or backfill a historical migration file. Establish its origin from an approved source of truth before writing a new atomic RPC migration or reconciling migration history.
+
 For `public.taleforge_ai_provider_state`, confirm:
 
 - Relation exists, exact owner, RLS flags, and relation kind.
@@ -55,13 +61,13 @@ Record only sanitized catalog facts and a source reference; no credentials or ap
 
 | Item | Evidence/source | Result |
 |---|---|---|
-| Provider-state relation and exact columns | Provider inventory + migration history | Pending |
+| Provider-state relation and exact columns | Provider inventory + migration history | Partially verified; original creation migration missing from current Git history |
 | Provider unique key / counter invariant | Provider inventory + migration history | Pending |
-| Provider-state grants and routine owners | Provider inventory | Pending |
+| Provider-state grants and routine owners | Provider inventory | Grants observed; later lock migration not recorded as applied in live ledger |
 | Publication relation/column inventory | Publication inventory + migration history | Pending |
 | Publication unique constraints and triggers | Publication inventory + migration history | Pending |
 | Publication routine ACLs and search paths | Publication inventory | Pending |
-| Live schema vs migration drift reconciled | Approved audit record | Pending |
+| Live schema vs migration drift reconciled | Approved audit record | Pending; original creation migration provenance unresolved |
 
 ## Exit criteria
 
