@@ -24,6 +24,10 @@ const matrix = await readFile(
   new URL("../docs/aevora/PHASE1-CLIENT-GRANT-DEFAULT-ACL-RECONCILIATION-20261017.md", import.meta.url),
   "utf8",
 );
+const lineage = await readFile(
+  new URL("../docs/aevora/PHASE1-GOVERNANCE-SCHEMA-LINEAGE-20261017.md", import.meta.url),
+  "utf8",
+);
 
 const governanceRelations = [
   "taleforge_system_governance_registry",
@@ -61,6 +65,23 @@ test("governance gate definition query and publication-approval distinction rema
   }
   assert.match(report, /not a per-chapter human approval token|not a human approval record|not proof.{0,100}(?:human|chapter)/i);
   assert.match(report, /provenance remains unresolved|remains unresolved/i);
+});
+
+test("lineage evidence preserves separate schema generations and the legacy health foreign key", () => {
+  for (const relation of [
+    "taleforge_system_registry",
+    "taleforge_system_governance_registry",
+    "taleforge_system_dependencies",
+    "taleforge_system_governance_dependencies",
+    "taleforge_system_health",
+    "taleforge_system_governance_runs",
+  ]) {
+    assert.ok(lineage.includes("`" + relation + "`"), "lineage report missing " + relation);
+  }
+  assert.match(lineage, /different OIDs/i);
+  assert.match(lineage, /foreign key references the \*\*legacy\*\*/i);
+  assert.match(lineage, /not rename candidates/i);
+  assert.match(matrix, /governance schema lineage recheck/i);
 });
 
 test("audit records do not misrepresent read-only findings as production remediation", () => {
