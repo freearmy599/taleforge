@@ -98,3 +98,10 @@ The live catalog separately confirms that both `postgres` and `supabase_admin` h
 Evidence: [governance gate dependency and ACL follow-up](./PHASE1-GOVERNANCE-GATE-DEPENDENCY-ACL-FOLLOWUP-20261017.md); [read-only catalog query](./phase1-publication-schema-provenance.sql).
 
 Acceptance for these four relations remains open until source provenance and caller mapping are reviewed, role-by-role access is agreed, positive/negative tests pass in a disposable database, and CI validates the exact candidate. No live grants or policies have been changed.
+
+
+## Governance lineage dependency — 2026-10-17
+
+Before applying any grant correction to the four governance relations, resolve the tracked-versus-live schema mismatch documented in [the governance schema lineage recheck](./PHASE1-GOVERNANCE-SCHEMA-LINEAGE-20261017.md). The tracked migration defines `taleforge_system_registry` and `taleforge_system_dependencies`; live inspection reports the similarly named `taleforge_system_governance_registry` and `taleforge_system_governance_dependencies`, plus `taleforge_system_governance_runs` without a defining CREATE TABLE statement in the inspected migration. Similar names are not enough to prove identity.
+
+**Gate:** no ACL migration candidate should be drafted against these objects until the authoritative source/history and object lineage are recovered. Existing matrix entries remain provisional; no live grants or policies have been changed.
