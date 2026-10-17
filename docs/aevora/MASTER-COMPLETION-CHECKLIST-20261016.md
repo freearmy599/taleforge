@@ -402,3 +402,16 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Added a config/source-contract test in commit `a8813ded48530e898ebb6220d17ce833297e2563`, then corrected its regex in `eebd26b25b69178896fc51f25dcfb5549e7d2f9c`.
 - [ ] CI for the config/test/documentation changes must finish successfully before treating this branch configuration as validated.
 - [ ] Production gateway configuration remains unchanged. Any deployment must verify `SUPABASE_SECRET_KEYS` and the explicit named-key allowlist are configured as expected, test legitimate scheduled callers and rejected client-role keys, and have an approved rollback plan.
+
+
+### Autonomous-series scheduled caller credential mismatch — 2026-10-17
+
+- [x] Read-only metadata inspection of cron job 13 `taleforge-autonomous-series-creation` confirms its request references `Authorization`, has no `apikey` header reference, and uses scheduled mode. The referenced Vault credential is 41 characters, matches the `sb_secret_...` format, and is not JWT-shaped; its value was not read or returned.
+- [x] The deployed runner v6 has `verify_jwt=true` and compares the scheduled Bearer token to the legacy `SUPABASE_SERVICE_ROLE_KEY`. That is incompatible with the observed new secret-key format and caller header shape. This is a confirmed credential-format mismatch, not a successful exploit or proof of the exact gateway response.
+- [x] Added branch-only handler correction in commit `c444535c6ddbec005c26f18a8602751d65d5278f`: scheduled mode validates the `apikey` header through the shared fail-closed allowlist helper; admin mode continues to validate a real Supabase user session and application role before privileged client creation.
+- [x] Added `verify_jwt = false` for the mixed-mode runner in branch config commit `ab6c7c7297e8e5bf1bc235e6dcd5bccba651cd5a`; handler-level scheduled-key/admin-session checks remain mandatory.
+- [x] Updated the source-contract test to require the new scheduled-key guard and reject the old legacy-token comparison in commit `aea120803bd7855c068712db966f0a85059e968f`.
+- [x] Added [the caller-fix runbook](./PHASE1-AUTONOMOUS-RUNNER-SECRET-KEY-CALLER-FIX-20261017.md) describing the coordinated cron header correction without exposing the raw command or credential.
+- [ ] Latest handler/config/test CI must complete successfully.
+- [ ] Production cron command must be updated from secret-in-Authorization/no-apikey to secret-in-apikey only, in a coordinated, owner-approved rollout. This cannot be inferred from branch tests and has not been done.
+- **Safety boundary:** no cron command, function, secret, schedule, series, chapter, or production database state was changed. Do not run actual autonomous creation as a smoke test. Production autonomous-series creation and automated publication remain NO-GO.
