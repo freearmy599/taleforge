@@ -629,3 +629,14 @@ This is a lineage finding, not evidence that a migration never existed. No produ
 - [ ] Recover authoritative creation history and map the evaluator's live callers before any ACL or schema proposal.
 
 This was read-only catalog inspection plus branch documentation/test changes only. No production schema, grants, policies, functions, deployments, schedules, chapters, or publications were changed; no billable Supabase branch was created. Automated publishing remains **NO-GO**.
+
+
+### Governance policy and evaluator follow-through — 2026-10-17
+
+- [x] Recorded that legacy registry/dependency tables have public SELECT policies while governance-prefixed registry/dependency/run tables returned no policies in the read-only catalog query.
+- [x] Recorded the live evaluator's governance-table references, SECURITY DEFINER status, `search_path=public`, and the limitation that catalog dependency metadata is not a complete caller graph.
+- [x] Extended the source-contract test to guard these lineage findings.
+- [ ] Run the exact Node contract and obtain a green CI result for the resulting commit; source-content checks alone are not execution evidence.
+- [ ] Recover authoritative migration/platform SQL provenance and map the full evaluator call graph before proposing ACL or schema changes.
+
+No production permissions or routines were changed. Automated publishing remains **NO-GO**.
