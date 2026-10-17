@@ -52,6 +52,8 @@ test("every known secret-key cron target has guarded source and matching gateway
     const handler = entrypoint.slice(entrypoint.indexOf("Deno.serve"));
     assert.ok(handler.includes("isTrustedInternalApiKey("),
       target + " must validate the internal key in its deployed handler source");
+    assert.match(handler, /isTrustedInternalApiKey\\(\\s*req\\.headers\\.get\\(["']apikey["']\\)/,
+      target + " must validate the server-to-server credential from the apikey header");
     const section = config.match(
       new RegExp("\\[functions\\." + target + "\\]\\s*([\\s\\S]*?)(?=\\n\\[functions\\.|$)"),
     );
