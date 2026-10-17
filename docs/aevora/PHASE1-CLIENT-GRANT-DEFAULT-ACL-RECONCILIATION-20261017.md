@@ -76,3 +76,25 @@ This audit item is complete only when:
 ## Current conclusion
 
 Do not apply a blanket `REVOKE`, create broad policies, or change default privileges based solely on the current findings. The next safe deliverable is the source-to-table caller map and per-role access matrix, followed by narrowly scoped, tested candidates. Automated publishing remains **NO-GO** and production remains unchanged.
+
+
+## Live governance relations — added 2026-10-17
+
+These four relations are now explicitly tracked in the reconciliation matrix after the live read-only governance-gate audit. This is a provisional decision record, not permission to change production.
+
+| Relation | Live catalog evidence | Provisional intended client access | Required caller evidence / status |
+|---|---|---|---|
+| `public.taleforge_system_governance_registry` | RLS enabled, not forced; broad explicit relation grants to `anon`, `authenticated`, and `service_role`; no policy returned in the inspected policy query | No direct client mutation; no client read unless a documented product/API caller is established | Map evaluator and any other SQL/Edge/operational callers; recover authoritative migration/source; unresolved |
+| `public.taleforge_system_governance_dependencies` | RLS enabled, not forced; broad explicit relation grants to `anon`, `authenticated`, and `service_role`; no policy returned in the inspected policy query | No direct client mutation or read absent an evidenced requirement | Map evaluator and any other SQL/Edge/operational callers; recover authoritative migration/source; unresolved |
+| `public.taleforge_system_governance_runs` | RLS enabled, not forced; broad explicit relation grants to `anon`, `authenticated`, and `service_role`; no policy returned in the inspected policy query | No direct client mutation or read; preserve required trusted evaluator writes | Verify all readers/writers and audit-retention needs; recover authoritative migration/source; unresolved |
+| `public.taleforge_system_health` | RLS enabled, not forced; broad explicit relation grants to client roles; one client SELECT policy was returned; no client write policy was returned | At most scoped/read-only access if a real browser use is confirmed; no client mutation | Find exact health-widget/browser caller and validate response sensitivity; preserve evaluator access; unresolved |
+
+The table above intentionally does not claim that client writes currently succeed: relation grants and RLS policies are separate enforcement layers, and no write attempt was made. The existing health SELECT policy should not be removed or widened until its actual caller and returned fields are reviewed.
+
+### Default ACL dependency
+
+The live catalog separately confirms that both `postgres` and `supabase_admin` have schema-scoped defaults in `public` granting broad table privileges to `anon` and `authenticated`, sequence `SELECT/UPDATE/USAGE`, and function `EXECUTE`. The creator-role dimension must remain in the matrix: object-scoped ACL repairs alone do not correct future-object defaults. The current executor lacks the authorized `supabase_admin` owner path, so any default-ACL correction remains blocked until an approved operator route and disposable rehearsal exist.
+
+Evidence: [governance gate dependency and ACL follow-up](./PHASE1-GOVERNANCE-GATE-DEPENDENCY-ACL-FOLLOWUP-20261017.md); [read-only catalog query](./phase1-publication-schema-provenance.sql).
+
+Acceptance for these four relations remains open until source provenance and caller mapping are reviewed, role-by-role access is agreed, positive/negative tests pass in a disposable database, and CI validates the exact candidate. No live grants or policies have been changed.
