@@ -35,6 +35,22 @@ BEGIN
     END LOOP;
   END LOOP;
 
+  -- Relation-level REVOKE must also remove independently granted column ACLs.
+  FOREACH client_role IN ARRAY ARRAY['anon', 'authenticated']
+  LOOP
+    FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','REFERENCES']
+    LOOP
+      IF has_column_privilege(client_role, 'public.taleforge_system_health_snapshot', 'evidence', privilege_name) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: % retains column-level % grant on raw health snapshot evidence', client_role, privilege_name;
+      END IF;
+      IF has_column_privilege(client_role, 'public.taleforge_system_registry', 'system_key', privilege_name) THEN
+        IF privilege_name <> 'SELECT' THEN
+          RAISE EXCEPTION 'ASSERTION_FAILED: % retains column-level % grant on registry system_key', client_role, privilege_name;
+        END IF;
+      END IF;
+    END LOOP;
+  END LOOP;
+
   IF EXISTS (
     SELECT 1
     FROM pg_catalog.pg_policies p
