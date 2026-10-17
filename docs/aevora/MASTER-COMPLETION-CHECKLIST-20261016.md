@@ -13,6 +13,8 @@ This is the project-wide task register for finishing Aevora, including security/
 
 ## Current executive status
 
+- **Latest completed CI confirmation (2026-10-17):** [run 39052743821](https://github.com/freearmy599/taleforge/actions/runs/39052743821) passed both jobs on checklist-evidence commit `5573a7ecd69c6ac9331dd83fe5a714abb4d8e426`: prepared Edge Function type-check/source-contract validation (67/67 steps) and disposable PostgreSQL readiness/lease/concurrency/reader-event rehearsal (24/24 steps). This confirms the tested branch snapshot only; it does not establish live Supabase compatibility, deployed parity, or authorize production rollout. Phase 1 remains open and automated publishing remains NO-GO.
+
 - **Latest completed CI confirmation (2026-10-17):** [run 39051452959](https://github.com/freearmy599/taleforge/actions/runs/39051452959) passed both jobs on commit `9148b58c52b9c714fa7a8ce4b31ef86c08ff7b5b`: prepared Edge Function type-check/source-contract validation and disposable PostgreSQL readiness/lease/concurrency rehearsal. Added a regression guard asserting the scheduler's automated-publication authorization stop occurs before per-schedule RPCs, table mutations, publisher calls, or lease-token creation. This is branch-only evidence; it does not establish deployed parity, live schema compatibility, or authorize production rollout.
 
 
