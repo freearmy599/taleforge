@@ -401,3 +401,129 @@ WHERE n.nspname = 'public'
   )
 GROUP BY d.defaclrole, n.nspname, d.defaclobjtype, acl.grantee
 ORDER BY creator_role, object_type, grantee_name;
+
+
+-- Governance lineage comparison: relation identity, columns, constraints,
+-- foreign-key targets, and catalog dependency edges. Metadata only; no rows.
+WITH target_names(name) AS (
+  VALUES
+    ('taleforge_system_registry'),
+    ('taleforge_system_governance_registry'),
+    ('taleforge_system_dependencies'),
+    ('taleforge_system_governance_dependencies'),
+    ('taleforge_system_health'),
+    ('taleforge_system_governance_runs')
+)
+SELECT
+  n.nspname AS schema_name,
+  c.relname AS relation_name,
+  c.oid AS relation_oid,
+  c.relkind AS relation_kind,
+  pg_catalog.pg_get_userbyid(c.relowner) AS owner_name,
+  c.relrowsecurity AS rls_enabled,
+  c.relforcerowsecurity AS rls_forced
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relname IN (SELECT name FROM target_names)
+ORDER BY c.relname;
+
+WITH target_names(name) AS (
+  VALUES
+    ('taleforge_system_registry'),
+    ('taleforge_system_governance_registry'),
+    ('taleforge_system_dependencies'),
+    ('taleforge_system_governance_dependencies'),
+    ('taleforge_system_health'),
+    ('taleforge_system_governance_runs')
+)
+SELECT
+  c.relname AS relation_name,
+  a.attnum AS ordinal_position,
+  a.attname AS column_name,
+  pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type,
+  a.attnotnull AS not_null,
+  pg_catalog.pg_get_expr(d.adbin, d.adrelid) AS default_expression
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+JOIN pg_catalog.pg_attribute a
+  ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+LEFT JOIN pg_catalog.pg_attrdef d
+  ON d.adrelid = c.oid AND d.adnum = a.attnum
+WHERE n.nspname = 'public'
+  AND c.relname IN (SELECT name FROM target_names)
+ORDER BY c.relname, a.attnum;
+
+WITH target_names(name) AS (
+  VALUES
+    ('taleforge_system_registry'),
+    ('taleforge_system_governance_registry'),
+    ('taleforge_system_dependencies'),
+    ('taleforge_system_governance_dependencies'),
+    ('taleforge_system_health'),
+    ('taleforge_system_governance_runs')
+)
+SELECT
+  c.relname AS relation_name,
+  con.conname AS constraint_name,
+  con.contype AS constraint_type,
+  pg_catalog.pg_get_constraintdef(con.oid, true) AS constraint_definition,
+  referenced.relname AS referenced_relation
+FROM pg_catalog.pg_constraint con
+JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN pg_catalog.pg_class referenced ON referenced.oid = con.confrelid
+WHERE n.nspname = 'public'
+  AND c.relname IN (SELECT name FROM target_names)
+ORDER BY c.relname, con.conname;
+
+WITH target_names(name) AS (
+  VALUES
+    ('taleforge_system_registry'),
+    ('taleforge_system_governance_registry'),
+    ('taleforge_system_dependencies'),
+    ('taleforge_system_governance_dependencies'),
+    ('taleforge_system_health'),
+    ('taleforge_system_governance_runs')
+)
+SELECT
+  dependent_ns.nspname AS dependent_schema,
+  dependent.relname AS dependent_relation,
+  dependent.relkind AS dependent_kind,
+  referenced_ns.nspname AS referenced_schema,
+  referenced.relname AS referenced_relation,
+  dependency.deptype AS dependency_type
+FROM pg_catalog.pg_depend dependency
+JOIN pg_catalog.pg_class referenced ON referenced.oid = dependency.refobjid
+JOIN pg_catalog.pg_namespace referenced_ns ON referenced_ns.oid = referenced.relnamespace
+JOIN pg_catalog.pg_class dependent ON dependent.oid = dependency.objid
+JOIN pg_catalog.pg_namespace dependent_ns ON dependent_ns.oid = dependent.relnamespace
+WHERE referenced_ns.nspname = 'public'
+  AND referenced.relname IN (SELECT name FROM target_names)
+  AND dependent_ns.nspname = 'public'
+ORDER BY dependent.relname, referenced.relname;
+
+WITH target_names(name) AS (
+  VALUES
+    ('taleforge_system_registry'),
+    ('taleforge_system_governance_registry'),
+    ('taleforge_system_dependencies'),
+    ('taleforge_system_governance_dependencies'),
+    ('taleforge_system_health'),
+    ('taleforge_system_governance_runs')
+)
+SELECT
+  c.relname AS relation_name,
+  trigger.tgname AS trigger_name,
+  trigger.tgenabled AS enabled_state,
+  pg_catalog.pg_get_triggerdef(trigger.oid, true) AS trigger_definition,
+  trigger_ns.nspname || '.' || trigger_fn.proname AS trigger_function
+FROM pg_catalog.pg_trigger trigger
+JOIN pg_catalog.pg_class c ON c.oid = trigger.tgrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+JOIN pg_catalog.pg_proc trigger_fn ON trigger_fn.oid = trigger.tgfoid
+JOIN pg_catalog.pg_namespace trigger_ns ON trigger_ns.oid = trigger_fn.pronamespace
+WHERE n.nspname = 'public'
+  AND c.relname IN (SELECT name FROM target_names)
+  AND NOT trigger.tgisinternal
+ORDER BY c.relname, trigger.tgname;
