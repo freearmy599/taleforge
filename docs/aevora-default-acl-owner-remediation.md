@@ -34,7 +34,12 @@ The most consequential exposed routines in this sample are:
 - `apply_attachment_directives(uuid)` — updates planned/ready rows in `public.chapter_blueprints` based on attachment metrics.
 - `prepare_next_chapter_blueprint(uuid)` — delegates to `apply_attachment_directives(uuid)`.
 - `refresh_story_attachment_metrics(uuid)` — calculates and writes `public.story_attachment_metrics`.
-- Other functions expose narrative planning/context or production-buffer data; several remaining entries are trigger functions and should not be directly callable as ordinary RPCs.
+- `get_production_buffer_plan()` — reads production-buffer information from chapter-generation outputs.
+- `get_story_narrative_destination(uuid)` — returns story/blueprint planning context.
+
+A separate literal `pg_proc.prosrc` match against the 39 audited relation names found 64 public routines with at least one matching name (58 `SECURITY DEFINER`, 6 `SECURITY INVOKER`); all 64 were executable by `service_role` in that snapshot. Four of those matched routines were executable by both client roles: `apply_attachment_directives`, `get_production_buffer_plan`, `get_story_narrative_destination`, and `refresh_story_attachment_metrics`. `prepare_next_chapter_blueprint` was also client-executable and delegates to the first routine. This matching method is not a complete dependency graph and can miss dynamic or indirect references.
+
+The four directly matched client-executable routines and their wrapper are `SECURITY INVOKER`, not `SECURITY DEFINER`. This is not proof of an RLS bypass; their operations are bounded by the calling role's effective table privileges and RLS. Nevertheless, direct client `EXECUTE` is unnecessary for trusted-worker internals and should be denied by the branch candidate after its disposable negative/positive tests pass. Other client-executable entries include narrative planning/context functions and trigger functions; trigger functions should not be treated as ordinary RPC endpoints, and their attached trigger execution must continue to work after direct `EXECUTE` is revoked.
 
 A follow-up ACL/policy check found client INSERT/UPDATE/DELETE table grants on `chapter_blueprints`, `chapter_generation_outputs`, `story_attachment_metrics`, `story_blueprints`, `story_lifecycle`, `series`, and `chapters`, but no applicable client write policies on several of these tables. RLS therefore blocks ordinary row writes where no policy applies, but the grants are still broader than necessary. The public chapter/series SELECT policies are distinct from write authorization.
 
