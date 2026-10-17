@@ -516,3 +516,10 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - **Scope:** branch-only regression tests and documentation. No live Supabase functions, permissions, migrations, cron schedules, chapter data, or publication state were changed; no billable branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO** until trusted publication authorization is implemented and approved at the database commit boundary, live function/migration parity is reconciled, and owner/default-ACL plus worker-auth rollout gates are resolved.
 
+
+### Partial scheduler publication-failure contract — 2026-10-17
+
+- [x] Added source-contract coverage requiring the scheduler to classify partial published side effects alongside schedule failures as `partial_success`, and to treat incomplete publication, unconfirmed publisher results, unconfirmed schedule advancement, lease-release uncertainty, and the publication-authorization stop as failure actions.
+- [x] Validation passed on commit [`d88a527`](https://github.com/freearmy599/taleforge/commit/d88a527cb3734c4defec658e3f5506623eb20a8b): [CI run 39027303525](https://github.com/freearmy599/taleforge/actions/runs/39027303525) completed successfully. The checklist documentation commit [`19bafa3`](https://github.com/freearmy599/taleforge/commit/19bafa33a121017983cb8d8337af03879310dbd6) also passed [CI run 39027278264](https://github.com/freearmy599/taleforge/actions/runs/39027278264). Both runs completed the Edge source/type-check job and disposable PostgreSQL rehearsal successfully.
+- **Scope:** branch-only test and documentation work. No live Supabase functions, permissions, migrations, cron schedules, chapter data, or publication state were changed; no billable branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO**. Publication authorization at the database commit boundary, live function/migration parity, authorized owner/default-ACL remediation, and coordinated worker-auth rollout remain unresolved.
