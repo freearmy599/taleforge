@@ -112,3 +112,14 @@ test("routine caller inventory documents effective service-role-only EXECUTE and
   assert.match(query, /has_function_privilege\('service_role', p\.oid, 'EXECUTE'\)/);
   assert.match(query, /taleforge_ceo_analyze_root_cause/);
 });
+
+test("broad SECURITY DEFINER search-path review remains metadata-only and flags temp-schema candidates", () => {
+  assert.match(report, /69 SECURITY DEFINER routines/i);
+  assert.match(report, /55 specify exactly search_path=public/i);
+  assert.match(report, /service_role can create temporary objects/i);
+  assert.match(report, /not proof that all 55 are exploitable/i);
+  assert.match(query, /Broad SECURITY DEFINER search_path review candidate inventory/);
+  assert.match(query, /has_database_privilege\('service_role', current_database\(\), 'TEMP'\)/);
+  assert.match(query, /has_schema_privilege\('service_role', 'public', 'CREATE'\)/);
+  assert.match(query, /public_only_temp_implicit_first/);
+});
