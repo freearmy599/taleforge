@@ -78,6 +78,12 @@ A second read-only query compared the 39 audited relation names against public.p
 
 **Priority interpretation:** the four directly matched client-executable routines warrant explicit negative-call and trusted-worker regression tests. They are SECURITY INVOKER, not SECURITY DEFINER; the catalog query does not prove an RLS bypass. Their behavior remains bounded by the caller's relation privileges and applicable RLS. Keep the candidate unapplied until disposable tests prove direct client RPC denial, trigger behavior remains intact, and trusted worker paths still function.
 
+## Focused live relation-ACL cross-check — read-only (2026-10-17)
+
+A separate effective-privilege query rechecked six high-impact relations referenced by internal workflow routines: chapter_blueprints, chapter_generation_outputs, publication_sync_outbox, release_schedules, story_attachment_metrics, and story_blueprints. Every relation in this sample had RLS enabled, FORCE RLS disabled, zero row policies, and effective table privileges for both anon and authenticated covering SELECT, INSERT, UPDATE, DELETE, and TRUNCATE.
+
+This is stronger evidence of overbroad ACL configuration than a raw explicit-grant listing, but it is not proof that ordinary PostgREST row reads/writes succeed: with RLS enabled and no applicable policy, row operations are normally denied. TRUNCATE is not governed by RLS; the audit confirms the role privilege but does not prove a particular REST route can invoke TRUNCATE. Keep these relations server-only unless a reviewed feature contract proves otherwise, and do not apply blanket production revokes without an approved plan.
+
 ## Next evidence required
 
 1. Map the 28 server-only candidates through every SQL function, trigger, view, migration, and scheduled job, including SECURITY DEFINER call chains and dynamic SQL.
