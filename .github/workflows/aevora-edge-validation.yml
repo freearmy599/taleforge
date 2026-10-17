@@ -300,3 +300,15 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_internal_rpc_acl_test"
           bash scripts/test-aevora-internal-rpc-acl.sh
+
+      - name: Run atomic quality-review source contract tests
+        run: node --test scripts/aevora-atomic-quality-review-contract.test.mjs
+
+      - name: Rehearse atomic quality-review persistence and rollback
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_atomic_quality_review_test
+          AEVORA_DISPOSABLE_ATOMIC_REVIEW_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_atomic_quality_review_test"
+          bash scripts/test-aevora-atomic-quality-review.sh
