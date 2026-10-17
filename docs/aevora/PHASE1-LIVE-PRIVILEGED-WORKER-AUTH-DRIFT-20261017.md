@@ -61,3 +61,17 @@ Branch-only correction:
 - [ ] Wait for CI on the config/test commits to complete successfully before considering the branch candidate validated.
 
 This is a branch-only configuration change. It does not alter deployed Edge Function settings. Before rollout, verify the named secret-key allowlist exists at runtime and matches the intended cron/worker key, ensure all privileged callers are covered by the handler guard, and test both legitimate internal calls and rejected publishable/user-key calls. Do not deploy without explicit owner authorization and rollback planning.
+
+
+## Additional service-role endpoint triage — 2026-10-17
+
+A read-only source review of additional deployed functions distinguished human-session endpoints from cron/internal-worker endpoints. The following use a real Supabase user session and check the application admin/owner role before creating their privileged client:
+- `chief-editor-monitor` v8
+- `autonomous-series-creation` v5 (preflight-only; rejects production execution modes)
+- `aevora-cover-worker` v4 (readiness-only; image generation disabled)
+- `aevora-cover-request` v5
+- `aevora-cover-review` v4
+
+These were not classified as the same new-secret cron mismatch. Keep their gateway JWT verification enabled and retain the explicit human-session/admin-role checks; do not mechanically set `verify_jwt=false` merely because a function uses a service-role client. `aevora-operations-snapshot` v5 was also inspected as a read-only snapshot endpoint; no cron secret-key caller was identified in this pass.
+
+This was source-pattern triage, not a runtime test. No endpoints were invoked and no series, chapters, cover jobs, images, or user data were queried through these functions. No live configuration or data was changed.
