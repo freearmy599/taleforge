@@ -180,6 +180,8 @@ jobs:
         run: node --test scripts/aevora-internal-taxonomy-acl-contract.test.mjs
       - name: Run policyless ACL inventory consistency contract tests
         run: node --test scripts/aevora-policyless-acl-inventory-contract.test.mjs
+      - name: Run governance ACL provenance contract tests
+        run: node --test scripts/aevora-governance-acl-provenance-contract.test.mjs
       - name: Run 39-table caller-map contract tests
         run: node --test scripts/aevora-39-table-caller-map-contract.test.mjs
       - name: Run review-orchestrator provider guard contract tests
