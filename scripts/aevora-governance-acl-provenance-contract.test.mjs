@@ -99,3 +99,16 @@ test("audit records do not misrepresent read-only findings as production remedia
   assert.match(query, /never apply a blanket revoke/i);
   assert.match(matrix, /No live grants or policies have been changed/i);
 });
+
+test("routine caller inventory documents effective service-role-only EXECUTE and remaining graph limits", () => {
+  assert.match(report, /live governance routine caller inventory/i);
+  assert.match(report, /taleforge_ceo_execution_gate\(text\)/);
+  assert.match(report, /taleforge_observe_all_systems\(\)/);
+  assert.match(report, /aevora_audit_registry_consistency\(\)/);
+  assert.match(report, /effective.*EXECUTE.*false.*anon.*authenticated.*true.*service_role/is);
+  assert.match(report, /not a complete caller graph/i);
+  assert.match(query, /has_function_privilege\('anon', p\.oid, 'EXECUTE'\)/);
+  assert.match(query, /has_function_privilege\('authenticated', p\.oid, 'EXECUTE'\)/);
+  assert.match(query, /has_function_privilege\('service_role', p\.oid, 'EXECUTE'\)/);
+  assert.match(query, /taleforge_ceo_analyze_root_cause/);
+});
