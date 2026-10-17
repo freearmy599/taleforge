@@ -70,6 +70,14 @@ test("caller map records the focused live relation-ACL cross-check with appropri
   assert.match(map, /does not prove a particular REST route can invoke TRUNCATE/);
 });
 
+test("caller map records trigger dependencies and explains direct EXECUTE revocation", () => {
+  assert.match(map, /Trigger dependency check for ACL remediation/);
+  assert.match(map, /taleforge_update_updated_at\(\)/);
+  assert.match(map, /sync_continuity_gate\(\), sync_quality_gate\(\), and sync_story_ending_metadata\(\)/);
+  assert.match(map, /client EXECUTE on a trigger function is not required/);
+  assert.match(map, /updated-at trigger continues to work after direct client EXECUTE is revoked/);
+});
+
 test("reader-event browser cutover remains explicitly identified as incomplete", () => {
   assert.match(browserClient, /taleForgeReaderEventIntakeEnabled\s*=\s*false/);
   assert.match(progress, /supabase\.from\("reader_events"\)\.insert\(payload\)/);
