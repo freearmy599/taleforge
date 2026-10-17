@@ -122,6 +122,8 @@ jobs:
         run: node --test scripts/aevora-publisher-security-contract.test.mjs
       - name: Run publication authorization stop contract tests
         run: node --test scripts/aevora-publication-authorization-stop-contract.test.mjs
+      - name: Run chapter client-write ACL contract tests
+        run: node --test scripts/aevora-chapter-acl-contract.test.mjs
       - name: Run dynamic browser chapter write-boundary tests
         run: node --test scripts/aevora-browser-chapter-write-boundary.test.mjs
       - name: Run browser internal RPC boundary tests
@@ -265,6 +267,15 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_system_health_test"
           bash scripts/test-aevora-system-health-acl.sh
+
+      - name: Rehearse chapter client-write ACL hardening
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_chapter_acl_test
+          AEVORA_DISPOSABLE_CHAPTER_ACL_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_chapter_acl_test"
+          bash scripts/test-aevora-chapter-acl.sh
 
       - name: Rehearse internal policyless table client-grant revocation
         env:
