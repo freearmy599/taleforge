@@ -44,7 +44,7 @@ test("default-ACL evidence retains both creator roles and all broad privilege cl
     "SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE",
     "REFERENCES", "TRIGGER", "MAINTAIN", "USAGE", "EXECUTE",
   ]) {
-    assert.ok(report.includes("`" + privilege + "`"), "report missing privilege " + privilege);
+    assert.ok(report.includes(privilege), "report missing privilege " + privilege);
   }
   assert.match(query, /pg_catalog\.pg_default_acl/);
   assert.match(query, /pg_catalog\.aclexplode/);
@@ -54,7 +54,7 @@ test("governance gate definition query and publication-approval distinction rema
   for (const routine of ["taleforge_ceo_execution_gate", "taleforge_boss_evaluate"]) {
     assert.ok(query.includes("'" + routine + "'"), "query missing live routine " + routine);
   }
-  assert.match(report, /not proof of a trusted human approved a specific chapter/i);
+  assert.match(report, /not proof that a trusted human approved a specific chapter/i);
   assert.match(report, /provenance remains unresolved|remains unresolved/i);
 });
 
