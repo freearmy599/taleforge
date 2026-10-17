@@ -84,6 +84,16 @@ A separate effective-privilege query rechecked six high-impact relations referen
 
 This is stronger evidence of overbroad ACL configuration than a raw explicit-grant listing, but it is not proof that ordinary PostgREST row reads/writes succeed: with RLS enabled and no applicable policy, row operations are normally denied. TRUNCATE is not governed by RLS; the audit confirms the role privilege but does not prove a particular REST route can invoke TRUNCATE. Keep these relations server-only unless a reviewed feature contract proves otherwise, and do not apply blanket production revokes without an approved plan.
 
+## Trigger dependency check for ACL remediation — read-only (2026-10-17)
+
+The same six-table sample has enabled user triggers on chapter_blueprints, chapter_generation_outputs, release_schedules, and story_blueprints. The catalog returned these trigger functions:
+
+- taleforge_update_updated_at() — SECURITY INVOKER, attached to three tables, currently executable by anon/authenticated/service_role.
+- taleforge_trigger_narrative_compliance() — SECURITY DEFINER, attached to chapter_generation_outputs; client EXECUTE denied in the snapshot.
+- taleforge_internal.sync_continuity_gate(), sync_quality_gate(), and sync_story_ending_metadata() — SECURITY DEFINER internal-schema triggers; client EXECUTE denied in the snapshot.
+
+This matters because client EXECUTE on a trigger function is not required for PostgreSQL to invoke it through an attached trigger. The branch RPC ACL rehearsal explicitly asserts that the updated-at trigger continues to work after direct client EXECUTE is revoked. The other trigger paths should remain covered by the disposable schema/quality-gate tests before any rollout. No trigger definitions or privileges were changed in the live database.
+
 ## Next evidence required
 
 1. Map the 28 server-only candidates through every SQL function, trigger, view, migration, and scheduled job, including SECURITY DEFINER call chains and dynamic SQL.
