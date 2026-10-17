@@ -20,13 +20,16 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-rpc-acl-fixtu
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261013110000_restrict_internal_invoker_rpc_execution.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/aevora-internal-rpc-acl-assertions.sql
 
-if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SET ROLE anon; SELECT public.apply_attachment_directives('00000000-0000-0000-0000-000000000001'::uuid);" > /tmp/aevora-rpc-acl-direct-call.log 2>&1; then
-  echo "ASSERTION_FAILED: anon directly executed internal RPC after revocation." >&2
-  exit 1
-fi
-if ! grep -qi "permission denied for function apply_attachment_directives" /tmp/aevora-rpc-acl-direct-call.log; then
-  cat /tmp/aevora-rpc-acl-direct-call.log >&2
-  echo "ASSERTION_FAILED: direct RPC call failed for an unexpected reason." >&2
-  exit 1
-fi
-echo "internal RPC direct-client denial assertion passed"
+for client_role in anon authenticated; do
+  log_file="/tmp/aevora-rpc-acl-direct-call-${client_role}.log"
+  if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SET ROLE ${client_role}; SELECT public.apply_attachment_directives('00000000-0000-0000-0000-000000000001'::uuid);" > "$log_file" 2>&1; then
+    echo "ASSERTION_FAILED: ${client_role} directly executed internal RPC after revocation." >&2
+    exit 1
+  fi
+  if ! grep -qi "permission denied for function apply_attachment_directives" "$log_file"; then
+    cat "$log_file" >&2
+    echo "ASSERTION_FAILED: direct RPC call for ${client_role} failed for an unexpected reason." >&2
+    exit 1
+  fi
+  echo "internal RPC direct-client denial assertion passed for ${client_role}"
+done
