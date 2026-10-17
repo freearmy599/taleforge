@@ -38,6 +38,8 @@ test("every direct Gemini API caller has fail-closed provider-state and cooldown
       [/provider_state_unavailable/.test(source), "does not fail closed when provider state is unavailable or invalid"],
       [/provider_cooldown/.test(source), "does not explicitly reject work during an active provider cooldown"],
       [/Date\.now\(\)/.test(source), "does not compare provider cooldown timestamps against the current time"],
+      [/Number\.isSafeInteger\(/.test(source), "does not validate the persisted throttle counter as a safe integer"],
+      [/Number\.isFinite\(/.test(source), "does not reject malformed cooldown timestamps"],
     ];
     for (const [passed, reason] of checks) if (!passed) failures.push(`${path}: ${reason}`);
   }
