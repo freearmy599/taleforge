@@ -60,3 +60,21 @@ These results are catalog metadata only; no application rows were read and no mu
 Treat the two registry/dependency pairs as **separate schema generations with different contracts**, not rename candidates. Do not merge, rename, drop, copy, or ACL-align them based on naming similarity. Recover the authoritative creation history and inspect the live evaluator's full definition/call graph, triggers, policies, and data semantics before proposing any schema or ACL change.
 
 No production objects, grants, policies, functions, migrations, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
+
+
+## Policy and routine follow-up — 2026-10-17
+
+A further read-only catalog pass found:
+
+- The legacy `taleforge_system_registry` and `taleforge_system_dependencies` each have a public SELECT policy for `anon` and `authenticated`.
+- The governance-prefixed registry, dependency, and run-history relations returned no RLS policies in the inspected catalog query. This does not itself establish effective accessibility; explicit grants and RLS must be evaluated together.
+- No non-internal triggers were returned for the six inspected relations.
+- The live `taleforge_boss_evaluate(text)` function directly references the governance-prefixed registry/dependency tables and `taleforge_system_health`, and inserts into `taleforge_system_governance_runs`.
+- The live evaluator's SECURITY DEFINER routine uses `search_path=public`. Its exact source should remain part of the operator-reviewed security assessment; do not alter it as part of the schema-lineage task.
+- Catalog dependency metadata did not return a complete routine caller graph. PL/pgSQL body references, dynamic SQL, Edge Function calls, and external operational callers require separate source/call-site review.
+
+### Security interpretation
+
+The legacy tables' public read policies are a distinct access contract from the governance-prefixed tables' no-policy state. Do not copy either policy posture to the other generation automatically. Before changing ACLs or policies, recover provenance and map intended readers/writers for each relation. The read-only query did not test REST access or attempt writes.
+
+No live grants, policies, functions, migrations, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
