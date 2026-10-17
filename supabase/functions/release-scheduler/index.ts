@@ -473,6 +473,7 @@ Deno.serve(async (req)=>{
           Number(schedule.preferred_weekday),String(schedule.preferred_time),String(schedule.timezone??"UTC"));
       }
 
+      let scheduleAdvanced = false;
       const allSelectedConfirmed = !dryRun && schedule.auto_publish && publishCount>0
         && attemptedCount===publishCount && published.length===publishCount
         && !publicationFailed && !leaseLost;
@@ -487,6 +488,7 @@ Deno.serve(async (req)=>{
             details:advancement.error?message(advancement.error):"Atomic schedule advancement rejected because the lease or schedule precondition was not valid."});
           continue;
         }
+        scheduleAdvanced = true;
       }
 
       results.push({
@@ -496,7 +498,12 @@ Deno.serve(async (req)=>{
         latest_published_chapter:latestNumber,ready_chapters:uniqueReady.length,
         daily_chapters_target:{min:dailyMin,max:dailyMax},published_count:published.length,
         auto_generate:schedule.auto_generate,auto_publish:schedule.auto_publish,
-        published,next_release_at:nextRelease?.toISOString()??schedule.next_release_at,
+        published,
+        // Report the persisted deadline separately from a computed proposal. Dry runs,
+        // empty batches, and failed publication attempts must not imply a DB write.
+        next_release_at:scheduleAdvanced?nextRelease?.toISOString()??schedule.next_release_at:schedule.next_release_at,
+        proposed_next_release_at:nextRelease?.toISOString()??null,
+        schedule_advance_confirmed:scheduleAdvanced,
         schedule_cooldown_until:scheduleCooldownUntil?.toISOString()??null,dry_run:dryRun
       });
       }catch(scheduleError){

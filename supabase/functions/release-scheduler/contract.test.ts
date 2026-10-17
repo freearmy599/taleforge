@@ -516,6 +516,20 @@ Deno.test("partial or unconfirmed publication never advances the next release de
     "partial publication failure must be surfaced in the scheduler result");
 });
 
+Deno.test("scheduler response never presents an unpersisted deadline as next_release_at", async () => {
+  const source = await Deno.readTextFile(schedulerUrl);
+  assert.match(source, /let scheduleAdvanced = false;/,
+    "persisted schedule advancement must start unconfirmed");
+  assert.match(source, /if\(advancement\.error \|\| advancement\.data!==true\)[\s\S]*?continue;\s*}\s*scheduleAdvanced = true;/,
+    "only a confirmed lease-fenced advancement may mark the deadline persisted");
+  assert.match(source, /next_release_at:scheduleAdvanced\?nextRelease\?\.toISOString\(\)\?\?schedule\.next_release_at:schedule\.next_release_at/,
+    "the reported next_release_at must remain the stored deadline unless advancement is confirmed");
+  assert.match(source, /proposed_next_release_at:nextRelease\?\.toISOString\(\)\?\?null/,
+    "a computed but unpersisted deadline must be labelled as a proposal");
+  assert.match(source, /schedule_advance_confirmed:scheduleAdvanced/,
+    "response must explicitly state whether deadline advancement was confirmed");
+});
+
 Deno.test("schedule advancement and lifecycle activation use atomic lease-fenced RPCs", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
   assert(source.includes('supabase.rpc("aevora_advance_release_schedule_if_lease_owned",{'),
