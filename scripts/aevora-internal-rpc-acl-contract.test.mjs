@@ -11,18 +11,20 @@ const fixture = await readFile(new URL("./aevora-internal-rpc-acl-fixture.sql", 
 const assertions = await readFile(new URL("./aevora-internal-rpc-acl-assertions.sql", import.meta.url), "utf8");
 const runner = await readFile(new URL("./test-aevora-internal-rpc-acl.sh", import.meta.url), "utf8");
 
-test("RPC migration removes client EXECUTE and preserves direct service_role grants", () => {
+test("RPC migration removes client EXECUTE while preserving service_role access", () => {
   assert.match(migration, /REVOKE EXECUTE ON FUNCTION public\.apply_attachment_directives\(uuid\) FROM PUBLIC, anon, authenticated/i);
   assert.match(migration, /REVOKE EXECUTE ON FUNCTION public\.update_series_chapter_count\(\) FROM PUBLIC, anon, authenticated/i);
   assert.doesNotMatch(migration, /REVOKE EXECUTE[^;]*\bservice_role\b/i);
-  assert.match(fixture, /GRANT EXECUTE ON FUNCTION public\.apply_attachment_directives\(uuid\) TO service_role/i);
-  assert.match(assertions, /has_function_privilege\('service_role', signature, 'EXECUTE'\)/);
+  assert.match(fixture, /GRANT EXECUTE ON FUNCTION public\.apply_attachment_directives\(uuid\) TO anon, authenticated, service_role/i);
+  assert.match(assertions, /has_function_privilege\('service_role', target, 'EXECUTE'\)/);
+  assert.match(assertions, /has_function_privilege\('anon', target, 'EXECUTE'\)/);
+  assert.match(assertions, /has_function_privilege\('authenticated', target, 'EXECUTE'\)/);
 });
 
 test("rehearsal proves trigger functions still run after direct EXECUTE revocation", () => {
-  assert.match(fixture, /CREATE TRIGGER aevora_rpc_trigger_test[\s\S]*?EXECUTE FUNCTION public\.update_series_chapter_count\(\)/i);
-  assert.match(assertions, /SET ROLE anon;[\s\S]*?INSERT INTO public\.aevora_rpc_trigger_source/i);
-  assert.match(assertions, /trigger function did not run after EXECUTE revocation/i);
+  assert.match(fixture, /CREATE TRIGGER aevora_rpc_acl_trigger_fixture[\s\S]*?EXECUTE FUNCTION public\.taleforge_update_updated_at\(\)/i);
+  assert.match(assertions, /SET ROLE anon;[\s\S]*?INSERT INTO public\.chapters[\s\S]*?UPDATE public\.chapters/i);
+  assert.match(assertions, /trigger function stopped working after client EXECUTE revocation/i);
 });
 
 test("rehearsal explicitly checks direct client RPC denial", () => {
