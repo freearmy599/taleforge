@@ -310,3 +310,9 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Confirmed source-level behavior: each automated candidate requires lease renewal before the publisher request; renewal failure marks lease loss and stops the batch; schedule advancement uses `aevora_advance_release_schedule_if_lease_owned` with the same lease token; and claimed leases are released in `finally`, with unconfirmed release surfaced as a failure action.
 - [ ] Added static regression contracts for those lease behaviors in commit [`1e9cd0b`](https://github.com/freearmy599/taleforge/commit/1e9cd0b0504a90c834651fa5ad275e4a2e772c49). CI run [39005838505](https://github.com/freearmy599/taleforge/actions/runs/39005838505) must complete successfully before marking this new test addition verified.
 - **Scope reminder:** static contracts prove only source shape, not actual multi-worker lease races, database lock behavior, or deployed function parity. Automated publication remains blocked before lease claim until commit-boundary authorization is implemented and explicitly approved. No production changes were made.
+
+
+### Lease-contract test correction — 2026-10-17
+
+- The first CI attempt [39005838505](https://github.com/freearmy599/taleforge/actions/runs/39005838505) correctly caught a test assertion mismatch: the source uses optional chaining for both `released?.error` and `released?.data`, while the new assertion omitted the first optional-chain marker. The scheduler implementation was not changed by this correction.
+- Corrected the test in commit [`9fe0977`](https://github.com/freearmy599/taleforge/commit/9fe097730e0c6f26e0a18dded86d0845993c9fbe). Validation is pending in [CI run 39005901330](https://github.com/freearmy599/taleforge/actions/runs/39005901330); do not mark the lease-contract suite verified until it passes.
