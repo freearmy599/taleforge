@@ -35,6 +35,8 @@ name: Aevora Edge source validation
       - ".github/workflows/aevora-control-plane-audit.yml"
       - "supabase/migrations/**"
       - "scripts/aevora-*.mjs"
+      - "scripts/aevora-internal-rpc-acl-*.sql"
+      - "scripts/test-aevora-internal-rpc-acl.sh"
       - "scripts/aevora-internal-policyless-lock-*.sql"
       - "scripts/test-aevora-internal-policyless-lock.sh"
       - "scripts/aevora-readiness-migration-*.sql"
@@ -160,6 +162,8 @@ jobs:
         run: node --test scripts/aevora-readonly-access-audit-contract.test.mjs
       - name: Run internal worker authorization contract tests
         run: node --test scripts/aevora-internal-worker-auth-contract.test.mjs
+      - name: Run internal RPC ACL contract tests
+        run: node --test scripts/aevora-internal-rpc-acl-contract.test.mjs
 
 
   readiness-migration-test:
@@ -285,3 +289,12 @@ jobs:
         run: |
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_internal_lock_test"
           bash scripts/test-aevora-internal-policyless-lock.sh
+
+      - name: Rehearse internal RPC client EXECUTE revocation and trigger behavior
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_internal_rpc_acl_test
+          AEVORA_DISPOSABLE_RPC_ACL_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_internal_rpc_acl_test"
+          bash scripts/test-aevora-internal-rpc-acl.sh
