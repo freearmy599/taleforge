@@ -25,7 +25,22 @@ A read-only catalog query found client-role default grants associated with both 
 
 Do not extend the application-schema cleanup into `storage`, `graphql`, or `graphql_public` without a separate Supabase-managed-schema impact review. Their presence in the catalog is evidence to scope carefully, not authorization to mutate them.
 
-## Why the current candidate stops
+## Additional live function-execution audit — 2026-10-17
+
+A fresh read-only catalog query found 12 functions in `public` executable by both `anon` and `authenticated`. All 12 were `SECURITY INVOKER` (not SECURITY DEFINER) in the inspected catalog. The existing candidate `20261013110000_restrict_internal_invoker_rpc_execution.sql` is intended to revoke direct client EXECUTE access while preserving the intended server role.
+
+The most consequential exposed routines in this sample are:
+
+- `apply_attachment_directives(uuid)` — updates planned/ready rows in `public.chapter_blueprints` based on attachment metrics.
+- `prepare_next_chapter_blueprint(uuid)` — delegates to `apply_attachment_directives(uuid)`.
+- `refresh_story_attachment_metrics(uuid)` — calculates and writes `public.story_attachment_metrics`.
+- Other functions expose narrative planning/context or production-buffer data; several remaining entries are trigger functions and should not be directly callable as ordinary RPCs.
+
+A follow-up ACL/policy check found client INSERT/UPDATE/DELETE table grants on `chapter_blueprints`, `chapter_generation_outputs`, `story_attachment_metrics`, `story_blueprints`, `story_lifecycle`, `series`, and `chapters`, but no applicable client write policies on several of these tables. RLS therefore blocks ordinary row writes where no policy applies, but the grants are still broader than necessary. The public chapter/series SELECT policies are distinct from write authorization.
+
+Important nuance: the inspected routines are invoker-security functions, so their behavior is bounded by the calling role's table privileges and RLS. Do not describe these findings as a confirmed RLS bypass. The immediate action is to keep the client EXECUTE-revocation candidate and table-ACL hardening candidates unapplied but release-blocking until the disposable rehearsals prove that triggers still run correctly, client direct RPC calls are rejected, server workers retain required access, and intended public read functions remain available where required.
+
+## Why the current default-ACL candidate stops
 
 The candidate `20261014170000_restrict_public_default_privileges.sql` attempts schema-scoped revocation for both `postgres` and `supabase_admin`, then raises an exception if the current executor cannot administer a target owner. The companion maintenance-default candidate has the same owner-context constraint.
 
@@ -38,7 +53,8 @@ That fail-closed behavior is intentional. A migration that stops at the first un
 3. Determine which authorized Supabase-supported owner-level administrative surface can safely alter `supabase_admin` defaults. Do not assume `SET ROLE`, membership, or SQL-editor privileges that have not been demonstrated.
 4. Design the application-owned `public` repair separately from any managed-schema work. Preserve least privilege and explicitly assert intended future table/sequence behavior.
 5. Rehearse success and failure paths, including what happens if one owner can be changed and another cannot. Record rollback/recovery steps.
-6. Only after rehearsal, prepare a reviewed execution plan for explicit approval. This note does not authorize production changes.
+6. Keep function EXECUTE revocation, table write-ACL cleanup, and default-ACL cleanup as separate testable controls. Verify trigger behavior and intended public read RPCs after revocation.
+7. Only after rehearsal, prepare a reviewed execution plan for explicit approval. This note does not authorize production changes.
 
 ## Release impact
 
