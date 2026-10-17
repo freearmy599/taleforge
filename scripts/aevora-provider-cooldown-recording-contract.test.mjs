@@ -156,3 +156,36 @@ test("review orchestrator fails closed on unavailable, malformed, or active Gemi
   assert.match(guard, /\}, 429\)/,
     "active cooldown must return HTTP 429");
 });
+
+
+test("all direct provider-state readers validate counter and cooldown data before relying on it", async () => {
+  const readers = [
+    "arc-planner",
+    "blueprint-planner",
+    "character-continuity",
+    "continuity-review",
+    "generate-chapter",
+    "generation-orchestrator",
+    "originality-review",
+    "review-orchestrator",
+    "revise-chapter",
+    "safety-review",
+    "semantic-continuity-extraction",
+    "story-dna-planner",
+    "world-continuity",
+  ];
+  for (const name of readers) {
+    const worker = await readFile(
+      new URL(`../supabase/functions/${name}/index.ts`, import.meta.url),
+      "utf8",
+    );
+    assert.match(worker, /\.from\(["']taleforge_ai_provider_state["']\)/,
+      `${name} must explicitly read the shared provider state`);
+    assert.match(worker, /Number\.isSafeInteger\(/,
+      `${name} must reject malformed or unsafe throttle counters`);
+    assert.match(worker, /Date\.parse\(|new Date\([^)]*cooldown_until[^)]*\)/,
+      `${name} must parse cooldown timestamps before trusting them`);
+    assert.match(worker, /provider_state_unavailable|lookup_error/,
+      `${name} must classify unavailable or malformed provider state as blocked`);
+  }
+});
