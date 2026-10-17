@@ -33,7 +33,7 @@ Therefore:
 - [x] Branch `supabase/config.toml` now explicitly sets `verify_jwt=false` for the 18 shared-guard workers, the mixed-mode autonomous runner, the dedicated-token audit endpoint, and the existing bounded public reader-event endpoint.
 - [x] Shared-guard handlers must validate the incoming `apikey` against the legacy-key fallback or an explicitly allowlisted named secret in `SUPABASE_SECRET_KEYS` before creating privileged clients.
 - [x] The autonomous runner branch candidate validates scheduled mode using `apikey`, and retains separate Supabase-user/admin-role validation for interactive admin mode.
-- [ ] CI must finish successfully on the latest combined branch state.
+- [x] Branch handler/config/source-contract validation and disposable PostgreSQL rehearsal passed on commit [`3984f6c`](https://github.com/freearmy599/taleforge/commit/3984f6c0e603029a636eadf13b1faf1e7280f70d): [run 39010227908](https://github.com/freearmy599/taleforge/actions/runs/39010227908). The auth contract verifies fail-closed behavior and the runner's scheduled-key guard assignment pattern. This is branch-only evidence; it does not verify the live deployed versions or authorize a rollout.
 - [ ] Reconcile every production cron command so the new secret is sent in `apikey` only, removing the new secret from `Authorization`. Keep job cadence, body, and semantics unchanged.
 - [ ] Verify the handler-level guard and named-key allowlist on each endpoint before changing any live gateway configuration or caller command.
 
