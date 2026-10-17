@@ -130,3 +130,12 @@ The complete live definitions were retrieved read-only for the three candidates 
 
 Because `service_role` has database TEMP privilege and can execute these routines, temporary-relation shadowing is a credible test case, not a demonstrated exploit. No temporary objects were created and no candidate routine was invoked. The safe next step is a disposable PostgreSQL rehearsal that proves whether a caller-created temporary relation can intercept each unqualified reference, followed by a tested fixed-path/fully-qualified implementation and trigger behavior regression. Do not change live definitions or trigger state as part of this audit.
 
+### Disposable temp-relation shadowing rehearsal added — 2026-10-17
+
+A generic PostgreSQL-only rehearsal has been added at `scripts/test-aevora-search-path-shadowing.sh` and wired into the existing CI disposable PostgreSQL service. It creates a separately named disposable database, requires an explicit acknowledgement environment variable, and refuses to run unless the connection URL ends in `/aevora_search_path_shadowing_test`.
+
+The rehearsal contrasts two test functions:
+- A SECURITY DEFINER function with `SET search_path = public` and an unqualified `FROM series`, expected to resolve the caller's temporary `series` table first.
+- A SECURITY DEFINER function with `SET search_path = pg_catalog, public, pg_temp` and explicit `FROM public.series`, expected to read the public table instead.
+
+A static contract test checks the safety guard, expected assertions, and CI wiring. This is a **generic PostgreSQL behavior test**, not execution of the live Aevora routines and not proof that any production function is exploitable. It is intended to validate the risk mechanism before designing a narrow fix. The new workflow must finish green before treating the rehearsal as verified. No production database was touched.
