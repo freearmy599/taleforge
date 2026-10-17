@@ -132,3 +132,22 @@ test("database confirmation lookup errors, missing rows, and mismatched status f
   assert.ok(publishedPush > failureGuard && publishedPush < publicationCount,
     "the response must not be added to the published batch before the database row is confirmed");
 });
+
+
+test("partial publication failure blocks lifecycle activation and schedule advancement", () => {
+  const lifecycleGate = source.indexOf('if(!dryRun && schedule.auto_publish && lifecycleStatus==="preparing" && !publicationFailed && !leaseLost)');
+  const lifecycleRpc = source.indexOf('rpc("aevora_activate_story_lifecycle_if_lease_owned"', lifecycleGate);
+  assert.ok(lifecycleGate >= 0 && lifecycleRpc > lifecycleGate,
+    "lifecycle activation must remain behind a fail-closed gate");
+  assert.match(source.slice(lifecycleGate, lifecycleRpc),
+    /!publicationFailed && !leaseLost/,
+    "a partial publication failure or lease loss must block activation");
+  const completionGate = source.indexOf('const allSelectedConfirmed =');
+  const advanceGate = source.indexOf('if(!dryRun && nextRelease && allSelectedConfirmed)', completionGate);
+  const advanceRpc = source.indexOf('rpc("aevora_advance_release_schedule_if_lease_owned"', advanceGate);
+  assert.ok(completionGate >= 0 && advanceGate > completionGate && advanceRpc > advanceGate,
+    "schedule advancement must remain behind full-batch confirmation");
+  assert.match(source.slice(completionGate, advanceGate),
+    /attemptedCount===publishCount && published\.length===publishCount[\s\S]*?!publicationFailed && !leaseLost/,
+    "partial batches, publisher failures, and lease loss must fail the completion predicate");
+});
