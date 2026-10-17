@@ -86,7 +86,7 @@ test("all 11 product-facing/ambiguous relations remain individually locked pendi
 });
 
 test("the contract does not mistake branch ACL candidates for live production remediation", () => {
-  assert.match(classification, /branch aevora-release-scheduler-hardening/i);
+  assert.match(classification, /branch aevora\\/release-scheduler-hardening/i);
   assert.match(classification, /provisional/i);
   assert.match(classification, /No production grants/i);
 });
