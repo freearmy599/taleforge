@@ -507,3 +507,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Validation passed on commit [`b3c4c65`](https://github.com/freearmy599/taleforge/commit/b3c4c6562876682d82a95b40fe2428e33b44c029): [run 39025120342](https://github.com/freearmy599/taleforge/actions/runs/39025120342). Both Edge source/type-check validation and the disposable PostgreSQL rehearsal passed.
 - **Scope:** branch-only source audit, regression test, and documentation. No live Supabase functions, permissions, migrations, cron schedules, chapter data, or publication state changed; no billable branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO** until a trusted publication approver model and database commit-boundary authorization are implemented and approved. Live function/migration parity, owner/default-ACL remediation, and worker-auth rollout remain open.
+
+### Scheduler persistence identity and lease-fencing contracts — 2026-10-17
+
+- [x] Added a source-contract regression requiring the scheduler to verify the publisher-returned chapter ID, series ID, chapter number, and persisted `published` status before counting a chapter as published. Database lookup errors, missing rows, and non-published status must stop the batch.
+- [x] Added a source-contract regression forbidding direct schedule or series-lifecycle table writes in `release-scheduler`; state transitions must remain behind the lease-owned atomic RPCs.
+- [x] Both CI validations passed: [run 39025841780](https://github.com/freearmy599/taleforge/actions/runs/39025841780) for commit [`b943bbb`](https://github.com/freearmy599/taleforge/commit/b943bbbd60644d4288aa3621e0705e7c5187d676), and [run 39025857859](https://github.com/freearmy599/taleforge/actions/runs/39025857859) for commit [`c22b987`](https://github.com/freearmy599/taleforge/commit/c22b987fd762723590f41daa87312a99bafa2f5c). Each completed both Edge source/type-check validation and the disposable PostgreSQL rehearsal successfully.
+- **Scope:** branch-only regression tests and documentation. No live Supabase functions, permissions, migrations, cron schedules, chapter data, or publication state were changed; no billable branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO** until trusted publication authorization is implemented and approved at the database commit boundary, live function/migration parity is reconciled, and owner/default-ACL plus worker-auth rollout gates are resolved.
+
