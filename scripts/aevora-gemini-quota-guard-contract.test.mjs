@@ -408,24 +408,20 @@ test("generate-chapter quality-review path independently guards Gemini after det
     "unavailable provider state must return a stable fail-closed reason");
 });
 
-test("generate-chapter quality-review writes are fenced against concurrent output finalization", async () => {
+test("generate-chapter quality-review commits are atomic and fenced against concurrent output finalization", async () => {
   const source = await readFile(new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url), "utf8");
-  const eligible = source.indexOf("const qualityReviewEligibleStatuses=[");
-  assert.ok(eligible >= 0, "quality review must define its eligible in-progress statuses");
-  const deterministicWrite = source.indexOf('.update({generation_status:"needs_revision"', eligible);
-  const aiWrite = source.indexOf(".update({generation_status:status,", eligible);
-  assert.ok(deterministicWrite > eligible && aiWrite > deterministicWrite,
-    "both deterministic and AI quality outcomes must persist output status");
-  const deterministicRegion = source.slice(deterministicWrite, source.indexOf("if(statusError||!statusRow)", deterministicWrite));
-  const aiRegion = source.slice(aiWrite, source.indexOf("if(statusError||!statusRow)", aiWrite));
-  assert.match(deterministicRegion, /\.in\("generation_status",qualityReviewEligibleStatuses\)/,
-    "deterministic review must update only from an eligible in-progress state");
-  assert.match(aiRegion, /\.in\("generation_status",qualityReviewEligibleStatuses\)/,
-    "AI review must update only from an eligible in-progress state");
-  assert.doesNotMatch(deterministicRegion, /\.neq\("generation_status","published"\)/,
-    "a published-only fence is insufficient because approved or other finalized states must not be overwritten");
-  assert.doesNotMatch(aiRegion, /\.neq\("generation_status","published"\)/,
-    "AI quality review must not overwrite a concurrently finalized non-published state");
+  const deterministicWrite = source.indexOf('p_review_status:"needs_revision"');
+  const aiWrite = source.indexOf("p_review_status:decision");
+  assert.ok(deterministicWrite >= 0 && aiWrite > deterministicWrite,
+    "both deterministic and AI quality outcomes must use the atomic review commit RPC");
+  assert.match(source, /db\.rpc\("aevora_commit_quality_review"/,
+    "quality review and output status must be committed in one database transaction");
+  assert.doesNotMatch(source, /from\("chapter_reviews"\)\.upsert/,
+    "separate review upserts could leave a review row for a finalized output");
+  assert.match(source, /commit\?\.committed!==true/,
+    "a stale/finalized output must be rejected without persisting a review");
+  assert.match(source, /score<=100/,
+    "an out-of-range score must not pass quality review");
 });
 
 test("generation cooldown guard is scoped to generation so deterministic quality validation remains available", async () => {
