@@ -4,8 +4,8 @@ Status: branch-only verification; production remains unchanged.
 
 ## Latest verified commit
 
-- Commit: `ba691154bd65d2d2af4862f118274d2e129fd0b0`
-- Workflow: [Aevora Edge source validation](https://github.com/freearmy599/taleforge/actions/runs/39002347162)
+- Commit: `578697aea61ea938552ef5f847ce0a8317ec523c`
+- Workflow: [Aevora Edge source validation](https://github.com/freearmy599/taleforge/actions/runs/39003244008)
 - Type-check and source-contract job: passed.
 - Disposable PostgreSQL rehearsal job: passed, including the atomic quality-review persistence/rollback rehearsal.
 
@@ -31,7 +31,7 @@ The same verified branch adds regression coverage for Gemini provider-state guar
 
 After the last fully green commit above, the branch adds candidate migration `20261017150000_aevora_atomic_quality_review_commit.sql` and updates both deterministic and AI quality-review paths to call `aevora_commit_quality_review`. The SECURITY INVOKER function updates only eligible output states and writes the `chapter_reviews` row in the same transaction. A stale/finalized output returns a fenced result without writing a review; a review-write error rolls back the output transition. Browser-role EXECUTE is revoked and `service_role` is explicitly granted EXECUTE.
 
-The successful workflow run `39002347162` (commit `ba691154bd65d2d2af4862f118274d2e129fd0b0`) passed both jobs. The disposable rehearsal verifies successful commit, finalized-output fencing, rollback when review persistence fails, idempotent retry/upsert, invalid review status and score rejection, and RPC ACLs. Source-contract tests verify both callers use the atomic RPC and that response scores match the validated persisted score. This candidate is verified on the branch only; it has not been applied to production.
+The successful workflow run `39003244008` (commit `578697aea61ea938552ef5f847ce0a8317ec523c`) passed both jobs. The disposable rehearsal verifies successful commit, finalized-output fencing, stale-review timestamp fencing while the output remains reviewable, rollback when review persistence fails, idempotent retry/upsert, invalid review status and score rejection, and RPC ACLs. Source-contract tests verify both callers use the atomic RPC, send the observed output timestamp, and return the validated persisted score. The function now compares `updated_at` and uses wall-clock timestamps for subsequent writes. This candidate is verified on the branch only; it has not been applied to production.
 
 ## Default-privilege owner-context follow-up
 
