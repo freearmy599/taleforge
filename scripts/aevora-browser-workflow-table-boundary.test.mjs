@@ -2,8 +2,9 @@
  * Browser-to-workflow-table boundary contract.
  *
  * Prevents reader/admin browser assets from directly querying or mutating
- * internal workflow/control tables. Public reader paths for published series,
- * chapters and constrained reader-event intake are intentionally not blocked.
+ * internal workflow/control tables and currently dormant account/community tables.
+ * Public reader paths for published series, chapters and constrained reader-event
+ * intake are intentionally not blocked.
  * Source-only; no network or database side effects.
  */
 import test from "node:test";
@@ -47,6 +48,17 @@ const serverOnlyRelations = [
   "taleforge_series_genre_profiles",
   "taleforge_series_narrative_profiles",
   "taleforge_series_subgenre_profiles",
+  "bookmarks",
+  "collection_stories",
+  "collections",
+  "comments",
+  "likes",
+  "notifications",
+  "profiles",
+  "ratings",
+  "reading_history",
+  "recommendations",
+  "story_reports",
 ];
 
 async function collectBrowserSources() {
@@ -125,6 +137,17 @@ test("server-only relation inventory covers the publication and provider securit
     "taleforge_series_genre_profiles",
     "taleforge_series_narrative_profiles",
     "taleforge_series_subgenre_profiles",
+    "bookmarks",
+    "collection_stories",
+    "collections",
+    "comments",
+    "likes",
+    "notifications",
+    "profiles",
+    "ratings",
+    "reading_history",
+    "recommendations",
+    "story_reports",
   ]) {
     assert.ok(serverOnlyRelations.includes(relation), `missing server-only relation: ${relation}`);
   }
