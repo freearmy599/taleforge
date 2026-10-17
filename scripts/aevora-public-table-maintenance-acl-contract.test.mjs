@@ -32,6 +32,6 @@ test("maintenance migration does not silently change client CRUD or trusted serv
     "this candidate only removes maintenance/structural privileges; CRUD requires separate reviewed migrations",
   );
   assert.doesNotMatch(migration, /\bGRANT\b/i, "this candidate must not add privileges");
-  assert.doesNotMatch(migration, /\b(?:anon|authenticated|service_role|postgres)\s*;/i,
-    "role statements must remain explicit and narrowly scoped");
+  assert.doesNotMatch(migration, /\b(?:service_role|postgres)\b/i,
+    "this candidate must not change trusted server-role grants");
 });
