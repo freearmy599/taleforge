@@ -174,10 +174,10 @@ test("publisher blocks manual and automatic publication before publication-state
 });
 
 test("publisher no longer relies on manual schedule flags as proof of human approval", () => {
-  const stop = publisher.indexOf('code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED"');
+  const stop = publisher.indexOf("Publication blocked until trusted approval is implemented.");
   const manualBranch = publisher.indexOf('automationSchedule.schedule_mode === "manual"');
-  assert.ok(stop >= 0 && manualBranch > stop,
-    "all modes must fail closed before the later manual-vs-automated schedule checks");
-  assert.match(publisher.slice(Math.max(0, stop - 700), manualBranch),
-    /trusted-approval record bound to[\s\S]*?service-role authentication are[\s\S]*?not per-chapter human approval/);
+  assert.ok(stop >= 0 && manualBranch >= 0 && manualBranch < stop,
+    "manual schedule classification must precede its explicit trusted-approval stop");
+  assert.match(publisher.slice(Math.max(0, stop - 700), stop),
+    /not proof of trusted approval for[\s\S]*?exact chapter output/);
 });
