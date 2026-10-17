@@ -50,8 +50,13 @@ test("every known secret-key cron target has guarded source and matching gateway
   for (const target of cronTargets) {
     const entrypoint = await source("supabase/functions/" + target + "/index.ts");
     const handler = entrypoint.slice(entrypoint.indexOf("Deno.serve"));
-    assert.ok(handler.includes("isTrustedInternalApiKey("),
+    const keyGuard = handler.indexOf("isTrustedInternalApiKey(");
+    assert.ok(keyGuard >= 0,
       target + " must validate the internal key in its deployed handler source");
+    assert.match(handler.slice(0, keyGuard), /if\s*\(\s*!\s*$/,
+      target + " must make the trusted-key result an authorization condition");
+    assert.match(handler.slice(keyGuard, keyGuard + 900), /return[\s\S]{0,500}\b(?:401|403)\b/,
+      target + " must stop the request with an authorization failure when the key is not trusted");
     assert.match(handler, /isTrustedInternalApiKey\(\s*req\.headers\.get\(["']apikey["']\)/,
       target + " must validate the server-to-server credential from the apikey header");
     const section = config.match(
@@ -74,6 +79,12 @@ test("every privileged Edge worker authenticates before parsing input or creatin
     const handler = s.slice(serve);
     const guard = handler.indexOf("isTrustedInternalApiKey(");
     assert.ok(guard >= 0, name + " must call the shared internal API-key guard");
+    assert.match(handler.slice(0, guard), /if\s*\(\s*!\s*$/,
+      name + " must make the trusted-key result an authorization condition");
+    assert.match(handler.slice(guard, guard + 900), /return[\s\S]{0,500}\b(?:401|403)\b/,
+      name + " must fail closed with an authorization status when the key is not trusted");
+    assert.match(handler.slice(guard, guard + 200), /req\.headers\.get\(["']apikey["']\)/,
+      name + " must validate the credential from the apikey header");
     const bodyParse = handler.search(/(?:await\s+)?(?:req|request)\.json\s*\(/);
     if (bodyParse >= 0) {
       assert.ok(guard < bodyParse, name + " must authenticate before parsing request JSON");
