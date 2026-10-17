@@ -90,7 +90,7 @@ test("publisher distinguishes manual schedules from automated publication author
   assert.match(manualBranch, /MANUAL_SCHEDULE_AUTOMATION_CONFLICT/,
     "manual schedules must still reject automatic flags rather than being treated as automated approvals");
   assert.match(publisher.slice(Math.max(0, authorizationStopIndex - 700), authorizationStopIndex),
-    /not per-chapter human approval/,
+    /not proof of trusted approval for[\\s\\S]*?exact chapter output/,
     "manual schedule flags must not substitute for approval of the exact output");
   assert.match(publisher, /automationSchedule.enabled !== true \|\| automationSchedule.auto_publish !== true[\s\S]*?AUTOMATION_NOT_READY/,
     "generation-only readiness must not accidentally authorize automated publication");
