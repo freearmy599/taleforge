@@ -16,7 +16,7 @@ test("publication schema provenance inventory contains SELECT statements only", 
   const statements = executable.split(";").map((statement) => statement.trim()).filter(Boolean);
   assert.ok(statements.length >= 9, "inventory must cover schemas, relations, columns, constraints, indexes, triggers, ACLs, routines, and policies");
   for (const statement of statements) {
-    assert.match(statement, /^SELECT\b/i, "publication schema inventory must remain read-only");
+    assert.match(statement, /^(?:SELECT|WITH)\b/i, "publication schema inventory must remain read-only");
     assert.doesNotMatch(
       statement,
       /\b(?:INSERT|UPDATE|DELETE|MERGE|ALTER|DROP|CREATE|GRANT|REVOKE|TRUNCATE|CALL|DO|COPY|SET)\b/i,
