@@ -170,6 +170,8 @@ jobs:
         run: node --test scripts/aevora-internal-rpc-acl-contract.test.mjs
       - name: Run internal taxonomy ACL contract tests
         run: node --test scripts/aevora-internal-taxonomy-acl-contract.test.mjs
+      - name: Run policyless ACL inventory consistency contract tests
+        run: node --test scripts/aevora-policyless-acl-inventory-contract.test.mjs
       - name: Run review-orchestrator provider guard contract tests
         run: node --test scripts/aevora-review-orchestrator-provider-guard.test.mjs
 
