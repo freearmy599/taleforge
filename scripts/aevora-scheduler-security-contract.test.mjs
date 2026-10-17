@@ -217,7 +217,7 @@ test("internal API key helper fails closed for missing, malformed, or unallowlis
 
 
 test("publication confirmation predicate rejects malformed, contradictory, and incomplete publisher responses", () => {
-  const match = source.match(/function isConfirmedPublicationResponse\\(r:any,d:any\\):boolean\\{[\\s\\S]*?\\}/);
+  const match = source.match(/function isConfirmedPublicationResponse\(r:any,d:any\):boolean\{[\s\S]*?\}/);
   assert.ok(match, "strict publication confirmation predicate must be present");
   const helper = match[0].replace("function isConfirmedPublicationResponse(r:any,d:any):boolean", "function isConfirmedPublicationResponse(r,d)");
   const isConfirmed = runInNewContext(helper + "; isConfirmedPublicationResponse");
