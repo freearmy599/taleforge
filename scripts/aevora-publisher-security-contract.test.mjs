@@ -224,3 +224,20 @@ test("automated-publication stop precedes every publisher mutation and synchroni
     }
   }
 });
+
+test("publication authorization stop returns an explicit non-success lock response", () => {
+  const guard = publisher.indexOf('code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED"');
+  assert.ok(guard >= 0, "the stable publication authorization stop must remain present");
+  const statementStart = publisher.lastIndexOf("return jsonResponse(", guard);
+  const statementEnd = publisher.indexOf(");", guard);
+  assert.ok(statementStart >= 0 && statementEnd > guard,
+    "authorization stop must return a structured response");
+  const response = publisher.slice(statementStart, statementEnd + 2);
+  assert.match(response, /success:\s*false/);
+  assert.match(response, /code:\s*"PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED"/);
+  assert.match(response, /\},\s*423\)/,
+    "unimplemented authorization must be reported as a locked operation, not success");
+  const chapterAccess = publisher.indexOf('.from("chapters")', guard);
+  assert.ok(chapterAccess > statementEnd,
+    "the locked response must occur before any chapter-table access");
+});
