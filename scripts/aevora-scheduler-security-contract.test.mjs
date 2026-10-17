@@ -214,3 +214,30 @@ test("internal API key helper fails closed for missing, malformed, or unallowlis
   assert.match(helper, /value\.length > 0 && value === presentedApiKey/);
   assert.match(helper, /catch \{[\s\S]*?return false;/);
 });
+
+
+test("publication confirmation predicate rejects malformed, contradictory, and incomplete publisher responses", () => {
+  const match = source.match(/function isConfirmedPublicationResponse\\(r:any,d:any\\):boolean\\{[\\s\\S]*?\\}/);
+  assert.ok(match, "strict publication confirmation predicate must be present");
+  const helper = match[0].replace("function isConfirmedPublicationResponse(r:any,d:any):boolean", "function isConfirmedPublicationResponse(r,d)");
+  const isConfirmed = runInNewContext(helper + "; isConfirmedPublicationResponse");
+  const valid = { success: true, published: true, status: "published", chapter_id: "chapter-1" };
+  assert.equal(isConfirmed({ ok: true }, valid), true);
+  for (const response of [
+    null,
+    undefined,
+    "published",
+    [],
+    { ...valid, success: false },
+    { ...valid, published: false },
+    { ...valid, status: "queued" },
+    { ...valid, chapter_id: "" },
+    { ...valid, chapter_id: "   " },
+    { ...valid, chapter_id: 123 },
+  ]) {
+    assert.equal(isConfirmed({ ok: true }, response), false, "malformed/contradictory response must not confirm publication");
+  }
+  assert.equal(isConfirmed({ ok: false }, valid), false, "HTTP failure must never confirm publication");
+  assert.equal(isConfirmed({ ok: true }, { ...valid, status: "published", extra: { error: true } }), true,
+    "irrelevant additional response fields must not override the required confirmation fields");
+});
