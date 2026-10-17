@@ -112,3 +112,23 @@ test("claimed scheduler leases are released in finally, with failures surfaced",
   assert.match(cleanup, /action:"lease_release_warning"/,
     "failed lease release must be visible as a scheduler failure");
 });
+
+
+test("database confirmation lookup errors, missing rows, and mismatched status fail closed before counting a publication", () => {
+  const publisherCall = source.indexOf('fetch(url+"/functions/v1/release-publisher"');
+  const confirmationQuery = source.indexOf('const {data:confirmedChapter,error:confirmError}', publisherCall);
+  const failureGuard = source.indexOf('if(confirmError || !confirmedChapter || confirmedChapter.status!=="published")', confirmationQuery);
+  const publicationCount = source.indexOf('confirmedPublishedCount++;', failureGuard);
+  const publishedPush = source.indexOf('published.push(', failureGuard);
+  assert.ok(publisherCall >= 0 && confirmationQuery > publisherCall,
+    "the scheduler must perform a database confirmation lookup after publisher response");
+  assert.ok(failureGuard > confirmationQuery,
+    "database lookup errors, missing rows, or non-published status must enter a failure guard");
+  assert.match(source.slice(failureGuard, publishedPush),
+    /publicationFailed=true;[\s\S]*?action:"publish_unconfirmed"/,
+    "unconfirmed database state must mark the batch failed and surface publish_unconfirmed");
+  assert.ok(publicationCount > failureGuard && publicationCount < source.indexOf("const allSelectedConfirmed"),
+    "the confirmation counter must only be incremented in the success path before batch-completion evaluation");
+  assert.ok(publishedPush > failureGuard && publishedPush < publicationCount,
+    "the response must not be added to the published batch before the database row is confirmed");
+});
