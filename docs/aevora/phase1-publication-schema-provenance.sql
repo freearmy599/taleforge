@@ -514,16 +514,16 @@ WITH target_names(name) AS (
 )
 SELECT
   c.relname AS relation_name,
-  trigger.tgname AS trigger_name,
-  trigger.tgenabled AS enabled_state,
-  pg_catalog.pg_get_triggerdef(trigger.oid, true) AS trigger_definition,
+  trg.tgname AS trigger_name,
+  trg.tgenabled AS enabled_state,
+  pg_catalog.pg_get_triggerdef(trg.oid, true) AS trigger_definition,
   trigger_ns.nspname || '.' || trigger_fn.proname AS trigger_function
-FROM pg_catalog.pg_trigger trigger
-JOIN pg_catalog.pg_class c ON c.oid = trigger.tgrelid
+FROM pg_catalog.pg_trigger trg
+JOIN pg_catalog.pg_class c ON c.oid = trg.tgrelid
 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-JOIN pg_catalog.pg_proc trigger_fn ON trigger_fn.oid = trigger.tgfoid
+JOIN pg_catalog.pg_proc trigger_fn ON trigger_fn.oid = trg.tgfoid
 JOIN pg_catalog.pg_namespace trigger_ns ON trigger_ns.oid = trigger_fn.pronamespace
 WHERE n.nspname = 'public'
   AND c.relname IN (SELECT name FROM target_names)
-  AND NOT trigger.tgisinternal
-ORDER BY c.relname, trigger.tgname;
+  AND NOT trg.tgisinternal
+ORDER BY c.relname, trg.tgname;
