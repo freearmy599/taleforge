@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.aevora_gemini_throttle_events (
 
 ALTER TABLE public.aevora_gemini_throttle_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.aevora_gemini_throttle_events FROM PUBLIC, anon, authenticated;
-GRANT SELECT, INSERT ON TABLE public.aevora_gemini_throttle_events TO service_role;
+REVOKE ALL ON TABLE public.aevora_gemini_throttle_events FROM service_role;
 
 CREATE OR REPLACE FUNCTION public.aevora_record_gemini_throttle(
   p_event_id uuid,
