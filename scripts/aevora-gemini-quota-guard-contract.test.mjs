@@ -330,3 +330,19 @@ test("chapter generator provider HTTP errors cannot leak provider response bodie
   assert.doesNotMatch(handler, /error_message\s*:\s*message|error\s*:\s*message|last_error\s*:\s*message|console\.(?:error|warn)\([^\n]*message/,
     "provider exception text must not be returned, logged, or persisted");
 });
+
+test("generation-orchestrator fails closed on malformed Gemini cooldown timestamps", async () => {
+  const source = await readFile(new URL("../supabase/functions/generation-orchestrator/index.ts", import.meta.url), "utf8");
+  const helperStart = source.indexOf("async function getGeminiCooldown(");
+  const helperEnd = source.indexOf("Deno.serve(", helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, "provider-state helper must remain present");
+  const helper = source.slice(helperStart, helperEnd);
+  assert.match(helper, /new Date\(data\.cooldown_until\)/,
+    "persisted cooldown timestamps must be parsed explicitly");
+  assert.match(helper, /!Number\.isFinite\(until\.getTime\(\)\)/,
+    "invalid timestamps must be detected rather than treated as expired");
+  assert.match(helper, /cooldown timestamp is invalid/,
+    "invalid timestamps must return a stable fail-closed diagnostic");
+  assert.match(helper, /if\(data\.cooldown_until && \(!until \|\| !Number\.isFinite\(until\.getTime\(\)\)\)\)\s*\{\s*return \{active:true/,
+    "malformed cooldown timestamps must actively block orchestration");
+});
