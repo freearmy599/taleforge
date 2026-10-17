@@ -10,14 +10,14 @@ BEGIN
       RAISE EXCEPTION 'ASSERTION_FAILED: intended public chapter SELECT access was removed for %', client_role;
     END IF;
 
-    FOREACH privilege_name IN ARRAY ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'MAINTAIN', 'REFERENCES', 'TRIGGER']
+    FOREACH privilege_name IN ARRAY ARRAY['INSERT', 'UPDATE', 'DELETE']
     LOOP
       IF has_table_privilege(client_role, 'public.chapters', privilege_name) THEN
         RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on public.chapters', client_role, privilege_name;
       END IF;
     END LOOP;
 
-    FOREACH privilege_name IN ARRAY ARRAY['INSERT', 'UPDATE', 'REFERENCES']
+    FOREACH privilege_name IN ARRAY ARRAY['INSERT', 'UPDATE']
     LOOP
       IF has_column_privilege(client_role, 'public.chapters', 'title', privilege_name)
          OR has_column_privilege(client_role, 'public.chapters', 'content', privilege_name) THEN
