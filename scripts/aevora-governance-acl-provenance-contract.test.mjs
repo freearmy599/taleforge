@@ -20,6 +20,10 @@ const query = await readFile(
   new URL("../docs/aevora/phase1-publication-schema-provenance.sql", import.meta.url),
   "utf8",
 );
+const matrix = await readFile(
+  new URL("../docs/aevora/PHASE1-CLIENT-GRANT-DEFAULT-ACL-RECONCILIATION-20261017.md", import.meta.url),
+  "utf8",
+);
 
 const governanceRelations = [
   "taleforge_system_governance_registry",
@@ -32,6 +36,7 @@ test("live governance ACL evidence names all four relations in report and query"
   for (const relation of governanceRelations) {
     assert.ok(report.includes("public." + relation), "report missing " + relation);
     assert.ok(query.includes("'" + relation + "'"), "read-only query missing " + relation);
+    assert.ok(matrix.includes("public." + relation), "ACL matrix missing " + relation);
   }
 });
 
@@ -63,4 +68,5 @@ test("audit records do not misrepresent read-only findings as production remedia
   assert.ok(checklist.includes("Automated publishing remains **NO-GO**"), "checklist must preserve the publishing NO-GO gate");
   assert.match(query, /READ ONLY/i);
   assert.match(query, /never apply a blanket revoke/i);
+  assert.match(matrix, /No live grants or policies have been changed/i);
 });
