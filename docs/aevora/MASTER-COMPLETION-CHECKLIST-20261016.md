@@ -315,7 +315,7 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 ### Lease-contract test correction — 2026-10-17
 
 - The first CI attempt [39005838505](https://github.com/freearmy599/taleforge/actions/runs/39005838505) correctly caught a test assertion mismatch: the source uses optional chaining for both `released?.error` and `released?.data`, while the new assertion omitted the first optional-chain marker. The scheduler implementation was not changed by this correction.
-- Corrected the test in commit [`9fe0977`](https://github.com/freearmy599/taleforge/commit/9fe097730e0c6f26e0a18dded86d0845993c9fbe). Validation is pending in [CI run 39005901330](https://github.com/freearmy599/taleforge/actions/runs/39005901330); do not mark the lease-contract suite verified until it passes.
+- Corrected the test in commit [`9fe0977`](https://github.com/freearmy599/taleforge/commit/9fe097730e0c6f26e0a18dded86d0845993c9fbe). The corrected lease-contract suite passed both CI jobs in [run 39005901330](https://github.com/freearmy599/taleforge/actions/runs/39005901330).
 
 
 ### Atomic publication design artifact — 2026-10-17
@@ -332,3 +332,10 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] The publication authorization stop contracts and publisher security contracts passed in the Edge job. These remain branch-only checks and do not establish live deployment parity or production ACL state.
 - [ ] Remaining hard blockers: trusted human publication identity and authorization semantics; transaction-owned atomic publication and schedule advancement; live migration/function provenance reconciliation; production-vs-branch parity; reader-event browser cutover and rollback plan; resolve `supabase_admin` default-privilege ownership/provenance without speculative revokes.
 - **Safety boundary unchanged:** no production migration, ACL/policy change, function deployment, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Automated publishing remains NO-GO.
+
+
+### Checklist evidence refresh — latest documentation commit, 2026-10-17
+
+- [x] Updated this checklist with the full regression rehearsal evidence and remaining blockers. The resulting documentation commit [`9354b2c`](https://github.com/freearmy599/taleforge/commit/9354b2cec088b7101122cd0d36ac09ac7dc0880f) passed [CI run 39006140780](https://github.com/freearmy599/taleforge/actions/runs/39006140780): Edge type checks/source contracts and disposable PostgreSQL security/readiness rehearsal both passed.
+- [x] Reviewed the provider cooldown contract coverage: the repository-wide Gemini guard explicitly checks both generation and AI quality-review call paths in `generate-chapter`; it also checks orchestration stop behavior after provider throttles. No duplicate test was added because the existing contract already covers these paths.
+- [ ] The remaining hard blockers listed above are unchanged; successful CI on the branch does not authorize live migration/deployment or automatic publication.
