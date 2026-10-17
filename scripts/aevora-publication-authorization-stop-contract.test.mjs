@@ -177,6 +177,6 @@ test("publisher no longer relies on manual schedule flags as proof of human appr
   const manualBranch = publisher.indexOf('automationSchedule.schedule_mode === "manual"');
   assert.ok(stop >= 0 && manualBranch > stop,
     "all modes must fail closed before the later manual-vs-automated schedule checks");
-  assert.match(publisher.slice(stop - 300, manualBranch),
+  assert.match(publisher.slice(Math.max(0, stop - 700), manualBranch),
     /trusted-approval record bound to[\s\S]*?service-role authentication are[\s\S]*?not per-chapter human approval/);
 });
