@@ -60,3 +60,18 @@ This section records newer branch/production findings. It does not authorize dep
 4. Prepare a reviewed migration order and schedule disposition/rollback plan; apply migrations only after explicit production authorization.
 5. Deploy and verify the scheduler/publisher pair only after commit-boundary publication authorization exists. Keep automated publication blocked until every verification passes.
 6. Re-check Gemini provider state and run a low-cost, bounded verification only after cooldown is inactive and the work is explicitly authorized.
+
+
+### Additional live chapter-write ACL finding — 2026-10-17
+
+A read-only production catalog query confirmed that `public.chapters` currently grants both `anon` and `authenticated` the table privileges `INSERT`, `UPDATE`, and `DELETE`, alongside public reading and PostgreSQL 17 maintenance privileges. The table also has column-level write grants. RLS is not a substitute for missing table/column grants, and a permissive policy can make those grants effective.
+
+A branch-only candidate migration was added at `supabase/migrations/20261017130000_revoke_client_chapter_writes.sql`. It:
+- revokes table-level INSERT/UPDATE/DELETE from PUBLIC, anon, and authenticated;
+- revokes explicit column-level INSERT/UPDATE grants;
+- explicitly preserves SELECT for anon/authenticated and leaves service_role grants untouched;
+- fails closed if `public.chapters` is missing or is not a base/partitioned table.
+
+A disposable fixture deliberately grants client write privileges and permissive RLS policies before applying the candidate, then asserts that client writes are gone, reading remains available, and service_role retains CRUD. The fixture is wired into the branch workflow; its latest run is pending at the time of this note.
+
+This is not a production repair yet. The candidate is unapplied, and the live browser/API write ACLs remain a release blocker until an approved rollout safely applies and verifies the migration. Do not claim production chapter writes are locked down based on branch source alone.
