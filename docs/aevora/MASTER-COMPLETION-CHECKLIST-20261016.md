@@ -349,3 +349,11 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - **Scope:** this is regression evidence for branch source and disposable PostgreSQL only. It does not establish that the candidate migration is applied in production or that production grants have changed.
 - [ ] Existing release blockers remain: trusted human publication identity and authorization semantics; transaction-owned atomic publication and schedule advancement; live migration/function provenance reconciliation; production-vs-branch parity; reader-event browser cutover and rollback plan; and `supabase_admin` default-privilege ownership/provenance.
 - **Safety boundary unchanged:** no production migration, ACL/policy change, function deployment, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Automated publishing remains NO-GO.
+
+
+### Maintenance ACL and provider-throttle validation — 2026-10-17
+
+- [x] Latest branch CI run [39007822163](https://github.com/freearmy599/taleforge/actions/runs/39007822163) completed successfully for commit `cfcbea5ccbaaa90702969fa3954c63dd4b712e14`: all prepared Edge Function type-checks and source-contract tests passed, including the public-table maintenance ACL contract; the disposable PostgreSQL readiness/security rehearsal also passed.
+- [x] Re-checked the Gemini quota protection contracts against branch source: `generate-chapter` guards both generation and AI quality-review calls; `review-orchestrator` fails closed for missing/malformed provider state and stops remaining review calls after provider throttling; the repository-wide contract scans direct Gemini callers. This is source/test evidence, not proof of live function parity.
+- [ ] No new production readiness is implied. Live ACL/migration parity, deployed scheduler/publisher parity, publication authorization identity, and transaction-owned atomic publication remain unresolved. Reader-event browser cutover and rollback, and `supabase_admin` default-privilege provenance, remain open.
+- **Safety boundary unchanged:** no production migration, ACL/policy change, function deployment, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Automated publishing remains NO-GO.
