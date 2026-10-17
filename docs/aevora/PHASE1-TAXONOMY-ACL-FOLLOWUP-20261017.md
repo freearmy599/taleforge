@@ -41,11 +41,11 @@ This should not be folded into a blanket schema-wide revoke. Verify relation kin
 
 - [ ] Confirm each relation's live relation kind, owner, RLS flags, policies, and effective ACL.
 - [ ] Confirm no legitimate browser/client call path requires raw taxonomy reads.
-- [ ] Add a forward-only migration candidate and static contract.
+- [x] Add forward-only candidate `20261017140000_lock_internal_reference_taxonomy_client_access.sql` and source-only contract `scripts/aevora-internal-taxonomy-acl-contract.test.mjs`.
 - [ ] Rehearse the candidate in disposable PostgreSQL with both client roles denied all relation/column privileges and trusted service access preserved.
-- [ ] Run CI for the exact commit.
+- [ ] Confirm CI for the exact candidate/test commit succeeds; CI for the migration-only commit is still running and does not include the separately added contract test.
 - [ ] Keep production unchanged unless a separate explicit approval and rollback plan are provided.
 
 ## Current status
 
-Finding and proposed scope only. No production ACLs or schema were changed. Automatic publication remains **NO-GO**.
+A branch-only migration candidate and static contract have now been added. The candidate is not yet runtime-rehearsed or fully CI-validated; verify the current run status before treating it as validated. No production ACLs or schema were changed. Automatic publication remains **NO-GO**.
