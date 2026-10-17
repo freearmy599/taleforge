@@ -40,3 +40,23 @@ test("authorization stop is scoped to real auto-publish work, preserving read-on
   assert.match(guard, /publication_authorization_not_implemented/,
     "dry-run must not be used as a path to bypass the real publication gate");
 });
+
+
+test("schedule advancement requires the complete selected batch to be confirmed", () => {
+  assert.match(source, /function isConfirmedPublicationResponse\(r:any,d:any\):boolean\s*\{\s*return r\.ok && d!==null && typeof d===\"object\" && d\.success===true && d\.published===true && d\.status===\"published\" && typeof d\.chapter_id===\"string\" && d\.chapter_id\.length>0;/,
+    "HTTP success alone must not qualify as publication success");
+  assert.match(source, /const allSelectedConfirmed = !dryRun && schedule\.auto_publish && publishCount>0\s*&& attemptedCount===publishCount && published\.length===publishCount\s*&& !publicationFailed && !leaseLost;/,
+    "the batch completion predicate must reject partial batches and lease loss");
+  assert.match(source, /if\(!dryRun && nextRelease && allSelectedConfirmed\)/,
+    "schedule advancement must be conditional on full batch confirmation");
+});
+
+test("scheduler verifies the persisted chapter before counting a publisher response", () => {
+  const publisherCall = source.indexOf('fetch(url+"/functions/v1/release-publisher"');
+  const persistedChapterCheck = source.indexOf('from("chapters")', publisherCall);
+  const confirmationCondition = source.indexOf('confirmedChapter.status!=="published"', persistedChapterCheck);
+  assert.ok(publisherCall >= 0 && persistedChapterCheck > publisherCall,
+    "scheduler must read the persisted chapter after publisher response");
+  assert.ok(confirmationCondition > persistedChapterCheck,
+    "scheduler must reject a chapter whose persisted status is not published");
+});
