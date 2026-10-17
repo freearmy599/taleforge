@@ -4,8 +4,8 @@ Status: branch-only verification; production remains unchanged.
 
 ## Latest verified commit
 
-- Commit: `578697aea61ea938552ef5f847ce0a8317ec523c`
-- Workflow: [Aevora Edge source validation](https://github.com/freearmy599/taleforge/actions/runs/39003244008)
+- Commit: `63960047fdcf7e5cff523e1ea4e9a3e3134cb9eb`
+- Workflow: [Aevora Edge source validation](https://github.com/freearmy599/taleforge/actions/runs/39003585384)
 - Type-check and source-contract job: passed.
 - Disposable PostgreSQL rehearsal job: passed, including the atomic quality-review persistence/rollback rehearsal.
 
