@@ -640,3 +640,9 @@ This was read-only catalog inspection plus branch documentation/test changes onl
 - [ ] Recover authoritative migration/platform SQL provenance and map the full evaluator call graph before proposing ACL or schema changes.
 
 No production permissions or routines were changed. Automated publishing remains **NO-GO**.
+
+### Latest same-branch CI verification — 2026-10-17
+
+- [x] CI run [39050598701](https://github.com/freearmy599/taleforge/actions/runs/39050598701) passed for branch head `0bcbbfaf513a4c231a1b89fbbd728dcdca5579a6`: prepared Edge Function type checks/source-contract tests and the disposable PostgreSQL readiness, lease, ACL, provider-throttle, and atomic quality-review rehearsals both succeeded.
+- **Interpretation:** this is branch-only validation. It does not close any live drift, authorize production migration/deployment, establish runtime parity, or lift the automatic-publishing NO-GO gate. The master checklist remains at its previously recorded task states; no blocker was marked complete based solely on CI.
+- **Safety boundary:** no production data/ACL/function/schedule/publication state was changed, and no billable Supabase resource was created.
