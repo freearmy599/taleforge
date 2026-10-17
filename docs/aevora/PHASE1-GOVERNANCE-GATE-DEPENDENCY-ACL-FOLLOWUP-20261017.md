@@ -105,3 +105,16 @@ A first-pass, read-only source-body scan narrowed the exact `search_path=public`
 All three were catalogued as SECURITY DEFINER with exactly `search_path=public`; effective service_role EXECUTE was true. This is a **first-pass scan**, not a complete parser or proof of exploitability. The text filter may miss formatting variants, CTEs, dynamic SQL, relation names outside the seed list, or references hidden later in a body. The next safe step is to inspect the complete definitions and callers for these three routines, then expand the scan across the full 55-routine set.
 
 No routines were invoked, no temp objects were created, and no production state was modified. Do not alter search paths until the complete definitions, dependency/caller graph, and disposable shadowing rehearsal are reviewed. Automated publishing remains **NO-GO**.
+
+
+### Caller and trigger follow-through for the three first-pass candidates
+
+A second read-only catalog check confirmed the effective ACL for all three routines is `{postgres=X/postgres,service_role=X/postgres}`: `anon` and `authenticated` cannot execute them; `service_role` can.
+
+The limited source-text caller search found:
+- `taleforge_refresh_long_term_narrative_architecture(uuid)` is called by `taleforge_refresh_long_term_architecture_on_publish()`.
+- That trigger function is attached to `public.chapters` via `trg_taleforge_refresh_long_term_architecture`, firing after chapter insert or status update.
+- `taleforge_verify_narrative_memory_consolidation()` is called by `taleforge_refresh_narrative_memory_consolidation_health()`.
+- No direct source-text caller was found for `taleforge_reassess_long_term_narrative_architecture(uuid)` in the searched public routine bodies.
+
+These are source-text matches plus catalog trigger metadata, not a complete Edge Function/external caller graph. The chapter trigger makes the refresh routine higher priority for review because it runs in a publication-adjacent database path. Do not alter the trigger or function until temp-object shadowing has been safely rehearsed and a corrected fixed-path or qualified-reference definition has passed regression tests.
