@@ -28,10 +28,11 @@ test("rehearsal proves trigger functions still run after direct EXECUTE revocati
   assert.match(assertions, /trigger function stopped working after client EXECUTE revocation/i);
 });
 
-test("rehearsal explicitly checks direct client RPC denial", () => {
-  assert.match(runner, /SET ROLE anon; SELECT public\.apply_attachment_directives/);
+test("rehearsal proves direct RPC denial for both browser roles", () => {
+  assert.match(runner, /for client_role in anon authenticated/);
+  assert.match(runner, /SET ROLE \${client_role}; SELECT public\.apply_attachment_directives/);
   assert.match(runner, /permission denied for function apply_attachment_directives/i);
-  assert.match(runner, /ASSERTION_FAILED: anon directly executed internal RPC/i);
+  assert.match(runner, /ASSERTION_FAILED: \${client_role} directly executed internal RPC/i);
 });
 
 test("runner requires explicit disposable database and refuses Supabase URLs", () => {
