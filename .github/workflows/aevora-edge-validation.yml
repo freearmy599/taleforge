@@ -120,6 +120,8 @@ jobs:
         run: node --test scripts/aevora-pipeline-redaction-contract.test.mjs
       - name: Run scheduler security contract tests
         run: node --test scripts/aevora-scheduler-security-contract.test.mjs
+      - name: Run release safety contract tests
+        run: node --test scripts/aevora-release-safety-contract.mjs
       - name: Run publisher security contract tests
         run: node --test scripts/aevora-publisher-security-contract.test.mjs
       - name: Run publication authorization stop contract tests
