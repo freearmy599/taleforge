@@ -222,14 +222,15 @@ test("publisher rejects non-manual schedules with auto-publish disabled before c
   const scheduleBlock = publisher.indexOf('if ((automationSchedules ?? []).length === 1) {');
   const disabledPublishGuard = publisher.indexOf('automationSchedule.auto_publish !== true', scheduleBlock);
   const notReadyResponse = publisher.indexOf('code: "AUTOMATION_NOT_READY"', disabledPublishGuard);
+  const responseEnd = publisher.indexOf('}, 409);', notReadyResponse);
   const chapterLookup = publisher.indexOf('.from("chapters")');
   assert.ok(scheduleBlock >= 0 && disabledPublishGuard > scheduleBlock,
     "a configured schedule must be checked before publication can proceed");
-  assert.ok(notReadyResponse > disabledPublishGuard,
+  assert.ok(notReadyResponse > disabledPublishGuard && responseEnd > notReadyResponse,
     "auto_publish=false must fail closed rather than fall through to publication");
-  assert.match(publisher.slice(disabledPublishGuard, notReadyResponse),
+  assert.match(publisher.slice(disabledPublishGuard, responseEnd + '}, 409);'.length),
     /return jsonResponse[\s\S]*?\}, 409\)/,
     "disabled or unready automation must return a conflict");
-  assert.ok(chapterLookup > notReadyResponse,
+  assert.ok(chapterLookup > responseEnd,
     "the disabled-auto-publish guard must precede all chapter lookup/publication paths");
 });
