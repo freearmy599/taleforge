@@ -118,6 +118,8 @@ jobs:
         run: node --test scripts/aevora-story-dna-planner-contract.test.mjs
       - name: Run pipeline redaction contract tests
         run: node --test scripts/aevora-pipeline-redaction-contract.test.mjs
+      - name: Run Aevora contract CI coverage guard
+        run: node --test scripts/aevora-contract-ci-coverage.test.mjs
       - name: Run scheduler security contract tests
         run: node --test scripts/aevora-scheduler-security-contract.test.mjs
       - name: Run release safety contract tests
