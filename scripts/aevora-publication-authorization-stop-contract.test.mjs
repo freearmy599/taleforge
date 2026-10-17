@@ -60,3 +60,18 @@ test("scheduler verifies the persisted chapter before counting a publisher respo
   assert.ok(confirmationCondition > persistedChapterCheck,
     "scheduler must reject a chapter whose persisted status is not published");
 });
+
+
+test("persisted publication confirmation binds chapter ID, series, chapter number, and status", () => {
+  const publisherCall = source.indexOf('fetch(url+"/functions/v1/release-publisher"');
+  const persistedChapterCheck = source.indexOf('from("chapters")', publisherCall);
+  const query = source.slice(persistedChapterCheck, source.indexOf("published.push(", persistedChapterCheck));
+  assert.match(query, /\.eq\("id",d\.chapter_id\)/,
+    "the persisted row must be the exact chapter ID returned by the publisher");
+  assert.match(query, /\.eq\("series_id",schedule\.series_id\)/,
+    "a published chapter from another series must not confirm this schedule");
+  assert.match(query, /\.eq\("chapter_number",candidate\.chapter_number\)/,
+    "a different chapter slot must not confirm the candidate");
+  assert.match(query, /confirmedChapter\.status!==\"published\"/,
+    "the persisted chapter must be in published status");
+});
