@@ -103,7 +103,7 @@ BEGIN
      OR has_function_privilege('authenticated','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb,timestamptz)','EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: browser role retains RPC EXECUTE';
   END IF;
-  IF NOT has_function_privilege('service_role','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb)','EXECUTE') THEN
+  IF NOT has_function_privilege('service_role','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb,timestamptz)','EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: service_role lost RPC EXECUTE';
   END IF;
 END
