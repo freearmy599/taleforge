@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; import { 
 import { automationReadinessDisposition } from "./readiness.ts";
 
 const VERSION = "release-scheduler-v17-publication-authorization-preflight";
-function isConfirmedPublicationResponse(r:any,d:any):boolean{return r.ok && d!==null && typeof d==="object" && d.success===true && d.published===true && d.status==="published" && typeof d.chapter_id==="string" && d.chapter_id.length>0;}
+function isConfirmedPublicationResponse(r:any,d:any):boolean{return r.ok && d!==null && typeof d==="object" && d.success===true && d.published===true && d.status==="published" && typeof d.chapter_id==="string" && d.chapter_id.trim().length>0;}
 const corsHeaders = {
   "Access-Control-Allow-Origin":"*",
   "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
