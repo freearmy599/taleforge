@@ -642,3 +642,46 @@ WHERE n.nspname = 'public'
     OR p.prosrc ILIKE '% from taleforge_system_governance_runs %'
   )
 ORDER BY p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
+
+
+-- Caller/trigger map for the first-pass SECURITY DEFINER candidates.
+-- Catalog metadata and routine source text only; no function is invoked.
+WITH targets AS (
+  SELECT p.oid, p.proname,
+         pg_catalog.pg_get_function_identity_arguments(p.oid) AS identity_arguments
+  FROM pg_catalog.pg_proc p
+  JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN (
+      'taleforge_reassess_long_term_narrative_architecture',
+      'taleforge_refresh_long_term_narrative_architecture',
+      'taleforge_verify_narrative_memory_consolidation'
+    )
+)
+SELECT
+  t.proname AS target_routine,
+  t.identity_arguments AS target_arguments,
+  coalesce((
+    SELECT string_agg(c.proname || '(' ||
+      pg_catalog.pg_get_function_identity_arguments(c.oid) || ')', '; ' ORDER BY c.proname)
+    FROM pg_catalog.pg_proc c
+    JOIN pg_catalog.pg_namespace cn ON cn.oid = c.pronamespace
+    WHERE cn.nspname = 'public'
+      AND c.oid <> t.oid
+      AND c.prosrc ILIKE '%' || t.proname || '(%'
+  ), '(no direct source-text caller found)') AS routine_source_callers,
+  coalesce((
+    SELECT string_agg(
+      tn.nspname || '.' || tc.relname || ':' || tr.tgname || ' => ' || tp.proname,
+      '; ' ORDER BY tc.relname, tr.tgname
+    )
+    FROM pg_catalog.pg_trigger tr
+    JOIN pg_catalog.pg_class tc ON tc.oid = tr.tgrelid
+    JOIN pg_catalog.pg_namespace tn ON tn.oid = tc.relnamespace
+    JOIN pg_catalog.pg_proc tp ON tp.oid = tr.tgfoid
+    WHERE NOT tr.tgisinternal
+      AND tn.nspname = 'public'
+      AND (tp.proname = t.proname OR tp.prosrc ILIKE '%' || t.proname || '(%')
+  ), '(no matching non-internal trigger found)') AS matching_triggers
+FROM targets t
+ORDER BY t.proname, t.identity_arguments;
