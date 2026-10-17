@@ -41,8 +41,11 @@ test("review orchestrator stops the current and subsequent outputs after any pro
     "subsequent outputs must be blocked after a throttle");
   assert.ok(throttleCheck > reviewCall && stopFlag > throttleCheck,
     "the current review plan must set a run-wide stop flag immediately after a provider block");
+  const predicate = source.slice(reviewCall, throttleCheck);
+  assert.match(predicate, /callReason === "provider_state_unavailable"/,
+    "provider-state blocks returned by child workers must be treated as throttle signals");
+  assert.match(predicate, /callReason === "provider_cooldown"/);
   const throttleRegion = source.slice(throttleCheck, source.indexOf("if (!call.ok)", throttleCheck));
   assert.match(throttleRegion, /blocked = true/);
   assert.match(throttleRegion, /break/);
-  assert.match(throttleRegion, /callReason === "provider_state_unavailable"/);
 });
