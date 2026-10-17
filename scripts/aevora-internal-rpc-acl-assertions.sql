@@ -37,15 +37,18 @@ END
 $assert$;
 
 -- Exercise the trigger under anon after direct EXECUTE on its trigger function
--- has been revoked. Trigger invocation must remain functional.
+-- has been revoked. The trigger sets touched=true, proving it actually ran.
 SET ROLE anon;
-INSERT INTO public.chapters(id) VALUES (1);
-UPDATE public.chapters SET id = 2 WHERE id = 1;
+INSERT INTO public.aevora_rpc_acl_trigger_source(id, touched) VALUES (1, false);
+UPDATE public.aevora_rpc_acl_trigger_source SET id = 2 WHERE id = 1;
 RESET ROLE;
 
 DO $trigger_assert$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.chapters WHERE id = 2) THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.aevora_rpc_acl_trigger_source
+    WHERE id = 2 AND touched = true
+  ) THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: trigger function stopped working after client EXECUTE revocation';
   END IF;
 END
