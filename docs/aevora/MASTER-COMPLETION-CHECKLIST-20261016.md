@@ -618,3 +618,14 @@ No production grants, policies, default privileges, functions, migrations, deplo
 - [ ] Compare columns, constraints, relation OIDs, policies, dependencies, and function references after source recovery.
 
 This is a lineage finding, not evidence that a migration never existed. No production objects were changed; automated publishing remains **NO-GO**.
+
+
+### Governance schema contract comparison — 2026-10-17
+
+- [x] Extended the read-only catalog comparison to capture relation OIDs, columns/defaults, constraints, and catalog dependency edges for legacy and governance-prefixed registry/dependency objects.
+- [x] Confirmed the two registry/dependency pairs are distinct live relations with different OIDs and different column/constraint contracts; the live health table's foreign key still points to the legacy registry.
+- [x] Updated the lineage report, ACL matrix, and source-contract test to preserve this distinction and prevent documentation drift.
+- [ ] Execute the governance ACL/provenance Node contract in CI on the exact resulting commit; no CI result is claimed for these changes yet.
+- [ ] Recover authoritative creation history and map the evaluator's live callers before any ACL or schema proposal.
+
+This was read-only catalog inspection plus branch documentation/test changes only. No production schema, grants, policies, functions, deployments, schedules, chapters, or publications were changed; no billable Supabase branch was created. Automated publishing remains **NO-GO**.
