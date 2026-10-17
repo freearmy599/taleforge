@@ -260,3 +260,14 @@ test("scheduler confirms the persisted chapter ID, series slot, and published st
     "unconfirmed persistence must stop the batch rather than count a publication");
 });
 
+test("scheduler cannot bypass lease-fenced RPCs with direct schedule or lifecycle writes", () => {
+  assert.doesNotMatch(source, /\.from\(["']release_schedules["']\)\s*\.(?:update|upsert|delete)\s*\(/,
+    "release schedule state must only advance through lease-owned atomic RPCs");
+  assert.doesNotMatch(source, /\.from\(["']series["']\)\s*\.(?:update|upsert|delete)\s*\(/,
+    "series lifecycle must not be changed by an unfenced direct table write");
+  for (const rpc of [
+    "aevora_advance_release_schedule_if_lease_owned",
+    "aevora_activate_story_lifecycle_if_lease_owned",
+  ]) assert.ok(source.includes(rpc), "missing lease-fenced state transition RPC: " + rpc);
+});
+
