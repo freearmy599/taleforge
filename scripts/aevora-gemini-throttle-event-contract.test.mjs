@@ -9,7 +9,7 @@ const migration = readFileSync(
 const generator = readFileSync("supabase/functions/generate-chapter/index.ts", "utf8");
 
 test("Gemini throttle RPC migration matches the two-argument Edge caller", () => {
-  assert.match(generator, /aevora_record_gemini_throttle\",\s*\{\s*p_event_id:\s*crypto\.randomUUID\(\),\s*p_event_class:/s);
+    assert.match(generator, /"aevora_record_gemini_throttle",\\s*\\{\\s*p_event_id:\\s*crypto\\.randomUUID\\(\\),\\s*p_event_class:/s);
   assert.match(migration, /FUNCTION public\.aevora_record_gemini_throttle\(\s*p_event_id uuid,\s*p_event_class text\s*\)/s);
   assert.match(migration, /ALTER FUNCTION public\.aevora_record_gemini_throttle\(uuid, text\) OWNER TO postgres/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.aevora_record_gemini_throttle\(uuid, text\) TO service_role/);
