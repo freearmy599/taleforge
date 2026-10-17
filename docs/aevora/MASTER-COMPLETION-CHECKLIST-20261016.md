@@ -316,3 +316,10 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 
 - The first CI attempt [39005838505](https://github.com/freearmy599/taleforge/actions/runs/39005838505) correctly caught a test assertion mismatch: the source uses optional chaining for both `released?.error` and `released?.data`, while the new assertion omitted the first optional-chain marker. The scheduler implementation was not changed by this correction.
 - Corrected the test in commit [`9fe0977`](https://github.com/freearmy599/taleforge/commit/9fe097730e0c6f26e0a18dded86d0845993c9fbe). Validation is pending in [CI run 39005901330](https://github.com/freearmy599/taleforge/actions/runs/39005901330); do not mark the lease-contract suite verified until it passes.
+
+
+### Atomic publication design artifact — 2026-10-17
+
+- [x] Added [`PHASE1-ATOMIC-PUBLICATION-BOUNDARY-PROPOSAL-20261017.md`](PHASE1-ATOMIC-PUBLICATION-BOUNDARY-PROPOSAL-20261017.md), a proposal-only specification for a database-enforced authorization and atomic publication boundary. It defines required persisted-state checks, transaction-owned writes, race/rollback rehearsals, audit expectations, and compatibility gates without inventing an approver identity or creating a migration.
+- [x] Corrected lease-release static test assertion in commit [`9fe0977`](https://github.com/freearmy599/taleforge/commit/9fe097730e0c6f26e0a18dded86d0845993c9fbe); the Edge source-validation job in [run 39005901330](https://github.com/freearmy599/taleforge/actions/runs/39005901330) has passed. Disposable PostgreSQL rehearsal was still running at last check, so the overall run remains unconfirmed.
+- **No production action authorized or performed.** The proposal is not an implementation and does not lift the scheduler/publisher fail-closed stops.
