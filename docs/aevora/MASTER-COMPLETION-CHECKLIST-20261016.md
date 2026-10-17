@@ -462,3 +462,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Catalog ACL checks show these three routines are `SECURITY DEFINER`, owned by `postgres`, and executable by `service_role`/`postgres` but not `anon`/`authenticated`. `anon` and `authenticated` also lack `CREATE` on schema `public`. No raw cron command or secret value was retrieved.
 - [ ] Preserve source-provenance review for these governance/monitor routines before changing them. `run_taleforge_quality_monitor()` and `taleforge_ceo_supervise_v2()` use `search_path=public`; this is not a demonstrated exploit, but their definitions and intended trusted invocation should be reconciled with repository migration history before any modification.
 - **Safety boundary:** read-only catalog and cron metadata queries only; no routine, grant, cron schedule, or application data was changed.
+
+
+### Publisher confirmation edge-case hardening — 2026-10-17
+
+- [x] Scheduler publication confirmation now rejects chapter IDs that are empty or whitespace-only, in addition to requiring an HTTP-success response and explicit `success=true`, `published=true`, and `status="published"`.
+- [x] Added regression coverage for null/undefined, scalar/array, contradictory status flags, missing or non-string IDs, whitespace-only IDs, and HTTP failure responses. Updated the publication authorization-stop contract to match the trimmed-ID predicate.
+- [x] Final validation passed on commit [`c15c01e`](https://github.com/freearmy599/taleforge/commit/c15c01ef337a3739e306110d0e6cc321477b1f5e): [Edge source/type-check suite and disposable PostgreSQL rehearsal, run 39018459928](https://github.com/freearmy599/taleforge/actions/runs/39018459928). Both jobs passed.
+- **Scope:** branch-only source/test/documentation work. No production functions, database grants, migrations, cron jobs, secrets, or application data were changed.
+- **Gate unchanged:** automated publishing remains **NO-GO** until publication authorization is implemented and approved at the database commit boundary, live function/migration parity is reconciled, and the outstanding ACL/default-privilege and worker-auth rollout gates are resolved.
