@@ -65,6 +65,19 @@ Line numbers refer to the branch source at the scan time. “No direct literal c
 | `recommendations` | No direct Supabase query found in inspected browser sources; client recommendations are computed locally from followed genres | Ambiguous/dormant; determine if table is server-generated or intended reader surface. |
 | `story_reports` | No direct Supabase query found in inspected browser sources | Dormant/unclear; verify moderation/report intake routes and SQL routines before policy design. |
 
+## Live SQL-routine reference audit — read-only catalog snapshot (2026-10-17)
+
+A second read-only query compared the 39 audited relation names against public.pg_proc.prosrc and checked effective EXECUTE privileges. This is a literal source-text match, not a full dependency graph: dynamic SQL, indirect calls, triggers, views, and dependencies through other functions can be missed or over-attributed.
+
+- 64 public routines contained at least one literal match to a name in the 39-relation set.
+- 58 were SECURITY DEFINER; 6 were SECURITY INVOKER.
+- All 64 reported service_role executable in the snapshot.
+- Four of the matched routines were executable by both anon and authenticated: apply_attachment_directives(uuid), get_production_buffer_plan(), get_story_narrative_destination(uuid), and refresh_story_attachment_metrics(uuid).
+- prepare_next_chapter_blueprint(uuid) was also client-executable and delegates to apply_attachment_directives(uuid), although its own source body does not literally mention a relation from the 39-name list.
+- The branch candidate 20261013110000_restrict_internal_invoker_rpc_execution.sql revokes direct client EXECUTE from these and the other identified client-executable invoker/trigger/scoring routines. It is not present in the live migration ledger, so do not treat its protections as deployed.
+
+**Priority interpretation:** the four directly matched client-executable routines warrant explicit negative-call and trusted-worker regression tests. They are SECURITY INVOKER, not SECURITY DEFINER; the catalog query does not prove an RLS bypass. Their behavior remains bounded by the caller's relation privileges and applicable RLS. Keep the candidate unapplied until disposable tests prove direct client RPC denial, trigger behavior remains intact, and trusted worker paths still function.
+
 ## Next evidence required
 
 1. Map the 28 server-only candidates through every SQL function, trigger, view, migration, and scheduled job, including SECURITY DEFINER call chains and dynamic SQL.
