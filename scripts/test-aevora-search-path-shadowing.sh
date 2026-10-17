@@ -19,6 +19,27 @@ CREATE ROLE aevora_shadow_test_role NOLOGIN;
 CREATE TABLE public.series (marker text NOT NULL);
 INSERT INTO public.series(marker) VALUES ('public-row');
 
+-- Disposable stand-ins let this job apply the exact prepared migration and
+-- verify every target function's resulting proconfig without importing live code.
+CREATE FUNCTION public.taleforge_reassess_long_term_narrative_architecture(uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $stub$ BEGIN RETURN; END $stub$;
+CREATE FUNCTION public.taleforge_refresh_long_term_narrative_architecture(uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $stub$ BEGIN RETURN; END $stub$;
+CREATE FUNCTION public.taleforge_consolidate_narrative_memory(uuid, integer)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $stub$ BEGIN RETURN; END $stub$;
+CREATE FUNCTION public.taleforge_verify_narrative_memory_consolidation()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $stub$ BEGIN RETURN; END $stub$;
+CREATE FUNCTION public.taleforge_verify_plot_thread_progression()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $stub$ BEGIN RETURN; END $stub$;
+CREATE FUNCTION public.taleforge_refresh_narrative_memory_consolidation_health()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $stub$ BEGIN RETURN; END $stub$;
+
 CREATE FUNCTION public.aevora_test_unqualified_lookup()
 RETURNS text
 LANGUAGE sql
@@ -87,4 +108,33 @@ $assert$;
 RESET ROLE;
 
 SELECT 'PASS: baseline shadowing reproduced; pg_temp-last path and qualification both read public table' AS rehearsal_result;
+SQL
+
+# Apply the exact branch migration to disposable stand-ins, then assert all six
+# functions received the intended function-local search_path.
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261017160000_harden_narrative_security_definer_search_path.sql
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+DO $assert$
+DECLARE
+  configured_count integer;
+BEGIN
+  SELECT count(*) INTO configured_count
+  FROM pg_catalog.pg_proc p
+  JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public'
+    AND p.proname IN (
+      'taleforge_reassess_long_term_narrative_architecture',
+      'taleforge_refresh_long_term_narrative_architecture',
+      'taleforge_consolidate_narrative_memory',
+      'taleforge_verify_narrative_memory_consolidation',
+      'taleforge_verify_plot_thread_progression',
+      'taleforge_refresh_narrative_memory_consolidation_health'
+    )
+    AND p.proconfig @> ARRAY['search_path=pg_catalog, public, pg_temp'];
+  IF configured_count <> 6 THEN
+    RAISE EXCEPTION 'Expected all six reviewed functions to have pg_temp-last search_path; found %', configured_count;
+  END IF;
+END
+$assert$;
+SELECT 'PASS: prepared Aevora search_path migration applied to disposable stand-ins' AS migration_result;
 SQL
