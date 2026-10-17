@@ -251,7 +251,8 @@ FROM pg_catalog.pg_proc p
 JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
   AND (
-    p.proname ILIKE '%publication%'
+    p.proname = 'taleforge_ceo_execution_gate'
+    OR p.proname ILIKE '%publication%'
     OR p.proname ILIKE '%release%lease%'
     OR p.proname ILIKE '%advance_release_schedule%'
     OR p.proname ILIKE '%activate_story_lifecycle%'
