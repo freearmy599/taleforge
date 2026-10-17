@@ -154,6 +154,33 @@ test("generation-orchestrator hard-stops non-dry-run work during an active Gemin
 });
 
 
+test("semantic continuity extraction validates Gemini state before claiming queued work", async () => {
+  const source = await readFile(new URL("../supabase/functions/semantic-continuity-extraction/index.ts", import.meta.url), "utf8");
+  const executeGate = source.indexOf("if(execute){");
+  const stateLookup = source.indexOf('.from("taleforge_ai_provider_state")');
+  const claim = source.indexOf('db.rpc("taleforge_claim_continuity_queue"');
+  const childWorkerCall = source.indexOf('fetch(base+name');
+  assert.ok(executeGate >= 0 && stateLookup > executeGate,
+    "execute mode must validate provider state before attempting queue work");
+  assert.ok(claim > stateLookup,
+    "provider-state validation must precede the queue claim RPC");
+  assert.ok(childWorkerCall > claim,
+    "child continuity workers must only be invoked after guarded queue claim");
+  const guard = source.slice(stateLookup, claim);
+  assert.match(guard, /providerStateError\s*\|\|\s*!providerState/,
+    "missing provider state must block queue claiming");
+  assert.match(guard, /Number\.isSafeInteger\(providerState\.consecutive_throttle_count\)/,
+    "unsafe throttle counters must block queue claiming");
+  assert.match(guard, /invalid_cooldown_timestamp/,
+    "malformed cooldown timestamps must block queue claiming");
+  assert.match(guard, /provider_cooldown/,
+    "active cooldown must block queue claiming");
+  assert.match(guard, /cooldownUntil\s*>\s*Date\.now\(\)/,
+    "cooldown must be compared with the current time");
+  assert.match(source, /if\(!execute\) return new Response\([\s\S]*?status:"dry_run",queue_mutated:false/,
+    "dry-run mode must remain non-mutating");
+});
+
 test("review workers validate provider state before invoking Gemini", async () => {
   const cases = [
     {
