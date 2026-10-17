@@ -45,6 +45,23 @@ test("caller map preserves uncertainty for relations without a direct literal ca
   assert.match(map, /RPC implementations, SQL functions\/triggers, dynamic table names/);
 });
 
+test("caller map records live SQL-routine findings without claiming an RLS bypass or deployed fix", () => {
+  assert.match(map, /64 public routines/);
+  assert.match(map, /58 were SECURITY DEFINER; 6 were SECURITY INVOKER/);
+  for (const routine of [
+    "apply_attachment_directives(uuid)",
+    "get_production_buffer_plan()",
+    "get_story_narrative_destination(uuid)",
+    "refresh_story_attachment_metrics(uuid)",
+    "prepare_next_chapter_blueprint(uuid)",
+  ]) {
+    assert.ok(map.includes(routine), "live SQL caller evidence missing routine: " + routine);
+  }
+  assert.match(map, /not a full dependency graph/);
+  assert.match(map, /does not prove an RLS bypass/);
+  assert.match(map, /not present in the live migration ledger/);
+});
+
 test("reader-event browser cutover remains explicitly identified as incomplete", () => {
   assert.match(browserClient, /taleForgeReaderEventIntakeEnabled\s*=\s*false/);
   assert.match(progress, /supabase\.from\("reader_events"\)\.insert\(payload\)/);
