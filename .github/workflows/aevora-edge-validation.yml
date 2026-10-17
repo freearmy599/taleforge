@@ -134,6 +134,8 @@ jobs:
         run: node --test scripts/aevora-browser-workflow-table-boundary.test.mjs
       - name: Run server-only metrics/outbox ACL contract tests
         run: node --test scripts/aevora-server-only-metrics-outbox-contract.test.mjs
+      - name: Run public-table maintenance ACL contract tests
+        run: node --test scripts/aevora-public-table-maintenance-acl-contract.test.mjs
       - name: Run public trending RPC security contract tests
         run: node --test scripts/aevora-public-trending-rpc-contract.test.mjs
       - name: Run disposable trending rehearsal safety contract tests
