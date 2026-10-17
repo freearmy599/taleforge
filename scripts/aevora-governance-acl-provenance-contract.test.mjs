@@ -81,6 +81,9 @@ test("lineage evidence preserves separate schema generations and the legacy heal
   assert.match(lineage, /different OIDs/i);
   assert.match(lineage, /foreign key references the \*\*legacy\*\*/i);
   assert.match(lineage, /not rename candidates/i);
+  assert.match(lineage, /public SELECT policy/i);
+  assert.match(lineage, /SECURITY DEFINER routine uses `search_path=public`/i);
+  assert.match(lineage, /No non-internal triggers were returned/i);
   assert.match(matrix, /governance schema lineage recheck/i);
 });
 
