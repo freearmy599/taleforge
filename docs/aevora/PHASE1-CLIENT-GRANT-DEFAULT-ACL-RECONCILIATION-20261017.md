@@ -91,6 +91,8 @@ These four relations are now explicitly tracked in the reconciliation matrix aft
 
 The table above intentionally does not claim that client writes currently succeed: relation grants and RLS policies are separate enforcement layers, and no write attempt was made. The existing health SELECT policy should not be removed or widened until its actual caller and returned fields are reviewed.
 
+**Schema-lineage update:** a further read-only catalog comparison confirmed that the legacy and governance-prefixed registry/dependency tables have different OIDs and different column/constraint contracts. The live `taleforge_system_health.system_key` foreign key still references the legacy `taleforge_system_registry`. Treat these as distinct schema generations; do not rename, merge, copy, drop, or align their ACLs until authoritative provenance and caller/data mapping are recovered. See [the expanded lineage report](./PHASE1-GOVERNANCE-SCHEMA-LINEAGE-20261017.md).
+
 ### Default ACL dependency
 
 The live catalog separately confirms that both `postgres` and `supabase_admin` have schema-scoped defaults in `public` granting broad table privileges to `anon` and `authenticated`, sequence `SELECT/UPDATE/USAGE`, and function `EXECUTE`. The creator-role dimension must remain in the matrix: object-scoped ACL repairs alone do not correct future-object defaults. The current executor lacks the authorized `supabase_admin` owner path, so any default-ACL correction remains blocked until an approved operator route and disposable rehearsal exist.
