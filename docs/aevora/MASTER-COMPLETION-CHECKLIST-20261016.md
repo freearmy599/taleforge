@@ -412,7 +412,7 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Added `verify_jwt = false` for the mixed-mode runner in branch config commit `ab6c7c7297e8e5bf1bc235e6dcd5bccba651cd5a`; handler-level scheduled-key/admin-session checks remain mandatory.
 - [x] Updated the source-contract test to require the new scheduled-key guard and reject the old legacy-token comparison in commit `aea120803bd7855c068712db966f0a85059e968f`.
 - [x] Added [the caller-fix runbook](./PHASE1-AUTONOMOUS-RUNNER-SECRET-KEY-CALLER-FIX-20261017.md) describing the coordinated cron header correction without exposing the raw command or credential.
-- [ ] Latest handler/config/test CI must complete successfully.
+- [x] Handler/config/source-contract CI passed on the combined code/test commit [`aea1208`](https://github.com/freearmy599/taleforge/commit/aea120803bd7855c068712db966f0a85059e968f): [run 39008836597](https://github.com/freearmy599/taleforge/actions/runs/39008836597). The later commits are documentation-only; their CI runs are still being monitored.
 - [ ] Production cron command must be updated from secret-in-Authorization/no-apikey to secret-in-apikey only, in a coordinated, owner-approved rollout. This cannot be inferred from branch tests and has not been done.
 - **Safety boundary:** no cron command, function, secret, schedule, series, chapter, or production database state was changed. Do not run actual autonomous creation as a smoke test. Production autonomous-series creation and automated publication remain NO-GO.
 
