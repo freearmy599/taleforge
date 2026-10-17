@@ -600,3 +600,45 @@ WHERE n.nspname = 'public'
        OR setting ILIKE 'search_path=%public%'
   )
 ORDER BY path_review_bucket, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
+
+
+-- First-pass seed scan for unqualified references to common Aevora relations.
+-- Text search only; manually inspect complete definitions before classifying risk.
+SELECT
+  p.oid AS routine_oid,
+  p.proname AS routine_name,
+  pg_catalog.pg_get_function_identity_arguments(p.oid) AS identity_arguments,
+  p.proconfig AS function_settings,
+  pg_catalog.pg_get_userbyid(p.proowner) AS owner_name,
+  pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE') AS service_role_execute,
+  CASE
+    WHEN p.prosrc ILIKE '% from series %' OR p.prosrc ILIKE '% join series %'
+      OR p.prosrc ILIKE '% update series %' THEN 'series'
+    WHEN p.prosrc ILIKE '% from chapters %' OR p.prosrc ILIKE '% join chapters %'
+      OR p.prosrc ILIKE '% update chapters %' THEN 'chapters'
+    WHEN p.prosrc ILIKE '% from taleforge_system_health %'
+      OR p.prosrc ILIKE '% from taleforge_system_registry %'
+      OR p.prosrc ILIKE '% from taleforge_system_governance_registry %'
+      OR p.prosrc ILIKE '% from taleforge_system_governance_dependencies %'
+      OR p.prosrc ILIKE '% from taleforge_system_governance_runs %' THEN 'governance_or_health'
+    ELSE 'other_seeded_relation'
+  END AS matched_relation_family,
+  length(p.prosrc) AS source_characters,
+  left(regexp_replace(p.prosrc, E'[\\n\\r\\t]+', ' ', 'g'), 900) AS source_preview
+FROM pg_catalog.pg_proc p
+JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.prosecdef
+  AND p.proconfig @> ARRAY['search_path=public']
+  AND (
+    p.prosrc ILIKE '% from series %' OR p.prosrc ILIKE '% join series %'
+    OR p.prosrc ILIKE '% update series %'
+    OR p.prosrc ILIKE '% from chapters %' OR p.prosrc ILIKE '% join chapters %'
+    OR p.prosrc ILIKE '% update chapters %'
+    OR p.prosrc ILIKE '% from taleforge_system_health %'
+    OR p.prosrc ILIKE '% from taleforge_system_registry %'
+    OR p.prosrc ILIKE '% from taleforge_system_governance_registry %'
+    OR p.prosrc ILIKE '% from taleforge_system_governance_dependencies %'
+    OR p.prosrc ILIKE '% from taleforge_system_governance_runs %'
+  )
+ORDER BY p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
