@@ -291,3 +291,14 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Candidate validated by [CI run 38950058686](https://github.com/freearmy599/taleforge/actions/runs/38950058686): Edge Function/source-contract checks and disposable PostgreSQL readiness/security rehearsal passed.
 - [ ] Design and test a public taxonomy projection only when a browser/creator workflow needs it. Do not re-open raw internal tables to solve a missing UI contract.
 - **Safety boundary:** the candidate migration has not been applied to live Supabase. No live grants/policies, data, Edge deployments, generation/publication, schedules, or billable branches were changed. Automatic publishing remains NO-GO.
+
+
+## Publication batch-integrity regression — 2026-10-17
+
+- [x] Added scheduler source-contract tests asserting that an HTTP 2xx response alone is insufficient: the publisher response must explicitly confirm success, publication, published status, and a non-empty chapter ID.
+- [x] Added a regression contract requiring schedule advancement to depend on confirmation of the complete selected batch, with partial batches, publication failures, and lease loss excluded.
+- [x] Added a regression contract requiring the scheduler to re-read the persisted chapter and reject any row whose persisted status is not `published`.
+- [x] Both Edge source validation and disposable PostgreSQL rehearsal passed for commit [`3e39adf`](https://github.com/freearmy599/taleforge/commit/3e39adf8c31f6422ef80eef0f39db43d115717d6) in [CI run 39004771491](https://github.com/freearmy599/taleforge/actions/runs/39004771491). The prior documentation/evidence reconciliation run [39004696278](https://github.com/freearmy599/taleforge/actions/runs/39004696278) also completed successfully.
+- [ ] These static contracts and disposable-database rehearsals do not prove live scheduler/publisher behavior or close the publication-authorization gate. The scheduler still deliberately returns `publication_authorization_not_implemented` before lease claims and publisher calls for real auto-publish work.
+- [ ] Still required: DB-enforced publication authorization with a trusted human approver and explicit scope/expiry/revocation semantics; verify publisher governance gate and scheduler authorization are consistent; exercise duplicate/race paths and outbox rollback in a realistic isolated integration harness; resolve the `supabase_admin` default-privilege ownership/provenance blocker without broad speculative revokes; finish schedule/lease-loss recovery cases.
+- **Safety boundary unchanged:** no production migration, ACL/policy change, function deployment, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Automated publishing remains NO-GO.
