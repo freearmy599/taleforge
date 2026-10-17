@@ -257,6 +257,15 @@ jobs:
           psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_default_privileges_test"
           bash scripts/test-aevora-public-default-privileges.sh
 
+      - name: Rehearse system-health snapshot and write-ACL hardening
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_system_health_test
+          AEVORA_DISPOSABLE_SYSTEM_HEALTH_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_system_health_test"
+          bash scripts/test-aevora-system-health-acl.sh
+
       - name: Rehearse internal policyless table client-grant revocation
         env:
           ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
