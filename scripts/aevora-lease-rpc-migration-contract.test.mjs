@@ -89,3 +89,17 @@ test("lifecycle activation binds schedule to series and only transitions prepari
   assert.match(activate, /UPDATE public\.story_lifecycle[\s\S]*?WHERE series_id = p_series_id[\s\S]*?AND lifecycle_status = 'preparing'/);
   assert.match(activate, /GET DIAGNOSTICS v_affected = ROW_COUNT;[\s\S]*?RETURN v_affected = 1/);
 });
+
+
+test("schedule advancement rejects null identifiers and non-forward release timestamps", () => {
+  const advance = functionBody(fencing, "aevora_advance_release_schedule_if_lease_owned");
+  assert.match(advance, /IF p_schedule_id IS NULL OR p_lease_token IS NULL[\s\S]*?OR p_next_release_at IS NULL OR p_last_release_at IS NULL[\s\S]*?OR p_next_release_at <= p_last_release_at THEN[\s\S]*?RETURN false/);
+  assert.match(advance, /UPDATE public\.release_schedules[\s\S]*?WHERE id = p_schedule_id/);
+});
+
+test("lifecycle activation rejects null inputs and never activates a different series", () => {
+  const activate = functionBody(fencing, "aevora_activate_story_lifecycle_if_lease_owned");
+  assert.match(activate, /IF p_schedule_id IS NULL OR p_lease_token IS NULL[\s\S]*?OR p_series_id IS NULL OR p_reviewed_at IS NULL THEN[\s\S]*?RETURN false/);
+  assert.match(activate, /FROM public\.release_schedules[\s\S]*?WHERE id = p_schedule_id AND series_id = p_series_id[\s\S]*?FOR UPDATE/);
+  assert.match(activate, /UPDATE public\.story_lifecycle[\s\S]*?WHERE series_id = p_series_id[\s\S]*?AND lifecycle_status = 'preparing'/);
+});
