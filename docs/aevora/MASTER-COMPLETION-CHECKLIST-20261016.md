@@ -471,3 +471,13 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Final validation passed on commit [`c15c01e`](https://github.com/freearmy599/taleforge/commit/c15c01ef337a3739e306110d0e6cc321477b1f5e): [Edge source/type-check suite and disposable PostgreSQL rehearsal, run 39018459928](https://github.com/freearmy599/taleforge/actions/runs/39018459928). Both jobs passed.
 - **Scope:** branch-only source/test/documentation work. No production functions, database grants, migrations, cron jobs, secrets, or application data were changed.
 - **Gate unchanged:** automated publishing remains **NO-GO** until publication authorization is implemented and approved at the database commit boundary, live function/migration parity is reconciled, and the outstanding ACL/default-privilege and worker-auth rollout gates are resolved.
+
+
+### Release safety contract CI repair — 2026-10-17
+
+- [x] Added `scripts/aevora-release-safety-contract.mjs` to the Edge validation workflow so its pure safety predicates run in CI rather than remaining an unexecuted local contract.
+- [x] First CI execution exposed a syntax error: the whitespace-only publication-ID test had literal escaped newline sequences. Rewrote the test with proper source line breaks in commit [`90ea790`](https://github.com/freearmy599/taleforge/commit/90ea7909405179c92d65b10f36b1b5c8ba8b15dd).
+- [x] Follow-up validation passed: [run 39019477488](https://github.com/freearmy599/taleforge/actions/runs/39019477488) completed successfully for both **Type-check prepared Edge Functions** and **Rehearse readiness migration on disposable PostgreSQL**.
+- [x] The successful Edge job includes the release safety contract suite; the previous scheduler security contract suite also passed. This is branch-only validation and does not establish live Supabase parity.
+- **Scope:** source/test/CI only. No production functions, permissions, migrations, cron schedules, publication state, or application data were changed; no billable Supabase branch was created.
+- **Gate unchanged:** automatic publishing remains **NO-GO** until database commit-boundary publication authorization is implemented and approved, live function/migration parity is reconciled, and the outstanding owner/default-ACL and worker-auth rollout gates are resolved.
