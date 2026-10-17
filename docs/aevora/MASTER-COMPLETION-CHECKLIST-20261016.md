@@ -104,7 +104,7 @@ The 38 is a working count of major system families, not 38 independent applicati
 - [ ] Verify publisher never reports success unless the chapter is actually published and the required state transition committed.
 - [ ] Verify scheduler lease claim/renew/release, fencing, expiry, duplicate workers, and safe recovery. Branch and deployed scheduler versions have drifted.
 - [ ] Prove the scheduler never advances a release cursor or activates a series after partial publication failure.
-- [ ] Review each of the six legacy schedule candidates individually; keep unapproved schedules unchanged/inactive.
+- [ ] Review each of the six legacy schedule candidates individually; keep unapproved schedules unchanged/inactive. Read-only row-by-row snapshot is documented in [the 2026-10-17 disposition report](./PHASE1-LEGACY-SCHEDULE-DISPOSITIONS-20261017.md); final owner/runtime disposition remains open.
 - [ ] Review readiness controls and autonomous-runner compatibility without enabling production schedules.
 
 ### D. Reader events, audit, and operations security
