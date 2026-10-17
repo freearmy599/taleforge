@@ -12,8 +12,30 @@ const sql = await readFile(
 );
 const executable = sql.replace(/--[^\n]*/g, "").trim();
 
+// Split only on semicolons outside SQL single-quoted strings. Catalog diagnostics
+// contain semicolons in explanatory text; naive split(";") creates fake statements.
+function splitSqlStatements(source) {
+  const statements = [];
+  let start = 0;
+  let inString = false;
+  for (let i = 0; i < source.length; i += 1) {
+    if (source[i] === "'") {
+      if (inString && source[i + 1] === "'") {
+        i += 1;
+        continue;
+      }
+      inString = !inString;
+    } else if (source[i] === ";" && !inString) {
+      statements.push(source.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  statements.push(source.slice(start).trim());
+  return statements.filter(Boolean);
+}
+
 test("publication schema provenance inventory contains SELECT statements only", () => {
-  const statements = executable.split(";").map((statement) => statement.trim()).filter(Boolean);
+  const statements = splitSqlStatements(executable);
   assert.ok(statements.length >= 9, "inventory must cover schemas, relations, columns, constraints, indexes, triggers, ACLs, routines, and policies");
   for (const statement of statements) {
     assert.match(statement, /^(?:SELECT|WITH)\b/i, "publication schema inventory must remain read-only");
