@@ -60,7 +60,7 @@ test("governance gate definition query and publication-approval distinction rema
 
 test("audit records do not misrepresent read-only findings as production remediation", () => {
   assert.match(report, /no grants or policies changed|no production/i);
-  assert.match(checklist, /Automated publishing remains NO-GO/i);
+  assert.match(checklist, /Automated publishing remains \\*\\*?NO-GO\\*\\*?/i);
   assert.match(query, /READ ONLY/i);
   assert.match(query, /never apply a blanket revoke/i);
 });
