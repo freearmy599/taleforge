@@ -173,6 +173,7 @@ test("shared internal API-key helper behavior accepts only exact trusted credent
 ): boolean {`;
   assert.ok(helper.includes(typedSignature), "helper signature must stay explicit and typed");
   const executable = helper.replace(typedSignature,
+  const javascript = executable.replace(/: unknown =/g, " =").replace(/ as Record<string, unknown>/g, "");
     "function isTrustedInternalApiKey(presentedApiKey, legacyServiceRoleKey, secretKeysJson, allowedSecretKeyNamesCsv) {");
   const isTrustedInternalApiKey = runInNewContext(executable + "; isTrustedInternalApiKey;");
   const check = (presented, legacy, config, allowlist) =>
