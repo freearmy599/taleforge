@@ -46,7 +46,7 @@ BEGIN
   UPDATE public.chapter_generation_outputs AS output
      SET generation_status = p_generation_status,
          quality_score = p_score,
-         quality_report = p_quality_report,
+         quality_report = COALESCE(output.quality_report, '{}'::jsonb) || p_quality_report,
          updated_at = pg_catalog.clock_timestamp()
    WHERE output.id = p_output_id
      AND output.generation_status IN ('generated', 'needs_revision', 'quality_check')
