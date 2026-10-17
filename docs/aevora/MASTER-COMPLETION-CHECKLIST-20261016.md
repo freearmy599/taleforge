@@ -549,3 +549,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] This checklist update's preceding validation run [39029278484](https://github.com/freearmy599/taleforge/actions/runs/39029278484) also passed both jobs.
 - **Scope:** branch-only contract tests and documentation. No production function, permission, migration, cron schedule, chapter, or publication state was changed; no billable Supabase branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO** pending trusted publication authorization at the database commit boundary, live function/migration parity, authorized owner/default-ACL remediation, and coordinated internal worker-auth rollout.
+
+
+### Lease release null-identifier contract correction — 2026-10-17
+
+- [x] Corrected the regression test to match PostgreSQL equality semantics: claim and renewal explicitly reject null identifiers; release matches both schedule ID and lease token, uses the affected-row count, and returns success only when exactly one row is deleted. The test explicitly rejects `IS NOT DISTINCT FROM`, which could make nulls match.
+- [x] Validation passed on commit [`14c8ecc`](https://github.com/freearmy599/taleforge/commit/14c8ecc42d1964ddef94eb376b19d87b3afae7e3): [CI run 39031643417](https://github.com/freearmy599/taleforge/actions/runs/39031643417) completed successfully. Both **Type-check prepared Edge Functions** and **Rehearse readiness migration on disposable PostgreSQL** passed.
+- [x] This was a test-contract correction only; no lease migration or deployed function was changed.
+- **Scope:** branch-only test and checklist update. No live Supabase functions, grants, migrations, cron schedules, chapter data, or publication state changed; no billable development branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO** pending trusted publication authorization at the database commit boundary, live function/migration parity, authorized owner/default-ACL remediation, and coordinated worker-auth rollout.
