@@ -72,6 +72,21 @@ test("governance gate definition query and publication-approval distinction rema
   assert.match(report, /provenance remains unresolved|remains unresolved/i);
 });
 
+test("gate inventory captures overload identity, owner, security mode, path, effective ACL, definition, and catalog dependency edges", () => {
+  assert.match(query, /pg_catalog\.pg_get_function_identity_arguments\(p\.oid\) AS identity_arguments/);
+  assert.match(query, /pg_catalog\.pg_get_userbyid\(p\.proowner\) AS owner_name/);
+  assert.match(query, /p\.prosecdef AS security_definer/);
+  assert.match(query, /p\.proconfig AS function_settings/);
+  assert.match(query, /has_function_privilege\('anon', p\.oid, 'EXECUTE'\)/);
+  assert.match(query, /has_function_privilege\('authenticated', p\.oid, 'EXECUTE'\)/);
+  assert.match(query, /has_function_privilege\('service_role', p\.oid, 'EXECUTE'\)/);
+  assert.match(query, /pg_catalog\.pg_get_functiondef\(p\.oid\) AS function_definition/);
+  assert.match(query, /Catalog-recorded routine-to-routine dependency edges touching the two gate/);
+  assert.match(query, /d\.classid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass/);
+  assert.match(query, /d\.refclassid = 'pg_catalog\.pg_proc'::pg_catalog\.regclass/);
+  assert.match(query, /PL\/pgSQL\/source-text calls may not be represented in pg_depend/);
+});
+
 test("lineage evidence preserves separate schema generations and the legacy health foreign key", () => {
   for (const relation of [
     "taleforge_system_registry",
