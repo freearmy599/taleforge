@@ -53,6 +53,16 @@ Evaluate `chapters`, `bookmarks`, `collections`, `comments`, `likes`, `notificat
 
 Check taxonomy/reference tables, cover/series design tables, reader-event/trending tables, and dormant account/feature tables. Confirm whether a feature is wired into the deployed website before exposing it. Preserve a disabled feature's safe state rather than granting access in anticipation of future use.
 
+## Branch-only inventory regression guard — 2026-10-17
+
+A source-contract test now keeps the 39-row provisional classification synchronized with the three branch ACL-lock candidates for the 28 server-only rows and the dormant-reader lock for the 11 product-facing/ambiguous rows:
+
+- `scripts/aevora-policyless-acl-inventory-contract.test.mjs` checks that the classification has all 39 names, all 28 server-only candidates are represented by the expected branch migration set, and all 11 dormant reader/community tables remain individually locked pending a reviewed policy contract.
+- `scripts/aevora-browser-workflow-table-boundary.test.mjs` now includes the same 11 dormant reader/community tables in its forbidden direct-browser query inventory. It continues to allow the deliberate published-series/chapter reads and reader-event intake seam.
+- The contract is wired into `.github/workflows/aevora-edge-validation.yml`.
+
+Verification: [CI run 39016395105](https://github.com/freearmy599/taleforge/actions/runs/39016395105) passed Edge/source-contract validation (**61/61 steps**) and disposable PostgreSQL rehearsal (**22/22 steps**). This is branch evidence only; it does not validate live REST behavior, prove all service-role callers, resolve default-ACL provenance, or authorize a production rollout.
+
 ## Acceptance gate
 
 This audit item is complete only when:
