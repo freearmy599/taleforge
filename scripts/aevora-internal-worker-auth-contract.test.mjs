@@ -193,3 +193,20 @@ test("shared internal API-key helper behavior accepts only exact trusted credent
     assert.equal(check("new", null, malformed, "default"), false, "malformed config must fail closed: " + malformed);
   }
 });
+
+
+test("every endpoint with handler-level secret authentication disables gateway JWT verification", async () => {
+  const config = await source("supabase/config.toml");
+  const configured = [...workers, "aevora-control-plane-audit", "reader-event-intake"];
+  for (const name of configured) {
+    const section = config.match(
+      new RegExp("\\[functions\\." + name + "\\]\\s*([\\s\\S]*?)(?=\\n\\[functions\\.|$)"),
+    );
+    assert.ok(section, name + " must have an explicit Edge gateway configuration");
+    assert.match(
+      section[1],
+      /^\\s*verify_jwt\\s*=\\s*false\\s*$/m,
+      name + " must rely on its explicit handler authentication, not gateway JWT parsing of a new secret API key",
+    );
+  }
+});
