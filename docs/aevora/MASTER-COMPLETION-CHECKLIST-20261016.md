@@ -588,3 +588,8 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [ ] If the authoritative function definition is absent from tracked source, record that as a migration/provenance gap and obtain the authorized source artifact. Do not recreate the function by guessing.
 - **Safety boundary:** branch source and migration inventory only. No production function, migration, ACL, cron, schedule, chapter, or publication state changed; no billable Supabase branch created.
 - **Gate unchanged:** manual and automated publication authorization remain unresolved; automated publishing stays **NO-GO**.
+
+
+- [x] Updated the read-only catalog inventory in commit [`0f3c867`](https://github.com/freearmy599/taleforge/commit/0f3c867d69d45ce734ae7d48858d5d54c19c83a8) to include the exact `taleforge_ceo_execution_gate` routine name.
+- [x] Extended the inventory in commit [`2b3632d`](https://github.com/freearmy599/taleforge/commit/2b3632d59a4a8f676aa9052990883ed8b5be2112) to return the routine definition and effective EXECUTE checks for the current executor, `anon`, `authenticated`, and `service_role`, alongside existing owner/signature/security/settings/ACL metadata.
+- [x] Static post-edit verification confirmed the query contains the exact gate filter, effective privilege fields, and routine-definition projection. This verifies the tracked query text only; the query has **not** been run against production, and its output/effective live grants remain unknown.
