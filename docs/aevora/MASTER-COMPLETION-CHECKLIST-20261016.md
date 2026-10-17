@@ -652,3 +652,11 @@ No production permissions or routines were changed. Automated publishing remains
 - [x] CI run [39050598701](https://github.com/freearmy599/taleforge/actions/runs/39050598701) passed for branch head `0bcbbfaf513a4c231a1b89fbbd728dcdca5579a6`: prepared Edge Function type checks/source-contract tests and the disposable PostgreSQL readiness, lease, ACL, provider-throttle, and atomic quality-review rehearsals both succeeded.
 - **Interpretation:** this is branch-only validation. It does not close any live drift, authorize production migration/deployment, establish runtime parity, or lift the automatic-publishing NO-GO gate. The master checklist remains at its previously recorded task states; no blocker was marked complete based solely on CI.
 - **Safety boundary:** no production data/ACL/function/schedule/publication state was changed, and no billable Supabase resource was created.
+
+
+### Publication authorization regression follow-up — 2026-10-17
+
+- [x] Added a source-contract regression test proving that a non-manual schedule with `auto_publish=false` is rejected by the existing readiness guard before any chapter lookup/publication path; this protects against future accidental fall-through.
+- [x] CI run [39052001787](https://github.com/freearmy599/taleforge/actions/runs/39052001787) passed both jobs on commit `5c915a871439a396d41a4d62b5026ba3dc649ad7`: prepared Edge Function/source-contract validation (67/67 steps) and disposable PostgreSQL readiness/ACL/lease/atomic-quality-review rehearsal (24/24 steps).
+- **Interpretation:** this confirms the new regression test and branch validation only. Source review did not identify a new bypass in this path; trusted human approval at the database commit boundary and publisher cross-table atomicity remain unresolved release blockers.
+- **Safety boundary:** branch-only test/documentation work. No production migrations, deployments, ACLs, schedules, chapters, or publication state changed; no billable Supabase resource was created. Automatic publishing remains **NO-GO**.
