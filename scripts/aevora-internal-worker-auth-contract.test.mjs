@@ -109,10 +109,10 @@ test("every shared-key privileged worker disables gateway JWT parsing only along
   const config = await source("supabase/config.toml");
   for (const name of workers) {
     const section = config.match(
-      new RegExp("\\\\[functions\\\\." + name + "\\\\]\\\\s*([\\\\s\\\\S]*?)(?=\\\\n\\\\[functions\\\\.|$)"),
+      new RegExp("\\[functions\\." + name + "\\]\\s*([\\s\\S]*?)(?=\\n\\[functions\\.|$)"),
     );
     assert.ok(section, name + " must have an explicit gateway configuration");
-    assert.match(section[1], /^\\s*verify_jwt\\s*=\\s*false\\s*$/m,
+    assert.match(section[1], /^\s*verify_jwt\s*=\s*false\s*$/m,
       name + " must accept the configured non-JWT secret key only because its handler enforces the shared key guard");
   }
 });
