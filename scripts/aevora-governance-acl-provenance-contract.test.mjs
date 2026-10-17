@@ -123,3 +123,13 @@ test("broad SECURITY DEFINER search-path review remains metadata-only and flags 
   assert.match(query, /has_schema_privilege\('service_role', 'public', 'CREATE'\)/);
   assert.match(query, /public_only_temp_implicit_first/);
 });
+
+test("first-pass unqualified relation scan is documented as incomplete and read-only", () => {
+  assert.match(report, /first-pass unqualified relation reference scan/i);
+  assert.match(report, /taleforge_reassess_long_term_narrative_architecture/);
+  assert.match(report, /taleforge_refresh_long_term_narrative_architecture/);
+  assert.match(report, /taleforge_verify_narrative_memory_consolidation/);
+  assert.match(report, /not a complete parser or proof of exploitability/i);
+  assert.match(query, /First-pass seed scan for unqualified references/);
+  assert.match(query, /p\.proconfig @> ARRAY\['search_path=public'\]/);
+});
