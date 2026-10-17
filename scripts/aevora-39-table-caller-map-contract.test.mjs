@@ -62,6 +62,14 @@ test("caller map records live SQL-routine findings without claiming an RLS bypas
   assert.match(map, /not present in the live migration ledger/);
 });
 
+test("caller map records the focused live relation-ACL cross-check with appropriate caveats", () => {
+  assert.match(map, /six high-impact relations/);
+  assert.match(map, /RLS enabled, FORCE RLS disabled, zero row policies/);
+  assert.match(map, /SELECT, INSERT, UPDATE, DELETE, and TRUNCATE/);
+  assert.match(map, /not proof that ordinary PostgREST row reads\/writes succeed/);
+  assert.match(map, /does not prove a particular REST route can invoke TRUNCATE/);
+});
+
 test("reader-event browser cutover remains explicitly identified as incomplete", () => {
   assert.match(browserClient, /taleForgeReaderEventIntakeEnabled\s*=\s*false/);
   assert.match(progress, /supabase\.from\("reader_events"\)\.insert\(payload\)/);
