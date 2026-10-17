@@ -481,3 +481,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] The successful Edge job includes the release safety contract suite; the previous scheduler security contract suite also passed. This is branch-only validation and does not establish live Supabase parity.
 - **Scope:** source/test/CI only. No production functions, permissions, migrations, cron schedules, publication state, or application data were changed; no billable Supabase branch was created.
 - **Gate unchanged:** automatic publishing remains **NO-GO** until database commit-boundary publication authorization is implemented and approved, live function/migration parity is reconciled, and the outstanding owner/default-ACL and worker-auth rollout gates are resolved.
+
+### Malformed release-counter contract validation — 2026-10-17
+
+- [x] Hardened `mayAdvanceSchedule` to reject non-boolean or unsafe state: it requires `dryRun === false`, `autoPublish === true`, `failed === false`, a positive integer due count, and nonnegative integer attempted/confirmed counts matching the due count exactly.
+- [x] Hardened `mayActivateSeries` to reject malformed/unknown counters and unknown publication-failure state; activation requires a positive integer threshold, valid nonnegative integer approved/published counts meeting that threshold, and `publicationFailed === false`.
+- [x] Regression tests cover missing/unknown failure state, string booleans, zero/negative/fractional/NaN values, and malformed activation counts.
+- [x] Final branch validation passed on commit [`fd88c46`](https://github.com/freearmy599/taleforge/commit/fd88c46a0b9d238addfea891b1e3de812b4614c9): [run 39019739256](https://github.com/freearmy599/taleforge/actions/runs/39019739256) completed successfully. Both **Type-check prepared Edge Functions** and **Rehearse readiness migration on disposable PostgreSQL** passed.
+- **Scope:** pure contract/test/CI validation and documentation only. No live Supabase functions, permissions, migrations, cron schedules, publication state, or application data were changed; no billable Supabase branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO** until database commit-boundary publication authorization is implemented and approved, live function/migration parity is reconciled, and owner/default-ACL plus worker-auth rollout gates are resolved.
