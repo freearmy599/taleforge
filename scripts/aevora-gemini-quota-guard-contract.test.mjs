@@ -61,6 +61,8 @@ test("generate-chapter provider-state guard covers both generation and quality-r
   const guardRegion = source.slice(source.lastIndexOf("taleforge_ceo_execution_gate", guardIndex), generationBranchIndex);
   assert.match(guardRegion, /provider_state_unavailable/, "missing provider state must block all request paths");
   assert.match(guardRegion, /provider_cooldown/, "active cooldown must block all request paths");
+  assert.match(guardRegion, /Number\.isSafeInteger\(/, "generation and quality-review paths must reject malformed throttle counters");
+  assert.match(guardRegion, /Number\.isFinite\(/, "generation and quality-review paths must reject malformed cooldown timestamps");
 });
 
 test("review-orchestrator fails closed before selecting outputs when Gemini provider state is unavailable or cooling down", async () => {
@@ -75,6 +77,8 @@ test("review-orchestrator fails closed before selecting outputs when Gemini prov
   assert.match(guard, /providerStateError\s*\|\|\s*!providerState/, "missing/error state must block the review pipeline");
   assert.match(guard, /provider_state_unavailable/, "unavailable state must return the stable blocked reason");
   assert.match(guard, /provider_cooldown/, "active cooldown must return the stable blocked reason");
+  assert.match(guard, /Number\.isSafeInteger\(/, "review orchestration must reject malformed throttle counters");
+  assert.match(guard, /Number\.isFinite\(/, "review orchestration must reject malformed cooldown timestamps");
   assert.match(guard, /return json\([\s\S]*?503\)/, "provider-state lookup failures must return a retryable service error");
 });
 
@@ -211,6 +215,8 @@ test("review workers validate provider state before invoking Gemini", async () =
       `${item.path}: provider-state uncertainty must block the review`);
     assert.match(guardedRegion, /provider_cooldown/,
       `${item.path}: active cooldown must block the review`);
+    assert.match(guardedRegion, /Number\.isSafeInteger\(/, `${item.path}: malformed throttle counters must fail closed`);
+    assert.match(guardedRegion, /Number\.isFinite\(/, `${item.path}: malformed cooldown timestamps must fail closed`);
   }
 });
 
@@ -235,6 +241,8 @@ test("direct Gemini workers validate provider state before issuing their model r
       `${path}: provider-state uncertainty must block the request`);
     assert.match(guardedRegion, /provider_cooldown/,
       `${path}: active cooldown must block the request`);
+    assert.match(guardedRegion, /Number\.isSafeInteger\(/, `${path}: malformed throttle counters must fail closed`);
+    assert.match(guardedRegion, /Number\.isFinite\(/, `${path}: malformed cooldown timestamps must fail closed`);
   }
 });
 
@@ -271,6 +279,7 @@ test("revise-chapter rechecks provider availability immediately before both revi
   const helper = source.slice(helperStart, helperEnd);
   assert.match(helper, /if\s*\(error\s*\|\|\s*!data\)[\s\S]*?provider_state_unavailable/,
     "provider-state lookup errors or missing rows must fail closed");
+  assert.match(helper, /Number\.isSafeInteger\(/, "revision and continuation must reject malformed throttle counters");
   assert.match(helper, /provider_cooldown/,
     "an active cooldown must block both revision and continuation calls");
   assert.match(helper, /!Number\.isFinite\(until\)[\s\S]*?invalid_cooldown_timestamp/,
