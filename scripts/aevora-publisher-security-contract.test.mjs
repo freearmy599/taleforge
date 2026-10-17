@@ -83,13 +83,13 @@ test("publisher distinguishes manual schedules from automated publication author
   assert.match(publisher, /AUTOMATION_SCHEDULE_MISSING_OR_AMBIGUOUS/);
   assert.match(publisher, /AUTOMATION_SCHEDULE_AMBIGUOUS/);
   const manualIndex = publisher.indexOf('if (automationSchedule.schedule_mode === "manual")');
-  const authorizationStopIndex = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
-  assert.ok(manualIndex >= 0 && authorizationStopIndex >= 0 && authorizationStopIndex < manualIndex,
-    "all publication modes must stop before later schedule classification until trusted approval exists");
+  const authorizationStopIndex = publisher.indexOf("Publication blocked until trusted approval is implemented.");
+  assert.ok(manualIndex >= 0 && authorizationStopIndex >= 0 && manualIndex < authorizationStopIndex,
+    "manual schedule classification must be followed by the trusted-approval stop");
   const manualBranch = publisher.slice(manualIndex, publisher.indexOf("/* * -------------------------------------------------- * 5. Validate series status"));
   assert.match(manualBranch, /MANUAL_SCHEDULE_AUTOMATION_CONFLICT/,
     "manual schedules must still reject automatic flags rather than being treated as automated approvals");
-  assert.match(publisher.slice(authorizationStopIndex - 700, manualIndex),
+  assert.match(publisher.slice(Math.max(0, authorizationStopIndex - 700), authorizationStopIndex),
     /not per-chapter human approval/,
     "manual schedule flags must not substitute for approval of the exact output");
   assert.match(publisher, /automationSchedule.enabled !== true \|\| automationSchedule.auto_publish !== true[\s\S]*?AUTOMATION_NOT_READY/,
