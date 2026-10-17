@@ -47,7 +47,7 @@ BEGIN
      SET generation_status = p_generation_status,
          quality_score = p_score,
          quality_report = p_quality_report,
-         updated_at = pg_catalog.now()
+         updated_at = pg_catalog.clock_timestamp()
    WHERE output.id = p_output_id
      AND output.generation_status IN ('generated', 'needs_revision', 'quality_check')
      AND output.updated_at = p_expected_updated_at
