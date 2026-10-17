@@ -20,17 +20,23 @@ export function isConfirmedPublication(httpOk, payload) {
 }
 
 export function mayAdvanceSchedule({ dryRun, autoPublish, dueCount, attemptedCount, confirmedCount, failed }) {
-  if (dryRun || !autoPublish || dueCount === 0) return false;
-  if (failed === true) return false;
+  if (dryRun !== false || autoPublish !== true || failed !== false) return false;
+  if (!Number.isInteger(dueCount) || dueCount <= 0) return false;
+  if (!Number.isInteger(attemptedCount) || attemptedCount < 0) return false;
+  if (!Number.isInteger(confirmedCount) || confirmedCount < 0) return false;
   return attemptedCount === dueCount && confirmedCount === dueCount;
 }
 
 export function mayActivateSeries({ requiredLaunchCount, approvedCount, publishedCount, publicationFailed }) {
   return Number.isInteger(requiredLaunchCount)
     && requiredLaunchCount > 0
+    && Number.isInteger(approvedCount)
+    && approvedCount >= 0
+    && Number.isInteger(publishedCount)
+    && publishedCount >= 0
     && approvedCount >= requiredLaunchCount
     && publishedCount >= requiredLaunchCount
-    && publicationFailed !== true;
+    && publicationFailed === false;
 }
 
 export function canContinueAfterLeaseLoss(leaseOwned, leaseRenewed) {
@@ -82,6 +88,19 @@ test("schedule advances only when every selected chapter is confirmed published"
   }), false);
 });
 
+test("unknown failure state and malformed batch counts fail closed", () => {
+  const base = {
+    dryRun: false, autoPublish: true, dueCount: 2, attemptedCount: 2,
+    confirmedCount: 2, failed: false,
+  };
+  assert.equal(mayAdvanceSchedule({ ...base, failed: undefined }), false);
+  assert.equal(mayAdvanceSchedule({ ...base, dueCount: 0 }), false);
+  assert.equal(mayAdvanceSchedule({ ...base, dueCount: -1, attemptedCount: -1, confirmedCount: -1 }), false);
+  assert.equal(mayAdvanceSchedule({ ...base, dueCount: 2.5, attemptedCount: 2.5, confirmedCount: 2.5 }), false);
+  assert.equal(mayAdvanceSchedule({ ...base, attemptedCount: Number.NaN }), false);
+  assert.equal(mayAdvanceSchedule({ ...base, autoPublish: "true" }), false);
+});
+
 test("dry run never mutates the schedule", () => {
   assert.equal(mayAdvanceSchedule({
     dryRun: true, autoPublish: true, dueCount: 1, attemptedCount: 1,
@@ -109,6 +128,13 @@ test("series activates only after launch threshold is truly published", () => {
   assert.equal(mayActivateSeries({
     requiredLaunchCount: 2, approvedCount: 2, publishedCount: 1, publicationFailed: true,
   }), false);
+});
+
+test("series activation rejects malformed counts and unknown failure state", () => {
+  const base = { requiredLaunchCount: 2, approvedCount: 2, publishedCount: 2, publicationFailed: false };
+  assert.equal(mayActivateSeries({ ...base, approvedCount: Number.NaN }), false);
+  assert.equal(mayActivateSeries({ ...base, publishedCount: 2.5 }), false);
+  assert.equal(mayActivateSeries({ ...base, publicationFailed: undefined }), false);
 });
 
 test("lease loss or failed renewal must stop publication work", () => {
