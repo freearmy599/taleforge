@@ -36,8 +36,13 @@ BEGIN
 END
 $assert$;
 
-INSERT INTO public.chapters(id) VALUES (1) ON CONFLICT DO NOTHING;
+-- Exercise the trigger under anon after direct EXECUTE on its trigger function
+-- has been revoked. Trigger invocation must remain functional.
+SET ROLE anon;
+INSERT INTO public.chapters(id) VALUES (1);
 UPDATE public.chapters SET id = 2 WHERE id = 1;
+RESET ROLE;
+
 DO $trigger_assert$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.chapters WHERE id = 2) THEN
@@ -45,3 +50,4 @@ BEGIN
   END IF;
 END
 $trigger_assert$;
+SELECT 'internal RPC EXECUTE and trigger assertions passed' AS result;
