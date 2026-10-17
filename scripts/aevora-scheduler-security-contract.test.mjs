@@ -241,3 +241,22 @@ test("publication confirmation predicate rejects malformed, contradictory, and i
   assert.equal(isConfirmed({ ok: true }, { ...valid, status: "published", extra: { error: true } }), true,
     "irrelevant additional response fields must not override the required confirmation fields");
 });
+
+test("scheduler confirms the persisted chapter ID, series slot, and published status before counting success", () => {
+  const start = source.indexOf("const {data:confirmedChapter,error:confirmError}=await supabase.from(\"chapters\")");
+  const accepted = source.indexOf("published.push({...d,status:confirmedChapter.status})", start);
+  assert.ok(start >= 0 && accepted > start,
+    "a persisted chapter confirmation query must precede counting the publisher response");
+  const confirmation = source.slice(start, accepted);
+  assert.match(confirmation, /\.eq\(\"id\",d\.chapter_id\)/,
+    "confirmation must use the chapter ID returned by the publisher");
+  assert.match(confirmation, /\.eq\(\"series_id\",schedule\.series_id\)/,
+    "confirmation must bind the chapter to the scheduled series");
+  assert.match(confirmation, /\.eq\(\"chapter_number\",candidate\.chapter_number\)/,
+    "confirmation must bind the chapter to the selected chapter slot");
+  assert.match(confirmation, /if\(confirmError \|\| !confirmedChapter \|\| confirmedChapter\.status!==\"published\"\)/,
+    "lookup errors, missing rows, and non-published rows must all fail closed");
+  assert.match(confirmation, /publicationFailed=true;[\s\S]*?break;/,
+    "unconfirmed persistence must stop the batch rather than count a publication");
+});
+
