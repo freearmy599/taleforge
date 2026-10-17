@@ -596,3 +596,15 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Updated the read-only catalog inventory in commit [`0f3c867`](https://github.com/freearmy599/taleforge/commit/0f3c867d69d45ce734ae7d48858d5d54c19c83a8) to include the exact `taleforge_ceo_execution_gate` routine name.
 - [x] Extended the inventory in commit [`2b3632d`](https://github.com/freearmy599/taleforge/commit/2b3632d59a4a8f676aa9052990883ed8b5be2112) to return the routine definition and effective EXECUTE checks for the current executor, `anon`, `authenticated`, and `service_role`, alongside existing owner/signature/security/settings/ACL metadata.
 - [x] Static post-edit verification confirmed the query contains the exact gate filter, effective privilege fields, and routine-definition projection. This verifies the tracked query text only; the query has **not** been run against production, and its output/effective live grants remain unknown.
+
+
+## Latest governance ACL audit follow-through — 2026-10-17
+
+- [x] Extend the read-only schema-provenance SQL with catalog queries for the four governance relations, their RLS/ACL state and policies, exact live definitions of `taleforge_ceo_execution_gate` / `taleforge_boss_evaluate`, and grouped defaults by creator role.
+- [x] Add `taleforge_system_governance_registry`, `taleforge_system_governance_dependencies`, `taleforge_system_governance_runs`, and `taleforge_system_health` to the ACL reconciliation matrix with provisional intended client access and explicit caller/provenance blockers.
+- [x] Add `scripts/aevora-governance-acl-provenance-contract.test.mjs` and wire it into the Edge source-validation workflow. The source assertions were checked against the current fetched report, matrix, query, checklist, and workflow content; this is not a substitute for executing the Node test or a completed CI run.
+- [ ] Obtain a green CI run for the exact final candidate commit.
+- [ ] Recover authoritative governance migration/source and complete caller mapping before proposing narrow ACL changes.
+- [ ] Resolve the authorized `supabase_admin` default-ACL execution path and rehearse both creator roles in a disposable database.
+
+No production grants, policies, default privileges, functions, migrations, deployments, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
