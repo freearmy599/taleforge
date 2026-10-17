@@ -32,6 +32,8 @@ test("rehearsal demonstrates unqualified temp resolution and schema-qualified pr
   assert.match(script, /Expected schema-qualified lookup to resolve public relation/);
   assert.match(script, /aevora_test_unqualified_fixed_path/);
   assert.match(script, /Expected pg_temp-last search_path to prefer public relation/);
+  assert.match(script, /-f supabase\/migrations\/20261017160000_harden_narrative_security_definer_search_path\.sql/);
+  assert.match(script, /configured_count <> 6/);
 });
 
 test("prepared migration changes only the six reviewed function-local search paths", () => {
