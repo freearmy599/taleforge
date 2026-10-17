@@ -165,9 +165,14 @@ test("every Edge Function entrypoint is explicitly classified by the authorizati
 test("shared internal API-key helper behavior accepts only exact trusted credentials", async () => {
   const { runInNewContext } = await import("node:vm");
   const helper = await source("supabase/functions/_shared/internal-api-key.ts");
-  const signature = /export function isTrustedInternalApiKey\\(\\s*presentedApiKey: string \\| null,\\s*legacyServiceRoleKey: string \\| null,\\s*secretKeysJson: string \\| null \\| undefined,\\s*allowedSecretKeyNamesCsv: string \\| null \| undefined,\\s*\\): boolean \\{/;
-  assert.match(helper, signature, "helper signature must stay explicit and typed");
-  const executable = helper.replace(signature,
+  const typedSignature = `export function isTrustedInternalApiKey(
+  presentedApiKey: string | null,
+  legacyServiceRoleKey: string | null,
+  secretKeysJson: string | null | undefined,
+  allowedSecretKeyNamesCsv: string | null | undefined,
+): boolean {`;
+  assert.ok(helper.includes(typedSignature), "helper signature must stay explicit and typed");
+  const executable = helper.replace(typedSignature,
     "function isTrustedInternalApiKey(presentedApiKey, legacyServiceRoleKey, secretKeysJson, allowedSecretKeyNamesCsv) {");
   const isTrustedInternalApiKey = runInNewContext(executable + "\\nisTrustedInternalApiKey;");
   const check = (presented, legacy, config, allowlist) =>
