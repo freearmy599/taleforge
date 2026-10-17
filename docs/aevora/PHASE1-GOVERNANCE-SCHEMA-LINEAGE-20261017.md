@@ -40,3 +40,23 @@ It is not proof that no rename or later migration exists anywhere: the migration
 4. Rehearse any proposed changes in a disposable database before seeking authorized production execution.
 
 No production objects were changed. Automated publishing remains **NO-GO** until the separate trusted-approver and publication-boundary requirements are satisfied.
+
+
+## Follow-up live catalog comparison — 2026-10-17
+
+A second read-only catalog query compared relation OIDs, columns/defaults, constraints, and catalog dependencies for the legacy and governance-prefixed objects. The results materially strengthen the mismatch finding:
+
+- The legacy and governance-prefixed registry/dependency relations have **different OIDs** and are distinct live tables, not just alternate names for the same relation.
+- The legacy registry uses a `status` field with legacy status values and a `description` field. The governance registry instead uses `registry_status`, `failure_policy`, `allowed_actions`, `blocking_conditions`, `health_source`, and `metadata`.
+- The legacy dependency table permits `required/recommended/observability`; the governance dependency table permits `required/advisory/conditional` and adds an `action_scope` JSONB field.
+- The live `taleforge_system_health.system_key` foreign key references the **legacy** `taleforge_system_registry`, not the governance-prefixed registry. This is a concrete cross-generation coupling that must be preserved or deliberately migrated only after provenance and data mapping are recovered.
+- The live governance-prefixed dependency table's foreign keys reference `taleforge_system_governance_registry`. Its own constraints and columns are distinct from the legacy dependency relation.
+- The live `taleforge_system_governance_runs` table has its own decision/scope/level constraints and indexes; no direct dependency edge to the legacy registry was returned by this focused catalog query.
+
+These results are catalog metadata only; no application rows were read and no mutation was attempted. Catalog dependency views are not a complete application-call graph, and the absence of a returned dependency edge does not prove that no dynamic SQL or external caller exists.
+
+### Updated conclusion and guardrail
+
+Treat the two registry/dependency pairs as **separate schema generations with different contracts**, not rename candidates. Do not merge, rename, drop, copy, or ACL-align them based on naming similarity. Recover the authoritative creation history and inspect the live evaluator's full definition/call graph, triggers, policies, and data semantics before proposing any schema or ACL change.
+
+No production objects, grants, policies, functions, migrations, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
