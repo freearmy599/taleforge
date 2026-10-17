@@ -271,3 +271,17 @@ test("scheduler cannot bypass lease-fenced RPCs with direct schedule or lifecycl
   ]) assert.ok(source.includes(rpc), "missing lease-fenced state transition RPC: " + rpc);
 });
 
+test("scheduler reports partial success when confirmed publications coexist with a later failure", () => {
+  assert.match(source, /const hasScheduleFailures=results\.some\(\(result:any\)=>failureActions\.has\(result\.action\)\)/);
+  assert.match(source, /const hasPublishedSideEffects=results\.some\(\(result:any\)=>Number\(result\.published_count\)>0\|\|\(Array\.isArray\(result\.published\)&&result\.published\.length>0\)\)/);
+  assert.match(source, /success:!hasScheduleFailures,partial_success:hasPublishedSideEffects&&hasScheduleFailures/);
+  const failureActions = source.slice(source.indexOf("const failureActions"), source.indexOf("const hasScheduleFailures"));
+  for (const action of [
+    "publication_incomplete",
+    "publish_unconfirmed",
+    "schedule_advance_unconfirmed",
+    "lease_release_warning",
+    "publication_authorization_not_implemented",
+  ]) assert.ok(failureActions.includes(action), "missing failure classification: " + action);
+});
+
