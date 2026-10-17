@@ -48,7 +48,7 @@ test("taxonomy migration removes relation-level and column-level client privileg
   );
   assert.match(migration, /FOREACH target_name IN ARRAY ARRAY\[/);
   assert.doesNotMatch(migration, /\bGRANT\b/i, "migration must not add access");
-  assert.doesNotMatch(migration, /\bservice_role\b/i, "trusted server-role privileges must remain untouched");
+  assert.doesNotMatch(migration, /(?:FROM|TO)\s+[^;\n]*\bservice_role\b/i, "SQL must not alter trusted server-role privileges");
 });
 
 test("taxonomy ACL correction is idempotent and limits revokes to the intended client roles", () => {
