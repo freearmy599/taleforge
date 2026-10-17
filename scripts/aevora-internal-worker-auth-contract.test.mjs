@@ -100,13 +100,18 @@ test("autonomous series runner authenticates each supported mode before privileg
   const s = await source("supabase/functions/autonomous-series-creation-runner/index.ts");
   const handler = s.slice(s.indexOf("Deno.serve"));
   const bodyParse = handler.indexOf("req.json()");
+  const scheduledGuard = handler.indexOf("isTrustedInternalApiKey(");
+  const adminGuard = handler.indexOf('role !== "admin" && role !== "owner"');
   const privilegedClient = handler.indexOf("createClient(supabaseUrl, serviceRoleKey");
   assert.ok(bodyParse >= 0 && privilegedClient > bodyParse, "runner must parse only enough input to select an auth mode before privileged work");
-  assert.match(handler, /if \(mode === "scheduled"\)[\s\S]*?token !== serviceRoleKey[\s\S]*?return reply\(\{ success: false, error: "Invalid scheduler credential\." \}, 403\)/,
-    "scheduled mode must require the exact server-held service-role credential");
+  assert.ok(scheduledGuard > bodyParse && privilegedClient > scheduledGuard,
+    "scheduled mode must validate its apikey before creating the privileged client");
+  assert.match(handler, /if \(mode === "scheduled"\)[\s\S]*?isTrustedInternalApiKey\([\s\S]*?req\.headers\.get\("apikey"\)[\s\S]*?return reply\(\{ success: false, error: "Invalid scheduler credential\." \}, 403\)/,
+    "scheduled mode must require a trusted server-side API key in apikey, not a non-JWT secret in Authorization");
+  assert.doesNotMatch(handler, /token !== serviceRoleKey/, "scheduled mode must not compare a new secret API key against the legacy service-role JWT");
   assert.match(handler, /authClient\.auth\.getUser\(token\)/, "admin mode must validate the bearer token as a real user session");
   assert.match(handler, /role !== "admin" && role !== "owner"/, "admin mode must require an admin or owner application role");
-  assert.ok(privilegedClient > handler.indexOf('role !== "admin" && role !== "owner"'),
+  assert.ok(privilegedClient > adminGuard,
     "the service-role database client must be created only after admin-mode authorization checks");
   assert.match(handler, /if \(!token\) return reply\(\{ success: false, error: "Authorization required\." \}, 401\)/);
 });
@@ -197,7 +202,7 @@ test("shared internal API-key helper behavior accepts only exact trusted credent
 
 test("every endpoint with handler-level secret authentication disables gateway JWT verification", async () => {
   const config = await source("supabase/config.toml");
-  const configured = [...workers, "aevora-control-plane-audit", "reader-event-intake"];
+  const configured = [...workers, "autonomous-series-creation-runner", "aevora-control-plane-audit", "reader-event-intake"];
   for (const name of configured) {
     const section = config.match(
       new RegExp("\\[functions\\." + name + "\\]\\s*([\\s\\S]*?)(?=\\n\\[functions\\.|$)"),
