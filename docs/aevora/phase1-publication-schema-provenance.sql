@@ -371,6 +371,43 @@ WHERE n.nspname = 'public'
   )
 ORDER BY p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
 
+-- Catalog-recorded routine-to-routine dependency edges touching the two gate
+-- functions. PL/pgSQL/source-text calls may not be represented in pg_depend;
+-- compare this output with the source-body inventory above and keep that limit
+-- explicit rather than treating absent edges as proof of no caller.
+WITH gate_routines AS (
+  SELECT p.oid, p.proname,
+         pg_catalog.pg_get_function_identity_arguments(p.oid) AS identity_arguments
+  FROM pg_catalog.pg_proc p
+  JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('taleforge_ceo_execution_gate', 'taleforge_boss_evaluate')
+), routine_edges AS (
+  SELECT d.classid, d.objid, d.refclassid, d.refobjid, d.deptype
+  FROM pg_catalog.pg_depend d
+  WHERE d.classid = 'pg_catalog.pg_proc'::pg_catalog.regclass
+    AND d.refclassid = 'pg_catalog.pg_proc'::pg_catalog.regclass
+)
+SELECT
+  dependent_ns.nspname AS dependent_schema,
+  dependent.proname AS dependent_routine,
+  pg_catalog.pg_get_function_identity_arguments(dependent.oid) AS dependent_arguments,
+  referenced_ns.nspname AS referenced_schema,
+  referenced.proname AS referenced_routine,
+  pg_catalog.pg_get_function_identity_arguments(referenced.oid) AS referenced_arguments,
+  edge.deptype AS dependency_type,
+  (dependent.oid IN (SELECT oid FROM gate_routines)) AS dependent_is_gate,
+  (referenced.oid IN (SELECT oid FROM gate_routines)) AS referenced_is_gate
+FROM routine_edges edge
+JOIN pg_catalog.pg_proc dependent ON dependent.oid = edge.objid
+JOIN pg_catalog.pg_namespace dependent_ns ON dependent_ns.oid = dependent.pronamespace
+JOIN pg_catalog.pg_proc referenced ON referenced.oid = edge.refobjid
+JOIN pg_catalog.pg_namespace referenced_ns ON referenced_ns.oid = referenced.pronamespace
+WHERE dependent.oid IN (SELECT oid FROM gate_routines)
+   OR referenced.oid IN (SELECT oid FROM gate_routines)
+ORDER BY dependent_schema, dependent_routine, dependent_arguments,
+         referenced_schema, referenced_routine, referenced_arguments;
+
 -- Group schema-scoped default ACLs by creator role and object type so
 -- duplicated acl rows do not obscure the separate postgres/supabase_admin
 -- default entries. This is inspection only; never apply a blanket revoke from
