@@ -371,3 +371,29 @@ test("every direct Gemini caller explicitly blocks a missing provider-state row"
       `${path}: missing provider-state rows must fail closed, not be interpreted as no cooldown`);
   }
 });
+
+test("generate-chapter quality-review path independently guards Gemini after deterministic validation", async () => {
+  const source = await readFile(new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url), "utf8");
+  const qualityProviderGuard = source.indexOf("const {data:reviewProviderState,error:reviewProviderStateError}");
+  const reviewPrompt = source.indexOf("const reviewPrompt=", qualityProviderGuard);
+  const modelCall = source.indexOf("ai=parseJson(await gemini(gkey,reviewPrompt,true))", reviewPrompt);
+  const deterministicIssueBranch = source.indexOf("if(issues.length)", source.indexOf("const hard="));
+  const scheduleGate = source.indexOf("const {data:qualitySchedules,error:qualityScheduleError}");
+  assert.ok(deterministicIssueBranch >= 0 && qualityProviderGuard > deterministicIssueBranch,
+    "deterministic hard-validation failures must be recorded without requiring Gemini availability");
+  assert.ok(scheduleGate > deterministicIssueBranch && qualityProviderGuard > scheduleGate,
+    "quality-review provider state must be checked after automation-readiness verification");
+  assert.ok(reviewPrompt > qualityProviderGuard && modelCall > reviewPrompt,
+    "quality-review provider-state validation must precede its Gemini call");
+  const guard = source.slice(qualityProviderGuard, reviewPrompt);
+  assert.match(guard, /reviewProviderStateError\s*\|\|\s*!reviewProviderState/,
+    "missing provider state or lookup errors must block quality-review model calls");
+  assert.match(guard, /Number\.isSafeInteger\(reviewProviderState\.consecutive_throttle_count\)/,
+    "unsafe throttle counters must fail closed");
+  assert.match(guard, /!Number\.isFinite\(new Date\(reviewProviderState\.cooldown_until\)\.getTime\(\)\)/,
+    "invalid cooldown timestamps must fail closed");
+  assert.match(guard, /reason:"provider_cooldown"/,
+    "active cooldown must block AI quality review");
+  assert.match(guard, /reason:"provider_state_unavailable"/,
+    "unavailable provider state must return a stable fail-closed reason");
+});
