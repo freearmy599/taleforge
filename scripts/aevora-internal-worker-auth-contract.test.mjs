@@ -160,3 +160,29 @@ test("every Edge Function entrypoint is explicitly classified by the authorizati
     "a new or removed Edge Function must be explicitly classified and covered by the appropriate authorization contract",
   );
 });
+
+
+test("shared internal API-key helper behavior accepts only exact trusted credentials", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const helper = await source("supabase/functions/_shared/internal-api-key.ts");
+  const signature = /export function isTrustedInternalApiKey\\(\\s*presentedApiKey: string \\| null,\\s*legacyServiceRoleKey: string \\| null,\\s*secretKeysJson: string \\| null \\| undefined,\\s*allowedSecretKeyNamesCsv: string \\| null \| undefined,\\s*\\): boolean \\{/;
+  assert.match(helper, signature, "helper signature must stay explicit and typed");
+  const executable = helper.replace(signature,
+    "function isTrustedInternalApiKey(presentedApiKey, legacyServiceRoleKey, secretKeysJson, allowedSecretKeyNamesCsv) {");
+  const isTrustedInternalApiKey = runInNewContext(executable + "\\nisTrustedInternalApiKey;");
+  const check = (presented, legacy, config, allowlist) =>
+    isTrustedInternalApiKey(presented, legacy, config, allowlist);
+
+  assert.equal(check(null, "legacy", '{"default":"new"}', "default"), false);
+  assert.equal(check("", "legacy", '{"default":"new"}', "default"), false);
+  assert.equal(check("legacy", "legacy", null, null), true);
+  assert.equal(check("legacy-extra", "legacy", null, null), false);
+  assert.equal(check("new", "legacy", '{"default":"new"}', "default"), true);
+  assert.equal(check("new", "legacy", '{"default":"new"}', "other"), false);
+  assert.equal(check("other", "legacy", '{"default":"new","other":"other"}', "default"), false);
+  assert.equal(check("other", "legacy", '{"default":"new","other":"other"}', "other"), true);
+  assert.equal(check("new", null, '{"default":"new"}', " , "), false);
+  for (const malformed of ["{", "null", "[]", '"new"', "42", '{"default":null}', '{"default":42}']) {
+    assert.equal(check("new", null, malformed, "default"), false, "malformed config must fail closed: " + malformed);
+  }
+});
