@@ -9,8 +9,9 @@ BEGIN
   result := public.aevora_commit_quality_review(
     '00000000-0000-0000-0000-000000000001','passed',92,
     '{"ai_review":{"decision":"passed"}}'::jsonb,'gemini-test','quality-v1',
-    'quality_check','{"quality_version":"quality-v1"}'::jsonb
-  , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001'));
+    'quality_check','{"quality_version":"quality-v1"}'::jsonb,
+    stale_updated_at
+  );
   IF result->>'committed' <> 'true' OR result->>'generation_status' <> 'quality_check' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: successful review was not atomically committed: %', result;
   END IF;
@@ -99,7 +100,7 @@ BEGIN
   END;
 
   IF has_function_privilege('anon','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb,timestamptz)','EXECUTE')
-     OR has_function_privilege('authenticated','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb)','EXECUTE') THEN
+     OR has_function_privilege('authenticated','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb,timestamptz)','EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: browser role retains RPC EXECUTE';
   END IF;
   IF NOT has_function_privilege('service_role','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb)','EXECUTE') THEN
