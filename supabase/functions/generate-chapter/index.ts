@@ -175,20 +175,22 @@ if(count<minimum)issues.push(`Chapter is below the production minimum: ${count} 
 const hard={passed:issues.length===0,actualWordCount:count,targetWordCount:target,minimumWordCount:minimum,maximumWordCount:null,issues,warnings,repeatedPassages:[]};
 
 if(issues.length){
-const {data:review,error:reviewError}=await db.from("chapter_reviews").upsert({
-generation_output_id:outputId,review_type:"quality",status:"needs_revision",score:0,
-findings:{hard_validation:hard,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
-},{onConflict:"generation_output_id,review_type"}).select().single();
-if(reviewError){
- console.error("[generate-chapter] deterministic quality-review write failed; internal diagnostics were withheld.");
- return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The deterministic review could not be saved; output state was not advanced."},503);
+const {data:commitData,error:commitError}=await db.rpc("aevora_commit_quality_review",{
+p_output_id:outputId,p_review_status:"needs_revision",p_score:0,
+p_findings:{hard_validation:hard,quality_version:QUALITY_VERSION},p_reviewer_model:MODEL,
+p_reviewer_version:QUALITY_VERSION,p_generation_status:"needs_revision",
+p_quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION}
+});
+const commit=Array.isArray(commitData)?commitData[0]:commitData;
+if(commitError){
+ console.error("[generate-chapter] atomic deterministic quality-review commit failed; internal diagnostics were withheld.");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The deterministic review and output state could not be committed atomically."},503);
 }
-const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).in("generation_status",qualityReviewEligibleStatuses).select("id").maybeSingle();
-if(statusError||!statusRow){
- console.error("[generate-chapter] deterministic review status update failed or was fenced.");
- return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
+if(commit?.committed!==true){
+ console.warn("[generate-chapter] deterministic quality-review commit fenced by output state.");
+ return reply({success:false,mode:"quality-review",retryable:false,reason:"output_state_changed",error:"The output changed before review commit; no review was written and the existing output state was preserved."},409);
 }
-return reply({success:true,mode:"quality-review",validation_mode:"deterministic-failure",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision:"needs_revision",score:0,generation_status:"needs_revision",published:false,hard_validation:hard,next_step:"Run revise-chapter on this output."});
+return reply({success:true,mode:"quality-review",validation_mode:"deterministic-failure",output_id:outputId,review_id:commit.review_id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision:"needs_revision",score:0,generation_status:"needs_revision",published:false,hard_validation:hard,next_step:"Run revise-chapter on this output."});
 }
 
 const contextSnapshotId=out?.quality_report?.generation_context_snapshot_id;
@@ -268,17 +270,27 @@ const score=Number(ai?.score),semanticScore=Number(ai?.semantic_plan_alignment?.
 const semanticReady=Number.isFinite(semanticScore)&&semanticScore>=75;
 const criticalIssuesClear=critical!==null&&critical.length===0;
 const decision=ai?.decision==="passed"&&Number.isFinite(score)&&score>=85&&criticalIssuesClear&&semanticReady?"passed":"needs_revision",status=decision==="passed"?"quality_check":"needs_revision";
-const {data:review,error:re}=await db.from("chapter_reviews").upsert({
-generation_output_id:outputId,review_type:"quality",status:decision,score:Number.isFinite(score)?score:0,
-findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
-},{onConflict:"generation_output_id,review_type"}).select().single();
-if(re)throw new Error(`Could not save quality review: ${re.message}`);
-const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).in("generation_status",qualityReviewEligibleStatuses).select("id").maybeSingle();
-if(statusError||!statusRow){
- console.error("[generate-chapter] AI quality-review status update failed or was fenced.");
- return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
+if(!Number.isFinite(score)||score<0||score>100){
+ console.warn("[generate-chapter] AI quality-review returned an out-of-range score; failing closed.");
 }
-return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:review?.id||null,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
+const safeScore=Number.isFinite(score)&&score>=0&&score<=100?score:0;
+const {data:commitData,error:commitError}=await db.rpc("aevora_commit_quality_review",{
+p_output_id:outputId,p_review_status:decision,p_score:safeScore,
+p_findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},
+p_reviewer_model:MODEL,p_reviewer_version:QUALITY_VERSION,p_generation_status:status,
+p_quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION}
+});
+const commit=Array.isArray(commitData)?commitData[0]:commitData;
+if(commitError){
+ console.error("[generate-chapter] atomic AI quality-review commit failed; internal diagnostics were withheld.");
+ return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The AI review and output state could not be committed atomically."},503);
+}
+if(commit?.committed!==true){
+ console.warn("[generate-chapter] AI quality-review commit fenced by output state.");
+ return reply({success:false,mode:"quality-review",retryable:false,reason:"output_state_changed",error:"The output changed before review commit; no review was written and the existing output state was preserved."},409);
+}
+const reviewId=commit.review_id||null;
+return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:reviewId,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
 }catch(e){
 const message=e instanceof Error?e.message:String(e);
 const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
