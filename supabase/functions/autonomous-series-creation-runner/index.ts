@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedInternalApiKey } from "../_shared/internal-api-key.ts";
 
-const VERSION = "aevora-autonomous-series-runner-v3-readiness-gate";
+const VERSION = "aevora-autonomous-series-runner-v4-secret-key-scheduled-auth";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -28,8 +29,9 @@ Deno.serve(async (req: Request) => {
 
     const header = req.headers.get("Authorization") ?? "";
     const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-    if (!token) return reply({ success: false, error: "Authorization required." }, 401);
 
+    // Parse only the mode selector before authentication; no privileged client or
+    // database operation is created until the selected caller mode is authorized.
     const body = await req.json().catch(() => ({}));
     const mode = body?.mode ?? "admin_execute";
     if (!["admin_execute", "scheduled"].includes(mode)) {
@@ -37,9 +39,15 @@ Deno.serve(async (req: Request) => {
     }
 
     if (mode === "scheduled") {
-      // Scheduled calls are authenticated by the project service-role JWT held by the database vault.
-      if (token !== serviceRoleKey) return reply({ success: false, error: "Invalid scheduler credential." }, 403);
+      const trusted = isTrustedInternalApiKey(
+        req.headers.get("apikey"),
+        serviceRoleKey,
+        Deno.env.get("SUPABASE_SECRET_KEYS"),
+        Deno.env.get("AEVORA_INTERNAL_API_KEY_NAMES"),
+      );
+      if (!trusted) return reply({ success: false, error: "Invalid scheduler credential." }, 403);
     } else {
+      if (!token) return reply({ success: false, error: "Authorization required." }, 401);
       const authClient = createClient(supabaseUrl, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
         global: { headers: { Authorization: "Bearer " + token } },
