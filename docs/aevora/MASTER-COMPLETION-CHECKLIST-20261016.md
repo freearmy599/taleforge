@@ -392,3 +392,13 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Separately rechecked `aevora-control-plane-audit` v4, which has `verify_jwt=false` but checks its dedicated `AEVORA_AUDIT_TOKEN` before privileged reads. Preserve this separate token boundary; do not move its token into browser code.
 - [ ] Treat this as a broader live-vs-branch parity blocker, not authorization to deploy every branch candidate. Reconcile the legitimate caller for each function and the required cron/worker secret configuration; plan a narrow rollout with rollback and validate legitimate invocations before any production change.
 - **Safety boundary unchanged:** this was live metadata/source retrieval and branch documentation only. No production deployment, secret/configuration update, schema/ACL/policy change, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. Automated publishing remains NO-GO.
+
+
+### Edge gateway configuration parity for internal secret-key auth — 2026-10-17
+
+- [x] Supabase documentation confirms that new `sb_secret_...` keys are not JWTs: they must be sent in `apikey`, and Edge Functions using them need gateway JWT verification disabled while the handler performs explicit authentication. References: [key migration guide](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys), [Edge Function auth guide](https://supabase.com/docs/guides/functions/auth).
+- [x] Found a branch deployment-readiness gap: `supabase/config.toml` only set `verify_jwt = false` for `reader-event-intake`, despite the internal-worker handler guard and known non-JWT cron secret-key format.
+- [x] Branch-only correction in commit `ce7e0241d6dfc35c19c2d97aa8858df427c355e4`: explicit `verify_jwt = false` entries for all 18 internal workers, the dedicated-token `aevora-control-plane-audit`, and the existing public bounded `reader-event-intake` endpoint. Handler-level authentication remains mandatory; this setting alone does not authorize callers.
+- [x] Added a config/source-contract test in commit `a8813ded48530e898ebb6220d17ce833297e2563`, then corrected its regex in `eebd26b25b69178896fc51f25dcfb5549e7d2f9c`.
+- [ ] CI for the config/test/documentation changes must finish successfully before treating this branch configuration as validated.
+- [ ] Production gateway configuration remains unchanged. Any deployment must verify `SUPABASE_SECRET_KEYS` and the explicit named-key allowlist are configured as expected, test legitimate scheduled callers and rejected client-role keys, and have an approved rollback plan.
