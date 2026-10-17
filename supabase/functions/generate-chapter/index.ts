@@ -179,7 +179,8 @@ const {data:commitData,error:commitError}=await db.rpc("aevora_commit_quality_re
 p_output_id:outputId,p_review_status:"needs_revision",p_score:0,
 p_findings:{hard_validation:hard,quality_version:QUALITY_VERSION},p_reviewer_model:MODEL,
 p_reviewer_version:QUALITY_VERSION,p_generation_status:"needs_revision",
-p_quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION}
+p_quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},
+p_expected_updated_at:out.updated_at
 });
 const commit=Array.isArray(commitData)?commitData[0]:commitData;
 if(commitError){
@@ -278,7 +279,8 @@ const {data:commitData,error:commitError}=await db.rpc("aevora_commit_quality_re
 p_output_id:outputId,p_review_status:decision,p_score:safeScore,
 p_findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},
 p_reviewer_model:MODEL,p_reviewer_version:QUALITY_VERSION,p_generation_status:status,
-p_quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION}
+p_quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},
+p_expected_updated_at:out.updated_at
 });
 const commit=Array.isArray(commitData)?commitData[0]:commitData;
 if(commitError){
