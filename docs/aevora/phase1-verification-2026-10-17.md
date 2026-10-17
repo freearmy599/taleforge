@@ -27,13 +27,19 @@ The latest successful workflow includes the runtime denial checks for both `anon
 
 The same verified branch adds regression coverage for Gemini provider-state guards in `generate-chapter` and `review-orchestrator`. The generation cooldown guard is scoped to generation requests so deterministic quality validation can still run during provider cooldown; AI quality review has its own guard immediately before the model call. Both deterministic and AI quality-review output-status updates now use compare-and-set status filters so a concurrent transition to a finalized status is not overwritten. Source-contract tests verify these boundaries. This does not make the review-record upsert and output-status update a single transaction; a database-level atomic review-write primitive remains a potential hardening follow-up.
 
+## Follow-on atomic quality-review candidate — verification pending
+
+After the last fully green commit above, the branch adds candidate migration `20261017150000_aevora_atomic_quality_review_commit.sql` and updates both deterministic and AI quality-review paths to call `aevora_commit_quality_review`. The SECURITY INVOKER function updates only eligible output states and writes the `chapter_reviews` row in the same transaction. A stale/finalized output returns a fenced result without writing a review; a review-write error rolls back the output transition. Browser-role EXECUTE is revoked and `service_role` is explicitly granted EXECUTE.
+
+The disposable rehearsal tests successful commit, finalized-output fencing, rollback when review persistence fails, and RPC ACLs. Source-contract tests check both callers use the atomic RPC and reject out-of-range quality scores. The workflow now includes these tests, but this follow-on candidate must not be called verified until its new workflow run completes successfully. It remains branch-only and has not been applied to production.
+
 ## Production safety boundary
 
 No production migration, Edge Function deployment, ACL change, chapter generation or publication, schedule mutation, or billable Supabase development branch was initiated by this verification. Green CI demonstrates candidate behavior on disposable fixtures; it does not prove the candidate migrations are applied in production.
 
 ## Remaining release blockers
 
-1. Confirm the latest successful CI remains green after any subsequent branch changes.
+1. Confirm CI is green for the follow-on atomic quality-review candidate (the last confirmed green run predates it).
 2. Resolve the `supabase_admin` default-privilege owner-context blocker using an authorized owner-level procedure and disposable rehearsal; do not weaken the ownership guard.
 3. Implement a separately authorized, auditable human publication approval bound to the exact chapter output and policy version, enforced at the database publication transaction boundary.
 4. Add/reconfirm publication race, idempotency, schedule-change, lease-loss, and outbox-trigger rollback rehearsals before automated publishing is enabled.
