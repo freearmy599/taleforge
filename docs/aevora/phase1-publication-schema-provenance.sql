@@ -246,7 +246,12 @@ SELECT
   p.provolatile AS volatility,
   p.proconfig AS routine_settings,
   p.proacl AS routine_acl,
-  pg_catalog.pg_get_function_result(p.oid) AS result_type
+  pg_catalog.has_function_privilege(current_user, p.oid, 'EXECUTE') AS current_user_can_execute,
+  pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_can_execute,
+  pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_can_execute,
+  pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE') AS service_role_can_execute,
+  pg_catalog.pg_get_function_result(p.oid) AS result_type,
+  pg_catalog.pg_get_functiondef(p.oid) AS routine_definition
 FROM pg_catalog.pg_proc p
 JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname IN ('public', 'aevora_private', 'taleforge_internal')
