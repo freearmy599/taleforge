@@ -20,7 +20,7 @@ The RPC should, in one transaction:
 4. Verify that the series is eligible for publication and that automation configuration is unique, enabled, ready, and consistent with the requested publication mode.
 5. For automated publication, require a separate, durable, human-authorized publication approval bound to the exact output/chapter and policy version. A schedule-ready marker or generic governance pass is not a substitute.
 6. Validate chapter identity and sequence uniqueness under the lock; handle idempotent retries only when the existing chapter matches the exact expected published output. A duplicate row with a different output must be a conflict, never success.
-7. Insert the published chapter and the canonical-sync outbox event in the same transaction.
+7. Insert the published chapter and the canonical-sync outbox event in the same transaction. The live catalog currently has an `AFTER INSERT OR UPDATE OF status` trigger on `public.chapters` that inserts the outbox event for published rows; preserve and verify this transactional invariant in the migration and disposable tests. The RPC must not silently assume that a trigger exists without verifying its definition and enabled state.
 8. Return a minimal result that explicitly distinguishes `published`, `already_published_same_output`, and conflict/failure. The Edge Function must not infer publication from HTTP 200 alone.
 9. Commit all or none. If the outbox insert fails, the chapter insert must roll back as well.
 
@@ -47,7 +47,7 @@ Use a disposable PostgreSQL rehearsal and assert:
 - Two concurrent attempts for the same sequence produce one chapter and one consistent outbox event.
 - Duplicate sequence, chapter-ID race, or output-ID race cannot produce a false-success response.
 - Review gates that are false, null, absent, or changed after approval block publication.
-- Canonical outbox failure rolls back the chapter insert.
+- Canonical outbox failure rolls back the chapter insert (including failure inside the existing publication-sync trigger).
 - Lease loss blocks scheduler advancement, and partial publication never advances the release schedule.
 - Lifecycle activation occurs only after the RPC confirms the required publication outcome.
 - Trigger functions continue to work after client EXECUTE revokes; only the intended server role can call the RPC directly.
@@ -64,3 +64,12 @@ Use a disposable PostgreSQL rehearsal and assert:
 7. Obtain explicit production authorization before applying any migration or deploying any function.
 
 Until these gates pass, retain the prepared scheduler/publisher fail-closed stop for automated publication. No production change is implied by this proposal.
+
+
+## Additional live catalog evidence — 2026-10-17
+
+A read-only production catalog check found the trigger `chapters_publication_sync_outbox` on `public.chapters`: it fires after INSERT or UPDATE OF status when the new status is `published`, and calls `public.enqueue_publication_sync_event()`. That trigger function inserts `post_publication_canon_sync` into `public.publication_sync_outbox` with `ON CONFLICT (chapter_id,event_type) DO NOTHING`. Because this is an ordinary PostgreSQL trigger in the chapter-write transaction, a trigger error should roll back the originating statement; the disposable concurrency/rollback fixture must prove the intended behavior.
+
+The trigger function is currently SECURITY DEFINER with `search_path=public`. The public schema catalog showed USAGE but no CREATE grants for PUBLIC/anon/authenticated in the observed ACL, which reduces object-shadowing exposure; nevertheless, fixed empty/pg_catalog search paths and fully qualified references remain the preferred definition for new security-definer routines. The candidate implementation must inventory existing trigger dependencies before altering any function.
+
+This evidence does not resolve the main gap: there is still no separate human publication-approval principal/workflow or authoritative commit-boundary approval check. Keep the scheduler's automated-publication stop until those are implemented and verified.
