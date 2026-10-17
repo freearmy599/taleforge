@@ -124,6 +124,8 @@ jobs:
         run: node --test scripts/aevora-contract-ci-coverage.test.mjs
       - name: Run lease-fenced scheduler RPC migration contract tests
         run: node --test scripts/aevora-lease-rpc-migration-contract.test.mjs
+      - name: Run Gemini throttle event contract tests
+        run: node --test scripts/aevora-gemini-throttle-event-contract.test.mjs
       - name: Run scheduler security contract tests
         run: node --test scripts/aevora-scheduler-security-contract.test.mjs
       - name: Run release safety contract tests
