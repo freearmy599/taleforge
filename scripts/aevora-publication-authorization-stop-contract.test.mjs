@@ -181,3 +181,20 @@ test("publisher no longer relies on manual schedule flags as proof of human appr
   assert.match(publisher.slice(Math.max(0, stop - 700), stop),
     /not proof of trusted approval for[\s\S]*?exact chapter output/);
 });
+
+test("publisher with no persisted release schedule fails closed before chapter publication lookup", () => {
+  const scheduleLookup = publisher.indexOf('.from("release_schedules")');
+  const noScheduleStop = publisher.indexOf('if ((automationSchedules ?? []).length === 0 || hasManualSchedule)');
+  const noScheduleCondition = publisher.slice(noScheduleStop, noScheduleStop + 500);
+  const chapterLookup = publisher.indexOf('.from("chapters")');
+  const chapterInsert = publisher.indexOf('.from("chapters") .insert(chapterInsert)');
+  assert.ok(scheduleLookup >= 0 && noScheduleStop > scheduleLookup,
+    "the publisher must load persisted schedule state before deciding whether the schedule-less path is blocked");
+  assert.match(noScheduleCondition, /\(automationSchedules \?\? \[\]\)\.length === 0/,
+    "absence of a persisted schedule must independently trigger the authorization stop");
+  assert.match(noScheduleCondition, /PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED/);
+  assert.match(noScheduleCondition, /published: false/);
+  assert.match(noScheduleCondition, /\}, 423\)/);
+  assert.ok(chapterLookup > noScheduleStop && chapterInsert > noScheduleStop,
+    "the schedule-less path must stop before chapter lookup or insertion");
+});
