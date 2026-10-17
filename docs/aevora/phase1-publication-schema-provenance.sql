@@ -300,3 +300,104 @@ ORDER BY n.nspname, c.relname, pol.polname;
 
 -- No application rows are selected. Reconcile this metadata with tracked
 -- migrations before choosing RPC argument types or commit-boundary predicates.
+
+
+-- Governance gate dependency provenance and relation ACL/policy review.
+-- Read-only catalog metadata. These names were found live but not in the
+-- inspected tracked migrations; keep provenance unresolved until authoritative
+-- migration/source artifacts are recovered.
+SELECT
+  n.nspname AS schema_name,
+  c.relname AS relation_name,
+  pg_catalog.pg_get_userbyid(c.relowner) AS owner_name,
+  c.relrowsecurity AS rls_enabled,
+  c.relforcerowsecurity AS rls_forced,
+  acl.grantee,
+  CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+       ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee_name,
+  acl.privilege_type,
+  acl.is_grantable
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+CROSS JOIN LATERAL pg_catalog.aclexplode(
+  COALESCE(c.relacl, pg_catalog.acldefault('r', c.relowner))
+) acl
+WHERE n.nspname = 'public'
+  AND c.relname IN (
+    'taleforge_system_governance_registry',
+    'taleforge_system_governance_dependencies',
+    'taleforge_system_governance_runs',
+    'taleforge_system_health'
+  )
+ORDER BY c.relname, grantee_name, acl.privilege_type;
+
+SELECT
+  schemaname,
+  tablename,
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual,
+  with_check
+FROM pg_catalog.pg_policies
+WHERE schemaname = 'public'
+  AND tablename IN (
+    'taleforge_system_governance_registry',
+    'taleforge_system_governance_dependencies',
+    'taleforge_system_governance_runs',
+    'taleforge_system_health'
+  )
+ORDER BY tablename, policyname;
+
+-- Retrieve exact live definitions for the two publication/governance gate
+-- functions. Function text can contain implementation details; do not export
+-- secrets or application row data.
+SELECT
+  n.nspname AS schema_name,
+  p.proname AS function_name,
+  pg_catalog.pg_get_function_identity_arguments(p.oid) AS identity_arguments,
+  pg_catalog.pg_get_userbyid(p.proowner) AS owner_name,
+  p.prosecdef AS security_definer,
+  p.proconfig AS function_settings,
+  p.proacl AS function_acl,
+  pg_catalog.pg_get_functiondef(p.oid) AS function_definition
+FROM pg_catalog.pg_proc p
+JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN (
+    'taleforge_ceo_execution_gate',
+    'taleforge_boss_evaluate'
+  )
+ORDER BY p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
+
+-- Group schema-scoped default ACLs by creator role and object type so
+-- duplicated acl rows do not obscure the separate postgres/supabase_admin
+-- default entries. This is inspection only; never apply a blanket revoke from
+-- this query without an authorized owner path and a disposable rehearsal.
+SELECT
+  pg_catalog.pg_get_userbyid(d.defaclrole) AS creator_role,
+  n.nspname AS schema_name,
+  CASE d.defaclobjtype
+    WHEN 'r' THEN 'TABLE'
+    WHEN 'S' THEN 'SEQUENCE'
+    WHEN 'f' THEN 'FUNCTION'
+    WHEN 'T' THEN 'TYPE'
+    ELSE d.defaclobjtype::text
+  END AS object_type,
+  CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+       ELSE pg_catalog.pg_get_userbyid(acl.grantee) END AS grantee_name,
+  string_agg(DISTINCT acl.privilege_type, ', ' ORDER BY acl.privilege_type) AS privileges,
+  bool_or(acl.is_grantable) AS any_grantable
+FROM pg_catalog.pg_default_acl d
+JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
+CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) acl
+WHERE n.nspname = 'public'
+  AND pg_catalog.pg_get_userbyid(d.defaclrole) IN ('postgres', 'supabase_admin')
+  AND acl.grantee IN (
+    0,
+    (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'anon'),
+    (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'authenticated')
+  )
+GROUP BY d.defaclrole, n.nspname, d.defaclobjtype, acl.grantee
+ORDER BY creator_role, object_type, grantee_name;
