@@ -216,3 +216,20 @@ test("scheduler authorization stop precedes every per-schedule side effect", () 
   assert.doesNotMatch(beforeGuard, /crypto\.randomUUID\s*\(/,
     "a lease token must not be created before the authorization stop");
 });
+
+
+test("publisher rejects non-manual schedules with auto-publish disabled before chapter lookup", () => {
+  const scheduleBlock = source.indexOf('if ((automationSchedules ?? []).length === 1) {');
+  const disabledPublishGuard = source.indexOf('automationSchedule.auto_publish !== true', scheduleBlock);
+  const notReadyResponse = source.indexOf('code: "AUTOMATION_NOT_READY"', disabledPublishGuard);
+  const chapterLookup = source.indexOf('.from("chapters")');
+  assert.ok(scheduleBlock >= 0 && disabledPublishGuard > scheduleBlock,
+    "a configured schedule must be checked before publication can proceed");
+  assert.ok(notReadyResponse > disabledPublishGuard,
+    "auto_publish=false must fail closed rather than fall through to publication");
+  assert.match(source.slice(disabledPublishGuard, notReadyResponse),
+    /return jsonResponse[\s\S]*?\}, 409\)/,
+    "disabled or unready automation must return a conflict");
+  assert.ok(chapterLookup > notReadyResponse,
+    "the disabled-auto-publish guard must precede all chapter lookup/publication paths");
+});
