@@ -63,5 +63,28 @@ END
 $assert$;
 RESET ROLE;
 
-SELECT 'PASS: unqualified relation resolved temporary shadow; qualified relation resolved public table' AS rehearsal_result;
+-- The migration's mitigation keeps unqualified relation syntax working while
+-- explicitly placing pg_temp after public in the function-local search_path.
+CREATE FUNCTION public.aevora_test_unqualified_fixed_path()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+  SELECT marker FROM series LIMIT 1
+$function$;
+ALTER FUNCTION public.aevora_test_unqualified_fixed_path() OWNER TO postgres;
+GRANT EXECUTE ON FUNCTION public.aevora_test_unqualified_fixed_path() TO aevora_shadow_test_role;
+
+SET ROLE aevora_shadow_test_role;
+DO $assert$
+BEGIN
+  IF public.aevora_test_unqualified_fixed_path() <> 'public-row' THEN
+    RAISE EXCEPTION 'Expected pg_temp-last search_path to prefer public relation';
+  END IF;
+END
+$assert$;
+RESET ROLE;
+
+SELECT 'PASS: baseline shadowing reproduced; pg_temp-last path and qualification both read public table' AS rehearsal_result;
 SQL
