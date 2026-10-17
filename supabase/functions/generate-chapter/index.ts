@@ -48,6 +48,7 @@ if(governance.error||governance.data?.authorized!==true){
  return reply({success:false,error:"Generation blocked by Clara Aurel governance gate.",governance:{authorized:governance.data?.authorized===true},details:governance.error?"Internal governance diagnostics were withheld.":null},423);
 }
 
+if(blueprintId&&!outputId){
 {
  const {data:providerState,error:providerStateError}=await db.from("taleforge_ai_provider_state").select("cooldown_until,consecutive_throttle_count").eq("provider","gemini").maybeSingle();
  if(providerStateError||!providerState){
@@ -65,7 +66,6 @@ if(governance.error||governance.data?.authorized!==true){
  }
 }
 
-if(blueprintId&&!outputId){
 const {data:b,error:be}=await db.from("chapter_blueprints").select("*").eq("id",blueprintId).single();
 if(be||!b)return reply({success:false,error:"Blueprint could not be loaded."},404);
 const {data:s,error:se}=await db.from("series").select("id,title,subtitle,description,mood,intensity,age_rating,status").eq("id",b.series_id).single();
