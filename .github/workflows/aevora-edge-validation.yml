@@ -40,6 +40,8 @@ name: Aevora Edge source validation
       - "scripts/aevora-internal-policyless-lock-*.sql"
       - "scripts/test-aevora-internal-policyless-lock.sh"
       - "scripts/aevora-readiness-migration-*.sql"
+      - "scripts/aevora-lease-migration-*.sql"
+      - "scripts/test-aevora-lease-migrations.sh"
       - "scripts/test-aevora-readiness-migration.sh"
       - "scripts/aevora-reader-event-integrity-*.sql"
       - "scripts/aevora-reader-event-intake-*.sql"
