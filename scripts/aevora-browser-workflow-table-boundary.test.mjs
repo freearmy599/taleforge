@@ -33,6 +33,20 @@ const serverOnlyRelations = [
   "story_arc_plan",
   "story_ending_plans",
   "story_lifecycle",
+  "taleforge_genre_taxonomy",
+  "taleforge_subgenre_intelligence",
+  "taleforge_narrative_modes",
+  "taleforge_story_trope_library",
+  "taleforge_genre_grammars",
+  "taleforge_genre_inversion_patterns",
+  "taleforge_grammar_compatibility",
+  "taleforge_hybrid_story_recipes",
+  "taleforge_hybrid_story_recipes_generated",
+  "taleforge_narrative_culture_profiles",
+  "taleforge_series_genre_grammar_profiles",
+  "taleforge_series_genre_profiles",
+  "taleforge_series_narrative_profiles",
+  "taleforge_series_subgenre_profiles",
 ];
 
 async function collectBrowserSources() {
@@ -97,6 +111,20 @@ test("server-only relation inventory covers the publication and provider securit
     "story_arc_plan",
     "story_ending_plans",
     "story_lifecycle",
+    "taleforge_genre_taxonomy",
+    "taleforge_subgenre_intelligence",
+    "taleforge_narrative_modes",
+    "taleforge_story_trope_library",
+    "taleforge_genre_grammars",
+    "taleforge_genre_inversion_patterns",
+    "taleforge_grammar_compatibility",
+    "taleforge_hybrid_story_recipes",
+    "taleforge_hybrid_story_recipes_generated",
+    "taleforge_narrative_culture_profiles",
+    "taleforge_series_genre_grammar_profiles",
+    "taleforge_series_genre_profiles",
+    "taleforge_series_narrative_profiles",
+    "taleforge_series_subgenre_profiles",
   ]) {
     assert.ok(serverOnlyRelations.includes(relation), `missing server-only relation: ${relation}`);
   }
