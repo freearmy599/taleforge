@@ -91,3 +91,40 @@ test("atomicity plan records both writers and preserves the production evidence 
   assert.ok(plan.includes("missing original provider-state migration body"));
   assert.ok(plan.includes("does not authorize production deployment"));
 });
+
+test("chapter quality-review path checks provider state before its Gemini request", async () => {
+  const source = await readFile(
+    new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url),
+    "utf8",
+  );
+  const reviewStart = source.indexOf('// Quality review also calls Gemini.');
+  const providerRead = source.indexOf('.from("taleforge_ai_provider_state")', reviewStart);
+  const geminiCall = source.indexOf('await gemini(gkey,reviewPrompt,true)', providerRead);
+  assert.ok(reviewStart >= 0 && providerRead > reviewStart && geminiCall > providerRead,
+    "the AI quality-review path must check provider state before calling Gemini");
+  const guard = source.slice(providerRead, geminiCall);
+  assert.match(guard, /reviewProviderStateError\|\|!reviewProviderState/,
+    "lookup errors and missing provider rows must fail closed");
+  assert.match(guard, /Number\.isSafeInteger\(reviewProviderState\.consecutive_throttle_count\)/,
+    "malformed throttle counters must fail closed");
+  assert.match(guard, /!Number\.isFinite\(new Date\(reviewProviderState\.cooldown_until\)\.getTime\(\)\)/,
+    "malformed cooldown timestamps must fail closed");
+  assert.match(guard, /reason:"provider_cooldown"/,
+    "an active cooldown must block the quality-review model call");
+  assert.match(guard, /},429\)/,
+    "an active cooldown must return HTTP 429 without making a Gemini call");
+});
+
+test("deterministic short-chapter rejection remains available without a Gemini cooldown lookup", async () => {
+  const source = await readFile(
+    new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url),
+    "utf8",
+  );
+  const deterministic = source.indexOf("const hard=");
+  const providerRead = source.indexOf('.from("taleforge_ai_provider_state")', source.indexOf('// Quality review also calls Gemini.'));
+  assert.ok(deterministic >= 0 && providerRead > deterministic,
+    "deterministic hard validation must run before the provider-state guard");
+  const deterministicRegion = source.slice(deterministic, providerRead);
+  assert.match(deterministicRegion, /aevora_commit_quality_review/,
+    "deterministic failure outcomes must still be persisted through the atomic review RPC");
+});
