@@ -1,0 +1,52 @@
+/**
+ * Static consistency guard for the 39-table caller-map audit.
+ * Does not connect to Supabase or alter live state.
+ */
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const map = await readFile(
+  new URL("../docs/aevora/PHASE1-39-TABLE-SOURCE-CALLER-MAP-20261017.md", import.meta.url),
+  "utf8",
+);
+const browserClient = await readFile(new URL("../supabase-client.js", import.meta.url), "utf8");
+const progress = await readFile(new URL("../reading-progress.js", import.meta.url), "utf8");
+
+const relations = [
+  "automation_config", "chapter_blueprints", "chapter_generation_outputs",
+  "chapter_publication_reviews", "chapter_reviews", "generation_jobs",
+  "generation_settings", "publication_sync_outbox", "release_schedules",
+  "story_attachment_metrics", "story_blueprints", "story_versions",
+  "taleforge_ai_provider_state", "taleforge_ceo_daily_operations",
+  "taleforge_ceo_incidents", "taleforge_ceo_repair_plans",
+  "taleforge_continuity_extraction_queue", "taleforge_executive_reports",
+  "taleforge_generation_context_snapshots", "taleforge_hybrid_story_engine_runs",
+  "taleforge_inversion_evaluations", "taleforge_narrative_profile_selections",
+  "taleforge_novelty_signatures", "taleforge_story_concept_design_runs",
+  "taleforge_story_opportunity_runs", "taleforge_system_governance_dependencies",
+  "taleforge_system_governance_registry", "taleforge_system_governance_runs",
+  "bookmarks", "collection_stories", "collections", "comments", "likes",
+  "notifications", "profiles", "ratings", "reading_history", "recommendations",
+  "story_reports",
+];
+
+test("caller map contains each of the 39 audited relations exactly as a relation row", () => {
+  for (const relation of relations) {
+    assert.match(map, new RegExp("\\| \`" + relation + "\` \\|"),
+      "caller map missing relation row: " + relation);
+  }
+  assert.equal(relations.length, 39);
+});
+
+test("caller map preserves uncertainty for relations without a direct literal caller", () => {
+  assert.match(map, /No direct literal call found/);
+  assert.match(map, /absence of a direct \.from\("table"\) match is \*\*unresolved\*\*/);
+  assert.match(map, /RPC implementations, SQL functions\/triggers, dynamic table names/);
+});
+
+test("reader-event browser cutover remains explicitly identified as incomplete", () => {
+  assert.match(browserClient, /taleForgeReaderEventIntakeEnabled\s*=\s*false/);
+  assert.match(progress, /supabase\.from\("reader_events"\)\.insert\(payload\)/);
+  assert.match(map, /Known unfinished cutover/);
+});
