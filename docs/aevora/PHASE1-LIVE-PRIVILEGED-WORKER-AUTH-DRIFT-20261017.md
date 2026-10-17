@@ -44,3 +44,20 @@ The separately inspected `aevora-control-plane-audit` function is configured wit
 ## Safety boundary
 
 This review retrieved function metadata and source only. No database query that changes state, function deployment, environment-variable update, ACL/policy change, schedule mutation, chapter generation/publication, or billable Supabase branch was performed. No live secret values were read or reproduced.
+
+
+## Additional branch gateway-auth mismatch discovered and corrected — 2026-10-17
+
+Supabase's current guidance states that new `sb_secret_...` keys are not JWTs. Edge Functions called with these keys should receive the key in `apikey`, disable the gateway's legacy JWT verification for that endpoint, and authenticate the key explicitly in handler code. References:
+- [Supabase: Migrating to publishable and secret API keys](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys)
+- [Supabase: Securing Edge Functions](https://supabase.com/docs/guides/functions/auth)
+
+The branch's previous `supabase/config.toml` explicitly disabled gateway JWT verification only for `reader-event-intake`, even though internal-worker handlers authenticate through the shared API-key guard and the live release cron credential was previously confirmed to be a newer non-JWT secret key. This was a branch deployment-readiness defect: legitimate calls could be rejected at the gateway before the handler-level guard runs.
+
+Branch-only correction:
+- [x] Explicitly set `verify_jwt = false` for the 18 functions in the internal-worker source-contract list, plus `aevora-control-plane-audit`, whose dedicated audit token is checked inside its handler.
+- [x] Retain the explicit shared internal API-key check before privileged work; disabling gateway JWT verification is not authorization by itself.
+- [x] Add a source-contract assertion that every listed internal worker, the dedicated-token audit endpoint, and the bounded public reader-event endpoint has an explicit `verify_jwt = false` config section.
+- [ ] Wait for CI on the config/test commits to complete successfully before considering the branch candidate validated.
+
+This is a branch-only configuration change. It does not alter deployed Edge Function settings. Before rollout, verify the named secret-key allowlist exists at runtime and matches the intended cron/worker key, ensure all privileged callers are covered by the handler guard, and test both legitimate internal calls and rejected publishable/user-key calls. Do not deploy without explicit owner authorization and rollback planning.
