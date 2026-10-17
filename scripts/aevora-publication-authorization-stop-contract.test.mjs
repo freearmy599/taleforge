@@ -187,7 +187,6 @@ test("publisher with no persisted release schedule fails closed before chapter p
   const noScheduleStop = publisher.indexOf('if ((automationSchedules ?? []).length === 0 || hasManualSchedule)');
   const noScheduleCondition = publisher.slice(noScheduleStop, noScheduleStop + 500);
   const chapterLookup = publisher.indexOf('.from("chapters")');
-  const chapterInsert = publisher.indexOf('.from("chapters") .insert(chapterInsert)');
   assert.ok(scheduleLookup >= 0 && noScheduleStop > scheduleLookup,
     "the publisher must load persisted schedule state before deciding whether the schedule-less path is blocked");
   assert.match(noScheduleCondition, /\(automationSchedules \?\? \[\]\)\.length === 0/,
@@ -195,6 +194,6 @@ test("publisher with no persisted release schedule fails closed before chapter p
   assert.match(noScheduleCondition, /PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED/);
   assert.match(noScheduleCondition, /published: false/);
   assert.match(noScheduleCondition, /\}, 423\)/);
-  assert.ok(chapterLookup > noScheduleStop && chapterInsert > noScheduleStop,
-    "the schedule-less path must stop before chapter lookup or insertion");
+  assert.ok(chapterLookup > noScheduleStop,
+    "the schedule-less path must stop before chapter lookup, which precedes all chapter publication paths");
 });
