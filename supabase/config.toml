@@ -1,4 +1,66 @@
+# Internal workers validate their server-held API key inside the handler.
+# New Supabase secret API keys are not JWTs, so gateway JWT verification must be
+# disabled for these endpoints; handler-level authentication remains mandatory.
+# Keep this list aligned with scripts/aevora-internal-worker-auth-contract.test.mjs.
+
+[functions.arc-planner]
+verify_jwt = false
+
+[functions.blueprint-planner]
+verify_jwt = false
+
+[functions.character-continuity]
+verify_jwt = false
+
+[functions.continuity-review]
+verify_jwt = false
+
+[functions.generate-chapter]
+verify_jwt = false
+
+[functions.generation-orchestrator]
+verify_jwt = false
+
+[functions.originality-review]
+verify_jwt = false
+
+[functions.post-publication-canon-sync]
+verify_jwt = false
+
+[functions.publication-review]
+verify_jwt = false
+
+[functions.publication-sync-processor]
+verify_jwt = false
+
+[functions.release-publisher]
+verify_jwt = false
+
+[functions.release-scheduler]
+verify_jwt = false
+
+[functions.review-orchestrator]
+verify_jwt = false
+
+[functions.revise-chapter]
+verify_jwt = false
+
+[functions.safety-review]
+verify_jwt = false
+
+[functions.semantic-continuity-extraction]
+verify_jwt = false
+
+[functions.story-dna-planner]
+verify_jwt = false
+
+[functions.world-continuity]
+verify_jwt = false
+
+[functions.aevora-control-plane-audit]
+verify_jwt = false
+
 # Public anonymous telemetry endpoint. The handler validates every field and applies
-# atomic server-side quotas; all other functions retain their platform defaults.
+# atomic server-side quotas; it deliberately has no internal-key requirement.
 [functions.reader-event-intake]
 verify_jwt = false
