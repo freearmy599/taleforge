@@ -567,3 +567,36 @@ WHERE n.nspname = 'public'
     OR p.prosrc ILIKE '%taleforge_ceo_execution_gate%'
   )
 ORDER BY p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
+
+
+-- Broad SECURITY DEFINER search_path review candidate inventory.
+-- This is metadata-only; it does not invoke routines or create temporary objects.
+SELECT
+  p.oid AS routine_oid,
+  p.proname AS routine_name,
+  pg_catalog.pg_get_function_identity_arguments(p.oid) AS identity_arguments,
+  p.prokind AS routine_kind,
+  p.proconfig AS function_settings,
+  pg_catalog.pg_get_userbyid(p.proowner) AS owner_name,
+  pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_execute,
+  pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_execute,
+  pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE') AS service_role_execute,
+  pg_catalog.has_database_privilege('service_role', current_database(), 'TEMP') AS service_role_can_create_temp_objects,
+  pg_catalog.has_schema_privilege('service_role', 'public', 'CREATE') AS service_role_can_create_in_public,
+  CASE
+    WHEN p.proconfig @> ARRAY['search_path=public'] THEN 'public_only_temp_implicit_first'
+    WHEN p.proconfig @> ARRAY['search_path=public, pg_temp'] THEN 'public_then_temp'
+    ELSE 'other_public_inclusive_path'
+  END AS path_review_bucket,
+  length(p.prosrc) AS source_characters
+FROM pg_catalog.pg_proc p
+JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.prosecdef
+  AND EXISTS (
+    SELECT 1
+    FROM unnest(coalesce(p.proconfig, ARRAY[]::text[])) setting
+    WHERE setting ILIKE 'search_path=public%'
+       OR setting ILIKE 'search_path=%public%'
+  )
+ORDER BY path_review_bucket, p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
