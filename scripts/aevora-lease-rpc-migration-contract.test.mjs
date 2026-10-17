@@ -103,3 +103,18 @@ test("lifecycle activation rejects null inputs and never activates a different s
   assert.match(activate, /FROM public\.release_schedules[\s\S]*?WHERE id = p_schedule_id AND series_id = p_series_id[\s\S]*?FOR UPDATE/);
   assert.match(activate, /UPDATE public\.story_lifecycle[\s\S]*?WHERE series_id = p_series_id[\s\S]*?AND lifecycle_status = 'preparing'/);
 });
+
+
+test("lease claim and renewal enforce bounded lease durations", () => {
+  for (const name of ["aevora_claim_release_scheduler_lease", "aevora_renew_release_scheduler_lease"]) {
+    const body = functionBody(foundation, name);
+    assert.match(body, /IF p_lease_seconds IS NULL OR p_lease_seconds < 30 OR p_lease_seconds > 900 THEN[\s\S]*?RAISE EXCEPTION/);
+  }
+});
+
+test("lease release deletes only the row matching both schedule and lease token", () => {
+  const release = functionBody(foundation, "aevora_release_scheduler_lease");
+  assert.match(release, /DELETE FROM public\.aevora_release_scheduler_leases[\s\S]*?WHERE schedule_id = p_schedule_id AND lease_token = p_lease_token/);
+  assert.match(release, /GET DIAGNOSTICS affected = ROW_COUNT;[\s\S]*?RETURN affected = 1/);
+  assert.match(release, /SET search_path = pg_catalog/);
+});
