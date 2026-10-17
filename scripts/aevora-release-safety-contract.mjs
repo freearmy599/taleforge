@@ -16,7 +16,7 @@ export function isConfirmedPublication(httpOk, payload) {
     && payload.published === true
     && payload.status === "published"
     && typeof payload.chapter_id === "string"
-    && payload.chapter_id.length > 0;
+    && payload.chapter_id.trim().length > 0;
 }
 
 export function mayAdvanceSchedule({ dryRun, autoPublish, dueCount, attemptedCount, confirmedCount, failed }) {
@@ -43,7 +43,7 @@ test("HTTP 200 alone is not publication success", () => {
   assert.equal(isConfirmedPublication(false, { success: true, published: true, status: "published", chapter_id: "c1" }), false);
 });
 
-test("confirmed published chapter is accepted", () => {
+test("blank or whitespace publication IDs are rejected", () => {\n  assert.equal(isConfirmedPublication(true, {\n    success: true, published: true, status: "published", chapter_id: "",\n  }), false);\n  assert.equal(isConfirmedPublication(true, {\n    success: true, published: true, status: "published", chapter_id: "   ",\n  }), false);\n});\n\ntest("confirmed published chapter is accepted", () => {
   assert.equal(isConfirmedPublication(true, {
     success: true, published: true, status: "published", chapter_id: "chapter-1",
   }), true);
