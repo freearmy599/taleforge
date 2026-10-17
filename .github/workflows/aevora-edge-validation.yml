@@ -166,6 +166,8 @@ jobs:
         run: node --test scripts/aevora-provider-schema-provenance-contract.test.mjs
       - name: Run publication schema provenance read-only contract tests
         run: node --test scripts/aevora-publication-schema-provenance-contract.test.mjs
+      - name: Run SECURITY DEFINER search_path rehearsal contract tests
+        run: node --test scripts/aevora-search-path-shadowing-rehearsal-contract.test.mjs
       - name: Run legacy schedule disposition inventory read-only contract tests
         run: node --test scripts/aevora-legacy-schedule-disposition-inventory-contract.test.mjs
       - name: Run repository-wide Gemini quota guard contract tests
