@@ -24,7 +24,7 @@ test("RPC migration removes client EXECUTE while preserving service_role access"
 test("rehearsal proves trigger functions still run after direct EXECUTE revocation", () => {
   assert.match(fixture, /CREATE TRIGGER aevora_rpc_acl_trigger_fixture[\s\S]*?EXECUTE FUNCTION public\.taleforge_update_updated_at\(\)/i);
   assert.match(assertions, /SET ROLE anon;[\s\S]*?INSERT INTO public\.aevora_rpc_acl_trigger_source[\s\S]*?UPDATE public\.aevora_rpc_acl_trigger_source/i);
-  assert.match(assertions, /touched = true/i);
+  assert.match(assertions, /updated_at IS NOT NULL/i);
   assert.match(assertions, /trigger function stopped working after client EXECUTE revocation/i);
 });
 
