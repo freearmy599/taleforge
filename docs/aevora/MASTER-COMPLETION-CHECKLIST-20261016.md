@@ -490,3 +490,11 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Final branch validation passed on commit [`fd88c46`](https://github.com/freearmy599/taleforge/commit/fd88c46a0b9d238addfea891b1e3de812b4614c9): [run 39019739256](https://github.com/freearmy599/taleforge/actions/runs/39019739256) completed successfully. Both **Type-check prepared Edge Functions** and **Rehearse readiness migration on disposable PostgreSQL** passed.
 - **Scope:** pure contract/test/CI validation and documentation only. No live Supabase functions, permissions, migrations, cron schedules, publication state, or application data were changed; no billable Supabase branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO** until database commit-boundary publication authorization is implemented and approved, live function/migration parity is reconciled, and owner/default-ACL plus worker-auth rollout gates are resolved.
+
+
+### Publisher authorization-stop regression coverage — 2026-10-17
+
+- [x] Added a source-contract regression that verifies the unimplemented authorization stop is inside the publisher request handler and precedes the identified database mutations, chapter insertion, and canon-sync outbox side effect. Validation passed in [CI run 39023679654](https://github.com/freearmy599/taleforge/actions/runs/39023679654).
+- [x] Added a response-contract regression requiring `success: false`, HTTP `423 Locked`, and stable code `PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED`, with the stop occurring before chapter-table access. Validation passed in [CI run 39023918762](https://github.com/freearmy599/taleforge/actions/runs/39023918762); both Edge type-check/source-contract validation and disposable PostgreSQL rehearsal succeeded.
+- **Scope:** branch-only tests and documentation. No production function, database permission, migration, cron schedule, chapter, or publication was changed; no billable Supabase branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO**. Do not remove the fail-closed stop until a trusted approver/identity model and approval rules are explicitly decided and the database commit-boundary authorization is implemented and validated. Live function/migration parity, owner/default-ACL remediation, and worker-auth rollout also remain unresolved.
