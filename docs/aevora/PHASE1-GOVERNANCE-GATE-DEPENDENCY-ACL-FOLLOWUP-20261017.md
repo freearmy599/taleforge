@@ -49,3 +49,28 @@ A second read-only catalog query grouped default privileges by the creating role
 None of these expanded default ACL grants is grantable onward. The entries are present separately for both creator roles. This provides direct live evidence that newly created public-schema objects can inherit broad client privileges unless object-specific ACL changes or corrected defaults intervene. It does not identify who originally established the entries or prove which existing relation ACLs came from them.
 
 The executor still lacks the required `supabase_admin` owner path, so no default privileges were altered. The remediation must be rehearsed for each creator role and object type, with before/after effective ACL checks; production changes remain blocked pending authorized owner/operator execution and caller review.
+
+
+## Follow-up: live governance routine caller inventory — 2026-10-17
+
+A read-only catalog query searched public-schema function/procedure source bodies for references to governance tables and gate routines, and checked effective EXECUTE privileges for anon, authenticated, and service_role.
+
+The focused result set included:
+
+- taleforge_ceo_execution_gate(text) directly invokes taleforge_boss_evaluate(text).
+- taleforge_ceo_analyze_root_cause(text) calls taleforge_observe_all_systems() and then reads the latest governance run.
+- taleforge_ceo_build_repair_plan() joins the legacy health table to the governance registry, another explicit cross-generation dependency.
+- taleforge_ceo_run_diagnostic() reads governance-run and legacy health state.
+- taleforge_observe_all_systems() iterates the governance registry and reads dependency state.
+- aevora_audit_registry_consistency() and aevora_diagnose_issue_evidence(uuid) compare or combine legacy and governance registry records.
+
+For these eight inspected routines, the catalog showed SECURITY DEFINER, owner postgres, and explicit ACL {postgres=X/postgres,service_role=X/postgres}; effective EXECUTE was false for anon and authenticated and true for service_role. Their source-level role checks remain relevant and are not replaced by ACL inspection.
+
+This is a targeted source-body inventory, not a complete caller graph. It does not enumerate every Edge Function invocation, dynamic SQL reference, external scheduler/operator caller, or possible routine omitted by the text filters. No routine was executed as part of this inventory; no rows, grants, policies, functions, or other production state were changed.
+
+### Implications
+
+1. The lineage review must include cross-generation routines, not just the six relations.
+2. Any future ACL plan must preserve service-role-only routine invocation and verify the same effective privilege matrix after rehearsal.
+3. The search_path=public SECURITY DEFINER configuration on the CEO evaluator/gate remains an operator-reviewed security concern. Do not change it without recovered source provenance, dependency analysis, and disposable-database rehearsal.
+4. Automated publication remains NO-GO; this routine inventory does not establish per-chapter human approval.
