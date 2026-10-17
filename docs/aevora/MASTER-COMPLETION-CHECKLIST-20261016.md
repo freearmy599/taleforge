@@ -425,3 +425,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Added [the cross-cron header-drift report](./PHASE1-CRON-SECRET-KEY-HEADER-DRIFT-20261017.md), including exact job/target mapping and safe rollout prerequisites.
 - [ ] Update live cron headers only in an explicitly approved coordinated rollout after deploying the guarded handlers and matching `verify_jwt=false` config. Do not disable gateway verification on the current unguarded live versions.
 - **Safety boundary:** no live cron, Edge Function, key, configuration, schedule, series, chapter, or production data was changed.
+
+
+### Additional privileged-function authentication triage — 2026-10-17
+
+- [x] Reviewed the live source of Chief Editor monitoring, autonomous-series preflight, cover worker, cover request, cover review, and operations snapshot functions to distinguish user-session endpoints from scheduled internal workers.
+- [x] Chief Editor and cover endpoints reviewed here validate a Supabase user session and admin/owner role before service-role operations; the autonomous-series creation endpoint is preflight-only. These were not mechanically classified as the same secret-key cron mismatch. Keep their gateway JWT verification and explicit human-session checks intact.
+- [x] Added the triage note to the [live authentication drift report](./PHASE1-LIVE-PRIVILEGED-WORKER-AUTH-DRIFT-20261017.md), commit `a62b1b8fd156129b5a9787bc94c1155832c77a77`.
+- [x] Latest combined handler/config/source-contract validation passed on commit [`aea1208`](https://github.com/freearmy599/taleforge/commit/aea120803bd7855c068712db966f0a85059e968f): [run 39008836597](https://github.com/freearmy599/taleforge/actions/runs/39008836597). The separate documentation CI [run 39008917440](https://github.com/freearmy599/taleforge/actions/runs/39008917440) also passed.
+- [ ] Current top documentation-only CI [run 39008944252](https://github.com/freearmy599/taleforge/actions/runs/39008944252) has Edge validation passed; disposable PostgreSQL rehearsal is still in progress.
