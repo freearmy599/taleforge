@@ -532,3 +532,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Confirmed the prior CI coverage guard requires each matching Aevora contract module to be explicitly invoked with `node --test scripts/<file>`; commit [`669f407`](https://github.com/freearmy599/taleforge/commit/669f4077505a82acc7c5df34099afeeeac602207), run [39027708462](https://github.com/freearmy599/taleforge/actions/runs/39027708462), passed both jobs.
 - **Scope:** branch-only tests, CI wiring, and documentation. No production Supabase function, database grant, migration, cron schedule, chapter, or publication state was changed; no billable development branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO**. Trusted publication approver/identity and database commit-boundary authorization, live function/migration parity, authorized owner/default-ACL remediation, and coordinated internal worker-auth rollout remain unresolved.
+
+
+### Lease-RPC invalid-input regression validation — 2026-10-17
+
+- [x] Extended `scripts/aevora-lease-rpc-migration-contract.test.mjs` to assert that schedule advancement rejects null identifiers/timestamps and non-forward release timestamps, and lifecycle activation rejects null inputs and mismatched schedule/series identifiers.
+- [x] Full CI passed on commit [`38240a5`](https://github.com/freearmy599/taleforge/commit/38240a5ffab0c21ace3da308e8bb3d82f6425527): [run 39028320052](https://github.com/freearmy599/taleforge/actions/runs/39028320052) completed successfully with both Edge source/type-check and disposable PostgreSQL rehearsal jobs passing.
+- [x] The checklist update itself passed both jobs in [run 39028302056](https://github.com/freearmy599/taleforge/actions/runs/39028302056).
+- **Scope:** branch-only regression tests and documentation. No production Supabase functions, permissions, migrations, schedules, chapter data, or publication state changed; no billable branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO** pending trusted publication authorization at the database commit boundary, live function/migration parity, authorized owner/default-ACL remediation, and coordinated internal worker-auth rollout.
