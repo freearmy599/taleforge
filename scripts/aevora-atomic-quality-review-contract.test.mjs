@@ -12,6 +12,7 @@ test("quality review persistence uses one atomic database commit for review row 
   assert.doesNotMatch(source, /from\("chapter_reviews"\)\.upsert/, "worker must not persist a review separately from output status");
   assert.match(source, /commit\?\.committed!==true/, "worker must handle a fenced output without writing a review");
   assert.match(source, /score<0\|\|score>100/, "AI scores outside the documented 0-100 range must not be accepted");
+  assert.match(source, /decision,score:safeScore,generation_status:status/, "response score must match the validated score persisted to the database");
   assert.match(migration, /SECURITY INVOKER/, "atomic primitive must not elevate privileges");
   assert.match(migration, /UPDATE public\.chapter_generation_outputs[\s\S]*?INSERT INTO public\.chapter_reviews/, "status transition and review write must occur in one function transaction");
   assert.match(migration, /output\.generation_status IN \('generated', 'needs_revision', 'quality_check'\)/, "finalized output states must be fenced");
