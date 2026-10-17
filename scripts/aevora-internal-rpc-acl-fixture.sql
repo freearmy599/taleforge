@@ -7,12 +7,10 @@ BEGIN
 END
 $roles$;
 
--- The live refresh function returns this table's composite row type.
 CREATE TYPE public.story_attachment_metrics AS (id bigint);
 
--- Use a namespaced disposable table so this fixture composes safely with the
--- broader internal-table lock rehearsal, which also defines public.chapters.
-CREATE TABLE public.aevora_rpc_acl_trigger_source (id integer PRIMARY KEY, touched boolean NOT NULL DEFAULT false);
+-- Isolated trigger table avoids conflicting with the broader chapter fixtures.
+CREATE TABLE public.aevora_rpc_acl_trigger_source (id integer PRIMARY KEY, updated_at timestamptz);
 ALTER TABLE public.aevora_rpc_acl_trigger_source ENABLE ROW LEVEL SECURITY;
 CREATE POLICY aevora_rpc_fixture_select ON public.aevora_rpc_acl_trigger_source FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY aevora_rpc_fixture_insert ON public.aevora_rpc_acl_trigger_source FOR INSERT TO anon, authenticated WITH CHECK (true);
@@ -41,16 +39,14 @@ RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE OR REPLACE FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric)
 RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE OR REPLACE FUNCTION public.taleforge_update_updated_at()
-RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.touched := true; RETURN NEW; END $$;
+RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
 CREATE OR REPLACE FUNCTION public.touch_story_lifecycle_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
 CREATE OR REPLACE FUNCTION public.update_series_chapter_count()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
 CREATE OR REPLACE FUNCTION public.update_updated_at()
-RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
+RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
 
--- Model inherited PUBLIC EXECUTE and direct client grants, while preserving
--- explicit server-role EXECUTE grants as observed in the live catalog.
 GRANT EXECUTE ON FUNCTION public.apply_attachment_directives(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_active_story_arc_plan(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_production_buffer_plan() TO anon, authenticated, service_role;
