@@ -83,18 +83,21 @@ test("publisher distinguishes manual schedules from automated publication author
   assert.match(publisher, /AUTOMATION_SCHEDULE_MISSING_OR_AMBIGUOUS/);
   assert.match(publisher, /AUTOMATION_SCHEDULE_AMBIGUOUS/);
   const manualIndex = publisher.indexOf('if (automationSchedule.schedule_mode === "manual")');
-  const automatedGuardIndex = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
-  assert.ok(manualIndex >= 0 && automatedGuardIndex > manualIndex,
-    "manual-mode validation must remain explicit and separate from the automated-publication lock");
-  const manualBranch = publisher.slice(manualIndex, automatedGuardIndex);
+  const authorizationStopIndex = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED");
+  assert.ok(manualIndex >= 0 && authorizationStopIndex >= 0 && authorizationStopIndex < manualIndex,
+    "all publication modes must stop before later schedule classification until trusted approval exists");
+  const manualBranch = publisher.slice(manualIndex, publisher.indexOf("/* * -------------------------------------------------- * 5. Validate series status"));
   assert.match(manualBranch, /MANUAL_SCHEDULE_AUTOMATION_CONFLICT/,
-    "manual schedules must reject automatic flags rather than being treated as automated approvals");
+    "manual schedules must still reject automatic flags rather than being treated as automated approvals");
+  assert.match(publisher.slice(authorizationStopIndex - 700, manualIndex),
+    /not per-chapter human approval/,
+    "manual schedule flags must not substitute for approval of the exact output");
   assert.match(publisher, /automationSchedule.enabled !== true \|\| automationSchedule.auto_publish !== true[\s\S]*?AUTOMATION_NOT_READY/,
     "generation-only readiness must not accidentally authorize automated publication");
 });
 
 test("publisher version identifies publication-authorization fail-closed hardening", () => {
-  assert.match(publisher, /release-publisher-v11-publication-authorization-fail-closed/);
+  assert.match(publisher, /release-publisher-v12-manual-and-automatic-authorization-stop/);
 });
 
 
