@@ -21,6 +21,16 @@ BEGIN
   IF (SELECT generation_status FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001') <> 'quality_check' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: output status was not advanced';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.chapter_generation_outputs
+    WHERE id='00000000-0000-0000-0000-000000000001'
+      AND quality_report->>'generation_context_snapshot_id'='fixture-snapshot-001'
+      AND quality_report->>'generation_context_hash'='fixture-hash-001'
+      AND quality_report->>'generation_context_version'='fixture-v1'
+      AND quality_report->>'quality_version'='quality-v1'
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: quality review overwrote canonical generation-context metadata';
+  END IF;
 
   -- A second reviewer holding the pre-commit timestamp must be fenced even
   -- though the new status is still ordinarily reviewable.
