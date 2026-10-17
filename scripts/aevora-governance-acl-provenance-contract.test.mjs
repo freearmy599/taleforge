@@ -81,7 +81,7 @@ test("lineage evidence preserves separate schema generations and the legacy heal
     "taleforge_system_health",
     "taleforge_system_governance_runs",
   ]) {
-    assert.ok(lineage.includes("`" + relation + "`"), "lineage report missing " + relation);
+    assert.ok(lineage.includes("`public." + relation + "`") || lineage.includes("`" + relation + "`"), "lineage report missing " + relation);
   }
   assert.match(lineage, /different OIDs/i);
   assert.match(lineage, /foreign key references the \*\*legacy\*\*/i);
