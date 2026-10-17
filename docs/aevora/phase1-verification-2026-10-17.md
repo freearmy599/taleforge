@@ -33,6 +33,10 @@ After the last fully green commit above, the branch adds candidate migration `20
 
 The disposable rehearsal tests successful commit, finalized-output fencing, rollback when review persistence fails, and RPC ACLs. Source-contract tests check both callers use the atomic RPC and reject out-of-range quality scores. The workflow now includes these tests, but this follow-on candidate must not be called verified until its new workflow run completes successfully. It remains branch-only and has not been applied to production.
 
+## Default-privilege owner-context follow-up
+
+Added `docs/aevora/phase1-default-privilege-owner-runbook.md` to document the safe escalation path for the `supabase_admin` default-ACL ownership blocker. It requires an authorized owner/operator context, a read-only inventory before any change, no workaround through role elevation or global-default changes, and a disposable rehearsal afterward. This is procedural documentation only; it does not change any ACL.
+
 ## Production safety boundary
 
 No production migration, Edge Function deployment, ACL change, chapter generation or publication, schedule mutation, or billable Supabase development branch was initiated by this verification. Green CI demonstrates candidate behavior on disposable fixtures; it does not prove the candidate migrations are applied in production.
