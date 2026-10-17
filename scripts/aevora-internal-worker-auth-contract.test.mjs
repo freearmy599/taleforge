@@ -32,6 +32,25 @@ async function source(path) {
   return readFile(new URL("../" + path, import.meta.url), "utf8");
 }
 
+test("every known secret-key cron target is covered by the internal-worker authorization contract", async () => {
+  // Keep this target inventory aligned with the metadata-only production cron audit.
+  // It intentionally records function slugs, never live SQL, headers, or credentials.
+  const cronTargets = [
+    "generation-orchestrator",
+    "release-scheduler",
+    "blueprint-planner",
+    "story-dna-planner",
+    "arc-planner",
+    "publication-sync-processor",
+    "semantic-continuity-extraction",
+    "autonomous-series-creation-runner",
+  ];
+  const classified = new Set([...workers, "autonomous-series-creation-runner"]);
+  for (const target of cronTargets) {
+    assert.ok(classified.has(target), target + " must remain covered by an internal-worker authentication contract");
+  }
+});
+
 test("every privileged Edge worker authenticates before parsing input or creating clients", async () => {
   for (const name of workers) {
     const s = await source("supabase/functions/" + name + "/index.ts");
