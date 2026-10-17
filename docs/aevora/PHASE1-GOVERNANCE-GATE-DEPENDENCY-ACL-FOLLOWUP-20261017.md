@@ -74,3 +74,19 @@ This is a targeted source-body inventory, not a complete caller graph. It does n
 2. Any future ACL plan must preserve service-role-only routine invocation and verify the same effective privilege matrix after rehearsal.
 3. The search_path=public SECURITY DEFINER configuration on the CEO evaluator/gate remains an operator-reviewed security concern. Do not change it without recovered source provenance, dependency analysis, and disposable-database rehearsal.
 4. Automated publication remains NO-GO; this routine inventory does not establish per-chapter human approval.
+
+
+## Follow-up: broader SECURITY DEFINER search-path exposure inventory — 2026-10-17
+
+A read-only catalog scan across public-schema routines found 69 SECURITY DEFINER routines whose configured search_path includes public. The effective EXECUTE matrix for this set was: anon = 0, authenticated = 0, service_role = 69. Of the 69, 55 specify exactly search_path=public, 11 specify search_path=public, pg_temp, and the remaining three use another public-inclusive path configuration.
+
+A separate read-only privilege check confirmed service_role can create temporary objects in the current database, but cannot CREATE objects in public; anon and authenticated cannot CREATE in public either. PostgreSQL implicitly searches a session's temporary schema first for relation/type names when pg_temp is not explicitly placed in the search_path. Therefore, the 55 routines with exactly search_path=public are a **priority candidate set for source-level shadowing review**, especially where they use unqualified relation/type names. This is not proof that all 55 are exploitable: exploitability depends on each routine's statements, qualification, caller path, and runtime context.
+
+### Required follow-up
+
+1. Inventory unqualified relation/type references in the 55 exact-public-path routines, starting with routines callable by service_role through externally reachable Edge Functions.
+2. Review whether each routine can safely use a fixed path such as pg_catalog, public, pg_temp, or fully qualified relation names, based on its actual dependencies.
+3. Add disposable-database tests that attempt temp-object shadowing for selected routines before proposing any path change.
+4. Do not bulk-edit routine definitions from this count alone. Preserve existing service-role-only EXECUTE posture and require authoritative source recovery, dependency review, and regression coverage.
+
+This expands the security review scope; it does not authorize production changes. No functions, grants, policies, data, migrations, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
