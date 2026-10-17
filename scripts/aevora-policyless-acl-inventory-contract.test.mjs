@@ -64,7 +64,7 @@ test("all 28 provisional server-only relations are covered by branch ACL-lock ca
       || providerStateLock.includes("public." + relation);
     assert.ok(covered, "server-only relation lacks a tracked ACL-lock candidate: " + relation);
   }
-  assert.match(internalLock, /REVOKE [A-Z ,]+ \\(%s\\)/i,
+  assert.match(internalLock, /REVOKE %s \\(%s\\)/i,
     "internal lock must remove independent column-level grants");
   assert.match(metricsOutboxLock, /REVOKE ALL PRIVILEGES \\(%s\\)/i,
     "metrics/outbox lock must remove independent column-level grants");
@@ -88,5 +88,5 @@ test("all 11 product-facing/ambiguous relations remain individually locked pendi
 test("the contract does not mistake branch ACL candidates for live production remediation", () => {
   assert.ok(classification.includes("aevora/release-scheduler-hardening"));
   assert.match(classification, /provisional/i);
-  assert.match(classification, /No production grants/i);
+  assert.match(classification, /No production (?:table privileges|grants)/i);
 });
