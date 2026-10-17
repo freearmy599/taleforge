@@ -10,12 +10,14 @@ $roles$;
 -- The live refresh function returns this table's composite row type.
 CREATE TYPE public.story_attachment_metrics AS (id bigint);
 
-CREATE TABLE public.chapters (id integer PRIMARY KEY);
-ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
-CREATE POLICY aevora_rpc_fixture_select ON public.chapters FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY aevora_rpc_fixture_insert ON public.chapters FOR INSERT TO anon, authenticated WITH CHECK (true);
-CREATE POLICY aevora_rpc_fixture_update ON public.chapters FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
-GRANT SELECT, INSERT, UPDATE ON public.chapters TO anon, authenticated, service_role;
+-- Use a namespaced disposable table so this fixture composes safely with the
+-- broader internal-table lock rehearsal, which also defines public.chapters.
+CREATE TABLE public.aevora_rpc_acl_trigger_source (id integer PRIMARY KEY, touched boolean NOT NULL DEFAULT false);
+ALTER TABLE public.aevora_rpc_acl_trigger_source ENABLE ROW LEVEL SECURITY;
+CREATE POLICY aevora_rpc_fixture_select ON public.aevora_rpc_acl_trigger_source FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY aevora_rpc_fixture_insert ON public.aevora_rpc_acl_trigger_source FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY aevora_rpc_fixture_update ON public.aevora_rpc_acl_trigger_source FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+GRANT SELECT, INSERT, UPDATE ON public.aevora_rpc_acl_trigger_source TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.apply_attachment_directives(uuid)
 RETURNS integer LANGUAGE sql AS $$ SELECT 0 $$;
@@ -39,7 +41,7 @@ RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE OR REPLACE FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric)
 RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE OR REPLACE FUNCTION public.taleforge_update_updated_at()
-RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
+RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.touched := true; RETURN NEW; END $$;
 CREATE OR REPLACE FUNCTION public.touch_story_lifecycle_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
 CREATE OR REPLACE FUNCTION public.update_series_chapter_count()
@@ -63,5 +65,5 @@ GRANT EXECUTE ON FUNCTION public.update_series_chapter_count() TO anon, authenti
 GRANT EXECUTE ON FUNCTION public.update_updated_at() TO anon, authenticated, service_role;
 
 CREATE TRIGGER aevora_rpc_acl_trigger_fixture
-BEFORE UPDATE ON public.chapters
+BEFORE UPDATE ON public.aevora_rpc_acl_trigger_source
 FOR EACH ROW EXECUTE FUNCTION public.taleforge_update_updated_at();
