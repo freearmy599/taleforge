@@ -58,3 +58,24 @@ The ten direct provider-call owners with atomic throttle RPC calls are:
 - Explicit approval before any live grant/migration/deployment change.
 
 No database state, ACL, function deployment, provider state, or schedule was changed for this inventory.
+
+
+## Live metadata cross-check (2026-10-17)
+
+A fresh read-only Supabase metadata query confirmed the latest migration ledger entry is still `20261010161919 — aevora_release_scheduler_leases`. The candidate provider-throttle migrations `20261016180000` and `20261016190000`, plus candidate client/default-privilege repairs, are not present in the live ledger.
+
+Live Edge Function versions observed in the same check:
+
+| Function | Live version | Why parity matters |
+|---|---:|---|
+| `generate-chapter` | 59 | Must verify both generation and AI quality-review provider guards, plus atomic throttle recording |
+| `generation-orchestrator` | 35 | Must verify child-result handling and no duplicate throttle writes |
+| `revise-chapter` | 40 | Must verify both primary and continuation provider guards and atomic throttle recording |
+| `continuity-review` | 10 | Must verify provider-state fail-closed and redacted error handling |
+| `originality-review` | 9 | Must verify provider-state fail-closed and redacted error handling |
+| `safety-review` | 9 | Must verify provider-state fail-closed and redacted error handling |
+| `review-orchestrator` | 11 | Must verify global preflight and stop-on-throttle behavior |
+| `release-scheduler` | 12 | Separate publication/scheduler lease and partial-failure blockers remain |
+| `release-publisher` | 21 | Trusted approval and atomic publication boundary remain unimplemented/deployment-gated |
+
+Live function deployment version numbers are not comparable to source `VERSION` constants. The table is deployment metadata only, not source-parity proof. No live function source was deployed or changed during this check.
