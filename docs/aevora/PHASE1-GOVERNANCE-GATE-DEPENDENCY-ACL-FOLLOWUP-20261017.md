@@ -36,3 +36,16 @@ Connected GitHub source search returned no tracked matches for `taleforge_ceo_ex
 5. Rehearse ACL changes in a disposable database before any live rollout; current `supabase_admin` default-ACL owner limitation remains a separate blocker.
 
 Metadata-only audit. No production changes were made.
+
+
+## Follow-up: exact default-ACL grants by creator role
+
+A second read-only catalog query grouped default privileges by the creating role, avoiding the earlier report's omission of that dimension. In schema `public`, both `postgres` and `supabase_admin` have default ACL entries granting the following to both `anon` and `authenticated`:
+
+- Tables: `SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER` and the PostgreSQL-version-specific `MAINTAIN` privilege.
+- Sequences: `SELECT, UPDATE, USAGE`.
+- Functions: `EXECUTE`.
+
+None of these expanded default ACL grants is grantable onward. The entries are present separately for both creator roles. This provides direct live evidence that newly created public-schema objects can inherit broad client privileges unless object-specific ACL changes or corrected defaults intervene. It does not identify who originally established the entries or prove which existing relation ACLs came from them.
+
+The executor still lacks the required `supabase_admin` owner path, so no default privileges were altered. The remediation must be rehearsed for each creator role and object type, with before/after effective ACL checks; production changes remain blocked pending authorized owner/operator execution and caller review.
