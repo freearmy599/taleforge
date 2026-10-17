@@ -32,11 +32,11 @@ CREATE TABLE public.chapter_reviews (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.chapter_generation_outputs, public.chapter_reviews TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO PUBLIC;
 
-INSERT INTO public.chapter_generation_outputs(id,generation_status,updated_at)
+INSERT INTO public.chapter_generation_outputs(id,generation_status,quality_report,updated_at)
 VALUES
- ('00000000-0000-0000-0000-000000000001','generated','2000-01-01T00:00:00Z'),
- ('00000000-0000-0000-0000-000000000002','published','2000-01-01T00:00:00Z'),
- ('00000000-0000-0000-0000-000000000003','generated','2000-01-01T00:00:00Z');
+ ('00000000-0000-0000-0000-000000000001','generated','{"generation_context_snapshot_id":"fixture-snapshot-001","generation_context_hash":"fixture-hash-001","generation_context_version":"fixture-v1"}'::jsonb,'2000-01-01T00:00:00Z'),
+ ('00000000-0000-0000-0000-000000000002','published',NULL,'2000-01-01T00:00:00Z'),
+ ('00000000-0000-0000-0000-000000000003','generated',NULL,'2000-01-01T00:00:00Z');
 CREATE FUNCTION public.aevora_fixture_reject_quality_review_write()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
