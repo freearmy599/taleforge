@@ -668,3 +668,12 @@ No production permissions or routines were changed. Automated publishing remains
 - [x] CI run [39052235882](https://github.com/freearmy599/taleforge/actions/runs/39052235882) completed successfully on commit `d6f3540053946481f977de06db82251ff7201568`: Edge/source validation **67/67** steps; disposable PostgreSQL readiness/ACL/lease/atomic-quality-review rehearsal **24/24** steps.
 - **Scope:** the successful run verifies branch tests and disposable database rehearsals only. It does not prove deployed function parity or authorize production rollout.
 - **Safety boundary:** no production migrations, deployments, ACLs, schedules, chapters, or publication state changed; no billable Supabase resource was created. Automated publishing remains **NO-GO**.
+
+
+### Provider-state reader audit regression — 2026-10-17
+
+- [x] Added a cross-worker contract test covering all 13 identified direct readers of `taleforge_ai_provider_state`, checking that throttle counters are validated, cooldown timestamps are parsed, and unavailable/malformed state is handled as blocked.
+- [x] CI run [39052475741](https://github.com/freearmy599/taleforge/actions/runs/39052475741) completed successfully on commit `45c8974557b8f6172b21db7c2160e63eabcd3f7c`: Edge/source validation **67/67** steps; disposable PostgreSQL rehearsal **24/24** steps.
+- [x] Checklist evidence commit `470f129ceffb7736c5d86ef819b5f542a7c44c52` also passed CI run [39052389076](https://github.com/freearmy599/taleforge/actions/runs/39052389076): Edge/source validation **67/67** and disposable PostgreSQL rehearsal **24/24**.
+- **Scope:** source-contract and disposable-database results do not establish deployed function parity, production ACL correctness, or authorization for rollout. Human publication approval and atomic publication remain open gates.
+- **Safety boundary:** no production migrations, deployments, ACLs, schedules, chapters, or publication state changed; no billable resources were created. Automated publishing remains **NO-GO**.
