@@ -608,3 +608,13 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [ ] Resolve the authorized `supabase_admin` default-ACL execution path and rehearse both creator roles in a disposable database.
 
 No production grants, policies, default privileges, functions, migrations, deployments, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
+
+
+## Governance schema lineage blocker — 2026-10-17
+
+- [x] Compared the complete tracked governance migration with live names: the migration defines `taleforge_system_registry` and `taleforge_system_dependencies`, while live inspection reported `taleforge_system_governance_registry` and `taleforge_system_governance_dependencies`. The live `taleforge_system_governance_runs` definition was not found in the inspected migration.
+- [x] Recorded the mismatch without assuming similarly named relations are equivalent: [governance schema lineage recheck](./PHASE1-GOVERNANCE-SCHEMA-LINEAGE-20261017.md).
+- [ ] Recover the authoritative migration / platform SQL history and establish object lineage before drafting ACL migrations.
+- [ ] Compare columns, constraints, relation OIDs, policies, dependencies, and function references after source recovery.
+
+This is a lineage finding, not evidence that a migration never existed. No production objects were changed; automated publishing remains **NO-GO**.
