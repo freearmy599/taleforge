@@ -75,3 +75,10 @@ A branch-only candidate migration was added at `supabase/migrations/202610171300
 A disposable fixture deliberately grants client write privileges and permissive RLS policies before applying the candidate, then asserts that client writes are gone, reading remains available, and service_role retains CRUD. The fixture is wired into the branch workflow; its latest run is pending at the time of this note.
 
 This is not a production repair yet. The candidate is unapplied, and the live browser/API write ACLs remain a release blocker until an approved rollout safely applies and verifies the migration. Do not claim production chapter writes are locked down based on branch source alone.
+
+
+### Broader live table-maintenance ACL scope — 2026-10-17
+
+A fresh aggregate catalog check found **103 public base/partitioned tables** with effective client-role grants for each of `TRUNCATE`, PostgreSQL 17 `MAINTAIN`, `INSERT`, `UPDATE`, and `DELETE` for at least one of `anon`/`authenticated`. All 169 inspected public base/partitioned tables had RLS enabled; 91 had no policies. A second policy check found only one table with a client INSERT policy, and no client UPDATE or DELETE policies. These facts mean RLS currently blocks row-level writes on policyless tables, but it does **not** protect against `TRUNCATE`; broad maintenance grants therefore remain a priority database-integrity risk until the maintenance-ACL candidate is applied.
+
+The existing branch candidate `20261016200000_revoke_client_table_maintenance_privileges.sql` revokes `MAINTAIN`, `TRUNCATE`, `TRIGGER`, and `REFERENCES` from `PUBLIC`, `anon`, and `authenticated` across public base/partitioned tables, while preserving ordinary CRUD for separate policy-aware review. Its paired default-ACL candidate covers future objects. Both remain unapplied in production, and the owner-context/default-privilege rehearsal is still a separate blocker. Do not interpret the chapter-specific migration as a substitute for the broader maintenance ACL repair.
