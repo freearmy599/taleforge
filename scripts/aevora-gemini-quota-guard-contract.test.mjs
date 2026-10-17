@@ -48,21 +48,31 @@ test("every direct Gemini API caller has fail-closed provider-state and cooldown
 });
 
 
-test("generate-chapter provider-state guard covers both generation and quality-review request paths", async () => {
+test("generate-chapter scopes provider guards to generation and AI quality-review model calls", async () => {
   const source = await readFile(new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url), "utf8");
-  const guardIndex = source.indexOf('.from("taleforge_ai_provider_state")');
-  const generationBranchIndex = source.indexOf("if(blueprintId&&!outputId){", guardIndex);
-  assert.notEqual(guardIndex, -1, "generate-chapter must load provider state");
-  assert.notEqual(generationBranchIndex, -1, "chapter-generation branch must remain present after the guard");
-  assert.ok(guardIndex < generationBranchIndex, "provider-state guard must run before branching between generation and output review");
-  const beforeGuard = source.slice(0, guardIndex);
-  const lastGenerationBranch = beforeGuard.lastIndexOf("if(blueprintId&&!outputId){");
-  assert.equal(lastGenerationBranch, -1, "provider-state lookup must not be nested inside the generation-only branch");
-  const guardRegion = source.slice(source.lastIndexOf("taleforge_ceo_execution_gate", guardIndex), generationBranchIndex);
-  assert.match(guardRegion, /provider_state_unavailable/, "missing provider state must block all request paths");
-  assert.match(guardRegion, /provider_cooldown/, "active cooldown must block all request paths");
-  assert.match(guardRegion, /Number\.isSafeInteger\(/, "generation and quality-review paths must reject malformed throttle counters");
-  assert.match(guardRegion, /Number\.isFinite\(/, "generation and quality-review paths must reject malformed cooldown timestamps");
+  const generationBranch = source.indexOf("if(blueprintId&&!outputId){");
+  const generationGuard = source.indexOf('.from("taleforge_ai_provider_state")', generationBranch);
+  const generationModelCall = source.indexOf("content=await gemini(gkey,n===1?prompt", generationBranch);
+  const qualityBranch = source.indexOf("if(!outputId)return reply");
+  const deterministicValidation = source.indexOf("if(issues.length)", qualityBranch);
+  const qualityGuard = source.indexOf("const {data:reviewProviderState,error:reviewProviderStateError}", qualityBranch);
+  const qualityModelCall = source.indexOf("ai=parseJson(await gemini(gkey,reviewPrompt,true))", qualityGuard);
+  assert.ok(generationBranch >= 0 && generationGuard > generationBranch && generationModelCall > generationGuard,
+    "generation provider-state guard must be inside the generation branch and precede the model call");
+  assert.ok(qualityBranch > generationModelCall,
+    "generation cooldown guard must not block deterministic quality-review work");
+  assert.ok(deterministicValidation > qualityBranch && qualityGuard > deterministicValidation && qualityModelCall > qualityGuard,
+    "quality-review provider-state guard must run after deterministic validation and before AI review");
+  for (const [label, start, end] of [
+    ["generation", generationGuard, generationModelCall],
+    ["quality review", qualityGuard, qualityModelCall],
+  ]) {
+    const guard = source.slice(start, end);
+    assert.match(guard, /provider_state_unavailable/, label + ": missing provider state must fail closed");
+    assert.match(guard, /provider_cooldown/, label + ": active cooldown must block Gemini");
+    assert.match(guard, /Number\.isSafeInteger\(/, label + ": malformed throttle counters must fail closed");
+    assert.match(guard, /Number\.isFinite\(/, label + ": malformed cooldown timestamps must fail closed");
+  }
 });
 
 test("review-orchestrator fails closed before selecting outputs when Gemini provider state is unavailable or cooling down", async () => {
