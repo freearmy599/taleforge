@@ -68,7 +68,7 @@ BEGIN
     WHERE p.schemaname = 'public'
       AND p.tablename = 'taleforge_system_health'
       AND p.cmd = 'SELECT'
-      AND p.roles && ARRAY['anon', 'authenticated']::name[]
+      AND p.roles && ARRAY['anon', 'authenticated', 'public']::name[]
   ) THEN
     RAISE EXCEPTION 'expected existing client health SELECT policy missing; review intended read surface';
   END IF;
@@ -124,7 +124,7 @@ BEGIN
     WHERE p.schemaname = 'public'
       AND p.tablename = 'taleforge_system_registry'
       AND p.cmd = 'SELECT'
-      AND p.roles && ARRAY['anon', 'authenticated']::name[]
+      AND p.roles && ARRAY['anon', 'authenticated', 'public']::name[]
   ) THEN
     RAISE EXCEPTION 'expected public registry SELECT policy missing; review intended read surface';
   END IF;
