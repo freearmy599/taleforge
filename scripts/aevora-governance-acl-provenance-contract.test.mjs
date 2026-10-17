@@ -133,3 +133,13 @@ test("first-pass unqualified relation scan is documented as incomplete and read-
   assert.match(query, /First-pass seed scan for unqualified references/);
   assert.match(query, /p\.proconfig @> ARRAY\['search_path=public'\]/);
 });
+
+test("candidate caller/trigger follow-through records chapter trigger and bounded caller graph", () => {
+  assert.match(report, /Caller and trigger follow-through/i);
+  assert.match(report, /trg_taleforge_refresh_long_term_architecture/);
+  assert.match(report, /after chapter insert or status update/i);
+  assert.match(report, /No direct source-text caller was found/i);
+  assert.match(query, /Caller\/trigger map for the first-pass SECURITY DEFINER candidates/);
+  assert.match(query, /pg_catalog\.pg_trigger/);
+  assert.match(query, /pg_catalog\.pg_get_triggerdef|pg_catalog\.pg_trigger/);
+});
