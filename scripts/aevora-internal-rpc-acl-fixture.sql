@@ -1,17 +1,25 @@
 \set ON_ERROR_STOP on
--- The live function returns this table's composite row type. This isolated
--- fixture models that return type without requiring the production table shape.
+DO $roles$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
+END
+$roles$;
+
+-- The live refresh function returns this table's composite row type.
 CREATE TYPE public.story_attachment_metrics AS (id bigint);
 
--- Minimal disposable fixtures for the exact function signatures in the
--- internal EXECUTE migration. This file is only run by the guarded local/CI
--- disposable PostgreSQL rehearsal, never against Supabase.
+CREATE TABLE public.chapters (id integer PRIMARY KEY);
+ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+CREATE POLICY aevora_rpc_fixture_insert ON public.chapters FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY aevora_rpc_fixture_update ON public.chapters FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+GRANT SELECT, INSERT, UPDATE ON public.chapters TO anon, authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.apply_attachment_directives(uuid)
 RETURNS integer LANGUAGE sql AS $$ SELECT 0 $$;
-
 CREATE OR REPLACE FUNCTION public.get_active_story_arc_plan(uuid)
 RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-
 CREATE OR REPLACE FUNCTION public.get_production_buffer_plan()
 RETURNS TABLE(series_id uuid, title text, lifecycle_status text, target_buffer integer,
               active_buffer integer, deficit integer, priority_score integer)
@@ -19,36 +27,27 @@ LANGUAGE sql AS $$
   SELECT NULL::uuid, NULL::text, NULL::text, NULL::integer, NULL::integer, NULL::integer, NULL::integer
   WHERE false
 $$;
-
 CREATE OR REPLACE FUNCTION public.get_story_narrative_destination(uuid)
 RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-
 CREATE OR REPLACE FUNCTION public.prepare_next_chapter_blueprint(uuid)
 RETURNS integer LANGUAGE sql AS $$ SELECT 0 $$;
-
 CREATE OR REPLACE FUNCTION public.refresh_story_attachment_metrics(uuid)
 RETURNS public.story_attachment_metrics LANGUAGE sql AS $$ SELECT NULL::public.story_attachment_metrics $$;
-
 CREATE OR REPLACE FUNCTION public.taleforge_get_long_term_architecture_context(uuid)
 RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-
 CREATE OR REPLACE FUNCTION public.taleforge_score_story_opportunity(numeric, numeric, numeric, numeric, numeric)
 RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-
 CREATE OR REPLACE FUNCTION public.taleforge_update_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
-
 CREATE OR REPLACE FUNCTION public.touch_story_lifecycle_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
-
 CREATE OR REPLACE FUNCTION public.update_series_chapter_count()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
-
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;
 
--- Model both inherited PUBLIC EXECUTE and direct client grants. Also verify
--- the migration does not remove the trusted server role's explicit grants.
+-- Model inherited PUBLIC EXECUTE and direct client grants, while preserving
+-- explicit server-role EXECUTE grants as observed in the live catalog.
 GRANT EXECUTE ON FUNCTION public.apply_attachment_directives(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_active_story_arc_plan(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_production_buffer_plan() TO anon, authenticated, service_role;
@@ -62,7 +61,6 @@ GRANT EXECUTE ON FUNCTION public.touch_story_lifecycle_updated_at() TO anon, aut
 GRANT EXECUTE ON FUNCTION public.update_series_chapter_count() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.update_updated_at() TO anon, authenticated, service_role;
 
--- Trigger execution must continue working after client EXECUTE is revoked.
 CREATE TRIGGER aevora_rpc_acl_trigger_fixture
 BEFORE UPDATE ON public.chapters
 FOR EACH ROW EXECUTE FUNCTION public.taleforge_update_updated_at();
