@@ -175,3 +175,18 @@ This is not yet a claim that the six functions are exploitable, nor an exhaustiv
 ### Trigger-adjacent scope refined
 
 The live trigger inventory was checked for all enabled, non-internal triggers whose SECURITY DEFINER functions have exact `search_path=public`. The four inspected trigger functions on `public.chapters` / `public.series` are executable by `service_role` but not `anon` or `authenticated`. Full body previews show that `enqueue_publication_sync_event`, `taleforge_enqueue_continuity_extraction`, and `taleforge_enroll_series_in_production` schema-qualify their persistent table references. The publication-trigger wrapper `taleforge_refresh_long_term_architecture_on_publish` calls the architecture refresh function with a schema-qualified function name, but that downstream refresh function still has the confirmed unqualified persistent-table references listed above. Therefore the downstream refresh is the priority; do not treat every `search_path=public` trigger function as equally risky.
+
+### Risk-mechanism boundary and trigger write-path cross-check
+
+The PostgreSQL rehearsal confirms the specific relation-resolution mechanism: an unqualified table reference in a SECURITY DEFINER routine with `search_path=public` can resolve a caller-session temporary relation first when that session has TEMP privilege. It does **not** establish that an untrusted user can reach the relevant same database session or invoke these functions; the inspected routines have no EXECUTE grant to `anon` or `authenticated`, while `service_role` can execute them. Treat this as a privileged-caller/session-isolation risk to validate, not an anonymous exploit finding.
+
+A fresh read-only inspection of enabled triggers on `public.chapters`, `public.series`, and `public.story_blueprints` refined the adjacent paths:
+- `enqueue_publication_sync_event()` writes `public.publication_sync_outbox` explicitly.
+- `taleforge_enqueue_continuity_extraction()` writes `public.taleforge_continuity_extraction_queue` explicitly.
+- `taleforge_enroll_series_in_production()` explicitly qualifies persistent `public.story_lifecycle` and `public.release_schedules` relations in its insert/select/update paths.
+- `taleforge_refresh_long_term_architecture_on_publish()` explicitly invokes `public.taleforge_refresh_long_term_narrative_architecture(new.series_id)`, but that downstream routine uses unqualified persistent relations and remains the highest-priority trigger-adjacent candidate.
+- The story-ending metadata trigger's function uses `search_path=public, taleforge_internal` and its inspected persistent relations are explicitly schema-qualified. It is outside the exact-`public` bucket and was not included in the six-function candidate count.
+
+The unqualified call to `taleforge_refresh_system_health()` in `taleforge_refresh_narrative_memory_consolidation_health()` should be tracked as a dependency/caller clarity item, but PostgreSQL's temporary-schema-first behavior for relation names should not be incorrectly generalized to function resolution. The confirmed temp-relation candidate in that wrapper is its unqualified INSERT target `taleforge_system_checks`.
+
+**Evidence limits:** GitHub source search returned no matches for the four routine names queried in the checked repository source index. This is not proof of no caller: deployed Edge Function bundles, SQL artifacts absent from the repository, scheduled jobs, and external callers remain unverified. Do not close caller mapping based on these empty search results.
