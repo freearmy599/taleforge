@@ -42,10 +42,10 @@ This should not be folded into a blanket schema-wide revoke. Verify relation kin
 - [ ] Confirm each relation's live relation kind, owner, RLS flags, policies, and effective ACL.
 - [ ] Confirm no legitimate browser/client call path requires raw taxonomy reads.
 - [x] Add forward-only candidate `20261017140000_lock_internal_reference_taxonomy_client_access.sql` and source-only contract `scripts/aevora-internal-taxonomy-acl-contract.test.mjs`.
-- [ ] Rehearse the candidate in disposable PostgreSQL with both client roles denied all relation/column privileges and trusted service access preserved.
-- [ ] Confirm CI for the exact candidate/test commit succeeds; CI for the migration-only commit is still running and does not include the separately added contract test.
+- [x] Rehearse the candidate in disposable PostgreSQL: run [39012169911](https://github.com/freearmy599/taleforge/actions/runs/39012169911) passed the dedicated taxonomy ACL rehearsal, asserting `anon` and `authenticated` lost relation-level and column-level privileges while `service_role` retained its expected privileges.
+- [x] Confirm the exact candidate/test commit CI succeeded: [run 39012169911](https://github.com/freearmy599/taleforge/actions/runs/39012169911) passed Edge/source-contract validation 60/60 steps and PostgreSQL rehearsal 22/22 steps.
 - [ ] Keep production unchanged unless a separate explicit approval and rollback plan are provided.
 
 ## Current status
 
-A branch-only migration candidate and static contract have now been added. The candidate is not yet runtime-rehearsed or fully CI-validated; verify the current run status before treating it as validated. No production ACLs or schema were changed. Automatic publication remains **NO-GO**.
+The branch-only migration candidate, static contract, disposable fixture/assertions/safety-gated runner, and CI steps are now present. Run 39012169911 passed both the source-contract suite and the dedicated disposable PostgreSQL ACL rehearsal. This validates the tested branch fixture only, not live schema compatibility or production deployment. No production ACLs or schema were changed. Automatic publication remains **NO-GO**.
