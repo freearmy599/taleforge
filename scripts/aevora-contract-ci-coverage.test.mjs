@@ -16,7 +16,7 @@ const workflowPath = resolve(root, ".github/workflows/aevora-edge-validation.yml
  test("every Aevora test/contract module is explicitly executed by Edge validation CI", async () => {
   const files = await readdir(scriptsDirectory);
   const suites = files.filter((name) =>
-    /^aevora-.*(?:\.test|\.contract)\.mjs$/.test(name)
+    /^aevora-.*(?:test|contract).*\.mjs$/.test(name)
   ).sort();
   const workflow = await readFile(workflowPath, "utf8");
 
