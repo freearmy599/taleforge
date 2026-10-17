@@ -24,6 +24,8 @@ DECLARE
   review_id uuid;
 BEGIN
   IF p_output_id IS NULL
+     OR p_review_status IS NULL
+     OR p_generation_status IS NULL
      OR p_review_status NOT IN ('passed', 'needs_revision')
      OR p_generation_status NOT IN ('quality_check', 'needs_revision')
      OR (p_review_status = 'passed' AND p_generation_status <> 'quality_check')
