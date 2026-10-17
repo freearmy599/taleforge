@@ -162,11 +162,12 @@ test("publisher blocks manual and automatic publication before publication-state
   const stop = publisher.indexOf('code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED"', governanceCheck);
   const outputLookup = publisher.indexOf('.from("chapter_generation_outputs")');
   const scheduleLookup = publisher.indexOf('.from("release_schedules")');
+  const chapterLookup = publisher.indexOf('.from("chapters")');
   assert.ok(governanceCheck >= 0, "publisher must retain the separate governance gate");
   assert.ok(stop > governanceCheck, "trusted-approval stop must follow internal governance authentication");
-  assert.ok(outputLookup > stop, "publisher must stop before reading the output or entering publication flow");
-  assert.ok(scheduleLookup > stop, "manual mode must not bypass the stop through schedule classification");
-  const stopBlock = publisher.slice(stop - 300, outputLookup);
+  assert.ok(scheduleLookup < stop, "publisher must classify the persisted schedule before deciding whether the manual path is blocked");
+  assert.ok(outputLookup >= 0 && outputLookup < chapterLookup && chapterLookup > stop, "publisher must stop before chapter lookup or publication-side effects");
+  const stopBlock = publisher.slice(stop - 300, chapterLookup);
   assert.match(stopBlock, /published: false/);
   assert.match(stopBlock, /}, 423\)/);
   assert.match(stopBlock, /Publication blocked until trusted approval is implemented/);
