@@ -498,3 +498,12 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] Added a response-contract regression requiring `success: false`, HTTP `423 Locked`, and stable code `PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED`, with the stop occurring before chapter-table access. Validation passed in [CI run 39023918762](https://github.com/freearmy599/taleforge/actions/runs/39023918762); both Edge type-check/source-contract validation and disposable PostgreSQL rehearsal succeeded.
 - **Scope:** branch-only tests and documentation. No production function, database permission, migration, cron schedule, chapter, or publication was changed; no billable Supabase branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO**. Do not remove the fail-closed stop until a trusted approver/identity model and approval rules are explicitly decided and the database commit-boundary authorization is implemented and validated. Live function/migration parity, owner/default-ACL remediation, and worker-auth rollout also remain unresolved.
+
+
+### Repository-wide chapter-row mutation boundary — 2026-10-17
+
+- [x] Read-only scan of the 34 TypeScript files under `supabase/functions/` found no direct chapter-row mutation path outside `release-publisher`.
+- [x] Added a regression contract requiring the publisher to remain the sole Edge Function with direct `insert`, `update`, `upsert`, or `delete` calls on the `chapters` table. This extends the previous insert-only check.
+- [x] Validation passed on commit [`b3c4c65`](https://github.com/freearmy599/taleforge/commit/b3c4c6562876682d82a95b40fe2428e33b44c029): [run 39025120342](https://github.com/freearmy599/taleforge/actions/runs/39025120342). Both Edge source/type-check validation and the disposable PostgreSQL rehearsal passed.
+- **Scope:** branch-only source audit, regression test, and documentation. No live Supabase functions, permissions, migrations, cron schedules, chapter data, or publication state changed; no billable branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO** until a trusted publication approver model and database commit-boundary authorization are implemented and approved. Live function/migration parity, owner/default-ACL remediation, and worker-auth rollout remain open.
