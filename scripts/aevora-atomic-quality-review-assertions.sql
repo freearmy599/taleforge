@@ -6,7 +6,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000001','passed',92,
     '{"ai_review":{"decision":"passed"}}'::jsonb,'gemini-test','quality-v1',
     'quality_check','{"quality_version":"quality-v1"}'::jsonb
-  );
+  , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001'));
   IF result->>'committed' <> 'true' OR result->>'generation_status' <> 'quality_check' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: successful review was not atomically committed: %', result;
   END IF;
@@ -21,7 +21,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000002','passed',92,
     '{"ai_review":{"decision":"passed"}}'::jsonb,'gemini-test','quality-v1',
     'quality_check','{"quality_version":"quality-v1"}'::jsonb
-  );
+  , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000002'));
   IF result->>'committed' <> 'false' OR result->>'reason' <> 'output_state_changed' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: published output was not fenced: %', result;
   END IF;
@@ -34,7 +34,7 @@ BEGIN
       '00000000-0000-0000-0000-000000000003','needs_revision',0,
       '{"hard_validation":{"passed":false}}'::jsonb,'gemini-test','force-write-failure',
       'needs_revision','{"quality_version":"quality-v1"}'::jsonb
-    );
+    , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000003'));
     RAISE EXCEPTION 'ASSERTION_FAILED: fixture failure trigger did not raise';
   EXCEPTION WHEN OTHERS THEN
     IF SQLERRM LIKE 'ASSERTION_FAILED:%' THEN RAISE; END IF;
@@ -51,7 +51,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000001','needs_revision',70,
     '{"retry":"second-attempt"}'::jsonb,'gemini-test','quality-v2',
     'needs_revision','{"quality_version":"quality-v2"}'::jsonb
-  );
+  , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001'));
   IF result->>'committed' <> 'true' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: retry/upsert did not commit: %', result;
   END IF;
@@ -65,7 +65,7 @@ BEGIN
       '00000000-0000-0000-0000-000000000001',NULL,70,
       '{"invalid":true}'::jsonb,'gemini-test','quality-v2',
       'needs_revision','{"quality_version":"quality-v2"}'::jsonb
-    );
+    , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001'));
     RAISE EXCEPTION 'ASSERTION_FAILED: null review status was accepted';
   EXCEPTION WHEN SQLSTATE '22023' THEN
     NULL;
@@ -76,13 +76,13 @@ BEGIN
       '00000000-0000-0000-0000-000000000001','passed',101,
       '{"invalid":true}'::jsonb,'gemini-test','quality-v2',
       'quality_check','{"quality_version":"quality-v2"}'::jsonb
-    );
+    , (SELECT updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001'));
     RAISE EXCEPTION 'ASSERTION_FAILED: out-of-range score was accepted';
   EXCEPTION WHEN SQLSTATE '22023' THEN
     NULL;
   END;
 
-  IF has_function_privilege('anon','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb)','EXECUTE')
+  IF has_function_privilege('anon','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb,timestamptz)','EXECUTE')
      OR has_function_privilege('authenticated','public.aevora_commit_quality_review(uuid,text,numeric,jsonb,text,text,text,jsonb)','EXECUTE') THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: browser role retains RPC EXECUTE';
   END IF;
