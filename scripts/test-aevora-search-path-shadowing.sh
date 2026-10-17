@@ -15,7 +15,7 @@ set -euo pipefail
 # Generic PostgreSQL behavior rehearsal only. It does not connect to Supabase
 # and does not load or execute any live Aevora function definition.
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
-CREATE ROLE service_role NOLOGIN;
+CREATE ROLE aevora_shadow_test_role NOLOGIN;
 CREATE TABLE public.series (marker text NOT NULL);
 INSERT INTO public.series(marker) VALUES ('public-row');
 
@@ -28,9 +28,9 @@ AS $function$
   SELECT marker FROM series LIMIT 1
 $function$;
 ALTER FUNCTION public.aevora_test_unqualified_lookup() OWNER TO postgres;
-GRANT EXECUTE ON FUNCTION public.aevora_test_unqualified_lookup() TO service_role;
+GRANT EXECUTE ON FUNCTION public.aevora_test_unqualified_lookup() TO aevora_shadow_test_role;
 
-SET ROLE service_role;
+SET ROLE aevora_shadow_test_role;
 CREATE TEMP TABLE series (marker text NOT NULL);
 INSERT INTO pg_temp.series(marker) VALUES ('temporary-shadow');
 DO $assert$
@@ -51,9 +51,9 @@ AS $function$
   SELECT marker FROM public.series LIMIT 1
 $function$;
 ALTER FUNCTION public.aevora_test_qualified_lookup() OWNER TO postgres;
-GRANT EXECUTE ON FUNCTION public.aevora_test_qualified_lookup() TO service_role;
+GRANT EXECUTE ON FUNCTION public.aevora_test_qualified_lookup() TO aevora_shadow_test_role;
 
-SET ROLE service_role;
+SET ROLE aevora_shadow_test_role;
 DO $assert$
 BEGIN
   IF public.aevora_test_qualified_lookup() <> 'public-row' THEN
