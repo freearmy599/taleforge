@@ -105,6 +105,18 @@ test("every privileged Edge worker authenticates before parsing input or creatin
   }
 });
 
+test("every shared-key privileged worker disables gateway JWT parsing only alongside handler-level authentication", async () => {
+  const config = await source("supabase/config.toml");
+  for (const name of workers) {
+    const section = config.match(
+      new RegExp("\\\\[functions\\\\." + name + "\\\\]\\\\s*([\\\\s\\\\S]*?)(?=\\\\n\\\\[functions\\\\.|$)"),
+    );
+    assert.ok(section, name + " must have an explicit gateway configuration");
+    assert.match(section[1], /^\\s*verify_jwt\\s*=\\s*false\\s*$/m,
+      name + " must accept the configured non-JWT secret key only because its handler enforces the shared key guard");
+  }
+});
+
 test("the shared internal API-key allowlist fails closed", async () => {
   const s = await source("supabase/functions/_shared/internal-api-key.ts");
   assert.ok(s.includes("if (!presentedApiKey) return false"));
