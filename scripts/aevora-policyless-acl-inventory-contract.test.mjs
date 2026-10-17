@@ -64,11 +64,11 @@ test("all 28 provisional server-only relations are covered by branch ACL-lock ca
       || providerStateLock.includes("public." + relation);
     assert.ok(covered, "server-only relation lacks a tracked ACL-lock candidate: " + relation);
   }
-  assert.match(internalLock, /REVOKE %s \\(%s\\)/i,
+  assert.match(internalLock, /REVOKE %s \(%s\)/i,
     "internal lock must remove independent column-level grants");
-  assert.match(metricsOutboxLock, /REVOKE ALL PRIVILEGES \\(%s\\)/i,
+  assert.match(metricsOutboxLock, /REVOKE ALL PRIVILEGES \(%s\)/i,
     "metrics/outbox lock must remove independent column-level grants");
-  assert.match(providerStateLock, /REVOKE ALL PRIVILEGES \\(%s\\)/i,
+  assert.match(providerStateLock, /REVOKE ALL PRIVILEGES \(%s\)/i,
     "provider-state lock must remove independent column-level grants");
 });
 
