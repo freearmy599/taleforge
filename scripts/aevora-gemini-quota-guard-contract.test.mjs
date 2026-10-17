@@ -346,3 +346,30 @@ test("generation-orchestrator fails closed on malformed Gemini cooldown timestam
   assert.match(helper, /if\(data\.cooldown_until && \(!until \|\| !Number\.isFinite\(until\.getTime\(\)\)\)\)\s*\{\s*return \{active:true/,
     "malformed cooldown timestamps must actively block orchestration");
 });
+
+test("every direct Gemini caller explicitly blocks a missing provider-state row", async () => {
+  const cases = [
+    ["../supabase/functions/generate-chapter/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/revise-chapter/index.ts", "error", "data"],
+    ["../supabase/functions/continuity-review/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/originality-review/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/safety-review/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/character-continuity/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/world-continuity/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/arc-planner/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/blueprint-planner/index.ts", "providerStateError", "providerState"],
+    ["../supabase/functions/story-dna-planner/index.ts", "providerStateError", "providerState"],
+  ];
+
+  for (const [path, errorName, rowName] of cases) {
+    const source = await readFile(new URL(path, import.meta.url), "utf8");
+    const stateRead = source.indexOf('.from("taleforge_ai_provider_state")');
+    assert.ok(stateRead >= 0, `${path}: provider-state query must exist`);
+    const request = source.indexOf("generativelanguage.googleapis.com", stateRead);
+    assert.ok(request > stateRead, `${path}: direct Gemini request must follow provider-state query`);
+    const guard = source.slice(stateRead, request);
+    const missingRowPattern = new RegExp(`(?:${errorName}\\s*\\|\\|\\s*!\\s*${rowName}|!\\s*${rowName}\\s*\\|\\|\\s*${errorName})`);
+    assert.match(guard, missingRowPattern,
+      `${path}: missing provider-state rows must fail closed, not be interpreted as no cooldown`);
+  }
+});
