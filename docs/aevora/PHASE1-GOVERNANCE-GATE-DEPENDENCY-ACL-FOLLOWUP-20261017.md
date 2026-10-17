@@ -142,3 +142,16 @@ The rehearsal contrasts two test functions:
 - A SECURITY DEFINER function with `SET search_path = pg_catalog, public, pg_temp` and explicit `FROM public.series`, expected to read the public table instead.
 
 A static contract test checks the safety guard, expected assertions, and CI wiring. The initial rehearsal exposed a test-environment collision because an earlier disposable test had already created the generic `service_role`; the rehearsal was corrected to use its own `aevora_shadow_test_role`. Both the static contract suite and disposable PostgreSQL rehearsal then passed in [workflow 39042997008](https://github.com/freearmy599/taleforge/actions/runs/39042997008). This is a **generic PostgreSQL behavior test**, not execution of the live Aevora routines and not proof that any production function is exploitable. No production database was touched.
+
+### Expanded exact-path candidate review — continuity and memory routines
+
+A second read-only pass over live definitions confirmed two additional functions with real unqualified relation references under exact `search_path=public`:
+
+- **`taleforge_consolidate_narrative_memory(uuid, integer)`** reads unqualified `chapters`, `taleforge_continuity_reconciliation_runs`, `chapter_continuity_snapshots`, `story_continuity_state`, `character_continuity_events`, `world_continuity_events`, and `taleforge_narrative_thread_events`; it inserts/upserts `taleforge_narrative_memory_consolidations`. It is SECURITY DEFINER, has `search_path=public`, and EXECUTE is available to `service_role` but not `anon` or `authenticated`. No direct caller was found by the bounded search of live public routine bodies; Edge Function, scheduler, and external callers remain unverified.
+- **`taleforge_verify_plot_thread_progression()`** reads unqualified `taleforge_narrative_thread_progression`. It is SECURITY DEFINER with `search_path=public`, executable by `service_role` and not by `anon` or `authenticated`. No direct caller was found in the bounded live public routine-body search.
+
+Two nearby functions were deliberately **not** counted as table-shadowing candidates after inspecting their full definitions:
+- `taleforge_reconcile_continuity(uuid, integer)` schema-qualifies its table references with `public.`.
+- `taleforge_refresh_narrative_depth_expansion(uuid)` schema-qualifies its persistent table references; its `FROM canonical` / `FROM jsonb_array_elements` regex matches are CTE/function syntax, not unqualified persistent relations.
+
+This is a targeted source review, not a complete parser or complete caller graph. It does not establish exploitability. The generic disposable PostgreSQL rehearsal is now green in CI, which validates the mechanism but does not prove that these particular live functions can be exploited. Continue with narrow function-by-function rehearsal and caller tracing; do not change production function definitions or trigger state from this finding alone.
