@@ -241,3 +241,29 @@ test("publication authorization stop returns an explicit non-success lock respon
   assert.ok(chapterAccess > statementEnd,
     "the locked response must occur before any chapter-table access");
 });
+
+
+test("release-publisher is the only Edge Function allowed to mutate chapter rows", async () => {
+  const root = new URL("../supabase/functions/", import.meta.url);
+  const files = [];
+  async function collect(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
+      if (entry.isDirectory()) await collect(child);
+      else if (entry.isFile() && entry.name.endsWith(".ts")) files.push(child);
+    }
+  }
+  await collect(root);
+
+  const mutators = [];
+  const chapterMutation = /\.from\(["'](?:public\.)?chapters["']\)\s*\.(?:insert|update|upsert|delete)\s*\(/g;
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    if (chapterMutation.test(source)) mutators.push(file.pathname.replaceAll("\\", "/"));
+    chapterMutation.lastIndex = 0;
+  }
+  assert.equal(mutators.length, 1,
+    `expected exactly one direct chapter-row mutation path, found: ${mutators.join(", ")}`);
+  assert.match(mutators[0], /supabase\/functions\/release-publisher\/index\.ts$/,
+    "chapter insert/update/upsert/delete operations must remain behind release-publisher's authorization and status checks");
+});
