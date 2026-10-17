@@ -128,3 +128,31 @@ test("deterministic short-chapter rejection remains available without a Gemini c
   assert.match(deterministicRegion, /aevora_commit_quality_review/,
     "deterministic failure outcomes must still be persisted through the atomic review RPC");
 });
+
+
+test("review orchestrator fails closed on unavailable, malformed, or active Gemini provider state", async () => {
+  const reviewOrchestrator = await readFile(
+    new URL("../supabase/functions/review-orchestrator/index.ts", import.meta.url),
+    "utf8",
+  );
+  const providerRead = reviewOrchestrator.indexOf('.from("taleforge_ai_provider_state")');
+  const bodyParse = reviewOrchestrator.indexOf("let body: unknown;");
+  const firstReviewCall = reviewOrchestrator.indexOf("await callFunction(", bodyParse);
+  assert.ok(providerRead >= 0 && bodyParse > providerRead && firstReviewCall > bodyParse,
+    "provider state must be verified before parsing work that can reach review calls");
+  const guard = reviewOrchestrator.slice(providerRead, bodyParse);
+  assert.match(guard, /providerStateError\s*\|\|\s*!providerState/,
+    "provider-state lookup errors and missing rows must fail closed");
+  assert.match(guard, /Number\.isSafeInteger\(providerState\.consecutive_throttle_count\)/,
+    "malformed throttle counters must fail closed");
+  assert.match(guard, /!Number\.isFinite\(new Date\(providerState\.cooldown_until\)\.getTime\(\)\)/,
+    "malformed cooldown timestamps must fail closed");
+  assert.match(guard, /reason:\s*"provider_state_unavailable"/,
+    "invalid provider state must return an explicit fail-closed reason");
+  assert.match(guard, /reason:\s*"provider_cooldown"/,
+    "active cooldown must return an explicit blocked reason");
+  assert.match(guard, /\}, 503\)/,
+    "unavailable or malformed provider state must return HTTP 503");
+  assert.match(guard, /\}, 429\)/,
+    "active cooldown must return HTTP 429");
+});
