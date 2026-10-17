@@ -417,3 +417,22 @@ test("generate-chapter quality-review writes are fenced against concurrent outpu
   assert.doesNotMatch(aiRegion, /\.neq\("generation_status","published"\)/,
     "AI quality review must not overwrite a concurrently finalized non-published state");
 });
+
+test("generation cooldown guard is scoped to generation so deterministic quality validation remains available", async () => {
+  const source = await readFile(new URL("../supabase/functions/generate-chapter/index.ts", import.meta.url), "utf8");
+  const generationBranch = source.indexOf("if(blueprintId&&!outputId){");
+  const generationGuard = source.indexOf('const {data:providerState,error:providerStateError}', generationBranch);
+  const generationModelCall = source.indexOf("content=await gemini(gkey,n===1?prompt", generationBranch);
+  const qualityBranch = source.indexOf("if(!outputId)return reply");
+  const deterministicValidation = source.indexOf("if(issues.length)", qualityBranch);
+  const qualityGuard = source.indexOf("const {data:reviewProviderState,error:reviewProviderStateError}", qualityBranch);
+  const qualityModelCall = source.indexOf("ai=parseJson(await gemini(gkey,reviewPrompt,true))", qualityGuard);
+  assert.ok(generationBranch >= 0 && generationGuard > generationBranch && generationModelCall > generationGuard,
+    "generation requests must check provider state before any chapter-generation model call");
+  assert.ok(qualityBranch > generationModelCall,
+    "generation-only provider guard must not run for output quality-review requests");
+  assert.ok(deterministicValidation > qualityBranch && qualityGuard > deterministicValidation && qualityModelCall > qualityGuard,
+    "deterministic quality validation must remain available during cooldown while AI review stays guarded");
+  assert.equal(source.indexOf('const {data:providerState,error:providerStateError}'), generationGuard,
+    "there must not be a global generation provider guard before request-type dispatch");
+});
