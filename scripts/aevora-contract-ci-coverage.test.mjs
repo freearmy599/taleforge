@@ -21,8 +21,8 @@ const workflowPath = resolve(root, ".github/workflows/aevora-edge-validation.yml
   const workflow = await readFile(workflowPath, "utf8");
 
   assert.ok(suites.length > 0, "expected Aevora test/contract modules to exist");
-  const missing = suites.filter((name) => !workflow.includes(name));
-  assert.deepEqual(missing, [], "every contract suite must be wired into the workflow");
+  const missing = suites.filter((name) => !workflow.includes(`node --test scripts/${name}`));
+  assert.deepEqual(missing, [], "every contract suite must be invoked with node --test in the workflow");
   assert.match(workflow, /Run Aevora contract CI coverage guard[\s\S]*?node --test scripts\/aevora-contract-ci-coverage\.test\.mjs/,
     "the coverage guard itself must run in CI");
 });
