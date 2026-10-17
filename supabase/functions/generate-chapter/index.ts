@@ -183,7 +183,7 @@ if(reviewError){
  console.error("[generate-chapter] deterministic quality-review write failed; internal diagnostics were withheld.");
  return reply({success:false,mode:"quality-review",retryable:true,reason:"review_persistence_failed",error:"The deterministic review could not be saved; output state was not advanced."},503);
 }
-const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).neq("generation_status","published").select("id").maybeSingle();
+const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:"needs_revision",quality_score:0,quality_report:{hard_validation:hard,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).in("generation_status",qualityReviewEligibleStatuses).select("id").maybeSingle();
 if(statusError||!statusRow){
  console.error("[generate-chapter] deterministic review status update failed or was fenced.");
  return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
@@ -273,7 +273,7 @@ generation_output_id:outputId,review_type:"quality",status:decision,score:Number
 findings:{hard_validation:hard,ai_review:ai,semantic_plan_alignment:ai?.semantic_plan_alignment||null,quality_version:QUALITY_VERSION},reviewer_model:MODEL,reviewer_version:QUALITY_VERSION
 },{onConflict:"generation_output_id,review_type"}).select().single();
 if(re)throw new Error(`Could not save quality review: ${re.message}`);
-const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).neq("generation_status","published").select("id").maybeSingle();
+const {data:statusRow,error:statusError}=await db.from("chapter_generation_outputs").update({generation_status:status,quality_score:Number.isFinite(score)?score:null,quality_report:{hard_validation:hard,ai_review:ai,quality_version:QUALITY_VERSION},updated_at:new Date().toISOString()}).eq("id",outputId).in("generation_status",qualityReviewEligibleStatuses).select("id").maybeSingle();
 if(statusError||!statusRow){
  console.error("[generate-chapter] AI quality-review status update failed or was fenced.");
  return reply({success:false,mode:"quality-review",retryable:!statusError,reason:statusError?"review_persistence_failed":"output_state_changed",review_id:review?.id||null,error:"The output status could not be safely advanced; published or concurrently changed output state was preserved."},statusError?503:409);
