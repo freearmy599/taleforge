@@ -1,7 +1,11 @@
 \set ON_ERROR_STOP on
 DO $assert$
-DECLARE result jsonb;
+DECLARE
+  result jsonb;
+  stale_updated_at timestamptz;
+
 BEGIN
+  SELECT updated_at INTO stale_updated_at FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001';
   result := public.aevora_commit_quality_review(
     '00000000-0000-0000-0000-000000000001','passed',92,
     '{"ai_review":{"decision":"passed"}}'::jsonb,'gemini-test','quality-v1',
@@ -15,6 +19,18 @@ BEGIN
   END IF;
   IF (SELECT generation_status FROM public.chapter_generation_outputs WHERE id='00000000-0000-0000-0000-000000000001') <> 'quality_check' THEN
     RAISE EXCEPTION 'ASSERTION_FAILED: output status was not advanced';
+  END IF;
+
+  -- A second reviewer holding the pre-commit timestamp must be fenced even
+  -- though the new status is still ordinarily reviewable.
+  result := public.aevora_commit_quality_review(
+    '00000000-0000-0000-0000-000000000001','needs_revision',30,
+    '{"stale":"must-not-overwrite"}'::jsonb,'gemini-test','stale-review',
+    'needs_revision','{"quality_version":"stale"}'::jsonb,
+    stale_updated_at
+  );
+  IF result->>'committed' <> 'false' OR result->>'reason' <> 'output_state_changed' THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: stale reviewer was not fenced: %', result;
   END IF;
 
   result := public.aevora_commit_quality_review(
