@@ -57,6 +57,9 @@ verify_jwt = false
 [functions.world-continuity]
 verify_jwt = false
 
+[functions.autonomous-series-creation-runner]
+verify_jwt = false
+
 [functions.aevora-control-plane-audit]
 verify_jwt = false
 
