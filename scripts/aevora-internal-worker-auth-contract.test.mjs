@@ -58,7 +58,7 @@ test("every known secret-key cron target has guarded source and matching gateway
       new RegExp("\\[functions\\." + target + "\\]\\s*([\\s\\S]*?)(?=\\n\\[functions\\.|$)"),
     );
     assert.ok(section, target + " must have an explicit gateway configuration");
-    assert.match(section[1], /^\\s*verify_jwt\\s*=\\s*false\\s*$/m,
+    assert.match(section[1], /^\s*verify_jwt\s*=\s*false\s*$/m,
       target + " must disable gateway JWT parsing only because handler auth is mandatory");
     if (target !== "autonomous-series-creation-runner") {
       assert.ok(internalWorkers.has(target), target + " must remain in the shared worker contract inventory");
