@@ -577,3 +577,14 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [ ] Next: inspect the deployed/branch definition and effective grants of taleforge_ceo_execution_gate, then define one commit-boundary contract for manual and automated publication with trusted actor, exact output/series/chapter scope, approval expiry/revocation, audit evidence, and race-safe enforcement.
 - [ ] Add isolated integration tests proving missing, expired, revoked, wrong-output, wrong-series, and concurrent/replayed approvals cannot publish. Keep both manual and automated paths fail-closed until the contract is approved and enforced; do not create or deploy a migration before the authorization model is agreed.
 - **Safety boundary:** branch source and migration-file inspection plus documentation only. No production function, migration, ACL, cron, schedule, chapter, or publication state changed; no billable Supabase branch created.
+
+
+### CEO execution-gate source and ACL provenance trace — 2026-10-17
+
+- [x] Inspected the branch publisher call site and the governance migrations previously identified. The publisher fails closed if `taleforge_ceo_execution_gate(p_action_scope := 'publication')` errors or does not return explicit authorization, but this response does not establish approval of a specific chapter by a trusted human.
+- [x] Enumerated all 58 tracked SQL migrations on the current hardening branch. No migration filename identifies a CEO execution-gate or per-publication human-approval implementation; the inspected governance and internal-RPC ACL migrations do not define the exact gate.
+- [x] Reviewed the branch's read-only publication schema provenance query. It inventories routine identity, owner, SECURITY DEFINER, routine settings, ACL, relations, triggers, and policies, but the query's routine-name filter does not explicitly include `taleforge_ceo_execution_gate`. This is a query-coverage gap to correct before the next authorized catalog audit.
+- [ ] Extend the read-only catalog inventory to include the exact gate name and effective execute privileges, plus overload/signature, owner, definition, SECURITY DEFINER, `search_path`, and dependencies. Do not infer missing live ACLs from tracked migrations.
+- [ ] If the authoritative function definition is absent from tracked source, record that as a migration/provenance gap and obtain the authorized source artifact. Do not recreate the function by guessing.
+- **Safety boundary:** branch source and migration inventory only. No production function, migration, ACL, cron, schedule, chapter, or publication state changed; no billable Supabase branch created.
+- **Gate unchanged:** manual and automated publication authorization remain unresolved; automated publishing stays **NO-GO**.
