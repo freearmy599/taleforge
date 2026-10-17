@@ -415,3 +415,13 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [ ] Latest handler/config/test CI must complete successfully.
 - [ ] Production cron command must be updated from secret-in-Authorization/no-apikey to secret-in-apikey only, in a coordinated, owner-approved rollout. This cannot be inferred from branch tests and has not been done.
 - **Safety boundary:** no cron command, function, secret, schedule, series, chapter, or production database state was changed. Do not run actual autonomous creation as a smoke test. Production autonomous-series creation and automated publication remain NO-GO.
+
+
+### Cross-cron secret-key header drift — 2026-10-17
+
+- [x] Extended read-only metadata inspection across all active `net.http_post` cron jobs without returning raw command text, headers, request/response bodies, or secret values.
+- [x] Seven jobs—generation (3), release (4), blueprint (5), Story DNA (6), arc (7), publication sync (9), and semantic continuity (10)—reference the same non-JWT `sb_secret_...` credential in both `apikey` and `Authorization`. Their live targets report `verify_jwt=true` and their inspected deployed source lacks the branch's internal-key guard. Supabase documents that new secret keys should be sent in `apikey`, not `Authorization: Bearer`; gateway rejection is a high-confidence risk, but no live HTTP response was inspected to claim a specific observed failure.
+- [x] Job 13 autonomous-series creation has the same credential in `Authorization` and no `apikey` header reference; the branch handler/config/test correction and caller runbook are tracked above.
+- [x] Added [the cross-cron header-drift report](./PHASE1-CRON-SECRET-KEY-HEADER-DRIFT-20261017.md), including exact job/target mapping and safe rollout prerequisites.
+- [ ] Update live cron headers only in an explicitly approved coordinated rollout after deploying the guarded handlers and matching `verify_jwt=false` config. Do not disable gateway verification on the current unguarded live versions.
+- **Safety boundary:** no live cron, Edge Function, key, configuration, schedule, series, chapter, or production data was changed.
