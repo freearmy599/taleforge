@@ -197,3 +197,22 @@ test("publisher with no persisted release schedule fails closed before chapter p
   assert.ok(chapterLookup > noScheduleStop,
     "the schedule-less path must stop before chapter lookup, which precedes all chapter publication paths");
 });
+
+
+test("scheduler authorization stop precedes every per-schedule side effect", () => {
+  const loopStart = source.indexOf("for(const schedule of schedules){");
+  const guardStart = source.indexOf('if(!dryRun && schedule.auto_publish){', loopStart);
+  const guardEnd = source.indexOf("const leaseToken=crypto.randomUUID();", guardStart);
+  assert.ok(loopStart >= 0 && guardStart > loopStart && guardEnd > guardStart,
+    "the authorization stop must be inside the schedule loop and before lease-token creation");
+
+  const beforeGuard = source.slice(loopStart, guardStart);
+  assert.doesNotMatch(beforeGuard, /\.rpc\s*\(/,
+    "no database RPC may run for a schedule before the authorization stop");
+  assert.doesNotMatch(beforeGuard, /\.from\s*\([^)]*\)\s*\.(?:insert|update|upsert|delete)\s*\(/,
+    "no table mutation may run for a schedule before the authorization stop");
+  assert.doesNotMatch(beforeGuard, /fetch\s*\(\s*url\s*\+\s*["']\/functions\/v1\/release-publisher/,
+    "the publisher must not be called before the authorization stop");
+  assert.doesNotMatch(beforeGuard, /crypto\.randomUUID\s*\(/,
+    "a lease token must not be created before the authorization stop");
+});
