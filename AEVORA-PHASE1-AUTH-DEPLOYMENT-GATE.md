@@ -64,7 +64,7 @@ This section records newer branch/production findings. It does not authorize dep
 
 ### Additional live chapter-write ACL finding — 2026-10-17
 
-A read-only production catalog query confirmed that `public.chapters` currently grants both `anon` and `authenticated` the table privileges `INSERT`, `UPDATE`, and `DELETE`, alongside public reading and PostgreSQL 17 maintenance privileges. The table also has column-level write grants. RLS is not a substitute for missing table/column grants, and a permissive policy can make those grants effective.
+A read-only production catalog query confirmed that `public.chapters` currently grants both `anon` and `authenticated` the table privileges `INSERT`, `UPDATE`, and `DELETE`, alongside public reading and PostgreSQL 17 maintenance privileges. The separate catalog query found no explicit per-column ACL entries on `chapters`; the table-level write grants alone are sufficient to permit those operations wherever RLS policies allow them. The candidate also revokes explicit column-level INSERT/UPDATE grants defensively, in case such grants exist in another deployment state.
 
 A branch-only candidate migration was added at `supabase/migrations/20261017130000_revoke_client_chapter_writes.sql`. It:
 - revokes table-level INSERT/UPDATE/DELETE from PUBLIC, anon, and authenticated;
