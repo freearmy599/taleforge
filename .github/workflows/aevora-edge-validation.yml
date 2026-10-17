@@ -212,6 +212,15 @@ jobs:
           AEVORA_DISPOSABLE_MIGRATION_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
         run: bash scripts/test-aevora-readiness-migration.sh
 
+      - name: Rehearse scheduler lease migrations on disposable PostgreSQL
+        env:
+          ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aevora_lease_test
+          AEVORA_DISPOSABLE_LEASE_REHEARSAL: I_UNDERSTAND_THIS_IS_DISPOSABLE
+        run: |
+          psql "$ADMIN_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE aevora_lease_test"
+          bash scripts/test-aevora-lease-migrations.sh
+
       - name: Rehearse readiness against concurrent series completion
         env:
           ADMIN_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
