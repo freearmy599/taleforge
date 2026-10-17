@@ -4,17 +4,15 @@ DECLARE
   client_role text;
   privilege_name text;
 BEGIN
-  IF NOT has_table_privilege('anon', 'public.taleforge_system_health_snapshot', 'SELECT')
-     AND has_table_privilege('authenticated', 'public.taleforge_system_health_snapshot', 'SELECT') THEN
-    RAISE EXCEPTION 'ASSERTION_FAILED: unexpected asymmetric snapshot read grant';
-  END IF;
-
   FOREACH client_role IN ARRAY ARRAY['anon', 'authenticated']
   LOOP
     FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','MAINTAIN','TRUNCATE','REFERENCES','TRIGGER']
     LOOP
       IF has_table_privilege(client_role, 'public.taleforge_system_health_snapshot', privilege_name) THEN
         RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on raw health snapshot', client_role, privilege_name;
+      END IF;
+      IF has_table_privilege(client_role, 'public.taleforge_system_health', privilege_name) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on sensitive system health', client_role, privilege_name;
       END IF;
     END LOOP;
 
@@ -23,21 +21,28 @@ BEGIN
       IF has_table_privilege(client_role, 'public.taleforge_system_registry', privilege_name) THEN
         RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on system registry', client_role, privilege_name;
       END IF;
-      IF has_table_privilege(client_role, 'public.taleforge_system_health', privilege_name) THEN
-        RAISE EXCEPTION 'ASSERTION_FAILED: % retains % on system health', client_role, privilege_name;
-      END IF;
     END LOOP;
 
-    IF NOT has_table_privilege(client_role, 'public.taleforge_system_registry', 'SELECT')
-       OR NOT has_table_privilege(client_role, 'public.taleforge_system_health', 'SELECT') THEN
-      RAISE EXCEPTION 'ASSERTION_FAILED: intended public SELECT grant was removed for %', client_role;
+    IF NOT has_table_privilege(client_role, 'public.taleforge_system_registry', 'SELECT') THEN
+      RAISE EXCEPTION 'ASSERTION_FAILED: intended public registry SELECT grant was removed for %', client_role;
     END IF;
 
-    IF has_column_privilege(client_role, 'public.taleforge_system_health', 'evidence', 'UPDATE')
-       OR has_column_privilege(client_role, 'public.taleforge_system_health', 'evidence', 'REFERENCES') THEN
-      RAISE EXCEPTION 'ASSERTION_FAILED: % retains column-level write/reference grant on system health evidence', client_role;
-    END IF;
+    FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','REFERENCES']
+    LOOP
+      IF has_column_privilege(client_role, 'public.taleforge_system_health', 'evidence', privilege_name) THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: % retains column-level % grant on system health evidence', client_role, privilege_name;
+      END IF;
+    END LOOP;
   END LOOP;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_policies p
+    WHERE p.schemaname = 'public'
+      AND p.tablename = 'taleforge_system_health'
+  ) THEN
+    RAISE EXCEPTION 'ASSERTION_FAILED: sensitive system health still has client-access policies';
+  END IF;
 
   FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE']
   LOOP
@@ -56,4 +61,4 @@ BEGIN
   END IF;
 END
 $assert$;
-SELECT 'system-health snapshot and write-ACL assertions passed' AS result;
+SELECT 'system-health snapshot and sensitive-read ACL assertions passed' AS result;
