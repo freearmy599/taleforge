@@ -20,4 +20,5 @@ test("quality review persistence uses one atomic database commit for review row 
   assert.match(migration, /REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC, anon, authenticated/, "browser roles must not execute the internal RPC");
   assert.match(migration, /TO service_role/, "trusted server role must retain execution");
   assert.match(migration, /p_expected_updated_at timestamptz/, "the RPC must require the caller expected output timestamp");
+  assert.match(migration, /quality_report = COALESCE\\(output\\.quality_report,[\\s\\S]*?p_quality_report/, "review persistence must preserve canonical generation-context metadata");
 });
