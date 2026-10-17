@@ -205,7 +205,7 @@ test("every endpoint with handler-level secret authentication disables gateway J
     assert.ok(section, name + " must have an explicit Edge gateway configuration");
     assert.match(
       section[1],
-      /^\\s*verify_jwt\\s*=\\s*false\\s*$/m,
+      /^\s*verify_jwt\s*=\s*false\s*$/m,
       name + " must rely on its explicit handler authentication, not gateway JWT parsing of a new secret API key",
     );
   }
