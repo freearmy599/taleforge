@@ -12,7 +12,8 @@ CREATE OR REPLACE FUNCTION public.aevora_commit_quality_review(
   p_reviewer_model text,
   p_reviewer_version text,
   p_generation_status text,
-  p_quality_report jsonb
+  p_quality_report jsonb,
+  p_expected_updated_at timestamptz
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -36,7 +37,8 @@ BEGIN
      OR p_reviewer_version IS NULL
      OR p_score IS NULL
      OR p_score < 0
-     OR p_score > 100 THEN
+     OR p_score > 100
+     OR p_expected_updated_at IS NULL THEN
     RAISE EXCEPTION 'invalid quality-review commit arguments'
       USING ERRCODE = '22023';
   END IF;
@@ -48,6 +50,7 @@ BEGIN
          updated_at = pg_catalog.now()
    WHERE output.id = p_output_id
      AND output.generation_status IN ('generated', 'needs_revision', 'quality_check')
+     AND output.updated_at = p_expected_updated_at
   RETURNING output.id INTO changed_output_id;
 
   IF changed_output_id IS NULL THEN
@@ -94,10 +97,10 @@ END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.aevora_commit_quality_review(
-  uuid, text, numeric, jsonb, text, text, text, jsonb
+  uuid, text, numeric, jsonb, text, text, text, jsonb, timestamptz
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.aevora_commit_quality_review(
-  uuid, text, numeric, jsonb, text, text, text, jsonb
+  uuid, text, numeric, jsonb, text, text, text, jsonb, timestamptz
 ) TO service_role;
 
 COMMIT;
