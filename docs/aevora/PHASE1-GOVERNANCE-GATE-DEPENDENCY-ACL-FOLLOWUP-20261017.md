@@ -155,3 +155,19 @@ Two nearby functions were deliberately **not** counted as table-shadowing candid
 - `taleforge_refresh_narrative_depth_expansion(uuid)` schema-qualifies its persistent table references; its `FROM canonical` / `FROM jsonb_array_elements` regex matches are CTE/function syntax, not unqualified persistent relations.
 
 This is a targeted source review, not a complete parser or complete caller graph. It does not establish exploitability. The generic disposable PostgreSQL rehearsal is now green in CI, which validates the mechanism but does not prove that these particular live functions can be exploited. Continue with narrow function-by-function rehearsal and caller tracing; do not change production function definitions or trigger state from this finding alone.
+
+### Confirmed unqualified write target in memory-health wrapper
+
+A catalog-backed relation-name scan (matching extracted SQL identifiers against actual public relations to reduce variable/CTE false positives) found one additional confirmed unqualified persistent relation reference: `taleforge_refresh_narrative_memory_consolidation_health()` inserts into `taleforge_system_checks` without schema qualification while running as SECURITY DEFINER with `search_path=public`. Its verification call is explicitly `public.taleforge_verify_narrative_memory_consolidation()`; the subsequent `taleforge_refresh_system_health()` call is unqualified and should be separately reviewed for function-resolution/caller semantics. EXECUTE is service_role-only among the inspected client roles.
+
+The same relation-name scan's apparent `INTO profiles` match in `taleforge_verify_narrative_culture()` was reviewed and rejected as a false positive: `profiles` is a PL/pgSQL variable, while persistent relations in that function are schema-qualified. This demonstrates why the regex output is only a candidate generator and why full function definitions are required before labeling a finding.
+
+Current confirmed unqualified persistent-relation candidates from the inspected definitions are:
+1. `taleforge_refresh_long_term_narrative_architecture(uuid)` — publication-adjacent trigger path.
+2. `taleforge_reassess_long_term_narrative_architecture(uuid)`.
+3. `taleforge_consolidate_narrative_memory(uuid, integer)`.
+4. `taleforge_verify_narrative_memory_consolidation()`.
+5. `taleforge_verify_plot_thread_progression()`.
+6. `taleforge_refresh_narrative_memory_consolidation_health()`.
+
+This is not yet a claim that the six functions are exploitable, nor an exhaustive audit of all 55 routines. The next priority is to inspect all six for temp-object interaction in a controlled rehearsal, trace their actual callers, and build a narrow tested patch with schema-qualified relations (or a carefully chosen fixed search path including `pg_temp` last). Production definitions remain unchanged.
