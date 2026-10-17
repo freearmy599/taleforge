@@ -199,3 +199,28 @@ test("publisher requires a trusted internal API key before creating its service-
   assert.match(publisher, /Caller must authenticate with a configured server-side Supabase API key/);
   assert.match(publisher, /\}, 401\);/);
 });
+
+test("automated-publication stop precedes every publisher mutation and synchronization call", () => {
+  const handlerStart = publisher.indexOf("Deno.serve(");
+  const guardIndex = publisher.indexOf("PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED", handlerStart);
+  assert.ok(handlerStart >= 0 && guardIndex > handlerStart,
+    "the authorization stop must be inside the request handler");
+
+  // Ignore helper definitions outside the request handler: these operations
+  // execute only when their call sites are reached.
+  const handler = publisher.slice(handlerStart);
+  const guardOffset = guardIndex - handlerStart;
+  const mutationPatterns = [
+    /\.from\(["']series["']\)\s*\.update\s*\(/g,
+    /\.from\(["']chapter_generation_outputs["']\)\s*\.update\s*\(/g,
+    /\.from\(["']chapter_blueprints["']\)\s*\.update\s*\(/g,
+    /\.from\(["']chapters["']\)\s*\.insert\s*\(/g,
+    /ensureCanonSyncOutboxEvent\(supabase,/g,
+  ];
+  for (const pattern of mutationPatterns) {
+    for (const match of handler.matchAll(pattern)) {
+      assert.ok(match.index > guardOffset,
+        `publication mutation/synchronization call ${pattern} must remain after the automated-publication stop`);
+    }
+  }
+});
