@@ -41,7 +41,7 @@ test("caller map contains each of the 39 audited relations exactly as a relation
 
 test("caller map preserves uncertainty for relations without a direct literal caller", () => {
   assert.match(map, /No direct literal call found/);
-  assert.match(map, /absence of a direct \.from\("table"\) match is \*\*unresolved\*\*/);
+  assert.match(map, /absence of a direct `\.from\("table"\)` match is \*\*unresolved\*\*/);
   assert.match(map, /RPC implementations, SQL functions\/triggers, dynamic table names/);
 });
 
