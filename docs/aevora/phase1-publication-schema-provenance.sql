@@ -527,3 +527,43 @@ WHERE n.nspname = 'public'
   AND c.relname IN (SELECT name FROM target_names)
   AND NOT trg.tgisinternal
 ORDER BY c.relname, trg.tgname;
+
+
+-- Governance routine source-body inventory and effective EXECUTE matrix.
+-- Catalog metadata only; this does not execute routines or read app rows.
+SELECT
+  p.oid AS routine_oid,
+  p.proname AS routine_name,
+  pg_catalog.pg_get_function_identity_arguments(p.oid) AS identity_arguments,
+  p.prokind AS routine_kind,
+  p.prosecdef AS security_definer,
+  p.proconfig AS function_settings,
+  pg_catalog.pg_get_userbyid(p.proowner) AS owner_name,
+  coalesce(p.proacl, pg_catalog.acldefault('f', p.proowner))::text AS explicit_or_default_acl,
+  pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_execute,
+  pg_catalog.has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_execute,
+  pg_catalog.has_function_privilege('service_role', p.oid, 'EXECUTE') AS service_role_execute,
+  length(p.prosrc) AS source_characters,
+  left(regexp_replace(p.prosrc, E'[\\n\\r\\t]+', ' ', 'g'), 500) AS source_preview
+FROM pg_catalog.pg_proc p
+JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.prokind IN ('f', 'p')
+  AND (
+    p.proname IN (
+      'taleforge_boss_evaluate',
+      'taleforge_ceo_execution_gate',
+      'taleforge_ceo_analyze_root_cause',
+      'taleforge_ceo_build_repair_plan',
+      'taleforge_ceo_run_diagnostic',
+      'taleforge_observe_all_systems',
+      'aevora_audit_registry_consistency',
+      'aevora_diagnose_issue_evidence'
+    )
+    OR p.prosrc ILIKE '%taleforge_system_governance_registry%'
+    OR p.prosrc ILIKE '%taleforge_system_governance_dependencies%'
+    OR p.prosrc ILIKE '%taleforge_system_governance_runs%'
+    OR p.prosrc ILIKE '%taleforge_boss_evaluate%'
+    OR p.prosrc ILIKE '%taleforge_ceo_execution_gate%'
+  )
+ORDER BY p.proname, pg_catalog.pg_get_function_identity_arguments(p.oid);
