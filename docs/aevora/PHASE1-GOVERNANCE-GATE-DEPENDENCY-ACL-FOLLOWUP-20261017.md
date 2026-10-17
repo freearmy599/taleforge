@@ -171,3 +171,7 @@ Current confirmed unqualified persistent-relation candidates from the inspected 
 6. `taleforge_refresh_narrative_memory_consolidation_health()`.
 
 This is not yet a claim that the six functions are exploitable, nor an exhaustive audit of all 55 routines. The next priority is to inspect all six for temp-object interaction in a controlled rehearsal, trace their actual callers, and build a narrow tested patch with schema-qualified relations (or a carefully chosen fixed search path including `pg_temp` last). Production definitions remain unchanged.
+
+### Trigger-adjacent scope refined
+
+The live trigger inventory was checked for all enabled, non-internal triggers whose SECURITY DEFINER functions have exact `search_path=public`. The four inspected trigger functions on `public.chapters` / `public.series` are executable by `service_role` but not `anon` or `authenticated`. Full body previews show that `enqueue_publication_sync_event`, `taleforge_enqueue_continuity_extraction`, and `taleforge_enroll_series_in_production` schema-qualify their persistent table references. The publication-trigger wrapper `taleforge_refresh_long_term_architecture_on_publish` calls the architecture refresh function with a schema-qualified function name, but that downstream refresh function still has the confirmed unqualified persistent-table references listed above. Therefore the downstream refresh is the priority; do not treat every `search_path=public` trigger function as equally risky.
