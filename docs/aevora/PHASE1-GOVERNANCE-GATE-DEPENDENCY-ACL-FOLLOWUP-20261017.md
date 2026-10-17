@@ -90,3 +90,18 @@ A separate read-only privilege check confirmed service_role can create temporary
 4. Do not bulk-edit routine definitions from this count alone. Preserve existing service-role-only EXECUTE posture and require authoritative source recovery, dependency review, and regression coverage.
 
 This expands the security review scope; it does not authorize production changes. No functions, grants, policies, data, migrations, schedules, chapters, or publications were changed. Automated publishing remains **NO-GO**.
+
+
+## Follow-up: first-pass unqualified relation reference scan — 2026-10-17
+
+The validation workflow for the preceding audit completed successfully, including both read-only schema provenance contract tests and the disposable readiness-migration rehearsal. Workflow: https://github.com/freearmy599/taleforge/actions/runs/39042084278
+
+A first-pass, read-only source-body scan narrowed the exact `search_path=public` candidate set to three routines with clear unqualified relation references in the inspected source preview:
+
+- `taleforge_reassess_long_term_narrative_architecture(uuid)`: unqualified reads from `series`, `chapters`, and other architecture/thread tables.
+- `taleforge_refresh_long_term_narrative_architecture(uuid)`: uses several unqualified aliases/relations in parts of the function body, while the inspected opening section also includes explicitly qualified references.
+- `taleforge_verify_narrative_memory_consolidation()`: unqualified read from `series` and unqualified reference to `taleforge_narrative_memory_consolidations`.
+
+All three were catalogued as SECURITY DEFINER with exactly `search_path=public`; effective service_role EXECUTE was true. This is a **first-pass scan**, not a complete parser or proof of exploitability. The text filter may miss formatting variants, CTEs, dynamic SQL, relation names outside the seed list, or references hidden later in a body. The next safe step is to inspect the complete definitions and callers for these three routines, then expand the scan across the full 55-routine set.
+
+No routines were invoked, no temp objects were created, and no production state was modified. Do not alter search paths until the complete definitions, dependency/caller graph, and disposable shadowing rehearsal are reviewed. Automated publishing remains **NO-GO**.
