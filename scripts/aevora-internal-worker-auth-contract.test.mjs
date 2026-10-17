@@ -32,7 +32,7 @@ async function source(path) {
   return readFile(new URL("../" + path, import.meta.url), "utf8");
 }
 
-test("every known secret-key cron target is covered by the internal-worker authorization contract", async () => {
+test("every known secret-key cron target has guarded source and matching gateway configuration", async () => {
   // Keep this target inventory aligned with the metadata-only production cron audit.
   // It intentionally records function slugs, never live SQL, headers, or credentials.
   const cronTargets = [
@@ -45,9 +45,22 @@ test("every known secret-key cron target is covered by the internal-worker autho
     "semantic-continuity-extraction",
     "autonomous-series-creation-runner",
   ];
-  const classified = new Set([...workers, "autonomous-series-creation-runner"]);
+  const internalWorkers = new Set(workers);
+  const config = await source("supabase/config.toml");
   for (const target of cronTargets) {
-    assert.ok(classified.has(target), target + " must remain covered by an internal-worker authentication contract");
+    const entrypoint = await source("supabase/functions/" + target + "/index.ts");
+    const handler = entrypoint.slice(entrypoint.indexOf("Deno.serve"));
+    assert.ok(handler.includes("isTrustedInternalApiKey("),
+      target + " must validate the internal key in its deployed handler source");
+    const section = config.match(
+      new RegExp("\\[functions\\." + target + "\\]\\s*([\\s\\S]*?)(?=\\n\\[functions\\.|$)"),
+    );
+    assert.ok(section, target + " must have an explicit gateway configuration");
+    assert.match(section[1], /^\\s*verify_jwt\\s*=\\s*false\\s*$/m,
+      target + " must disable gateway JWT parsing only because handler auth is mandatory");
+    if (target !== "autonomous-series-creation-runner") {
+      assert.ok(internalWorkers.has(target), target + " must remain in the shared worker contract inventory");
+    }
   }
 });
 
