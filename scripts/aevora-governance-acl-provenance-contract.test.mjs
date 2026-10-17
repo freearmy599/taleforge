@@ -57,6 +57,11 @@ test("default-ACL evidence retains both creator roles and all broad privilege cl
   }
   assert.match(query, /pg_catalog\.pg_default_acl/);
   assert.match(query, /pg_catalog\.aclexplode/);
+  assert.match(query, /pg_catalog\.pg_constraint/);
+  assert.match(query, /pg_catalog\.pg_depend/);
+  assert.match(query, /pg_catalog\.pg_trigger/);
+  assert.ok(query.includes("'taleforge_system_registry'"));
+  assert.ok(query.includes("'taleforge_system_governance_registry'"));
 });
 
 test("governance gate definition query and publication-approval distinction remain explicit", () => {
