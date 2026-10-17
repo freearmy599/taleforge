@@ -541,3 +541,11 @@ Using the connected Supabase project's read-only list/catalog operations, confir
 - [x] The checklist update itself passed both jobs in [run 39028302056](https://github.com/freearmy599/taleforge/actions/runs/39028302056).
 - **Scope:** branch-only regression tests and documentation. No production Supabase functions, permissions, migrations, schedules, chapter data, or publication state changed; no billable branch was created.
 - **Gate unchanged:** automated publishing remains **NO-GO** pending trusted publication authorization at the database commit boundary, live function/migration parity, authorized owner/default-ACL remediation, and coordinated internal worker-auth rollout.
+
+### Lease duration and release-ownership contract validation — 2026-10-17
+
+- [x] Extended `scripts/aevora-lease-rpc-migration-contract.test.mjs` to require lease claim/renew durations to be bounded to 30–900 seconds and lease release to match both schedule ID and lease token, require exactly one deleted row for success, and retain the fixed function `search_path`.
+- [x] The test commit [`10cc14a`](https://github.com/freearmy599/taleforge/commit/10cc14a0a9c8a5470487d425e4ebc1468aa16e89) passed both CI jobs in [run 39029292270](https://github.com/freearmy599/taleforge/actions/runs/39029292270): Edge source/type-check validation and disposable PostgreSQL readiness-migration rehearsal.
+- [x] This checklist update's preceding validation run [39029278484](https://github.com/freearmy599/taleforge/actions/runs/39029278484) also passed both jobs.
+- **Scope:** branch-only contract tests and documentation. No production function, permission, migration, cron schedule, chapter, or publication state was changed; no billable Supabase branch was created.
+- **Gate unchanged:** automated publishing remains **NO-GO** pending trusted publication authorization at the database commit boundary, live function/migration parity, authorized owner/default-ACL remediation, and coordinated internal worker-auth rollout.
