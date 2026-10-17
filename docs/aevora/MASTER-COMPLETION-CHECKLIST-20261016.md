@@ -118,6 +118,7 @@ The 38 is a working count of major system families, not 38 independent applicati
 - [ ] Audit the operations snapshot/control-plane audit for authorization, redaction, and accurate live-vs-branch reporting.
 - [ ] Confirm queue, provider, publication, review, and scheduler telemetry cannot leak secrets, prompts, or raw provider errors.
 - [ ] Document rollout order, health checks, rollback steps, and the explicit authorization gate.
+- [ ] Review and implement the transaction-owned publication boundary only after trusted human approval semantics are explicitly decided; the [2026-10-17 atomic publication boundary review](./PHASE1-ATOMIC-PUBLICATION-BOUNDARY-REVIEW-20261017.md) documents the current multi-request partial-commit risk and required transaction invariants.
 - [ ] **Phase 1 exit:** same-commit CI green; disposable SQL and concurrency rehearsal green; deployed drift mapped; grants and RPCs reviewed; runtime validation complete; schedule dispositions documented; rollback reviewed. Production rollout remains a separate approval.
 
 ## Phase 2 — Autonomous production loop (build/integration and end-to-end verification)
