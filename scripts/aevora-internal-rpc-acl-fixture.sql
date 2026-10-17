@@ -12,6 +12,7 @@ CREATE TYPE public.story_attachment_metrics AS (id bigint);
 
 CREATE TABLE public.chapters (id integer PRIMARY KEY);
 ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+CREATE POLICY aevora_rpc_fixture_select ON public.chapters FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY aevora_rpc_fixture_insert ON public.chapters FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY aevora_rpc_fixture_update ON public.chapters FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 GRANT SELECT, INSERT, UPDATE ON public.chapters TO anon, authenticated, service_role;
