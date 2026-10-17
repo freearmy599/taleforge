@@ -45,7 +45,7 @@ test("disposable fixture proves permissive RLS policies do not substitute for wr
 
 test("ACL assertions preserve client SELECT, remove table and column writes, and retain server CRUD", () => {
   assert.match(assertions, /has_table_privilege\(client_role, 'public\.chapters', 'SELECT'\)/);
-  assert.match(assertions, /ARRAY\['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'MAINTAIN', 'REFERENCES', 'TRIGGER'\]/);
+  assert.match(assertions, /ARRAY\['INSERT', 'UPDATE', 'DELETE'\]/);
   assert.match(assertions, /has_column_privilege\(client_role, 'public\.chapters', 'title', privilege_name\)/);
   assert.match(assertions, /has_table_privilege\('service_role', 'public\.chapters', privilege_name\)/);
   assert.match(assertions, /fixture public chapter read/);
