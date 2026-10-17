@@ -108,7 +108,7 @@ test("claimed scheduler leases are released in finally, with failures surfaced",
     "lease release must run in the schedule-processing finally block");
   const cleanup = source.slice(finallyIndex, source.indexOf("\n      }\n    }", finallyIndex));
   assert.match(cleanup, /if\(leaseClaimed\)/);
-  assert.match(cleanup, /released\.error \|\| released\?\.data!==true/);
+  assert.match(cleanup, /released\?\.error \|\| released\?\.data!==true/);
   assert.match(cleanup, /action:"lease_release_warning"/,
     "failed lease release must be visible as a scheduler failure");
 });
