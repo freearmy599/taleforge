@@ -38,3 +38,25 @@ Reason: the prepared handlers validate the `apikey` header explicitly and suppor
 - Supabase API-key migration: https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys
 - Supabase Edge Function authentication: https://supabase.com/docs/guides/functions/auth
 - Supabase authorization headers: https://supabase.com/docs/guides/functions/auth-headers
+
+
+## Phase 1 hardening gate update (read-only checks, 2026-10-17)
+
+This section records newer branch/production findings. It does not authorize deployment.
+
+- Branch `aevora/release-scheduler-hardening` at commit `9dc7999c905aa7a321f8dfc9ed927f6849583a05` passed the Aevora Edge source-validation workflow: [run 38994366065](https://github.com/freearmy599/taleforge/actions/runs/38994366065). This validates the prepared branch only; it is not evidence that production functions or migrations were updated.
+- The prepared scheduler and publisher deliberately fail closed for real auto-publication while database commit-boundary publication authorization is unimplemented. Do not remove this stop as a deployment workaround. Before enabling automated publication, implement and test an authorization primitive that is enforced at the database write/commit boundary, then test duplicate races, existing-chapter paths, lease loss, partial failure, canon-sync failure, and schedule advancement.
+- A read-only production migration-ledger check found the current hardening candidates unapplied. This includes scheduler lease foundation/fencing, internal RPC and table ACL locks, provider-state ACL lock, maintenance privilege revocations/default guards, the release readiness gate, and system-health read-surface lock. Production therefore must not be described as having these protections merely because branch CI is green.
+- Default-privilege hardening has a known owner-context blocker: the current SQL execution role cannot administer `supabase_admin` defaults. The migration intentionally raises an exception rather than pretending a schema-scoped revoke can override global defaults or bypass ownership. Resolve this through an authorized owner-level procedure and rehearse it on a disposable database; do not weaken the guard or create a billable development branch.
+- The release-readiness migration is operationally consequential: it can disable schedules that do not meet readiness criteria. Before any authorized application, record a schedule-by-schedule disposition and rollback/recovery plan. Do not run it as a routine schema migration.
+- The latest read-only provider-state observation at **2026-10-17 02:25 UTC** showed the Gemini cooldown active, with nine consecutive throttle events and a recorded cooldown-until timestamp of **2026-10-17 10:00 UTC (3:30 PM India time)**. Re-read the state before resuming model-backed work; never infer the cooldown has ended from this document. Do not probe Gemini during the cooldown.
+- No production migration, function deployment, ACL change, chapter generation/publication, or release-schedule mutation was performed during this check.
+
+### Required order before release automation can be enabled
+
+1. Finish branch-only regression tests for provider-state fail-closed behavior and publication authorization.
+2. Complete disposable PostgreSQL rehearsals for every candidate migration, including trigger execution, role grants, RLS/policy behavior, sequence grants, default ACL owner handling, and service-role access.
+3. Resolve the authorized `supabase_admin` default-privilege execution path without weakening migration assertions.
+4. Prepare a reviewed migration order and schedule disposition/rollback plan; apply migrations only after explicit production authorization.
+5. Deploy and verify the scheduler/publisher pair only after commit-boundary publication authorization exists. Keep automated publication blocked until every verification passes.
+6. Re-check Gemini provider state and run a low-cost, bounded verification only after cooldown is inactive and the work is explicitly authorized.
