@@ -119,12 +119,16 @@ test("lease release deletes only the row matching both schedule and lease token"
   assert.match(release, /SET search_path = pg_catalog/);
 });
 
-test("lease claim, renewal, and release fail closed on null identifiers", () => {
+test("lease claim and renewal reject null identifiers, and release cannot delete with null identifiers", () => {
   const claim = functionBody(foundation, "aevora_claim_release_scheduler_lease");
   const renew = functionBody(foundation, "aevora_renew_release_scheduler_lease");
   const release = functionBody(foundation, "aevora_release_scheduler_lease");
-  for (const [name, body] of [["claim", claim], ["renew", renew], ["release", release]]) {
+  for (const [name, body] of [["claim", claim], ["renew", renew]]) {
     assert.match(body, /IF p_schedule_id IS NULL OR p_lease_token IS NULL THEN[\s\S]*?RETURN false;/,
       `${name} must reject null schedule and lease-token identifiers before mutating lease state`);
   }
+  assert.match(release, /DELETE FROM public\.aevora_release_scheduler_leases[\s\S]*?WHERE schedule_id = p_schedule_id AND lease_token = p_lease_token/);
+  assert.match(release, /GET DIAGNOSTICS affected = ROW_COUNT;[\s\S]*?RETURN affected = 1/);
+  assert.doesNotMatch(release, /IS NOT DISTINCT FROM/,
+    "release must not treat NULL as a matchable schedule ID or lease token");
 });
