@@ -30,7 +30,7 @@ const governanceRelations = [
 
 test("live governance ACL evidence names all four relations in report and query", () => {
   for (const relation of governanceRelations) {
-    assert.ok(report.includes("`" + relation + "`"), "report missing " + relation);
+    assert.ok(report.includes("public." + relation), "report missing " + relation);
     assert.ok(query.includes("'" + relation + "'"), "read-only query missing " + relation);
   }
 });
@@ -54,13 +54,13 @@ test("governance gate definition query and publication-approval distinction rema
   for (const routine of ["taleforge_ceo_execution_gate", "taleforge_boss_evaluate"]) {
     assert.ok(query.includes("'" + routine + "'"), "query missing live routine " + routine);
   }
-  assert.match(report, /not (?:proof|evidence).{0,100}(?:human|chapter)|not a human approval record/i);
+  assert.match(report, /not a per-chapter human approval token|not a human approval record|not proof.{0,100}(?:human|chapter)/i);
   assert.match(report, /provenance remains unresolved|remains unresolved/i);
 });
 
 test("audit records do not misrepresent read-only findings as production remediation", () => {
   assert.match(report, /no grants or policies changed|no production/i);
-  assert.match(checklist, /Automated publishing remains \\*\\*?NO-GO\\*\\*?/i);
+  assert.ok(checklist.includes("Automated publishing remains **NO-GO**"), "checklist must preserve the publishing NO-GO gate");
   assert.match(query, /READ ONLY/i);
   assert.match(query, /never apply a blanket revoke/i);
 });
