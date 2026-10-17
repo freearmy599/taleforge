@@ -113,6 +113,10 @@ test("review orchestrator blocks all review calls when provider state is unavail
   assert.ok(orchestrator.includes("if (providerStateError || !providerState)"));
   assert.ok(orchestrator.includes('reason: "provider_state_unavailable"'));
   assert.ok(orchestrator.includes("new Date(providerState.cooldown_until).getTime()"));
+  assert.ok(orchestrator.includes("typeof providerState.consecutive_throttle_count !== \"number\""));
+  assert.ok(orchestrator.includes("Number.isSafeInteger(providerState.consecutive_throttle_count)"));
+  assert.ok(orchestrator.includes("providerState.consecutive_throttle_count < 0"));
+  assert.ok(orchestrator.includes("!Number.isFinite(new Date(providerState.cooldown_until).getTime())"));
   assert.ok(orchestrator.includes('reason: "provider_cooldown"'));
   assert.ok(orchestrator.includes("no review model calls were made"));
   const guardStart = orchestrator.indexOf('.from("taleforge_ai_provider_state")');
