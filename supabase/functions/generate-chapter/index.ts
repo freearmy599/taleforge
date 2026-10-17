@@ -269,7 +269,7 @@ const score=Number(ai?.score),semanticScore=Number(ai?.semantic_plan_alignment?.
 // Fail closed: missing or malformed review fields are not evidence that the plan was met.
 const semanticReady=Number.isFinite(semanticScore)&&semanticScore>=75;
 const criticalIssuesClear=critical!==null&&critical.length===0;
-const decision=ai?.decision==="passed"&&Number.isFinite(score)&&score>=85&&criticalIssuesClear&&semanticReady?"passed":"needs_revision",status=decision==="passed"?"quality_check":"needs_revision";
+const decision=ai?.decision==="passed"&&Number.isFinite(score)&&score>=85&&score<=100&&criticalIssuesClear&&semanticReady?"passed":"needs_revision",status=decision==="passed"?"quality_check":"needs_revision";
 if(!Number.isFinite(score)||score<0||score>100){
  console.warn("[generate-chapter] AI quality-review returned an out-of-range score; failing closed.");
 }
