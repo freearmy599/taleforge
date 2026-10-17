@@ -518,15 +518,15 @@ Deno.test("partial or unconfirmed publication never advances the next release de
 
 Deno.test("scheduler response never presents an unpersisted deadline as next_release_at", async () => {
   const source = await Deno.readTextFile(schedulerUrl);
-  assert.match(source, /let scheduleAdvanced = false;/,
+  assert(/let scheduleAdvanced = false;/.test(source),
     "persisted schedule advancement must start unconfirmed");
-  assert.match(source, /if\(advancement\.error \|\| advancement\.data!==true\)[\s\S]*?continue;\s*}\s*scheduleAdvanced = true;/,
+  assert(/if\(advancement\.error \|\| advancement.data!==true\)[\s\S]*?continue;\s*}\s*scheduleAdvanced = true;/.test(source),
     "only a confirmed lease-fenced advancement may mark the deadline persisted");
-  assert.match(source, /next_release_at:scheduleAdvanced\?nextRelease\?\.toISOString\(\)\?\?schedule\.next_release_at:schedule\.next_release_at/,
+  assert(/next_release_at:scheduleAdvanced\?nextRelease\?\.toISOString\(\)\?\?schedule\.next_release_at:schedule\.next_release_at/.test(source),
     "the reported next_release_at must remain the stored deadline unless advancement is confirmed");
-  assert.match(source, /proposed_next_release_at:nextRelease\?\.toISOString\(\)\?\?null/,
+  assert(/proposed_next_release_at:nextRelease\?\.toISOString\(\)\?\?null/.test(source),
     "a computed but unpersisted deadline must be labelled as a proposal");
-  assert.match(source, /schedule_advance_confirmed:scheduleAdvanced/,
+  assert(/schedule_advance_confirmed:scheduleAdvanced/.test(source),
     "response must explicitly state whether deadline advancement was confirmed");
 });
 
