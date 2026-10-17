@@ -15,7 +15,7 @@ test("shadowing rehearsal requires explicit disposable acknowledgement and exact
   assert.match(script, /AEVORA_DISPOSABLE_SEARCH_PATH_REHEARSAL/);
   assert.match(script, /I_UNDERSTAND_THIS_IS_DISPOSABLE/);
   assert.match(script, /\[\[ "\$DATABASE_URL" == \*\/aevora_search_path_shadowing_test \]\]/);
-  assert.doesNotMatch(script, /sxmbnlgufqhcwxcpcsvb|supabase\.co|service_role.*password/i);
+  assert.doesNotMatch(script, /sxmbnlgufqhcwxcpcsvb|supabase\.co|aevora_shadow_test_role.*password/i);
 });
 
 test("rehearsal demonstrates unqualified temp resolution and schema-qualified protection", () => {
