@@ -75,3 +75,40 @@ test("persisted publication confirmation binds chapter ID, series, chapter numbe
   assert.match(query, /confirmedChapter\.status!==\"published\"/,
     "the persisted chapter must be in published status");
 });
+
+
+test("scheduler renews its lease before invoking the publisher", () => {
+  const renewIndex = source.indexOf('rpc("aevora_renew_release_scheduler_lease"');
+  const publisherIndex = source.indexOf('fetch(url+"/functions/v1/release-publisher"', renewIndex);
+  const leaseLostIndex = source.indexOf('leaseLost=true;', renewIndex);
+  assert.ok(renewIndex >= 0 && publisherIndex > renewIndex,
+    "the current schedule lease must be renewed before the publisher call");
+  assert.ok(leaseLostIndex > renewIndex && leaseLostIndex < publisherIndex,
+    "a rejected lease renewal must fail closed before publication side effects");
+  const renewalGuard = source.slice(renewIndex, publisherIndex);
+  assert.match(renewalGuard, /renewed\.error \|\| renewed\.data!==true[\s\S]*?break;/,
+    "renewal error or non-ownership must stop the batch");
+});
+
+test("schedule advancement uses the same lease token in an atomic database RPC", () => {
+  const advanceIndex = source.indexOf('rpc("aevora_advance_release_schedule_if_lease_owned"');
+  assert.ok(advanceIndex >= 0, "schedule advancement must use the lease-aware RPC");
+  const advancement = source.slice(advanceIndex, advanceIndex + 550);
+  assert.match(advancement, /p_schedule_id:schedule\.id/);
+  assert.match(advancement, /p_lease_token:leaseToken/);
+  assert.match(advancement, /p_next_release_at:nextRelease\.toISOString\(\)/);
+  assert.match(advancement, /advancement\.error \|\| advancement\.data!==true[\s\S]*?leaseLost=true;/,
+    "an unconfirmed advancement must not be reported as successful");
+});
+
+test("claimed scheduler leases are released in finally, with failures surfaced", () => {
+  const finallyIndex = source.indexOf("}finally{");
+  const releaseIndex = source.indexOf('rpc("aevora_release_scheduler_lease"', finallyIndex);
+  assert.ok(finallyIndex >= 0 && releaseIndex > finallyIndex,
+    "lease release must run in the schedule-processing finally block");
+  const cleanup = source.slice(finallyIndex, source.indexOf("\n      }\n    }", finallyIndex));
+  assert.match(cleanup, /if\(leaseClaimed\)/);
+  assert.match(cleanup, /released\.error \|\| released\?\.data!==true/);
+  assert.match(cleanup, /action:"lease_release_warning"/,
+    "failed lease release must be visible as a scheduler failure");
+});
