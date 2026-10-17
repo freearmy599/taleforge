@@ -131,6 +131,9 @@ BEGIN
 
   EXECUTE 'REVOKE INSERT, UPDATE, DELETE, MAINTAIN, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.taleforge_system_registry FROM PUBLIC, anon, authenticated';
 
+  -- Make the intended public metadata read explicit instead of relying on inherited grants.
+  EXECUTE 'GRANT SELECT ON TABLE public.taleforge_system_registry TO anon, authenticated';
+
   SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
     INTO column_list
   FROM pg_catalog.pg_attribute a
