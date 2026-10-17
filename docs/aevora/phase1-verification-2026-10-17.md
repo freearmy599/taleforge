@@ -4,12 +4,12 @@ Status: branch-only verification; production remains unchanged.
 
 ## Latest verified commit
 
-- Commit: `125cdbc9247053d71303345fbc9a52e526184456`
-- Workflow: [Aevora Edge source validation](https://github.com/freearmy599/taleforge/actions/runs/39001283404)
+- Commit: `ba691154bd65d2d2af4862f118274d2e129fd0b0`
+- Workflow: [Aevora Edge source validation](https://github.com/freearmy599/taleforge/actions/runs/39002347162)
 - Type-check and source-contract job: passed.
-- Disposable PostgreSQL rehearsal job: passed all 19 rehearsal steps.
+- Disposable PostgreSQL rehearsal job: passed, including the atomic quality-review persistence/rollback rehearsal.
 
-The database rehearsal covered readiness invariants, concurrent series completion, reader-event integrity, trending aggregate ACLs, provider-state ACL and redaction, provider throttle concurrency, future default privileges, system-health access, chapter write ACLs, internal policyless-table grants, and internal RPC EXECUTE revocation.
+The database rehearsal covered readiness invariants, concurrent series completion, reader-event integrity, trending aggregate ACLs, provider-state ACL and redaction, provider throttle concurrency, future default privileges, system-health access, chapter write ACLs, internal policyless-table grants, internal RPC EXECUTE revocation, and atomic quality-review persistence with rollback.
 
 ## Internal RPC ACL verification
 
@@ -25,13 +25,13 @@ The latest successful workflow includes the runtime denial checks for both `anon
 
 ## Additional generation and review hardening
 
-The same verified branch adds regression coverage for Gemini provider-state guards in `generate-chapter` and `review-orchestrator`. The generation cooldown guard is scoped to generation requests so deterministic quality validation can still run during provider cooldown; AI quality review has its own guard immediately before the model call. Both deterministic and AI quality-review output-status updates now use compare-and-set status filters so a concurrent transition to a finalized status is not overwritten. Source-contract tests verify these boundaries. This does not make the review-record upsert and output-status update a single transaction; a database-level atomic review-write primitive remains a potential hardening follow-up.
+The same verified branch adds regression coverage for Gemini provider-state guards in `generate-chapter` and `review-orchestrator`. The generation cooldown guard is scoped to generation requests so deterministic quality validation can still run during provider cooldown; AI quality review has its own guard immediately before the model call. Both deterministic and AI quality-review output-status transitions now go through a database-level atomic review-write primitive. The candidate primitive is covered by the latest green disposable PostgreSQL rehearsal.
 
-## Follow-on atomic quality-review candidate — verification pending
+## Atomic quality-review commit — branch CI verified
 
 After the last fully green commit above, the branch adds candidate migration `20261017150000_aevora_atomic_quality_review_commit.sql` and updates both deterministic and AI quality-review paths to call `aevora_commit_quality_review`. The SECURITY INVOKER function updates only eligible output states and writes the `chapter_reviews` row in the same transaction. A stale/finalized output returns a fenced result without writing a review; a review-write error rolls back the output transition. Browser-role EXECUTE is revoked and `service_role` is explicitly granted EXECUTE.
 
-The disposable rehearsal tests successful commit, finalized-output fencing, rollback when review persistence fails, and RPC ACLs. Source-contract tests check both callers use the atomic RPC and reject out-of-range quality scores. The workflow now includes these tests, but this follow-on candidate must not be called verified until its new workflow run completes successfully. It remains branch-only and has not been applied to production.
+The successful workflow run `39002347162` (commit `ba691154bd65d2d2af4862f118274d2e129fd0b0`) passed both jobs. The disposable rehearsal verifies successful commit, finalized-output fencing, rollback when review persistence fails, idempotent retry/upsert, invalid review status and score rejection, and RPC ACLs. Source-contract tests verify both callers use the atomic RPC and that response scores match the validated persisted score. This candidate is verified on the branch only; it has not been applied to production.
 
 ## Default-privilege owner-context follow-up
 
@@ -43,12 +43,11 @@ No production migration, Edge Function deployment, ACL change, chapter generatio
 
 ## Remaining release blockers
 
-1. Confirm CI is green for the follow-on atomic quality-review candidate (the last confirmed green run predates it).
-2. Resolve the `supabase_admin` default-privilege owner-context blocker using an authorized owner-level procedure and disposable rehearsal; do not weaken the ownership guard.
-3. Implement a separately authorized, auditable human publication approval bound to the exact chapter output and policy version, enforced at the database publication transaction boundary.
-4. Add/reconfirm publication race, idempotency, schedule-change, lease-loss, and outbox-trigger rollback rehearsals before automated publishing is enabled.
-5. Prepare a schedule-by-schedule disposition and rollback/recovery plan before any release-readiness migration is applied.
-6. Re-read live Gemini provider state before any model-backed operation. Do not probe Gemini while cooldown is active.
-7. Obtain explicit production authorization before any production migration or function deployment.
+1. Resolve the `supabase_admin` default-privilege owner-context blocker using an authorized owner-level procedure and disposable rehearsal; do not weaken the ownership guard.
+2. Implement a separately authorized, auditable human publication approval bound to the exact chapter output and policy version, enforced at the database publication transaction boundary.
+3. Add/reconfirm publication race, idempotency, schedule-change, lease-loss, and outbox-trigger rollback rehearsals before automated publishing is enabled.
+4. Prepare a schedule-by-schedule disposition and rollback/recovery plan before any release-readiness migration is applied.
+5. Re-read live Gemini provider state before any model-backed operation. Do not probe Gemini while cooldown is active.
+6. Obtain explicit production authorization before any production migration or function deployment.
 
 The scheduler and publisher's fail-closed stop for automated publication must remain in place until the publication authorization primitive and its tests are complete.
