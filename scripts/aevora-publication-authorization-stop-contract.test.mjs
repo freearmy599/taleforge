@@ -13,6 +13,10 @@ const source = await readFile(
   new URL("../supabase/functions/release-scheduler/index.ts", import.meta.url),
   "utf8",
 );
+const publisher = await readFile(
+  new URL("../supabase/functions/release-publisher/index.ts", import.meta.url),
+  "utf8",
+);
 
 test("real auto-publish work stops before lease claims and publisher calls", () => {
   const guardStart = source.indexOf('if(!dryRun && schedule.auto_publish){');
@@ -150,4 +154,29 @@ test("partial publication failure blocks lifecycle activation and schedule advan
   assert.match(source.slice(completionGate, advanceGate),
     /attemptedCount===publishCount && published\.length===publishCount[\s\S]*?!publicationFailed && !leaseLost/,
     "partial batches, publisher failures, and lease loss must fail the completion predicate");
+});
+
+
+test("publisher blocks manual and automatic publication before publication-state access", () => {
+  const governanceCheck = publisher.indexOf('taleforge_ceo_execution_gate",{p_action_scope:"publication"}');
+  const stop = publisher.indexOf('code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED"', governanceCheck);
+  const outputLookup = publisher.indexOf('.from("chapter_generation_outputs")');
+  const scheduleLookup = publisher.indexOf('.from("release_schedules")');
+  assert.ok(governanceCheck >= 0, "publisher must retain the separate governance gate");
+  assert.ok(stop > governanceCheck, "trusted-approval stop must follow internal governance authentication");
+  assert.ok(outputLookup > stop, "publisher must stop before reading the output or entering publication flow");
+  assert.ok(scheduleLookup > stop, "manual mode must not bypass the stop through schedule classification");
+  const stopBlock = publisher.slice(stop - 300, outputLookup);
+  assert.match(stopBlock, /published: false/);
+  assert.match(stopBlock, /}, 423\)/);
+  assert.match(stopBlock, /Publication blocked until trusted approval is implemented/);
+});
+
+test("publisher no longer relies on manual schedule flags as proof of human approval", () => {
+  const stop = publisher.indexOf('code: "PUBLICATION_AUTHORIZATION_NOT_IMPLEMENTED"');
+  const manualBranch = publisher.indexOf('automationSchedule.schedule_mode === "manual"');
+  assert.ok(stop >= 0 && manualBranch > stop,
+    "all modes must fail closed before the later manual-vs-automated schedule checks");
+  assert.match(publisher.slice(stop - 300, manualBranch),
+    /trusted-approval record bound to[\s\S]*?service-role authentication are[\s\S]*?not per-chapter human approval/);
 });
