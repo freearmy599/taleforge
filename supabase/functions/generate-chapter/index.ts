@@ -290,7 +290,7 @@ if(commit?.committed!==true){
  return reply({success:false,mode:"quality-review",retryable:false,reason:"output_state_changed",error:"The output changed before review commit; no review was written and the existing output state was preserved."},409);
 }
 const reviewId=commit.review_id||null;
-return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:reviewId,chapter_number:out.chapter_number,chapter_title:out.title,decision,score,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
+return reply({success:true,mode:"quality-review",validation_mode:"deterministic-plus-ai",output_id:outputId,review_id:reviewId,chapter_number:out.chapter_number,chapter_title:out.title,decision,score:safeScore,generation_status:status,published:false,hard_validation:hard,next_step:decision==="passed"?"Continue with continuity, originality, safety, and publication review.":"Run revise-chapter on this output."});
 }catch(e){
 const message=e instanceof Error?e.message:String(e);
 const providerQuotaFailure=message.includes("Gemini HTTP 429")||message.includes("RESOURCE_EXHAUSTED");
