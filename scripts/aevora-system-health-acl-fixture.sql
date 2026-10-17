@@ -27,7 +27,7 @@ ALTER TABLE public.taleforge_system_health ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public can read system registry" ON public.taleforge_system_registry
   FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "public can read system health" ON public.taleforge_system_health
-  FOR SELECT TO anon, authenticated USING (true);
+  FOR SELECT TO PUBLIC USING (true);
 
 CREATE VIEW public.taleforge_system_health_snapshot
 WITH (security_invoker = true) AS
