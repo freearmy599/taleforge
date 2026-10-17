@@ -660,3 +660,11 @@ No production permissions or routines were changed. Automated publishing remains
 - [x] CI run [39052001787](https://github.com/freearmy599/taleforge/actions/runs/39052001787) passed both jobs on commit `5c915a871439a396d41a4d62b5026ba3dc649ad7`: prepared Edge Function/source-contract validation (67/67 steps) and disposable PostgreSQL readiness/ACL/lease/atomic-quality-review rehearsal (24/24 steps).
 - **Interpretation:** this confirms the new regression test and branch validation only. Source review did not identify a new bypass in this path; trusted human approval at the database commit boundary and publisher cross-table atomicity remain unresolved release blockers.
 - **Safety boundary:** branch-only test/documentation work. No production migrations, deployments, ACLs, schedules, chapters, or publication state changed; no billable Supabase resource was created. Automatic publishing remains **NO-GO**.
+
+
+### Review-orchestrator provider-state guard regression — 2026-10-17
+
+- [x] Added a source-contract regression test for the review orchestrator: provider-state lookup errors, missing rows, malformed throttle counters/cooldown timestamps, and active cooldowns must block review calls before they begin.
+- [x] CI run [39052235882](https://github.com/freearmy599/taleforge/actions/runs/39052235882) completed successfully on commit `d6f3540053946481f977de06db82251ff7201568`: Edge/source validation **67/67** steps; disposable PostgreSQL readiness/ACL/lease/atomic-quality-review rehearsal **24/24** steps.
+- **Scope:** the successful run verifies branch tests and disposable database rehearsals only. It does not prove deployed function parity or authorize production rollout.
+- **Safety boundary:** no production migrations, deployments, ACLs, schedules, chapters, or publication state changed; no billable Supabase resource was created. Automated publishing remains **NO-GO**.
